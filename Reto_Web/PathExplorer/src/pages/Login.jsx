@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { 
   TextField, 
   Button, 
@@ -7,9 +7,11 @@ import {
   Box, 
   Typography,
   InputAdornment,
-  IconButton
+  IconButton,
+  Link
 } from '@mui/material';
 import { Visibility, VisibilityOff } from '@mui/icons-material';
+import useBodyStyles from '../hooks/useBodyStyles.js'; 
 
 const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -17,38 +19,7 @@ const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-  // Aplicar estilos al body para quitar márgenes
-  useEffect(() => {
-    // Guardar estilos originales
-    const originalBodyStyle = document.body.style.cssText;
-    const originalHtmlStyle = document.documentElement.style.cssText;
-    
-    // Aplicar nuevos estilos
-    document.body.style.margin = '0';
-    document.body.style.padding = '0';
-    document.body.style.width = '100vw';
-    document.body.style.height = '100vh';
-    document.body.style.overflow = 'hidden';
-    document.body.style.backgroundColor = '#FFFFFF';
-    
-    document.documentElement.style.margin = '0';
-    document.documentElement.style.padding = '0';
-    document.documentElement.style.width = '100vw';
-    document.documentElement.style.height = '100vh';
-    document.documentElement.style.overflow = 'hidden';
-    
-    // Sobrescribir cualquier estilo del root
-    document.getElementById('root').style.width = '100vw';
-    document.getElementById('root').style.height = '100vh';
-    document.getElementById('root').style.margin = '0';
-    document.getElementById('root').style.padding = '0';
-    
-    return () => {
-      // Restaurar estilos originales al desmontar
-      document.body.style.cssText = originalBodyStyle;
-      document.documentElement.style.cssText = originalHtmlStyle;
-    };
-  }, []);
+  useBodyStyles();
 
   const handleClickShowPassword = () => {
     setShowPassword(!showPassword);
@@ -57,7 +28,7 @@ const Login = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
     console.log({ email, password, rememberMe });
-    // Handle login logic here
+    // Aqui va la logica de autenticacion @esacs :)
   };
 
   return (
@@ -72,33 +43,54 @@ const Login = () => {
       display: 'flex',
       overflow: 'hidden'
     }}>
-      {/* Left side - Purple background with tagline */}
+      {/* Left side */}
       <Box sx={{ 
         width: '50%', 
         height: '100%',
-        bgcolor: '#973EBC',
+        background: 'linear-gradient(100deg, #9B00F5 0%, #C264FF 100%)',
         display: 'flex',
         alignItems: 'center', 
         justifyContent: 'center',
         m: 0,
         p: 0
       }}>
+        {/* Cuadrado morado claro con texto */}
         <Box sx={{ 
-          textAlign: 'center',
-          p: 6
+          bgcolor: 'rgba(255, 255, 255, 0.5)', 
+          p: 6,
+          width: '500px',
+          height: '500px',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          alignItems: 'flex-start',
+          boxShadow: '0px 4px 24px rgba(0, 0, 0, 0.1)',
+          borderRadius: '4px',
+          transition: 'all 0.3s ease-in-out',
+          '&:hover': {
+            boxShadow: '0 8px 30px rgba(0, 0, 0, 0.15)',
+            transform: 'translateY(-5px)'
+          }
         }}>
           <Typography variant="h2" component="h1" sx={{ 
             color: 'white', 
             fontWeight: 'bold', 
-            mb: 1,
-            fontSize: '3.5rem'
+            mb: 2,
+            mt: 15,
+            fontSize: '4rem',
+            fontFamily: '"Graphik", "Arial", sans-serif',
+            lineHeight: 1.5,
+            textAlign: 'left',
           }}>
             Explore<br />Your Path
           </Typography>
-          <Typography variant="h6" sx={{ 
+          <Typography variant="h4" sx={{ 
             color: 'white', 
             opacity: 0.9,
-            fontWeight: 'normal'
+            mt: 1,
+            fontWeight: 'normal',
+            fontFamily: '"Palanquin", "Arial", sans-serif',
+            textAlign: 'left'
           }}>
             Accent your future
           </Typography>
@@ -110,32 +102,63 @@ const Login = () => {
         width: '50%', 
         height: '100%',
         display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'center',
+        alignItems: 'center',
+        justifyContent: 'center', 
         bgcolor: '#FFFFFF',
         m: 0,
-        p: 0
+        p: 0,
+        position: 'relative',
       }}>
+        
         <Box sx={{ 
-          width: '100%', 
-          maxWidth: '400px',
-          p: 3,
-          textAlign: 'center'
+          width: '80%',    
+          maxWidth: '400px', 
+          p: 2,
+          textAlign: 'left',
+          animation: 'fadeIn 0.6s ease-out',
+          '@keyframes fadeIn': {
+            '0%': { opacity: 0, transform: 'translateY(20px)' },
+            '100%': { opacity: 1, transform: 'translateY(0)' }
+          }
         }}>
+          <Box sx={{ mb: 4 }}>
+            <img 
+              src="/src/brand/AccenturePurpleLogo.png"
+              alt="Logo"
+              style={{ 
+                height: '50px', 
+                width: 'auto',
+                display: 'block'
+              }}
+            />
+          </Box>
+          
           <Typography component="h1" variant="h4" sx={{ 
             fontWeight: 'bold', 
-            mb: 1
+            mb: 1,
+            fontFamily: '"Graphik", "Arial", sans-serif',
+            color: '#333333',
+            textAlign: 'left', 
           }}>
             Hello !
           </Typography>
           
-          <Typography variant="body1" sx={{ color: 'text.secondary', mb: 4 }}>
+          <Typography variant="body1" sx={{ 
+            color: 'text.secondary', 
+            mb: 4,
+            fontFamily: '"Palanquin", "Arial", sans-serif',
+            textAlign: 'left', 
+          }}>
             Enter your login information.
           </Typography>
 
           <Box component="form" onSubmit={handleSubmit} noValidate>
             <Box sx={{ mb: 1, textAlign: 'left' }}>
-              <Typography variant="body2" sx={{ textAlign: 'left', mb: 1 }}>
+              <Typography variant="body2" sx={{ 
+                textAlign: 'left', 
+                mb: 1,
+                fontFamily: '"Palanquin", "Arial", sans-serif',
+              }}>
                 Email
               </Typography>
               <TextField
@@ -146,14 +169,36 @@ const Login = () => {
                 autoComplete="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="your.email@example.com"
+                placeholder="Email"
                 variant="outlined"
                 size="small"
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    '& fieldset': {
+                      borderColor: '#E0E0E0',
+                      transition: 'all 0.2s ease'
+                    },
+                    '&:hover fieldset': {
+                      borderColor: '#973EBC'
+                    },
+                    '&.Mui-focused fieldset': {
+                      borderColor: '#973EBC',
+                      borderWidth: '1px'
+                    }
+                  }
+                }}
+                InputProps={{
+                  style: { fontFamily: '"Palanquin", "Arial", sans-serif' }
+                }}
               />
             </Box>
 
             <Box sx={{ mb: 2, textAlign: 'left' }}>
-              <Typography variant="body2" sx={{ textAlign: 'left', mb: 1 }}>
+              <Typography variant="body2" sx={{ 
+                textAlign: 'left', 
+                mb: 1,
+                fontFamily: '"Palanquin", "Arial", sans-serif',
+              }}>
                 Password
               </Typography>
               <TextField
@@ -165,10 +210,26 @@ const Login = () => {
                 autoComplete="current-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••••••••••"
+                placeholder="Password"
                 variant="outlined"
                 size="small"
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    '& fieldset': {
+                      borderColor: '#E0E0E0',
+                      transition: 'all 0.2s ease'
+                    },
+                    '&:hover fieldset': {
+                      borderColor: '#973EBC'
+                    },
+                    '&.Mui-focused fieldset': {
+                      borderColor: '#973EBC',
+                      borderWidth: '1px'
+                    }
+                  }
+                }}
                 InputProps={{
+                  style: { fontFamily: '"Palanquin", "Arial", sans-serif' },
                   endAdornment: (
                     <InputAdornment position="end">
                       <IconButton
@@ -176,6 +237,7 @@ const Login = () => {
                         onClick={handleClickShowPassword}
                         edge="end"
                         size="small"
+                        sx={{ color: '#973EBC' }}
                       >
                         {showPassword ? <VisibilityOff /> : <Visibility />}
                       </IconButton>
@@ -189,7 +251,7 @@ const Login = () => {
               display: 'flex', 
               alignItems: 'center', 
               mb: 4,
-              justifyContent: 'flex-start'
+              justifyContent: 'space-between'
             }}>
               <FormControlLabel
                 control={
@@ -199,10 +261,33 @@ const Login = () => {
                     checked={rememberMe}
                     onChange={(e) => setRememberMe(e.target.checked)}
                     size="small"
+                    sx={{
+                      '&.Mui-checked': {
+                        color: '#973EBC',
+                      }
+                    }}
                   />
                 }
-                label={<Typography variant="body2">Remember me</Typography>}
+                label={
+                  <Typography variant="body2" sx={{ 
+                    fontFamily: '"Palanquin", "Arial", sans-serif'
+                  }}>
+                    Remember me
+                  </Typography>
+                }
               />
+
+              <Link href="#" underline="hover" sx={{
+                color: '#973EBC',
+                fontFamily: '"Palanquin", "Arial", sans-serif',
+                fontSize: '0.8rem',
+                transition: 'all 0.2s ease',
+                '&:hover': {
+                  color: '#7B1FA2'
+                }
+              }}>
+                Forgot password?
+              </Link>
             </Box>
 
             <Button
@@ -210,17 +295,21 @@ const Login = () => {
               fullWidth
               variant="contained"
               sx={{ 
-                py: 1.5, 
+                py: 1, 
                 backgroundColor: '#973EBC', 
-                '&:hover': { backgroundColor: '#7B1FA2' },
+                '&:hover': { 
+                  backgroundColor: '#7B1FA2',
+                  boxShadow: '0 4px 12px rgba(151, 62, 188, 0.3)'
+                },
                 color: 'white',
-                fontWeight: 500,
-                textTransform: 'uppercase',
-                borderRadius: '4px',
-                letterSpacing: '0.5px'
+                fontWeight: 700,
+                textTransform: 'none',
+                borderRadius: '5px',
+                fontFamily: '"Palanquin", "Arial", sans-serif',
+                transition: 'all 0.3s ease'
               }}
             >
-              SIGN IN
+              Sign In
             </Button>
           </Box>
         </Box>
