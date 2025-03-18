@@ -100,13 +100,12 @@ const Login = () => {
         height: '100%',
         display: 'flex', 
         flexDirection: 'column',
-        alignItems: 'flex-start',
+        alignItems: 'center', // Cambiado de flex-start a center
         justifyContent: 'center', 
         bgcolor: '#FFFFFF',
         m: 0,
         p: 0,
-        position: 'relative',
-        pl: '10%'
+        position: 'relative'
       }}>
         
         <Box sx={{ 
@@ -153,7 +152,7 @@ const Login = () => {
           </Typography>
 
           <Box component="form" onSubmit={handleSubmit} noValidate>
-            <Box sx={{ mb: 4, textAlign: 'left' }}>
+            <Box sx={{ mb: 6, textAlign: 'left' }}>
               <Typography variant="body2" sx={{ 
                 textAlign: 'left', 
                 mb: 1,
