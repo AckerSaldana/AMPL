@@ -16,7 +16,8 @@ import {
   alpha
 } from '@mui/material';
 
-// Importamos los iconos que necesitamos
+import { NavLink } from 'react-router-dom';
+
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import FolderIcon from '@mui/icons-material/Folder';
 import PeopleIcon from '@mui/icons-material/People';
@@ -30,7 +31,7 @@ import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
 
-// Componente de ripple personalizado para animación de onda
+
 const RippleEffect = ({ active }) => {
   return (
     <Box
@@ -62,7 +63,7 @@ const Navbar = ({ children }) => {
   const [rippleActive, setRippleActive] = useState(false);
   const [notificationCount, setNotificationCount] = useState(3);
   
-  // Para crear un efecto de ripple cuando se cambia el elemento activo
+  
   useEffect(() => {
     if (prevActiveItem !== activeItem && prevActiveItem !== null) {
       setRippleActive(true);
