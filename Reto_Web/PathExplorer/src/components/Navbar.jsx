@@ -191,9 +191,7 @@ const Navbar = ({ children }) => {
                   whiteSpace: 'nowrap',
                   display: { xs: 'none', sm: 'block' },
                   transition: 'all 0.3s ease',
-                  '&:hover': {
-                    letterSpacing: '0.5px'
-                  }
+                  
                 }}
               >
                 PathExplorer
@@ -534,7 +532,7 @@ const Navbar = ({ children }) => {
                           color: activeItem === item.text 
                             ? 'white' 
                             : darkMode 
-                              ? alpha('white', 0.9) 
+                              ? alpha('#ffffff', 0.1) 
                               : '#444',
                           fontFamily: '"Palanquin", "Arial", sans-serif',
                           transition: 'all 0.3s ease',
