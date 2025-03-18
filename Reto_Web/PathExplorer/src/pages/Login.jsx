@@ -67,10 +67,7 @@ const Login = () => {
           boxShadow: '0px 4px 24px rgba(0, 0, 0, 0.1)',
           borderRadius: '4px',
           transition: 'all 0.3s ease-in-out',
-          '&:hover': {
-            boxShadow: '0 8px 30px rgba(0, 0, 0, 0.15)',
-            transform: 'translateY(-5px)'
-          }
+          
         }}>
           <Typography variant="h2" component="h1" sx={{ 
             color: 'white', 
@@ -102,12 +99,14 @@ const Login = () => {
         width: '50%', 
         height: '100%',
         display: 'flex', 
-        alignItems: 'center',
+        flexDirection: 'column',
+        alignItems: 'flex-start',
         justifyContent: 'center', 
         bgcolor: '#FFFFFF',
         m: 0,
         p: 0,
         position: 'relative',
+        pl: '10%'
       }}>
         
         <Box sx={{ 
@@ -121,6 +120,7 @@ const Login = () => {
             '100%': { opacity: 1, transform: 'translateY(0)' }
           }
         }}>
+          
           <Box sx={{ mb: 4 }}>
             <img 
               src="/src/brand/AccenturePurpleLogo.png"
@@ -153,7 +153,7 @@ const Login = () => {
           </Typography>
 
           <Box component="form" onSubmit={handleSubmit} noValidate>
-            <Box sx={{ mb: 1, textAlign: 'left' }}>
+            <Box sx={{ mb: 4, textAlign: 'left' }}>
               <Typography variant="body2" sx={{ 
                 textAlign: 'left', 
                 mb: 1,
@@ -193,7 +193,7 @@ const Login = () => {
               />
             </Box>
 
-            <Box sx={{ mb: 2, textAlign: 'left' }}>
+            <Box sx={{ mb: 1, textAlign: 'left' }}>
               <Typography variant="body2" sx={{ 
                 textAlign: 'left', 
                 mb: 1,
