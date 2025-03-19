@@ -47,7 +47,7 @@ const Login = () => {
       <Box sx={{ 
         width: '50%', 
         height: '100%',
-        background: 'linear-gradient(100deg, #9B00F5 0%, #C264FF 100%)',
+        background: 'linear-gradient(100deg, #973EBC 0%, #C264FF 100%)',
         display: 'flex',
         alignItems: 'center', 
         justifyContent: 'center',
@@ -100,7 +100,7 @@ const Login = () => {
         height: '100%',
         display: 'flex', 
         flexDirection: 'column',
-        alignItems: 'center', // Cambiado de flex-start a center
+        alignItems: 'center', 
         justifyContent: 'center', 
         bgcolor: '#FFFFFF',
         m: 0,
