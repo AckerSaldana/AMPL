@@ -35,7 +35,7 @@ const Dashboard = () => {
             md={6}
             sx={{ display: "flex", flexDirection: "column", gap: 2 }}
           >
-            {/* Top 15% with 3 IconInfo components */}
+            {/* Top 25% with 3 IconInfo components */}
             <Box
               sx={{ flex: "0 0 25%", display: "flex", gap: 2, minHeight: 100 }}
             >
@@ -59,7 +59,7 @@ const Dashboard = () => {
               />
             </Box>
 
-            {/* Bottom 85% */}
+            {/* Bottom 75% */}
             <CertificationGrid />
           </Grid>
 
