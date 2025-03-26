@@ -9,6 +9,8 @@ import theme from "./styles/theme.js";
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
-    <Login  />
-  </StrictMode>,
-)
+    <ThemeProvider theme={theme}>
+      <App />
+    </ThemeProvider>
+  </StrictMode>
+);
