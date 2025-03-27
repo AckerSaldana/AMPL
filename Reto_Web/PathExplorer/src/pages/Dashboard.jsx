@@ -9,8 +9,7 @@ const Dashboard = () => {
   return (
     
       <Typography variant="h4" gutterBottom>
-        Aqui va el dashboard pepe jejeje ou yea arriba las chivas
-
+        Aqui va el dashboard pepe jejeje ou yea arriba las chivas pepepepepepeppe
         </Typography>
 
     
