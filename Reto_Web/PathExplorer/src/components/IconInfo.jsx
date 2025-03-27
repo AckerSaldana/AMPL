@@ -5,66 +5,77 @@ import PropTypes from "prop-types";
 export const IconInfo = ({ icon: Icon, title, value, color = "primary" }) => {
   const theme = useTheme();
 
-  // Function to get the correct color
-  const getIconColor = () => {
+  const getColor = () => {
     switch (color) {
       case "primary":
         return theme.palette.primary.main;
       case "secondary":
         return theme.palette.secondary.main;
       case "accent":
-        return theme.palette.accent.main;
+        return theme.palette.accent?.main || "#ff4081";
       default:
-        return color; // Allow custom color strings
+        return color;
     }
   };
+
+  const iconColor = getColor();
 
   return (
     <Paper
       sx={{
         display: "flex",
+        flexDirection: "column",
         alignItems: "center",
         p: 2,
         height: "100%",
         width: "100%",
-        justifyContent: "space-between",
-        backgroundColor: `${getIconColor()}10`, // Light background with 10% opacity
+        backgroundColor: `${iconColor}10`,
       }}
     >
       <Box
         sx={{
           display: "flex",
-          alignItems: "center",
-          gap: 1,
           flexDirection: "column",
+          justifyContent: "space-between",
+          alignItems: "center",
+          p: 1,
           width: "100%",
+          flexGrow: 1,
         }}
       >
-        {Icon && (
-          <Icon
-            sx={{
-              fontSize: 40,
-              color: getIconColor(),
-            }}
-          />
-        )}
+        {/* Top Section: Icon inside colored circle */}
         <Box
           sx={{
             display: "flex",
+            justifyContent: "center",
             alignItems: "center",
-            flexDirection: "column",
-            textAlign: "center",
+            width: 50,
+            height: 50,
+            borderRadius: "50%",
+            backgroundColor: iconColor,
+            mb: 2,
           }}
         >
-          <Typography color="text.primary">{title}</Typography>
-          <Typography
-            variant="h6"
-            fontWeight="bold"
-            sx={{ color: getIconColor() }}
-          >
-            {value}
-          </Typography>
+          {Icon && <Icon sx={{ fontSize: 30, color: "#fff" }} />}
         </Box>
+
+        {/* Middle Section: Title */}
+        <Typography
+          color="text.primary"
+          align="center"
+          sx={{ minHeight: 40, mb: 1 }}
+        >
+          {title}
+        </Typography>
+
+        {/* Bottom Section: Value */}
+        <Typography
+          variant="h6"
+          fontWeight="bold"
+          sx={{ color: iconColor, mt: "auto" }}
+        >
+          {value}
+        </Typography>
       </Box>
     </Paper>
   );
