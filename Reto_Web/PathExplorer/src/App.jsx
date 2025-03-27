@@ -7,17 +7,26 @@ import Projects from './pages/Projects';
 import Profiles from './pages/Profiles';
 import Analytics from './pages/Analytics';
 import Settings from './pages/Settings';
+import User from './pages/User';
+import Login from './pages/Login';
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
+        <Route path="login" element={<Login />} />
         <Route path="/" element={<MainLayout />}>
           <Route index element={<Dashboard />} />
           <Route path="projects" element={<Projects />} />
           <Route path="profiles" element={<Profiles />} />
           <Route path="analytics" element={<Analytics />} />
           <Route path="settings" element={<Settings />} />
+          <Route path="user" element={<User />} />
+          {/*
+          <Route element={<ProtectedRoute allowedRoles={["empleado", "manager"]} />}>
+            <Route path="/dashboard" element={<Dashboard />} />
+          </Route>
+          */}
         </Route>
       </Routes>
     </BrowserRouter>
