@@ -28,8 +28,6 @@ import Brightness4Icon from "@mui/icons-material/Brightness4";
 import Brightness7Icon from "@mui/icons-material/Brightness7";
 import MenuIcon from "@mui/icons-material/Menu";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";
 
 const RippleEffect = ({ active }) => {
   return (
@@ -54,13 +52,14 @@ const RippleEffect = ({ active }) => {
 const Navbar = ({ children }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
-  const [activeItem, setActiveItem] = useState("Dashboard");
   const [prevActiveItem, setPrevActiveItem] = useState(null);
   const [darkMode, setDarkMode] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [hoveredItem, setHoveredItem] = useState(null);
   const [rippleActive, setRippleActive] = useState(false);
   const [notificationCount, setNotificationCount] = useState(3);
+  const [activeItem, setActiveItem] = useState("");
+  const navBgColor = darkMode ? "#222" : "#fff";
 
   useEffect(() => {
     if (prevActiveItem !== activeItem && prevActiveItem !== null) {
@@ -81,7 +80,6 @@ const Navbar = ({ children }) => {
     setExpanded(!expanded);
   };
 
-  // Simula como se ven las notis jijiji
   const handleNotificationClick = () => {
     if (notificationCount > 0) {
       setNotificationCount(notificationCount - 1);
@@ -99,9 +97,7 @@ const Navbar = ({ children }) => {
   const primaryColor = "#973EBC";
   const primaryLight = alpha(primaryColor, 0.15);
   const primaryDark = "#7b2e9e";
-
   const bgColor = darkMode ? "#1a1a2e" : "#f5f7fa";
-  const navBgColor = darkMode ? "#262642" : "white";
   const borderColor = darkMode ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)";
   const textColor = darkMode ? "white" : "#333";
   const secondaryTextColor = darkMode ? "rgba(255,255,255,0.7)" : "#666";
@@ -117,15 +113,15 @@ const Navbar = ({ children }) => {
         transition: "background-color 0.6s cubic-bezier(0.4, 0, 0.2, 1)",
       }}
     >
-      {/* Barra superior */}
+      {/* Barra superior con altura fija */}
       <Box
         sx={{
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          p: 1,
+          p: 0,
           px: 3,
-          height: "60px",
+          height: "60px", // Altura fija para la barra superior
           position: "fixed",
           top: 0,
           left: 0,
@@ -139,71 +135,71 @@ const Navbar = ({ children }) => {
         }}
       >
         {/* Lado izquierdo: Logo y botón de expandir */}
-        <Box sx={{ display: "flex", alignItems: "center", gap: 5 }}>
-          {/* Logo */}
+        <Box 
+          sx={{ 
+            display: "flex", 
+            alignItems: "center", 
+            height: "60px",
+            pl: expanded ? 26 : 6,
+            position: "relative",
+            width: expanded ? "230px" : "80px",
+            transition: "width 0.5s cubic-bezier(0.4, 0, 0.2, 1)",
+            overflow: "visible" 
+          }}
+        >
+          {/* Logo siempre visible */}
           <Box
             sx={{
               display: "flex",
               alignItems: "center",
-              transition: "all 0.5s ease",
+              width: "70px",
+              position: "absolute",
+              left: 5,
+              top: "50%",
+              transform: "translateY(-50%)",
+              zIndex: 10
             }}
           >
-            {isMobile && (
-              <IconButton
-                sx={{
-                  color: primaryColor,
-                  mr: 1,
-                  transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-                  "&:hover": {
-                    color: primaryDark,
-                    transform: "scale(1.05)",
-                  },
-                }}
-              >
-                <ArrowBackIcon />
-              </IconButton>
-            )}
-
             <Box
               component="img"
               src="/src/brand/AccenturePurpleLogo.png"
               alt="Logo"
               sx={{
                 height: 30,
+                width: "auto",
+                minWidth: 30,
+                objectFit: "contain",
+                position: "relative",
+                zIndex: 10,
                 transition: "transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
                 "&:hover": {
                   transform: "scale(1.05) rotate(2deg)",
                 },
               }}
             />
-
-            {/* Nombre de la aplicación con animación refinada */}
-            <Box
-              sx={{
-                overflow: "hidden",
-                maxWidth: expanded ? "180px" : "0px",
-                opacity: expanded ? 1 : 0,
-                transition: "all 0.5s cubic-bezier(0.4, 0, 0.2, 1)",
-                ml: expanded ? 2 : 0,
-              }}
-            >
-              <Typography
-                variant="h6"
-                sx={{
-                  fontWeight: 600,
-                  color: primaryColor,
-                  fontFamily: '"Graphik", "Arial", sans-serif',
-                  whiteSpace: "nowrap",
-                  display: { xs: "none", sm: "block" },
-                  transition: "all 0.3s ease",
-                }}
-              >
-                PathExplorer
-              </Typography>
-            </Box>
           </Box>
 
-          {/* Botón para expandir/contraer el menú con animación mejorada */}
+          {/* Título que aparece/desaparece */}
+          <Typography
+              variant="h6"
+              sx={{
+                fontWeight: 600,
+                color: primaryColor,
+                fontFamily: '"Graphik", "Arial", sans-serif',
+                whiteSpace: "nowrap",
+                opacity: expanded ? 1 : 0,
+                visibility: expanded ? "visible" : "hidden", // Asegura que el texto esté oculto cuando está retraído
+                transform: expanded ? "translateX(0)" : "translateX(-20px)", // Animación de movimiento horizontal
+                transition: "opacity 0.2s ease, transform 0.3s ease", 
+                ml: 3,
+                position: "absolute",
+                left: "30px", // Posicionado después del logo
+              }}
+            >
+              PathExplorer
+            </Typography>
+
+          {/* Botón para expandir/contraer el menú con tamaño fijo */}
           <IconButton
             onClick={toggleSidebar}
             size="small"
@@ -212,31 +208,20 @@ const Navbar = ({ children }) => {
               bgcolor: alpha(primaryColor, 0.08),
               width: 36,
               height: 36,
+              minWidth: 36,
+              minHeight: 36,
               borderRadius: "8px",
-              transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+              transition: "all 1.2s cubic-bezier(0.34, 1.56, 0.64, 1)",
               position: "relative",
               overflow: "hidden",
+              ml: expanded ? 2 : 2,
+              transform: expanded ? "translateX(0)" : "translateX(-8px)",
               "&:hover": {
                 bgcolor: alpha(primaryColor, 0.15),
-                transform: "scale(1.05)",
-              },
-              "&::after": {
-                content: '""',
-                position: "absolute",
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                opacity: 0,
-                transition: "opacity 0.3s ease",
-                background: `radial-gradient(circle at center, ${alpha(
-                  primaryColor,
-                  0.2
-                )} 0%, transparent 70%)`,
-                pointerEvents: "none",
-              },
-              "&:active::after": {
-                opacity: 1,
+                transform: expanded
+                  ? "translateX(0) scale(1.05)"
+                  : "translateX(-8px) scale(1.05)",
+                transition: "all 1.2s cubic-bezier(0.34, 1.56, 0.64, 1)",
               },
             }}
           >
@@ -244,8 +229,7 @@ const Navbar = ({ children }) => {
               sx={{
                 display: "flex",
                 transform: expanded ? "rotate(-180deg)" : "rotate(0deg)",
-                transition:
-                  "transform 0.5s cubic-bezier(0.68, -0.55, 0.27, 1.55)", // Rebote suave
+                transition: "transform 1.2s cubic-bezier(0.34, 1.56, 0.64, 1)",
               }}
             >
               {expanded ? <ChevronLeftIcon /> : <MenuIcon />}
@@ -254,8 +238,8 @@ const Navbar = ({ children }) => {
         </Box>
 
         {/* Lado derecho: acciones (modo oscuro, notificaciones, avatar) */}
-        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-          {/* Botón de modo oscuro/claro con animación mejorada */}
+        <Box sx={{ display: "flex", alignItems: "center", gap: 2, height: "60px" }}>
+          {/* Botón de modo oscuro/claro con tamaño fijo */}
           <IconButton
             onClick={toggleThemeMode}
             size="small"
@@ -266,6 +250,8 @@ const Navbar = ({ children }) => {
                 : alpha("#000000", 0.05),
               width: 36,
               height: 36,
+              minWidth: 36,
+              minHeight: 36,
               borderRadius: "8px",
               transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
               overflow: "hidden",
@@ -298,6 +284,8 @@ const Navbar = ({ children }) => {
             <Box
               sx={{
                 display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
                 transform: darkMode ? "rotate(180deg)" : "rotate(0deg)",
                 transition:
                   "transform 0.5s cubic-bezier(0.68, -0.55, 0.27, 1.55)",
@@ -311,17 +299,19 @@ const Navbar = ({ children }) => {
             </Box>
           </IconButton>
 
-          {/* Notificaciones con animación mejorada y badge dinámico */}
+          {/* Notificaciones con tamaño fijo */}
           <IconButton
             onClick={handleNotificationClick}
             size="small"
             sx={{
               color: secondaryTextColor,
               bgcolor: darkMode
-                ? alpha("#ffffff", 0.1)
-                : alpha("#000000", 0.08),
+                ? alpha("#ffffff", 0.05)
+                : alpha("#000000", 0.05),
               width: 36,
               height: 36,
+              minWidth: 36,
+              minHeight: 36,
               borderRadius: "8px",
               transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
               position: "relative",
@@ -379,6 +369,7 @@ const Navbar = ({ children }) => {
             </Badge>
           </IconButton>
 
+<<<<<<< HEAD
           {/* Avatar con efectos mejorados */}
           <NavLink to="/user" style={{ textDecoration: "none" }}>
             <Tooltip title="Usuario" arrow TransitionComponent={Zoom}>
@@ -400,15 +391,38 @@ const Navbar = ({ children }) => {
               />
             </Tooltip>
           </NavLink>
+=======
+          {/* Avatar con tamaño fijo */}
+          <Tooltip title="Usuario" arrow TransitionComponent={Zoom}>
+            <Avatar
+              sx={{
+                width: 36,
+                height: 36,
+                minWidth: 36,
+                minHeight: 36,
+                bgcolor: primaryColor,
+                cursor: "pointer",
+                transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                boxShadow: `0 2px 8px ${alpha(primaryColor, 0.3)}`,
+                border: "2px solid transparent",
+                "&:hover": {
+                  transform: "scale(1.05)",
+                  boxShadow: `0 4px 12px ${alpha(primaryColor, 0.4)}`,
+                  border: "2px solid white",
+                },
+              }}
+            />
+          </Tooltip>
+>>>>>>> f81a5cb9657b916d4bb125373b0a9958cfa669bc
         </Box>
       </Box>
 
       <Box sx={{ display: "flex", flexGrow: 1, pt: "60px" }}>
-        {/* Barra lateral con navegación (puede expandirse o contraerse) */}
+        {/* Barra lateral con navegación con ancho fijo durante transiciones */}
         <Box
           component="nav"
           sx={{
-            width: expanded ? "200px" : "80px",
+            width: expanded ? "230px" : "90px",
             height: "calc(100vh - 60px)",
             bgcolor: navBgColor,
             borderRight: "1px solid",
@@ -418,6 +432,17 @@ const Navbar = ({ children }) => {
             overflow: "hidden",
             transition: "width 0.5s cubic-bezier(0.4, 0, 0.2, 1)",
             boxShadow: expanded ? `2px 0 15px ${alpha("#000", 0.05)}` : "none",
+            "&:after": {
+              content: '""',
+              position: "absolute",
+              top: 0,
+              left: "80px", // Ancho cuando está retraído
+              bottom: 0,
+              width: expanded ? "120px" : 0,
+              backgroundColor: "inherit",
+              transition: "width 0.5s cubic-bezier(0.4, 0, 0.2, 1)",
+              zIndex: 1,
+            },
             "&:hover": {
               boxShadow: `2px 0 15px ${alpha("#000", 0.08)}`,
             },
@@ -432,11 +457,14 @@ const Navbar = ({ children }) => {
         >
           <List
             sx={{
-              p: 1.5,
+              p: 1.8,
               display: "flex",
               flexDirection: "column",
-              alignItems: "center",
+              alignItems: "flex-start", // Alineación a la izquierda
               height: "100%",
+              transition: "all 0.5s cubic-bezier(0.4, 0, 0.2, 1)",
+              position: "relative", // Para que los hijos absolutos se posicionen respecto a esta lista
+              width: "100%",
             }}
           >
             {menuItems.map((item) => (
@@ -456,12 +484,15 @@ const Navbar = ({ children }) => {
                   onMouseEnter={() => setHoveredItem(item.text)}
                   onMouseLeave={() => setHoveredItem(null)}
                   sx={{
-                    py: 1.5,
-                    px: expanded ? 2 : 0,
-                    mb: 1.5,
+                    height: "56px", // Altura fija para items del menú
+                    minHeight: "56px",
+                    width: expanded ? "100%" : "60px", // Ancho del 100% cuando está expandido
+                    py: 0,
+                    px: 1,
+                    mb: 1.8,
                     display: "flex",
                     alignItems: "center",
-                    justifyContent: expanded ? "flex-start" : "center",
+                    justifyContent: "flex-start", // Alineación a la izquierda
                     borderRadius: "10px",
                     bgcolor:
                       activeItem === item.text ? primaryColor : "transparent",
@@ -470,13 +501,14 @@ const Navbar = ({ children }) => {
                       activeItem === item.text
                         ? `0 4px 10px ${alpha(primaryColor, 0.3)}`
                         : "none",
-                    transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                    transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.5s cubic-bezier(0.4, 0, 0.2, 1)",
                     transform:
                       hoveredItem === item.text && activeItem !== item.text
                         ? "translateY(-3px)"
                         : "translateY(0)",
                     position: "relative",
-                    overflow: "hidden",
+                    overflow: "hidden", // Ocultar desbordamiento
+                    zIndex: 10,
                     "&::before": {
                       content: '""',
                       position: "absolute",
@@ -504,16 +536,6 @@ const Navbar = ({ children }) => {
                           ? `0 4px 8px ${alpha("#000", 0.1)}`
                           : "none",
                     },
-                    ...(expanded
-                      ? {}
-                      : {
-                          width: "48px",
-                          height: "48px",
-                          minWidth: "48px",
-                          minHeight: "48px",
-                          marginLeft: "auto",
-                          marginRight: "auto",
-                        }),
                   }}
                 >
                   {/* Ripple Effect if active */}
@@ -523,14 +545,15 @@ const Navbar = ({ children }) => {
 
                   <ListItemIcon
                     sx={{
-                      minWidth: expanded ? 36 : 0,
-                      mr: expanded ? 2 : 0,
+                      minWidth: 42,
+                      width: 42,
+                      height: 42,
                       color:
                         activeItem === item.text ? "white" : secondaryTextColor,
-                      justifyContent: expanded ? "flex-start" : "center",
-                      transition: "all 0.3s ease",
                       display: "flex",
                       alignItems: "center",
+                      justifyContent: "center",
+                      transition: "all 0.3s ease",
                     }}
                   >
                     <Box
@@ -546,47 +569,44 @@ const Navbar = ({ children }) => {
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
+                        width: "24px", 
+                        height: "24px",
                       }}
                     >
                       {item.icon}
                     </Box>
                   </ListItemIcon>
 
-                  {expanded && (
-                    <ListItemText
-                      primary={item.text}
-                      sx={{
-                        ml: 0.5,
-                        transform: expanded
-                          ? "translateX(0)"
-                          : "translateX(-10px)",
-                        opacity: expanded ? 1 : 0,
-                        transition:
-                          "opacity 0.3s ease 0.1s, transform 0.3s ease",
-                        "& .MuiTypography-root": {
-                          fontSize: "0.95rem",
-                          fontWeight: activeItem === item.text ? 600 : 500,
-                          color:
-                            activeItem === item.text
-                              ? "white"
-                              : darkMode
-                              ? alpha("#ffffff", 0.1)
-                              : "#444",
-                          fontFamily: '"Palanquin", "Arial", sans-serif',
-                          transition: "all 0.3s ease",
-                          letterSpacing:
-                            activeItem === item.text ? "0.3px" : "normal",
-                        },
-                      }}
-                    />
-                  )}
+                  {/* Texto del menú dentro del ListItem */}
+                  <ListItemText
+                    primary={item.text}
+                    sx={{
+                      ml: 1.5,
+                      opacity: expanded ? 1 : 0,
+                      transition: "opacity 0.3s ease",
+                      "& .MuiTypography-root": {
+                        fontSize: "1rem",
+                        fontWeight: activeItem === item.text ? 600 : 500,
+                        color:
+                          activeItem === item.text
+                            ? "white"
+                            : darkMode
+                            ? "rgba(255, 255, 255, 0.7)"
+                            : "#444",
+                        fontFamily: '"Palanquin", "Arial", sans-serif',
+                        transition: "all 0.3s ease",
+                        letterSpacing:
+                          activeItem === item.text ? "0.3px" : "normal",
+                      }
+                    }}
+                  />
                 </ListItem>
               </Tooltip>
             ))}
           </List>
         </Box>
 
-        {/* Contenido principal con transición más suave */}
+        {/* Contenido principal */}
         <Box
           component="main"
           sx={{
