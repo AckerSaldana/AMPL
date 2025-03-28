@@ -1,3 +1,4 @@
+// src/components/Navbar.jsx
 import React, { useState, useEffect } from "react";
 import {
   Box,
@@ -16,7 +17,8 @@ import {
   alpha,
 } from "@mui/material";
 
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate, useLocation } from "react-router-dom";
+import useAuth from "../hooks/useAuth";
 
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import FolderIcon from "@mui/icons-material/Folder";
@@ -28,6 +30,10 @@ import Brightness4Icon from "@mui/icons-material/Brightness4";
 import Brightness7Icon from "@mui/icons-material/Brightness7";
 import MenuIcon from "@mui/icons-material/Menu";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
+import LogoutIcon from "@mui/icons-material/Logout";
+import { supabase } from "../supabase/supabaseClient";
+
+import AccentureLogo from "../brand/AccenturePurpleLogo.png";
 
 const RippleEffect = ({ active }) => {
   return (
@@ -51,6 +57,8 @@ const RippleEffect = ({ active }) => {
 
 const Navbar = ({ children }) => {
   const theme = useTheme();
+  const navigate = useNavigate();
+  const { user, role, loading } = useAuth();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const [prevActiveItem, setPrevActiveItem] = useState(null);
   const [darkMode, setDarkMode] = useState(false);
@@ -58,8 +66,44 @@ const Navbar = ({ children }) => {
   const [hoveredItem, setHoveredItem] = useState(null);
   const [rippleActive, setRippleActive] = useState(false);
   const [notificationCount, setNotificationCount] = useState(3);
-  const [activeItem, setActiveItem] = useState("");
+  const location = useLocation();
+  const [activeItem, setActiveItem] = useState("Dashboard");
   const navBgColor = darkMode ? "#222" : "#fff";
+  const [userName, setUserName] = useState("");
+
+  useEffect(() => {
+    // Obtener información del usuario cuando se carga el componente
+    const fetchUserInfo = async () => {
+      if (user) {
+        const { data, error } = await supabase
+          .from("User")
+          .select("name")
+          .eq("user_id", user.id)
+          .single();
+
+        if (!error && data) {
+          setUserName(data.name);
+        }
+      }
+    };
+
+    fetchUserInfo();
+  }, [user]);
+  
+  // Determinar el elemento activo basado en la ruta actual
+  useEffect(() => {
+    const path = location.pathname;
+    
+    if (path === "/" || path === "") {
+      setActiveItem("Dashboard");
+    } else {
+      // Obtener el nombre del elemento del menú basado en la ruta
+      const menuItem = menuItems.find(item => item.route === path || path.startsWith(item.route + "/"));
+      if (menuItem) {
+        setActiveItem(menuItem.text);
+      }
+    }
+  }, [location.pathname]);
 
   useEffect(() => {
     if (prevActiveItem !== activeItem && prevActiveItem !== null) {
@@ -86,13 +130,39 @@ const Navbar = ({ children }) => {
     }
   };
 
-  const menuItems = [
-    { text: "Dashboard", icon: <DashboardIcon />, route: "/" },
-    { text: "Projects", icon: <FolderIcon />, route: "/projects" },
-    { text: "Profiles", icon: <PeopleIcon />, route: "/profiles" },
-    { text: "Analytics", icon: <BarChartIcon />, route: "/analytics" },
-    { text: "Settings", icon: <SettingsIcon />, route: "/settings" },
-  ];
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    navigate("/login");
+  };
+
+  // Definir items del menú basados en el rol
+  const getMenuItems = () => {
+    // Elementos base que todos los usuarios pueden ver
+    const baseItems = [
+      { text: "Dashboard", icon: <DashboardIcon />, route: "/" },
+      { text: "Projects", icon: <FolderIcon />, route: "/projects" },
+      { text: "Settings", icon: <SettingsIcon />, route: "/settings" },
+    ];
+    
+    // Elementos adicionales según el rol
+    if (role === "manager") {
+      return [
+        ...baseItems,
+        { text: "Profiles", icon: <PeopleIcon />, route: "/profiles" },
+        { text: "Analytics", icon: <BarChartIcon />, route: "/analytics" },
+      ];
+    } else if (role === "TFS") {
+      return [
+        ...baseItems,
+        { text: "Profiles", icon: <PeopleIcon />, route: "/profiles" },
+      ];
+    }
+    
+    // Por defecto, devolver solo los elementos base (empleado)
+    return baseItems;
+  };
+
+  const menuItems = getMenuItems();
 
   const primaryColor = "#973EBC";
   const primaryLight = alpha(primaryColor, 0.15);
@@ -101,6 +171,10 @@ const Navbar = ({ children }) => {
   const borderColor = darkMode ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)";
   const textColor = darkMode ? "white" : "#333";
   const secondaryTextColor = darkMode ? "rgba(255,255,255,0.7)" : "#666";
+
+  if (loading) {
+    return <div>Cargando...</div>;
+  }
 
   return (
     <Box
@@ -162,7 +236,7 @@ const Navbar = ({ children }) => {
           >
             <Box
               component="img"
-              src="/src/brand/AccenturePurpleLogo.png"
+              src={AccentureLogo}
               alt="Logo"
               sx={{
                 height: 30,
@@ -239,6 +313,20 @@ const Navbar = ({ children }) => {
 
         {/* Lado derecho: acciones (modo oscuro, notificaciones, avatar) */}
         <Box sx={{ display: "flex", alignItems: "center", gap: 2, height: "60px" }}>
+          {/* Nombre de usuario */}
+          {userName && (
+            <Typography
+              variant="body2"
+              sx={{
+                color: textColor,
+                fontWeight: 500,
+                mr: 1,
+              }}
+            >
+              Hola, {userName}
+            </Typography>
+          )}
+          
           {/* Botón de modo oscuro/claro con tamaño fijo */}
           <IconButton
             onClick={toggleThemeMode}
@@ -368,6 +456,38 @@ const Navbar = ({ children }) => {
               <NotificationsIcon fontSize="small" />
             </Badge>
           </IconButton>
+          
+          {/* Botón de cerrar sesión */}
+          <Tooltip title="Cerrar sesión" arrow TransitionComponent={Zoom}>
+            <IconButton
+              onClick={handleLogout}
+              size="small"
+              sx={{
+                color: secondaryTextColor,
+                bgcolor: darkMode
+                  ? alpha("#ffffff", 0.05)
+                  : alpha("#000000", 0.05),
+                width: 36,
+                height: 36,
+                minWidth: 36,
+                minHeight: 36,
+                borderRadius: "8px",
+                transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                position: "relative",
+                overflow: "hidden",
+                "&:hover": {
+                  bgcolor: darkMode
+                    ? alpha("#ffffff", 0.1)
+                    : alpha("#000000", 0.08),
+                  transform: "scale(1.05)",
+                  color: "error.main",
+                },
+              }}
+            >
+              <LogoutIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+          
           {/* Avatar con tamaño fijo */}
           <NavLink to="/User" style={{ textDecoration: "none" }}>
             <Tooltip title="Usuario" arrow TransitionComponent={Zoom}>
@@ -386,7 +506,9 @@ const Navbar = ({ children }) => {
                     border: "2px solid white",
                   },
                 }}
-              />
+              >
+                {userName ? userName.charAt(0).toUpperCase() : "U"}
+              </Avatar>
             </Tooltip>
           </NavLink>
         </Box>
@@ -456,6 +578,7 @@ const Navbar = ({ children }) => {
                   to={item.route}
                   selected={activeItem === item.text}
                   onClick={() => setActiveItem(item.text)}
+                  end={item.route === "/"}
                   onMouseEnter={() => setHoveredItem(item.text)}
                   onMouseLeave={() => setHoveredItem(null)}
                   sx={{
