@@ -49,7 +49,7 @@ const Login = () => {
     // Obtener información desde la tabla User
     const { data: perfil, error: perfilError } = await supabase
       .from('User')
-      .select('name, permission') // Puedes agregar más campos si lo deseas
+      .select('name, permission') 
       .eq('user_id', user.id)
       .single();
   
