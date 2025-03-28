@@ -57,7 +57,7 @@ export const PopularCertifications = ({ certifications }) => {
         <Avatar sx={{ bgcolor: alpha(theme.palette.secondary.main, 0.1), color: theme.palette.secondary.main, mr: 2 }}>
           <EmojiEventsIcon />
         </Avatar>
-        <Typography variant="h6" fontWeight="bold">Certificaciones populares</Typography>
+        <Typography variant="h6" fontWeight="bold">Popular certifications</Typography>
         <Box sx={{ flexGrow: 1 }} />
         <Button 
           size="small"
@@ -141,7 +141,7 @@ export const PopularCertifications = ({ certifications }) => {
                     />
                     
                     <Typography variant="caption" color="text.secondary">
-                      {cert.completions} certificaciones
+                      {cert.completions} certifications
                     </Typography>
                   </Box>
                   
@@ -158,7 +158,7 @@ export const PopularCertifications = ({ certifications }) => {
                       transition: 'all 0.2s ease',
                     }}
                   >
-                    Ver detalles
+                    See details
                   </Button>
                 </Box>
               </Box>

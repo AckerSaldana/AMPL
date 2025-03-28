@@ -152,7 +152,7 @@ export const CalendarWithReminders = ({ events }) => {
         </Box>
         
         {/* Días de la semana y calendario */}
-        <Box sx={{ pb: 1 }}>
+        <Box sx={{ pb: -1 }}>
           <Box sx={{ 
             display: 'grid', 
             gridTemplateColumns: 'repeat(7, 1fr)',
