@@ -1,3 +1,4 @@
+// src/hooks/useAuth.js
 import { useEffect, useState } from "react";
 import { supabase } from "../supabase/supabaseClient";
 
@@ -8,40 +9,68 @@ const useAuth = () => {
 
   useEffect(() => {
     const fetchUser = async () => {
-      const { data: userData, error } = await supabase.auth.getUser();
+      try {
+        // Obtener la sesión actual
+        const { data: { user: currentUser }, error } = await supabase.auth.getUser();
 
-      if (error || !userData.user) {
-        setUser(null);
-        setRole(null);
-      } else {
-        setUser(userData.user);
+        if (error || !currentUser) {
+          setUser(null);
+          setRole(null);
+          setLoading(false);
+          return;
+        }
 
-        // Obtener rol del usuario
+        setUser(currentUser);
+
+        // Obtener el rol del usuario desde la base de datos
         const { data: profile, error: roleError } = await supabase
           .from("User")
           .select("permission")
-          .eq("user_id", userData.user.id)
+          .eq("user_id", currentUser.id)
           .single();
 
         if (roleError) {
           console.error("Error obteniendo el permiso:", roleError);
-          setRole(null);
+          setRole("empleado"); // Rol por defecto si hay error
         } else {
-          setRole(profile?.permission || "empleado"); //defecto: "empleado"
+          // Mapear los permisos de la DB a los roles que usamos en la app
+          const permissionMap = {
+            "Employee": "empleado",
+            "TFS": "TFS",
+            "Manager": "manager"
+          };
+          
+          // Asignar el rol mapeado o usar "empleado" como valor por defecto
+          const mappedRole = permissionMap[profile?.permission] || "empleado";
+          setRole(mappedRole);
         }
+        
+        setLoading(false);
+      } catch (err) {
+        console.error("Error en autenticación:", err);
+        setUser(null);
+        setRole(null);
+        setLoading(false);
       }
-      setLoading(false);
     };
 
     fetchUser();
 
     // Escuchar cambios en la sesión
-    const { data: authListener } = supabase.auth.onAuthStateChange(() => {
-      fetchUser();
+    const { data: authListener } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        fetchUser();
+      } else if (event === 'SIGNED_OUT') {
+        setUser(null);
+        setRole(null);
+        setLoading(false);
+      }
     });
 
     return () => {
-      authListener.subscription.unsubscribe();
+      if (authListener?.subscription) {
+        authListener.subscription.unsubscribe();
+      }
     };
   }, []);
 
