@@ -15,7 +15,6 @@ import {
 import { Visibility, VisibilityOff } from '@mui/icons-material';
 import useBodyStyles from '../hooks/useBodyStyles.js';
 
-
 const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
@@ -24,16 +23,16 @@ const Login = () => {
 
   useBodyStyles();
 
+  const navigate = useNavigate();
+
   const handleClickShowPassword = () => {
     setShowPassword(!showPassword);
   };
 
-  const navigate = useNavigate();
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     console.log({ email, password, rememberMe });
-    // Aqui va la logica de autenticacion @esacs :)
+    // Aquí va la lógica de autenticación
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
@@ -47,7 +46,7 @@ const Login = () => {
   
     const user = data.user;
   
-    //Obtener informacion desde la tabla User
+    // Obtener información desde la tabla User
     const { data: perfil, error: perfilError } = await supabase
       .from('User')
       .select('name, permission') 
@@ -60,20 +59,21 @@ const Login = () => {
       return;
     }
   
-    console.log('¡Hola, ${perfil.name}!');
+    console.log(`¡Hola, ${perfil.name}!`);
   
-    //Redirigir acorde al permission
+    // Redirigir acorde al permission
     switch (perfil.permission) {
       case 'Employee':
-        window.location.href = '/dashboard-employee';
+        navigate('/dashboard-employee');
         break;
       case 'Manager':
       case 'TFS':
-        window.location.href = '/dashboard-admin';
+        navigate('/dashboard-admin');
         break;
       default:
         alert('Rol no reconocido');
     }
+  };
 
   return (
     <Box sx={{ 
@@ -111,7 +111,6 @@ const Login = () => {
           boxShadow: '0px 4px 24px rgba(0, 0, 0, 0.1)',
           borderRadius: '4px',
           transition: 'all 0.3s ease-in-out',
-          
         }}>
           <Typography variant="h2" component="h1" sx={{ 
             color: 'white', 
@@ -359,7 +358,6 @@ const Login = () => {
       </Box>
     </Box>
   );
-}
 };
 
 export default Login;
