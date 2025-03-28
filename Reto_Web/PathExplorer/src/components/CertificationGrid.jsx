@@ -25,6 +25,20 @@ const mockCerts = [
     url: "https://udemy.com/react-mastery",
     type: "Technical",
   },
+  {
+    id: 2,
+    title: "Vue Mastery",
+    issuer: "Coursera",
+    url: "https://udemy.com/react-mastery",
+    type: "Technical",
+  },
+  {
+    id: 2,
+    title: "Vue Mastery",
+    issuer: "Coursera",
+    url: "https://udemy.com/react-mastery",
+    type: "Technical",
+  },
 ];
 
 export const CertificationGrid = () => {
@@ -34,11 +48,12 @@ export const CertificationGrid = () => {
     <Paper
       sx={{
         flex: 1,
-        p: 2,
         display: "flex",
         flexDirection: "column",
-        height: "100%", // Important for child scroll to work
-        overflow: "hidden", // Prevent Paper itself from scrolling
+        height: "100%",
+        minHeight: 0,
+        p: 2,
+        overflow: "hidden", // hide any extra overflow horizontally
       }}
     >
       <Typography
@@ -48,12 +63,13 @@ export const CertificationGrid = () => {
         Certifications
       </Typography>
 
-      {/* This is the scrollable certifications area */}
       <Box
         sx={{
-          overflowY: "auto",
           flex: 1,
+          overflowY: "auto",
+          overflowX: "hidden",
           pr: 1,
+          minHeight: 0,
         }}
       >
         <Grid container spacing={2}>
