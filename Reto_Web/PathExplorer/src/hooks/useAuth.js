@@ -1,4 +1,4 @@
-// src/hooks/useAuth.js
+// src/hooks/useAuth.js - versión simplificada
 import { useEffect, useState } from "react";
 import { supabase } from "../supabase/supabaseClient";
 
@@ -10,46 +10,50 @@ const useAuth = () => {
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        // Obtener la sesión actual
+        // Solo obtén la información de autenticación básica
         const { data: { user: currentUser }, error } = await supabase.auth.getUser();
 
         if (error || !currentUser) {
           setUser(null);
-          setRole(null);
+          setRole("empleado");
           setLoading(false);
           return;
         }
 
         setUser(currentUser);
+        
+        // Obtener perfil desde tu tabla pública "User" (no auth.users)
+        try {
+          const { data: userProfile, error: profileError } = await supabase
+            .from('User')
+            .select('permission')
+            .eq('user_id', currentUser.id)
+            .single();
 
-        // Obtener el rol del usuario desde la base de datos
-        const { data: profile, error: roleError } = await supabase
-          .from("User")
-          .select("permission")
-          .eq("user_id", currentUser.id)
-          .single();
-
-        if (roleError) {
-          console.error("Error obteniendo el permiso:", roleError);
-          setRole("empleado"); // Rol por defecto si hay error
-        } else {
-          // Mapear los permisos de la DB a los roles que usamos en la app
-          const permissionMap = {
-            "Employee": "empleado",
-            "TFS": "TFS",
-            "Manager": "manager"
-          };
-          
-          // Asignar el rol mapeado o usar "empleado" como valor por defecto
-          const mappedRole = permissionMap[profile?.permission] || "empleado";
-          setRole(mappedRole);
+          if (profileError) {
+            console.error("Error al obtener perfil:", profileError);
+            setRole("empleado"); // Rol por defecto en caso de error
+          } else if (userProfile) {
+            // Mapeo de los permisos a los roles que usa tu aplicación
+            const permissionMap = {
+              "Employee": "empleado",
+              "TFS": "TFS",
+              "Manager": "manager"
+            };
+            setRole(permissionMap[userProfile.permission] || "empleado");
+          } else {
+            setRole("empleado");
+          }
+        } catch (profileErr) {
+          console.error("Error en consulta de perfil:", profileErr);
+          setRole("empleado");
         }
         
         setLoading(false);
       } catch (err) {
         console.error("Error en autenticación:", err);
         setUser(null);
-        setRole(null);
+        setRole("empleado");
         setLoading(false);
       }
     };
@@ -62,7 +66,7 @@ const useAuth = () => {
         fetchUser();
       } else if (event === 'SIGNED_OUT') {
         setUser(null);
-        setRole(null);
+        setRole("empleado");
         setLoading(false);
       }
     });
