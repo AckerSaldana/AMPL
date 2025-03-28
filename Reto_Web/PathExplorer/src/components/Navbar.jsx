@@ -368,30 +368,6 @@ const Navbar = ({ children }) => {
               <NotificationsIcon fontSize="small" />
             </Badge>
           </IconButton>
-
-<<<<<<< HEAD
-          {/* Avatar con efectos mejorados */}
-          <NavLink to="/user" style={{ textDecoration: "none" }}>
-            <Tooltip title="Usuario" arrow TransitionComponent={Zoom}>
-              <Avatar
-                sx={{
-                  width: 36,
-                  height: 36,
-                  bgcolor: primaryColor,
-                  cursor: "pointer",
-                  transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-                  boxShadow: `0 2px 8px ${alpha(primaryColor, 0.3)}`,
-                  border: "2px solid transparent",
-                  "&:hover": {
-                    transform: "scale(1.05)",
-                    boxShadow: `0 4px 12px ${alpha(primaryColor, 0.4)}`,
-                    border: "2px solid white",
-                  },
-                }}
-              />
-            </Tooltip>
-          </NavLink>
-=======
           {/* Avatar con tamaño fijo */}
           <Tooltip title="Usuario" arrow TransitionComponent={Zoom}>
             <Avatar
@@ -413,7 +389,6 @@ const Navbar = ({ children }) => {
               }}
             />
           </Tooltip>
->>>>>>> f81a5cb9657b916d4bb125373b0a9958cfa669bc
         </Box>
       </Box>
 

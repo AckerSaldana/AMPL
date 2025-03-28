@@ -9,6 +9,7 @@ import Analytics from './pages/Analytics';
 import Settings from './pages/Settings';
 import User from './pages/User';
 import Login from './pages/Login';
+import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
   return (
@@ -22,11 +23,9 @@ function App() {
           <Route path="analytics" element={<Analytics />} />
           <Route path="settings" element={<Settings />} />
           <Route path="user" element={<User />} />
-          {/*
-          <Route element={<ProtectedRoute allowedRoles={["empleado", "manager"]} />}>
-            <Route path="/dashboard" element={<Dashboard />} />
+          <Route element={<ProtectedRoute allowedRoles={["empleado", "TFS", "manager"]} />}>
+            <Route path="/projects" element={<Projects />} />
           </Route>
-          */}
         </Route>
       </Routes>
     </BrowserRouter>
