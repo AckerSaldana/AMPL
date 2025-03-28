@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { supabase } from '../supabase/supabaseClient';
+import { useNavigate } from 'react-router-dom';
 import { 
   TextField, 
   Button, 
@@ -11,7 +13,7 @@ import {
   Link
 } from '@mui/material';
 import { Visibility, VisibilityOff } from '@mui/icons-material';
-import useBodyStyles from '../hooks/useBodyStyles.js'; 
+import useBodyStyles from '../hooks/useBodyStyles.js';
 
 const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -21,14 +23,56 @@ const Login = () => {
 
   useBodyStyles();
 
+  const navigate = useNavigate();
+
   const handleClickShowPassword = () => {
     setShowPassword(!showPassword);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     console.log({ email, password, rememberMe });
-    // Aqui va la logica de autenticacion @esacs :)
+    // Aquí va la lógica de autenticación
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+  
+    if (error) {
+      console.error('Error al iniciar sesión:', error.message);
+      alert('Credenciales incorrectas o usuario no registrado');
+      return;
+    }
+  
+    const user = data.user;
+  
+    // Obtener información desde la tabla User
+    const { data: perfil, error: perfilError } = await supabase
+      .from('User')
+      .select('name, permission') // Puedes agregar más campos si lo deseas
+      .eq('user_id', user.id)
+      .single();
+  
+    if (perfilError) {
+      console.error('Error obteniendo datos del perfil:', perfilError.message);
+      alert('Error al cargar la información del usuario');
+      return;
+    }
+  
+    console.log(`¡Hola, ${perfil.name}!`);
+  
+    // Redirigir acorde al permission
+    switch (perfil.permission) {
+      case 'Employee':
+        navigate('/dashboard-employee');
+        break;
+      case 'Manager':
+      case 'TFS':
+        navigate('/dashboard-admin');
+        break;
+      default:
+        alert('Rol no reconocido');
+    }
   };
 
   return (
@@ -67,7 +111,6 @@ const Login = () => {
           boxShadow: '0px 4px 24px rgba(0, 0, 0, 0.1)',
           borderRadius: '4px',
           transition: 'all 0.3s ease-in-out',
-          
         }}>
           <Typography variant="h2" component="h1" sx={{ 
             color: 'white', 
