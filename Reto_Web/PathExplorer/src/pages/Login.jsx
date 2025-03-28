@@ -15,6 +15,8 @@ import {
 import { Visibility, VisibilityOff } from '@mui/icons-material';
 import useBodyStyles from '../hooks/useBodyStyles.js';
 
+import AccentureLogo from '../brand/AccenturePurpleLogo.png';
+
 const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
@@ -165,7 +167,7 @@ const Login = () => {
           
           <Box sx={{ mb: 4 }}>
             <img 
-              src="/src/brand/AccenturePurpleLogo.png"
+              src={AccentureLogo}
               alt="Logo"
               style={{ 
                 height: '50px', 
