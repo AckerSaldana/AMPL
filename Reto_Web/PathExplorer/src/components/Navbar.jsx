@@ -369,26 +369,26 @@ const Navbar = ({ children }) => {
             </Badge>
           </IconButton>
           {/* Avatar con tamaño fijo */}
-          <Tooltip title="Usuario" arrow TransitionComponent={Zoom}>
-            <Avatar
-              sx={{
-                width: 36,
-                height: 36,
-                minWidth: 36,
-                minHeight: 36,
-                bgcolor: primaryColor,
-                cursor: "pointer",
-                transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-                boxShadow: `0 2px 8px ${alpha(primaryColor, 0.3)}`,
-                border: "2px solid transparent",
-                "&:hover": {
-                  transform: "scale(1.05)",
-                  boxShadow: `0 4px 12px ${alpha(primaryColor, 0.4)}`,
-                  border: "2px solid white",
-                },
-              }}
-            />
-          </Tooltip>
+          <NavLink to="/User" style={{ textDecoration: "none" }}>
+            <Tooltip title="Usuario" arrow TransitionComponent={Zoom}>
+              <Avatar
+                sx={{
+                  width: 36,
+                  height: 36,
+                  bgcolor: primaryColor,
+                  cursor: "pointer",
+                  transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                  boxShadow: `0 2px 8px ${alpha(primaryColor, 0.3)}`,
+                  border: "2px solid transparent",
+                  "&:hover": {
+                    transform: "scale(1.05)",
+                    boxShadow: `0 4px 12px ${alpha(primaryColor, 0.4)}`,
+                    border: "2px solid white",
+                  },
+                }}
+              />
+            </Tooltip>
+          </NavLink>
         </Box>
       </Box>
 
