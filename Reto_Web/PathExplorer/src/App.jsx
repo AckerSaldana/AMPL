@@ -18,13 +18,14 @@ function App() {
         <Route path="login" element={<Login />} />
         <Route path="/" element={<MainLayout />}>
           <Route index element={<Dashboard />} />
-          <Route path="projects" element={<Projects />} />
           <Route path="profiles" element={<Profiles />} />
-          <Route path="analytics" element={<Analytics />} />
           <Route path="settings" element={<Settings />} />
           <Route path="user" element={<User />} />
           <Route element={<ProtectedRoute allowedRoles={["empleado", "TFS", "manager"]} />}>
             <Route path="/projects" element={<Projects />} />
+          </Route>
+          <Route element={<ProtectedRoute allowedRoles={["manager"]} />}>
+            <Route path="/analytics" element={<Projects />} />
           </Route>
         </Route>
       </Routes>
