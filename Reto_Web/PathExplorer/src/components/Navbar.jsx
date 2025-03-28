@@ -33,6 +33,8 @@ import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import LogoutIcon from "@mui/icons-material/Logout";
 import { supabase } from "../supabase/supabaseClient";
 
+import AccentureLogo from "../brand/AccenturePurpleLogo.png";
+
 const RippleEffect = ({ active }) => {
   return (
     <Box
@@ -234,7 +236,7 @@ const Navbar = ({ children }) => {
           >
             <Box
               component="img"
-              src="/src/brand/AccenturePurpleLogo.png"
+              src={AccentureLogo}
               alt="Logo"
               sx={{
                 height: 30,
