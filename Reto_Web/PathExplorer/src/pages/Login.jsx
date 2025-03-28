@@ -34,8 +34,8 @@ const Login = () => {
     console.log({ email, password, rememberMe });
     // Aquí va la lógica de autenticación
     const { data, error } = await supabase.auth.signInWithPassword({
-      email: 'ask_tst@hotmail.com',
-      password: '123'
+      email,
+      password
     });
   
     if (error) {
