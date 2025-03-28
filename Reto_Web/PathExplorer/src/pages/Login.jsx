@@ -34,8 +34,8 @@ const Login = () => {
     console.log({ email, password, rememberMe });
     // Aquí va la lógica de autenticación
     const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
+      email: 'ask_tst@hotmail.com',
+      password: '123'
     });
   
     if (error) {
@@ -45,6 +45,9 @@ const Login = () => {
     }
   
     const user = data.user;
+
+    console.log('Usuario:', user); // Asegúrate de que sea válido
+    console.log('UUID:', user.id); // Copia este y busca en Supabase
   
     // Obtener información desde la tabla User
     const { data: perfil, error: perfilError } = await supabase

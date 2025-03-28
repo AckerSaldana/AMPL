@@ -9,6 +9,7 @@ import Analytics from './pages/Analytics';
 import Settings from './pages/Settings';
 import User from './pages/User';
 import Login from './pages/Login';
+import { Calendar } from './components/Calendar';
 import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
