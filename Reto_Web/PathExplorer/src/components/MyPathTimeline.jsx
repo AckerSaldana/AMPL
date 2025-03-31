@@ -5,19 +5,15 @@ import {
   Typography, 
   Paper, 
   useTheme,
-  CircularProgress,
-  Button
+  CircularProgress
 } from "@mui/material";
 import SchoolIcon from "@mui/icons-material/School";
 import CodeIcon from "@mui/icons-material/Code";
-import StarIcon from "@mui/icons-material/Star";
-import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 
 export const MyPathTimeline = ({ items: initialItems }) => {
   const theme = useTheme();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState("all");
   
   // Simular carga de datos
   useEffect(() => {
@@ -40,87 +36,12 @@ export const MyPathTimeline = ({ items: initialItems }) => {
     return `${month} | ${day} | ${year}`;
   };
   
-  // Función para filtrar elementos
-  const getFilteredItems = () => {
-    if (filter === "all") return items;
-    return items.filter(item => 
-      filter === "projects" 
-        ? item.type === "Project" 
-        : item.type.includes("Certificate")
-    );
-  };
-  
   // Ordenar los items por fecha
-  const sortedItems = [...getFilteredItems()].sort((a, b) => {
+  const sortedItems = [...items].sort((a, b) => {
     if (!a.date) return -1;
     if (!b.date) return 1;
     return new Date(b.date) - new Date(a.date);
   });
-  
-  // Renderizar filtros
-  const renderFilters = () => (
-    <Box sx={{ display: 'flex', mb: 2, gap: 1 }}>
-      <Button 
-        size="small"
-        variant={filter === "all" ? "contained" : "outlined"}
-        onClick={() => setFilter("all")}
-        sx={{ 
-          minWidth: 'auto',
-          fontSize: '0.75rem',
-          textTransform: 'none',
-          borderRadius: 1,
-          py: 0.5,
-          color: filter === "all" ? '#fff' : theme.palette.text.secondary,
-          backgroundColor: filter === "all" ? theme.palette.primary.main : 'transparent',
-          '&:hover': {
-            backgroundColor: filter === "all" ? theme.palette.primary.dark : 'rgba(0,0,0,0.04)'
-          }
-        }}
-      >
-        Todos
-      </Button>
-      
-      <Button 
-        size="small"
-        variant={filter === "projects" ? "contained" : "outlined"}
-        onClick={() => setFilter("projects")}
-        sx={{ 
-          minWidth: 'auto',
-          fontSize: '0.75rem',
-          textTransform: 'none',
-          borderRadius: 1,
-          py: 0.5,
-          color: filter === "projects" ? '#fff' : theme.palette.text.secondary,
-          backgroundColor: filter === "projects" ? theme.palette.primary.main : 'transparent',
-          '&:hover': {
-            backgroundColor: filter === "projects" ? theme.palette.primary.dark : 'rgba(0,0,0,0.04)'
-          }
-        }}
-      >
-        Proyectos
-      </Button>
-      
-      <Button 
-        size="small"
-        variant={filter === "certificates" ? "contained" : "outlined"}
-        onClick={() => setFilter("certificates")}
-        sx={{ 
-          minWidth: 'auto',
-          fontSize: '0.75rem',
-          textTransform: 'none',
-          borderRadius: 1,
-          py: 0.5,
-          color: filter === "certificates" ? '#fff' : theme.palette.text.secondary,
-          backgroundColor: filter === "certificates" ? theme.palette.primary.main : 'transparent',
-          '&:hover': {
-            backgroundColor: filter === "certificates" ? theme.palette.primary.dark : 'rgba(0,0,0,0.04)'
-          }
-        }}
-      >
-        Certificaciones
-      </Button>
-    </Box>
-  );
   
   // Renderizar el contenido principal
   const renderContent = () => {
@@ -137,7 +58,7 @@ export const MyPathTimeline = ({ items: initialItems }) => {
         <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', py: 4 }}>
           <SchoolIcon sx={{ fontSize: 40, color: theme.palette.text.disabled, mb: 1 }} />
           <Typography variant="body2" color="text.secondary" align="center">
-            No hay elementos para mostrar en este filtro
+            No hay elementos para mostrar
           </Typography>
         </Box>
       );
@@ -150,7 +71,7 @@ export const MyPathTimeline = ({ items: initialItems }) => {
           ml: 2,
           overflowY: "auto",
           overflowX: "hidden",
-          height: "calc(100% - 80px)",
+          height: "calc(100% - 40px)",
           // Timeline vertical line
           "&::before": {
             content: '""',
@@ -172,6 +93,9 @@ export const MyPathTimeline = ({ items: initialItems }) => {
             ? theme.palette.primary.main
             : theme.palette.secondary.main;
 
+          // Determinar si debe mostrar "AI Suggested" para items con "Soon"
+          const showAISuggested = !item.date;
+          
           return (
             <Box
               key={item.id}
@@ -215,9 +139,13 @@ export const MyPathTimeline = ({ items: initialItems }) => {
                 </Typography>
                 <Typography
                   variant="caption"
-                  sx={{ color: theme.palette.text.secondary }}
+                  sx={{ 
+                    color: showAISuggested 
+                      ? theme.palette.primary.main
+                      : theme.palette.text.secondary
+                  }}
                 >
-                  {item.type}
+                  {showAISuggested ? "AI Suggested Certificate" : item.type}
                 </Typography>
               </Box>
               {/* Right date */}
@@ -250,28 +178,12 @@ export const MyPathTimeline = ({ items: initialItems }) => {
         flexDirection: 'column'
       }}
     >
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
         <Typography variant="h6">
           MyPath
         </Typography>
-        <Box 
-          sx={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            fontSize: '0.8rem',
-            color: theme.palette.text.secondary,
-            '&:hover': { cursor: 'pointer', color: theme.palette.primary.main },
-          }}
-        >
-          <StarIcon sx={{ fontSize: '0.9rem', mr: 0.5 }} />
-          <Typography variant="caption" fontWeight={500}>
-            Top AI Suggestions
-          </Typography>
-          <ArrowDropDownIcon fontSize="small" />
-        </Box>
       </Box>
       
-      {renderFilters()}
       {renderContent()}
     </Paper>
   );
