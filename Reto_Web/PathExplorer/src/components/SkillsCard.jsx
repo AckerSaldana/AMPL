@@ -39,6 +39,18 @@ export const SkillsCard = () => {
           />
         ))}
       </Box>
+
+
+      <IconButton
+        sx={{
+          color: "text.secondary",
+          ml: 2,
+          "&:hover": { backgroundColor: "primary.light" },
+        }}
+      >
+        <AddIcon />
+      </IconButton>
+
     </Paper>
   );
 };
