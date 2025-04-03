@@ -22,15 +22,28 @@ const EditProfile = ({ userData, onSave, onCancel }) => {
       }}
     >
       <Grid container spacing={3}>
-        {/* Banner */}
         <Grid item md={12}>
           <EditBannerProfile />
         </Grid>
 
-        {/* Editable Information Section */}
+        {/* Sección vacía (originalmente abierta sin contenido) */}
         <Grid item xs={12} md={6}>
           <Paper sx={{ p: 3, display: "flex", flexDirection: "column" }}>
-            <Typography variant="h6" fontWeight="bold">
+            <Typography variant="h6" fontWeight="bold"></Typography>
+          </Paper>
+        </Grid>
+
+        {/* Editable Information Section */}
+        <Grid item xs={12} md={6}>
+          <Paper
+            sx={{
+              p: 3,
+              display: "flex",
+              flexDirection: "column",
+              height: "100%",
+            }}
+          >
+            <Typography variant="body1" fontWeight="bold">
               Edit Information
             </Typography>
             <TextField
@@ -100,7 +113,7 @@ const EditProfile = ({ userData, onSave, onCancel }) => {
                 p: 3,
                 display: "flex",
                 flexDirection: "column",
-                mt: 2,
+                height: "100%",
               }}
             >
               <Typography variant="body1" fontWeight="bold">
@@ -109,13 +122,14 @@ const EditProfile = ({ userData, onSave, onCancel }) => {
               <TextField
                 fullWidth
                 multiline
-                rows={4}
+                rows={7}
                 name="about"
                 label="Who are you?"
                 value={formData.about}
                 onChange={handleChange}
                 sx={{
                   mt: 2,
+                  flexGrow: 1,
                   "& .MuiInputLabel-root": { color: "gray" },
                   "& .MuiInputLabel-root.Mui-focused": { color: "primary.main" },
                 }}
@@ -125,12 +139,11 @@ const EditProfile = ({ userData, onSave, onCancel }) => {
           </Paper>
         </Grid>
 
-        {/* Add Skills Section */}
         <Grid item xs={12}>
           <AddSkillsCard />
         </Grid>
 
-        {/* Editable Goals Section - Primera parte */}
+        {/* Editable Goals Section (primera versión) */}
         <Grid item md={12}>
           <Paper sx={{ p: 3 }}>
             <Typography
@@ -154,14 +167,16 @@ const EditProfile = ({ userData, onSave, onCancel }) => {
                 sx={{
                   mt: 2,
                   "& .MuiInputLabel-root": { color: "gray" },
-                  "& .MuiInputLabel-root.Mui-focused": { color: "primary.main" },
+                  "& .MuiInputLabel-root.Mui-focused": {
+                    color: "primary.main",
+                  },
                 }}
               />
             ))}
           </Paper>
         </Grid>
 
-        {/* Editable Goals Section - Segunda parte */}
+        {/* Editable Goals Section (segunda versión) */}
         <Grid item xs={12}>
           <Paper sx={{ p: 3 }}>
             <Typography variant="body1" fontWeight="bold">
@@ -175,7 +190,7 @@ const EditProfile = ({ userData, onSave, onCancel }) => {
                 name={`goal${index}`}
                 value={formData[`goal${index}`] || ""}
                 onChange={handleChange}
-                sx={{ mt: 2 }}
+                sx={{ mt: 2, color: "gray" }}
               />
             ))}
           </Paper>
@@ -187,16 +202,24 @@ const EditProfile = ({ userData, onSave, onCancel }) => {
         </Grid>
 
         {/* Botones */}
-        <Grid item xs={12} sx={{ display: "flex", justifyContent: "space-between" }}>
-          <Button variant="contained" color="primary" onClick={() => onSave(formData)}>
+        <Grid
+          item
+          xs={12}
+          sx={{ display: "flex", justifyContent: "space-between" }}
+        >
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={() => onSave(formData)}
+          >
             Save
           </Button>
           <Button
             variant="outlined"
             sx={{
-              bgcolor: "text.secondary",
-              color: "white",
-              "&:hover": { bgcolor: "gray" },
+              bgcolor: "#f5f5f5",
+              color: "black",
+              "&:hover": { bgcolor: "#e0e0e0" },
             }}
             onClick={onCancel}
           >
