@@ -1,110 +1,91 @@
-import React, { useState } from "react";
-import { Box, Avatar, Paper, IconButton } from "@mui/material";
-import { PhotoCamera } from "@mui/icons-material";
+import React, { useState, useRef } from "react";
+import {
+  Box,
+  IconButton,
+  Typography,
+  useTheme,
+} from "@mui/material";
+import {
+  CameraAlt,
+} from "@mui/icons-material";
 
-export const EditBannerProfile = () => {
-  const [banner, setBanner] = useState("/defaultBanner.jpg");
-  const [profilePic, setProfilePic] = useState("/path-to-profile-image.jpg");
+export const EditBannerProfile = ({ initialBanner, onBannerChange }) => {
+  const theme = useTheme();
+  const fileInputRef = useRef(null);
+  const [bannerImage, setBannerImage] = useState(initialBanner || null);
+  const [isHovering, setIsHovering] = useState(false);
 
-  const handleBannerChange = (event) => {
-    const file = event.target.files[0];
-    if (file) {
+  const handleFileUpload = (event) => {
+    if (event.target.files && event.target.files[0]) {
+      const file = event.target.files[0];
       const reader = new FileReader();
-      reader.onload = (e) => setBanner(e.target.result);
+      
+      reader.onloadend = () => {
+        setBannerImage(reader.result);
+        if (onBannerChange) {
+          onBannerChange(reader.result, file);
+        }
+      };
+      
       reader.readAsDataURL(file);
     }
   };
 
-  const handleProfilePicChange = (event) => {
-    const file = event.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => setProfilePic(e.target.result);
-      reader.readAsDataURL(file);
-    }
+  const openFileSelector = () => {
+    fileInputRef.current.click();
   };
 
   return (
-    <Paper
+    <Box
       sx={{
         position: "relative",
-        height: 260,
+        height: 200,
         width: "100%",
-        backgroundImage: `url(${banner})`,
+        borderRadius: "8px 8px 0 0",
+        overflow: "hidden",
+        backgroundColor: "#6699cc", // Default light blue color
+        backgroundImage: bannerImage ? `url(${bannerImage})` : 'none',
         backgroundSize: "cover",
         backgroundPosition: "center",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "flex-start",
-        flexDirection: "column",
-        textAlign: "left",
-        p: 3,
-        overflow: "hidden",
-        "&::after": {
-          content: "''",
-          position: "absolute",
-          bottom: 0,
-          left: 0,
-          width: "100%",
-          height: "50px",
-          backgroundColor: "white",
-          zIndex: 2,
-        },
       }}
+      onMouseEnter={() => setIsHovering(true)}
+      onMouseLeave={() => setIsHovering(false)}
     >
-      {/* Banner Edit Icon */}
-      <IconButton
-        sx={{
-          position: "absolute",
-          top: 15,
-          right: 15,
-          backgroundColor: "rgba(255,255,255,0.6)",
-          "&:hover": { backgroundColor: "rgba(255,255,255,0.8)" },
-        }}
-        component="label"
-      >
-        <PhotoCamera />
-        <input
-          type="file"
-          accept="image/*"
-          hidden
-          onChange={handleBannerChange}
-        />
-      </IconButton>
-
-      {/* Profile Picture */}
+      {/* Upload overlay - only visible on hover */}
       <Box
         sx={{
           position: "absolute",
-          bottom: 20,
-          left: 30,
-          textAlign: "center",
-          zIndex: 3,
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "center",
+          alignItems: "center",
+          backgroundColor: isHovering ? "rgba(0, 0, 0, 0.4)" : "transparent",
+          opacity: isHovering ? 1 : 0,
+          transition: "opacity 0.3s ease",
+          zIndex: 2,
+          cursor: "pointer",
         }}
+        onClick={openFileSelector}
       >
-        <Avatar
-          src={profilePic}
-          sx={{ width: 100, height: 100, border: "4px solid white" }}
-        />
-        <IconButton
-          sx={{
-            position: "absolute",
-            bottom: 0,
-            right: 0,
-            backgroundColor: "rgba(255,255,255,0.6)",
-            "&:hover": { backgroundColor: "rgba(255,255,255,0.8)" },
-          }}
-          component="label"
-        >
-          <PhotoCamera />
-          <input
-            type="file"
-            accept="image/*"
-            hidden
-            onChange={handleProfilePicChange}
-          />
-        </IconButton>
+        <CameraAlt sx={{ color: "white", fontSize: 40, mb: 1 }} />
+        <Typography variant="subtitle1" sx={{ color: "white", fontWeight: 500 }}>
+          Click to upload banner image
+        </Typography>
       </Box>
-    </Paper>
+
+      <input
+        type="file"
+        hidden
+        ref={fileInputRef}
+        accept="image/*"
+        onChange={handleFileUpload}
+      />
+    </Box>
   );
 };
+
+export default EditBannerProfile;

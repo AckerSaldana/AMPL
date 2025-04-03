@@ -1,53 +1,353 @@
-import React from "react";
-import { Paper, Typography, Box, Chip, IconButton } from "@mui/material";
-import AddIcon from "@mui/icons-material/Add";
+import React, { useState } from "react";
+import {
+  Box,
+  Card,
+  CardContent,
+  Chip,
+  Typography,
+  TextField,
+  Button,
+  Divider,
+  Grid,
+  IconButton,
+  useTheme,
+  alpha,
+  Autocomplete,
+  Tooltip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+} from "@mui/material";
+import {
+  Add,
+  Code,
+  Psychology,
+  Close,
+  ExpandMore,
+  ExpandLess,
+} from "@mui/icons-material";
 
-const mockSkills = ["React", "JavaScript", "CSS", "HTML", "Node.js", "UI/UX"];
+export const AddSkillsCard = ({ initialSkills = [] }) => {
+  const theme = useTheme();
+  const [skills, setSkills] = useState(initialSkills);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [newSkill, setNewSkill] = useState("");
+  const [category, setCategory] = useState("technical");
+  const [expanded, setExpanded] = useState({
+    technical: true,
+    soft: true,
+  });
 
-export const AddSkillsCard = () => {
-  return (
-    <Paper
-      sx={{
-        p: 2,
-        display: "flex",
-        alignItems: "center",
-        overflow: "hidden",
-      }}
-    >
-      <Typography variant="body1" sx={{ flexShrink: 0, mr: 2 }}>
-        <b>Skills</b>
-      </Typography>
+  // Predefined skill suggestions by category
+  const skillSuggestions = {
+    technical: [
+      "JavaScript",
+      "React",
+      "Node.js",
+      "TypeScript",
+      "HTML",
+      "CSS",
+      "Python",
+      "Java",
+      "C#",
+      "PHP",
+      "Vue.js",
+      "Angular",
+      "Express",
+      "MongoDB",
+      "MySQL",
+      "PostgreSQL",
+    ],
+    soft: [
+      "Communication",
+      "Teamwork",
+      "Problem Solving",
+      "Leadership",
+      "Adaptability",
+      "Time Management",
+      "Creativity",
+      "Empathy",
+      "Critical Thinking",
+      "Emotional Intelligence",
+    ],
+  };
 
-      <Box
-        sx={{
-          display: "flex",
-          overflowX: "auto",
-          gap: 1,
-          flexGrow: 1,
-          "&::-webkit-scrollbar": { display: "none" },
-        }}
-      >
-        {mockSkills.map((skill, index) => (
-          <Chip
-            key={index}
-            label={skill}
-            sx={{
-              backgroundColor: "primary.light",
-              color: "text.white",
-            }}
-          />
-        ))}
+  // Group skills by category
+  const groupedSkills = {
+    technical: skills.filter((skill) => skill.category === "technical"),
+    soft: skills.filter((skill) => skill.category === "soft"),
+  };
+
+  const handleOpenDialog = (categoryType) => {
+    setCategory(categoryType);
+    setNewSkill("");
+    setDialogOpen(true);
+  };
+
+  const handleCloseDialog = () => {
+    setDialogOpen(false);
+  };
+
+  const handleAddSkill = () => {
+    if (newSkill.trim() !== "") {
+      const newSkillObj = {
+        id: Date.now(),
+        name: newSkill.trim(),
+        category,
+        level: 3,
+      };
+      setSkills([...skills, newSkillObj]);
+      setNewSkill("");
+      handleCloseDialog();
+    }
+  };
+
+  const handleRemoveSkill = (skillId) => {
+    setSkills(skills.filter((skill) => skill.id !== skillId));
+  };
+
+  const handleToggleCategory = (categoryType) => {
+    setExpanded({
+      ...expanded,
+      [categoryType]: !expanded[categoryType],
+    });
+  };
+
+  const getCategoryIcon = (categoryType) => {
+    switch (categoryType) {
+      case "technical":
+        return <Code />;
+      case "soft":
+        return <Psychology />;
+      default:
+        return <Code />;
+    }
+  };
+
+  const getCategoryColor = (categoryType) => {
+    switch (categoryType) {
+      case "technical":
+        return theme.palette.primary.main;
+      case "soft":
+        return theme.palette.success.main;
+      default:
+        return theme.palette.primary.main;
+    }
+  };
+
+  const getSkillLevel = (level) => {
+    switch (level) {
+      case 1:
+        return "Basic";
+      case 2:
+        return "Intermediate";
+      case 3:
+        return "Advanced";
+      case 4:
+        return "Expert";
+      default:
+        return "Intermediate";
+    }
+  };
+
+  const renderSkillCategory = (categoryType, title, skills) => {
+    const categoryColor = getCategoryColor(categoryType);
+    
+    return (
+      <Box sx={{ mb: 3 }}>
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            cursor: "pointer",
+            mb: 1,
+          }}
+          onClick={() => handleToggleCategory(categoryType)}
+        >
+          <Box sx={{ display: "flex", alignItems: "center" }}>
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                width: 32,
+                height: 32,
+                borderRadius: "50%",
+                backgroundColor: alpha(categoryColor, 0.1),
+                mr: 1.5,
+              }}
+            >
+              {React.cloneElement(getCategoryIcon(categoryType), {
+                fontSize: "small",
+                sx: { color: categoryColor },
+              })}
+            </Box>
+            <Typography
+              variant="subtitle1"
+              fontWeight="600"
+              sx={{ color: categoryColor }}
+            >
+              {title}
+            </Typography>
+          </Box>
+          <Box sx={{ display: "flex", alignItems: "center" }}>
+            <Button
+              size="small"
+              startIcon={<Add />}
+              variant="outlined"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleOpenDialog(categoryType);
+              }}
+              sx={{
+                mr: 1,
+                borderColor: alpha(categoryColor, 0.5),
+                color: categoryColor,
+                "&:hover": {
+                  borderColor: categoryColor,
+                  backgroundColor: alpha(categoryColor, 0.05),
+                },
+              }}
+            >
+              Add
+            </Button>
+            <IconButton
+              size="small"
+              sx={{ color: "text.secondary" }}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleToggleCategory(categoryType);
+              }}
+            >
+              {expanded[categoryType] ? <ExpandLess /> : <ExpandMore />}
+            </IconButton>
+          </Box>
+        </Box>
+        
+        {expanded[categoryType] && (
+          <Box sx={{ mt: 2 }}>
+            {skills.length > 0 ? (
+              <Box
+                sx={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  gap: 1,
+                }}
+              >
+                {skills.map((skill) => (
+                  <Tooltip
+                    key={skill.id}
+                    title={getSkillLevel(skill.level)}
+                    arrow
+                  >
+                    <Chip
+                      label={skill.name}
+                      sx={{
+                        bgcolor: alpha(categoryColor, 0.08),
+                        color: "text.primary",
+                        borderColor: alpha(categoryColor, 0.2),
+                        "& .MuiChip-deleteIcon": {
+                          color: alpha(categoryColor, 0.7),
+                          "&:hover": {
+                            color: categoryColor,
+                          },
+                        },
+                      }}
+                      variant="outlined"
+                      onDelete={() => handleRemoveSkill(skill.id)}
+                      deleteIcon={<Close fontSize="small" />}
+                    />
+                  </Tooltip>
+                ))}
+              </Box>
+            ) : (
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{ fontStyle: "italic", py: 1 }}
+              >
+                No skills added in this category yet.
+              </Typography>
+            )}
+          </Box>
+        )}
       </Box>
+    );
+  };
 
-      <IconButton
-        sx={{
-          color: "text.secondary",
-          ml: 2,
-          "&:hover": { backgroundColor: "primary.light" },
-        }}
-      >
-        <AddIcon />
-      </IconButton>
-    </Paper>
+  return (
+    <Card elevation={0} sx={{ borderRadius: 2, boxShadow: "0 2px 10px rgba(0,0,0,0.05)" }}>
+      <CardContent>
+        <Typography
+          variant="h6"
+          fontWeight="bold"
+          mb={2}
+          display="flex"
+          alignItems="center"
+          color="primary.main"
+        >
+          <Code sx={{ mr: 1 }} /> Skills & Competencies
+        </Typography>
+        <Divider sx={{ mb: 3 }} />
+
+        <Grid container spacing={2}>
+          <Grid item xs={12}>
+            {renderSkillCategory(
+              "technical",
+              "Technical Skills",
+              groupedSkills.technical
+            )}
+            {renderSkillCategory(
+              "soft",
+              "Soft Skills",
+              groupedSkills.soft
+            )}
+          </Grid>
+        </Grid>
+      </CardContent>
+
+      {/* Dialog for adding new skill */}
+      <Dialog open={dialogOpen} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
+        <DialogTitle>
+          Add new {category === "technical" ? "technical" : "soft"} skill
+        </DialogTitle>
+        <DialogContent>
+          <Autocomplete
+            freeSolo
+            options={skillSuggestions[category] || []}
+            inputValue={newSkill}
+            onInputChange={(_, value) => setNewSkill(value)}
+            fullWidth
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                fullWidth
+                label="Skill name"
+                variant="outlined"
+                autoFocus
+                margin="dense"
+              />
+            )}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseDialog} color="inherit">
+            Cancel
+          </Button>
+          <Button
+            onClick={handleAddSkill}
+            variant="contained"
+            color="primary"
+            disabled={!newSkill.trim()}
+          >
+            Add
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Card>
   );
 };
+
+export default AddSkillsCard;
