@@ -40,6 +40,7 @@ export const SkillsCard = () => {
         ))}
       </Box>
 
+
       <IconButton
         sx={{
           color: "text.secondary",
@@ -49,6 +50,7 @@ export const SkillsCard = () => {
       >
         <AddIcon />
       </IconButton>
+
     </Paper>
   );
 };
