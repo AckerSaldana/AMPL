@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../supabase/supabaseClient"; // Asegúrate de que este archivo esté bien configurado
 
-const ProjectDashboard = () => {
+const ProjectDashboardAdmin = () => {
   const [projects, setProjects] = useState([]);
   const [clients, setClients] = useState([]);
   const [userRoles, setUserRoles] = useState([]);
@@ -77,8 +77,62 @@ const ProjectDashboard = () => {
           </tbody>
         </table>
       )}
+
+      {/* Tabla de Clientes */}
+      <h2>Lista de Clientes</h2>
+      <table border="1" style={{ width: "100%", textAlign: "left", borderCollapse: "collapse" }}>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Nombre</th>
+            <th>Email</th>
+            <th>Teléfono</th>
+          </tr>
+        </thead>
+        <tbody>
+          {clients.length > 0 ? (
+            clients.map((client) => (
+              <tr key={client.clientID}>
+                <td>{client.clientID}</td>
+                <td>{client.name}</td>
+                <td>{client.email}</td>
+                <td>{client.phone}</td>
+              </tr>
+            ))
+          ) : (
+            <tr>
+              <td colSpan="4" style={{ textAlign: "center" }}>No hay clientes disponibles.</td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+
+      {/* Tabla de Roles de Usuario */}
+      <h2>Lista de Roles de Usuario</h2>
+      <table border="1" style={{ width: "100%", textAlign: "left", borderCollapse: "collapse" }}>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Nombre del Rol</th>
+          </tr>
+        </thead>
+        <tbody>
+          {userRoles.length > 0 ? (
+            userRoles.map((role) => (
+              <tr key={role.roleID}>
+                <td>{role.roleID}</td>
+                <td>{role.roleName}</td>
+              </tr>
+            ))
+          ) : (
+            <tr>
+              <td colSpan="2" style={{ textAlign: "center" }}>No hay roles de usuario disponibles.</td>
+            </tr>
+          )}
+        </tbody>
+      </table>
     </div>
   );
 };
 
-export default ProjectDashboard;
+export default ProjectDashboardAdmin;

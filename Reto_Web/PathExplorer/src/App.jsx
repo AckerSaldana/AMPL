@@ -13,6 +13,7 @@ import Login from "./pages/Login";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Unauthorized from "./pages/Unauthorized"; // Necesitamos crear esta página
 import ProjectDashboard from "./components/ProjectDashboard"; // Nueva página para el dashboard de proyectos
+import ProjectDashboardAdmin from "./components/ProjectDashboardAdmin";
 
 function App() {
   return (
@@ -48,6 +49,10 @@ function App() {
           {/* Rutas accesibles solo para manager */}
           <Route element={<ProtectedRoute allowedRoles={["manager"]} />}>
             <Route path="analytics" element={<Analytics />} />
+          </Route>
+          {/* Rutas accesibles solo para TFS y manager */}
+          <Route element={<ProtectedRoute allowedRoles={["TFS", "manager"]} />}>
+            <Route path="/projectadmin" element={<ProjectDashboardAdmin />} />
           </Route>
 
           {/* Redirección por defecto a dashboard */}
