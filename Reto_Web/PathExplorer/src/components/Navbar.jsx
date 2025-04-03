@@ -15,6 +15,8 @@ import {
   useMediaQuery,
   useTheme,
   alpha,
+  Drawer,
+  SwipeableDrawer,
 } from "@mui/material";
 
 import { NavLink, useNavigate, useLocation } from "react-router-dom";
@@ -59,10 +61,14 @@ const Navbar = ({ children }) => {
   const theme = useTheme();
   const navigate = useNavigate();
   const { user, role, loading } = useAuth();
+  const isXsScreen = useMediaQuery(theme.breakpoints.down("xs"));
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  const isTablet = useMediaQuery(theme.breakpoints.down("md"));
+  
   const [prevActiveItem, setPrevActiveItem] = useState(null);
   const [darkMode, setDarkMode] = useState(false);
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(!isMobile); // Colapsa por defecto en móvil
+  const [mobileOpen, setMobileOpen] = useState(false); // Estado para el drawer móvil
   const [hoveredItem, setHoveredItem] = useState(null);
   const [rippleActive, setRippleActive] = useState(false);
   const [notificationCount, setNotificationCount] = useState(3);
@@ -70,6 +76,16 @@ const Navbar = ({ children }) => {
   const [activeItem, setActiveItem] = useState("Dashboard");
   const navBgColor = darkMode ? "#222" : "#fff";
   const [userName, setUserName] = useState("");
+
+  // Actualizar el estado de expansión cuando cambie el tamaño de la pantalla
+  useEffect(() => {
+    if (isMobile && expanded) {
+      setExpanded(false);
+    } else if (!isMobile && !expanded && !mobileOpen) {
+      // Solo expandir automáticamente si estamos pasando de móvil a desktop
+      setExpanded(true);
+    }
+  }, [isMobile]);
 
   useEffect(() => {
     // Obtener información del usuario cuando se carga el componente
@@ -121,7 +137,11 @@ const Navbar = ({ children }) => {
   };
 
   const toggleSidebar = () => {
-    setExpanded(!expanded);
+    if (isMobile) {
+      setMobileOpen(!mobileOpen);
+    } else {
+      setExpanded(!expanded);
+    }
   };
 
   const handleNotificationClick = () => {
@@ -175,6 +195,188 @@ const Navbar = ({ children }) => {
   if (loading) {
     return <div>Cargando...</div>;
   }
+  
+  // Lista de navegación que se comparte entre la barra lateral normal y la versión móvil
+  const navList = (
+    <List
+      sx={{
+        p: 1.8,
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "flex-start", // Alineación a la izquierda
+        height: "100%",
+        transition: "all 0.5s cubic-bezier(0.4, 0, 0.2, 1)",
+        position: "relative", // Para que los hijos absolutos se posicionen respecto a esta lista
+        width: "100%",
+      }}
+    >
+      {menuItems.map((item) => (
+        <Tooltip
+          title={expanded || isMobile ? "" : item.text}
+          placement="right"
+          TransitionComponent={Zoom}
+          arrow
+          key={item.text}
+        >
+          <ListItem
+            button
+            component={NavLink}
+            to={item.route}
+            selected={activeItem === item.text}
+            onClick={() => {
+              setActiveItem(item.text);
+              if (isMobile) {
+                setMobileOpen(false);
+              }
+            }}
+            end={item.route === "/"}
+            onMouseEnter={() => setHoveredItem(item.text)}
+            onMouseLeave={() => setHoveredItem(null)}
+            sx={{
+              height: "56px", // Altura fija para items del menú
+              minHeight: "56px",
+              width: (expanded || isMobile) ? "100%" : "60px", // Ancho del 100% cuando está expandido
+              py: 0,
+              px: 1,
+              mb: 1.8,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "flex-start", // Alineación a la izquierda
+              borderRadius: "10px",
+              bgcolor:
+                activeItem === item.text ? primaryColor : "transparent",
+              color: activeItem === item.text ? "white" : "inherit",
+              boxShadow:
+                activeItem === item.text
+                  ? `0 4px 10px ${alpha(primaryColor, 0.3)}`
+                  : "none",
+              transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.5s cubic-bezier(0.4, 0, 0.2, 1)",
+              transform:
+                hoveredItem === item.text && activeItem !== item.text
+                  ? "translateY(-3px)"
+                  : "translateY(0)",
+              position: "relative",
+              overflow: "hidden", // Ocultar desbordamiento
+              zIndex: 10,
+              "&::before": {
+                content: '""',
+                position: "absolute",
+                top: 0,
+                left: 0,
+                width: "100%",
+                height: "100%",
+                background:
+                  "linear-gradient(135deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0) 50%)",
+                opacity: activeItem === item.text ? 1 : 0,
+                transition: "opacity 0.3s ease",
+                pointerEvents: "none",
+              },
+              "&:hover": {
+                bgcolor:
+                  activeItem === item.text
+                    ? primaryColor
+                    : darkMode
+                    ? alpha("#ffffff", 0.1)
+                    : alpha("#000000", 0.08),
+                boxShadow:
+                  activeItem === item.text
+                    ? `0 6px 15px ${alpha(primaryColor, 0.35)}`
+                    : hoveredItem === item.text
+                    ? `0 4px 8px ${alpha("#000", 0.1)}`
+                    : "none",
+              },
+            }}
+          >
+            {/* Ripple Effect if active */}
+            {activeItem === item.text && rippleActive && (
+              <RippleEffect active={rippleActive} />
+            )}
+
+            <ListItemIcon
+              sx={{
+                minWidth: 42,
+                width: 42,
+                height: 42,
+                color:
+                  activeItem === item.text ? "white" : secondaryTextColor,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                transition: "all 0.3s ease",
+              }}
+            >
+              <Box
+                sx={{
+                  transform:
+                    hoveredItem === item.text && activeItem !== item.text
+                      ? "scale(1.15)"
+                      : activeItem === item.text
+                      ? "scale(1.1)"
+                      : "scale(1)",
+                  transition:
+                    "transform 0.3s cubic-bezier(0.68, -0.55, 0.27, 1.55)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  width: "24px", 
+                  height: "24px",
+                }}
+              >
+                {item.icon}
+              </Box>
+            </ListItemIcon>
+
+            {/* Texto del menú dentro del ListItem */}
+            <ListItemText
+              primary={item.text}
+              sx={{
+                ml: 1.5,
+                opacity: (expanded || isMobile) ? 1 : 0,
+                transition: "opacity 0.3s ease",
+                "& .MuiTypography-root": {
+                  fontSize: "1rem",
+                  fontWeight: activeItem === item.text ? 600 : 500,
+                  color:
+                    activeItem === item.text
+                      ? "white"
+                      : darkMode
+                      ? "rgba(255, 255, 255, 0.7)"
+                      : "#444",
+                  fontFamily: '"Palanquin", "Arial", sans-serif',
+                  transition: "all 0.3s ease",
+                  letterSpacing:
+                    activeItem === item.text ? "0.3px" : "normal",
+                },
+                whiteSpace: "nowrap"
+              }}
+            />
+          </ListItem>
+        </Tooltip>
+      ))}
+    </List>
+  );
+
+  // Vista para móvil: SwipeableDrawer
+  const mobileDrawer = (
+    <SwipeableDrawer
+      open={mobileOpen}
+      onOpen={() => setMobileOpen(true)}
+      onClose={() => setMobileOpen(false)}
+      variant="temporary"
+      ModalProps={{ keepMounted: true }} // Mejor rendimiento en móvil
+      sx={{
+        display: { xs: 'block', sm: 'none' },
+        '& .MuiDrawer-paper': {
+          width: '230px',
+          backgroundColor: navBgColor,
+          pt: "60px", // Espacio para la barra superior
+          transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+        },
+      }}
+    >
+      {navList}
+    </SwipeableDrawer>
+  );
 
   return (
     <Box
@@ -194,7 +396,7 @@ const Navbar = ({ children }) => {
           justifyContent: "space-between",
           alignItems: "center",
           p: 0,
-          px: 3,
+          px: { xs: 2, sm: 3 }, // Padding horizontal más pequeño en móvil
           height: "60px", // Altura fija para la barra superior
           position: "fixed",
           top: 0,
@@ -211,12 +413,13 @@ const Navbar = ({ children }) => {
         {/* Lado izquierdo: Logo y botón de expandir */}
         <Box 
           sx={{ 
+            flexShrink: 0,
             display: "flex", 
             alignItems: "center", 
             height: "60px",
-            pl: expanded ? 26 : 6,
+            pl: expanded && !isMobile ? 26 : 6,
             position: "relative",
-            width: expanded ? "230px" : "80px",
+            width: expanded && !isMobile ? "230px" : "80px",
             transition: "width 0.5s cubic-bezier(0.4, 0, 0.2, 1)",
             overflow: "visible" 
           }}
@@ -255,23 +458,24 @@ const Navbar = ({ children }) => {
 
           {/* Título que aparece/desaparece */}
           <Typography
-              variant="h6"
-              sx={{
-                fontWeight: 600,
-                color: primaryColor,
-                fontFamily: '"Graphik", "Arial", sans-serif',
-                whiteSpace: "nowrap",
-                opacity: expanded ? 1 : 0,
-                visibility: expanded ? "visible" : "hidden", // Asegura que el texto esté oculto cuando está retraído
-                transform: expanded ? "translateX(0)" : "translateX(-20px)", // Animación de movimiento horizontal
-                transition: "opacity 0.2s ease, transform 0.3s ease", 
-                ml: 3,
-                position: "absolute",
-                left: "30px", // Posicionado después del logo
-              }}
-            >
-              PathExplorer
-            </Typography>
+            variant="h6"
+            sx={{
+              fontWeight: 600,
+              color: primaryColor,
+              fontFamily: '"Graphik", "Arial", sans-serif',
+              whiteSpace: "nowrap",
+              opacity: expanded && !isMobile ? 1 : 0,
+              visibility: expanded && !isMobile ? "visible" : "hidden", // Asegura que el texto esté oculto cuando está retraído
+              transform: expanded && !isMobile ? "translateX(0)" : "translateX(-20px)", // Animación de movimiento horizontal
+              transition: "opacity 0.2s ease, transform 0.3s ease", 
+              ml: 3,
+              position: "absolute",
+              left: "30px", // Posicionado después del logo
+              display: { xs: 'none', sm: 'block' } // Ocultar en móvil
+            }}
+          >
+            PathExplorer
+          </Typography>
 
           {/* Botón para expandir/contraer el menú con tamaño fijo */}
           <IconButton
@@ -288,11 +492,11 @@ const Navbar = ({ children }) => {
               transition: "all 1.2s cubic-bezier(0.34, 1.56, 0.64, 1)",
               position: "relative",
               overflow: "hidden",
-              ml: expanded ? 2 : 2,
-              transform: expanded ? "translateX(0)" : "translateX(-8px)",
+              ml: expanded && !isMobile ? 2 : 2,
+              transform: expanded && !isMobile ? "translateX(0)" : "translateX(-8px)",
               "&:hover": {
                 bgcolor: alpha(primaryColor, 0.15),
-                transform: expanded
+                transform: expanded && !isMobile
                   ? "translateX(0) scale(1.05)"
                   : "translateX(-8px) scale(1.05)",
                 transition: "all 1.2s cubic-bezier(0.34, 1.56, 0.64, 1)",
@@ -302,18 +506,23 @@ const Navbar = ({ children }) => {
             <Box
               sx={{
                 display: "flex",
-                transform: expanded ? "rotate(-180deg)" : "rotate(0deg)",
+                transform: expanded && !isMobile || mobileOpen ? "rotate(-180deg)" : "rotate(0deg)",
                 transition: "transform 1.2s cubic-bezier(0.34, 1.56, 0.64, 1)",
               }}
             >
-              {expanded ? <ChevronLeftIcon /> : <MenuIcon />}
+              {expanded && !isMobile || mobileOpen ? <ChevronLeftIcon /> : <MenuIcon />}
             </Box>
           </IconButton>
         </Box>
 
         {/* Lado derecho: acciones (modo oscuro, notificaciones, avatar) */}
-        <Box sx={{ display: "flex", alignItems: "center", gap: 2, height: "60px" }}>
-          {/* Nombre de usuario */}
+        <Box sx={{ 
+          display: "flex", 
+          alignItems: "center", 
+          gap: { xs: 1, sm: 2 }, // Menos espacio entre elementos en móvil
+          height: "60px" 
+        }}>
+          {/* Nombre de usuario - Oculto en pantallas muy pequeñas */}
           {userName && (
             <Typography
               variant="body2"
@@ -321,13 +530,14 @@ const Navbar = ({ children }) => {
                 color: textColor,
                 fontWeight: 500,
                 mr: 1,
+                display: { xs: 'none', md: 'block' } // Ocultar en pantallas pequeñas y móviles
               }}
             >
               Hola, {userName}
             </Typography>
           )}
           
-          {/* Botón de modo oscuro/claro con tamaño fijo */}
+          {/* Botón de modo oscuro/claro - Siempre visible */}
           <IconButton
             onClick={toggleThemeMode}
             size="small"
@@ -387,7 +597,7 @@ const Navbar = ({ children }) => {
             </Box>
           </IconButton>
 
-          {/* Notificaciones con tamaño fijo */}
+          {/* Notificaciones - Ocultar en pantallas muy pequeñas */}
           <IconButton
             onClick={handleNotificationClick}
             size="small"
@@ -404,6 +614,7 @@ const Navbar = ({ children }) => {
               transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
               position: "relative",
               overflow: "hidden",
+              display: { xs: isXsScreen ? 'none' : 'flex', sm: 'flex' }, // Ocultar en pantallas muy pequeñas
               "&:hover": {
                 bgcolor: darkMode
                   ? alpha("#ffffff", 0.1)
@@ -457,7 +668,7 @@ const Navbar = ({ children }) => {
             </Badge>
           </IconButton>
           
-          {/* Botón de cerrar sesión */}
+          {/* Botón de cerrar sesión - Siempre visible */}
           <Tooltip title="Cerrar sesión" arrow TransitionComponent={Zoom}>
             <IconButton
               onClick={handleLogout}
@@ -488,7 +699,7 @@ const Navbar = ({ children }) => {
             </IconButton>
           </Tooltip>
           
-          {/* Avatar con tamaño fijo */}
+          {/* Avatar - Siempre visible */}
           <NavLink to="/User" style={{ textDecoration: "none" }}>
             <Tooltip title="Usuario" arrow TransitionComponent={Zoom}>
               <Avatar
@@ -514,11 +725,15 @@ const Navbar = ({ children }) => {
         </Box>
       </Box>
 
+      {/* Drawer para móvil */}
+      {mobileDrawer}
+
       <Box sx={{ display: "flex", flexGrow: 1, pt: "60px" }}>
-        {/* Barra lateral con navegación con ancho fijo durante transiciones */}
+        {/* Barra lateral con navegación (para tablets y desktop) */}
         <Box
           component="nav"
           sx={{
+            flexShrink: 0,
             width: expanded ? "230px" : "90px",
             height: "calc(100vh - 60px)",
             bgcolor: navBgColor,
@@ -529,6 +744,7 @@ const Navbar = ({ children }) => {
             overflow: "hidden",
             transition: "width 0.5s cubic-bezier(0.4, 0, 0.2, 1)",
             boxShadow: expanded ? `2px 0 15px ${alpha("#000", 0.05)}` : "none",
+            display: { xs: 'none', sm: 'block' }, // Ocultar en móvil
             "&:after": {
               content: '""',
               position: "absolute",
@@ -552,156 +768,7 @@ const Navbar = ({ children }) => {
             },
           }}
         >
-          <List
-            sx={{
-              p: 1.8,
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "flex-start", // Alineación a la izquierda
-              height: "100%",
-              transition: "all 0.5s cubic-bezier(0.4, 0, 0.2, 1)",
-              position: "relative", // Para que los hijos absolutos se posicionen respecto a esta lista
-              width: "100%",
-            }}
-          >
-            {menuItems.map((item) => (
-              <Tooltip
-                title={expanded ? "" : item.text}
-                placement="right"
-                TransitionComponent={Zoom}
-                arrow
-                key={item.text}
-              >
-                <ListItem
-                  button
-                  component={NavLink}
-                  to={item.route}
-                  selected={activeItem === item.text}
-                  onClick={() => setActiveItem(item.text)}
-                  end={item.route === "/"}
-                  onMouseEnter={() => setHoveredItem(item.text)}
-                  onMouseLeave={() => setHoveredItem(null)}
-                  sx={{
-                    height: "56px", // Altura fija para items del menú
-                    minHeight: "56px",
-                    width: expanded ? "100%" : "60px", // Ancho del 100% cuando está expandido
-                    py: 0,
-                    px: 1,
-                    mb: 1.8,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "flex-start", // Alineación a la izquierda
-                    borderRadius: "10px",
-                    bgcolor:
-                      activeItem === item.text ? primaryColor : "transparent",
-                    color: activeItem === item.text ? "white" : "inherit",
-                    boxShadow:
-                      activeItem === item.text
-                        ? `0 4px 10px ${alpha(primaryColor, 0.3)}`
-                        : "none",
-                    transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.5s cubic-bezier(0.4, 0, 0.2, 1)",
-                    transform:
-                      hoveredItem === item.text && activeItem !== item.text
-                        ? "translateY(-3px)"
-                        : "translateY(0)",
-                    position: "relative",
-                    overflow: "hidden", // Ocultar desbordamiento
-                    zIndex: 10,
-                    "&::before": {
-                      content: '""',
-                      position: "absolute",
-                      top: 0,
-                      left: 0,
-                      width: "100%",
-                      height: "100%",
-                      background:
-                        "linear-gradient(135deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0) 50%)",
-                      opacity: activeItem === item.text ? 1 : 0,
-                      transition: "opacity 0.3s ease",
-                      pointerEvents: "none",
-                    },
-                    "&:hover": {
-                      bgcolor:
-                        activeItem === item.text
-                          ? primaryColor
-                          : darkMode
-                          ? alpha("#ffffff", 0.1)
-                          : alpha("#000000", 0.08),
-                      boxShadow:
-                        activeItem === item.text
-                          ? `0 6px 15px ${alpha(primaryColor, 0.35)}`
-                          : hoveredItem === item.text
-                          ? `0 4px 8px ${alpha("#000", 0.1)}`
-                          : "none",
-                    },
-                  }}
-                >
-                  {/* Ripple Effect if active */}
-                  {activeItem === item.text && rippleActive && (
-                    <RippleEffect active={rippleActive} />
-                  )}
-
-                  <ListItemIcon
-                    sx={{
-                      minWidth: 42,
-                      width: 42,
-                      height: 42,
-                      color:
-                        activeItem === item.text ? "white" : secondaryTextColor,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      transition: "all 0.3s ease",
-                    }}
-                  >
-                    <Box
-                      sx={{
-                        transform:
-                          hoveredItem === item.text && activeItem !== item.text
-                            ? "scale(1.15)"
-                            : activeItem === item.text
-                            ? "scale(1.1)"
-                            : "scale(1)",
-                        transition:
-                          "transform 0.3s cubic-bezier(0.68, -0.55, 0.27, 1.55)",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        width: "24px", 
-                        height: "24px",
-                      }}
-                    >
-                      {item.icon}
-                    </Box>
-                  </ListItemIcon>
-
-                  {/* Texto del menú dentro del ListItem */}
-                  <ListItemText
-                    primary={item.text}
-                    sx={{
-                      ml: 1.5,
-                      opacity: expanded ? 1 : 0,
-                      transition: "opacity 0.3s ease",
-                      "& .MuiTypography-root": {
-                        fontSize: "1rem",
-                        fontWeight: activeItem === item.text ? 600 : 500,
-                        color:
-                          activeItem === item.text
-                            ? "white"
-                            : darkMode
-                            ? "rgba(255, 255, 255, 0.7)"
-                            : "#444",
-                        fontFamily: '"Palanquin", "Arial", sans-serif',
-                        transition: "all 0.3s ease",
-                        letterSpacing:
-                          activeItem === item.text ? "0.3px" : "normal",
-                      }
-                    }}
-                  />
-                </ListItem>
-              </Tooltip>
-            ))}
-          </List>
+          {navList}
         </Box>
 
         {/* Contenido principal */}
@@ -713,7 +780,7 @@ const Navbar = ({ children }) => {
             overflow: "auto",
             bgcolor: bgColor,
             color: textColor,
-            p: 3,
+            p: { xs: 2, sm: 3 }, // Padding más pequeño en móvil
             transition: "all 0.5s cubic-bezier(0.4, 0, 0.2, 1)",
             "&::-webkit-scrollbar": {
               width: "8px",

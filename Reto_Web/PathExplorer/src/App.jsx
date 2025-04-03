@@ -8,6 +8,9 @@ import Profiles from "./pages/Profiles";
 import Analytics from "./pages/Analytics";
 import Settings from "./pages/Settings";
 import User from "./pages/User";
+
+import ProjectDashboard from "./pages/ProjectDashboard.jsx";
+
 import EditProfile from "./pages/EditProfile";
 import Login from "./pages/Login";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -34,7 +37,7 @@ function App() {
             }
           >
             <Route index element={<Dashboard />} />
-            <Route path="projects" element={<Projects />} />
+            <Route path="projects" element={<ProjectDashboard />} />
             <Route path="settings" element={<Settings />} />
             <Route path="user" element={<User />} />
             <Route path="/projectlist" element={<ProjectDashboard />} />
