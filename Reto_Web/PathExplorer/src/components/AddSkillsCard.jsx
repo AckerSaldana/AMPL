@@ -4,7 +4,7 @@ import AddIcon from "@mui/icons-material/Add";
 
 const mockSkills = ["React", "JavaScript", "CSS", "HTML", "Node.js", "UI/UX"];
 
-export const SkillsCard = () => {
+export const AddSkillsCard = () => {
   return (
     <Paper
       sx={{
@@ -12,7 +12,6 @@ export const SkillsCard = () => {
         display: "flex",
         alignItems: "center",
         overflow: "hidden",
-        mb: 3,
       }}
     >
       <Typography variant="body1" sx={{ flexShrink: 0, mr: 2 }}>
@@ -39,6 +38,16 @@ export const SkillsCard = () => {
           />
         ))}
       </Box>
+
+      <IconButton
+        sx={{
+          color: "text.secondary",
+          ml: 2,
+          "&:hover": { backgroundColor: "primary.light" },
+        }}
+      >
+        <AddIcon />
+      </IconButton>
     </Paper>
   );
 };
