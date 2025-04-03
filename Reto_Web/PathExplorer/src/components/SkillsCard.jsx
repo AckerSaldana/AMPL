@@ -50,7 +50,6 @@ export const SkillsCard = () => {
       >
         <AddIcon />
       </IconButton>
-
     </Paper>
   );
 };
