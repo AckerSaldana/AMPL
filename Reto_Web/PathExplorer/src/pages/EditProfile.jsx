@@ -1,12 +1,9 @@
 import React, { useState } from "react";
 import { Box, Grid, TextField, Button, Paper, Typography } from "@mui/material";
-
 import { Person, Phone, Email, Info, Flag } from "@mui/icons-material";
 import { AddSkillsCard } from "../components/AddSkillsCard";
 import { EditBannerProfile } from "../components/EditBannerProfile";
-
 import { SkillsCard } from "../components/SkillsCard";
-
 
 const EditProfile = ({ userData, onSave, onCancel }) => {
   const [formData, setFormData] = useState({ ...userData });
@@ -25,27 +22,15 @@ const EditProfile = ({ userData, onSave, onCancel }) => {
       }}
     >
       <Grid container spacing={3}>
-
+        {/* Banner */}
         <Grid item md={12}>
           <EditBannerProfile />
         </Grid>
 
+        {/* Editable Information Section */}
         <Grid item xs={12} md={6}>
           <Paper sx={{ p: 3, display: "flex", flexDirection: "column" }}>
             <Typography variant="h6" fontWeight="bold">
-
-        <Grid item xs={12} md={6}>
-          {/* Editable Information Section */}
-          <Paper
-            sx={{
-              p: 3,
-              display: "flex",
-              flexDirection: "column",
-              height: "100%",
-            }}
-          >
-            <Typography variant="body1" fontWeight="bold">
-
               Edit Information
             </Typography>
             <TextField
@@ -54,7 +39,6 @@ const EditProfile = ({ userData, onSave, onCancel }) => {
               name="fullName"
               value={formData.fullName}
               onChange={handleChange}
-
               sx={{
                 mt: 2,
                 "& .MuiInputLabel-root": { color: "gray" },
@@ -63,10 +47,7 @@ const EditProfile = ({ userData, onSave, onCancel }) => {
               InputProps={{
                 startAdornment: <Person color="primary" sx={{ mr: 1 }} />,
               }}
-
-              sx={{ mt: 2 }}
               color="secondary"
-
             />
             <TextField
               fullWidth
@@ -74,7 +55,6 @@ const EditProfile = ({ userData, onSave, onCancel }) => {
               name="phone"
               value={formData.phone}
               onChange={handleChange}
-
               sx={{
                 mt: 2,
                 "& .MuiInputLabel-root": { color: "gray" },
@@ -83,10 +63,7 @@ const EditProfile = ({ userData, onSave, onCancel }) => {
               InputProps={{
                 startAdornment: <Phone color="primary" sx={{ mr: 1 }} />,
               }}
-
-              sx={{ mt: 2 }}
               color="secondary"
-
             />
             <TextField
               fullWidth
@@ -94,7 +71,6 @@ const EditProfile = ({ userData, onSave, onCancel }) => {
               name="email"
               value={formData.email}
               onChange={handleChange}
-
               sx={{
                 mt: 2,
                 "& .MuiInputLabel-root": { color: "gray" },
@@ -103,16 +79,13 @@ const EditProfile = ({ userData, onSave, onCancel }) => {
               InputProps={{
                 startAdornment: <Email color="primary" sx={{ mr: 1 }} />,
               }}
-
-              sx={{ mt: 2 }}
               color="secondary"
-
             />
           </Paper>
         </Grid>
 
+        {/* Editable About Section */}
         <Grid item xs={12} md={6}>
-
           <Paper sx={{ p: 3, display: "flex", flexDirection: "column" }}>
             <Typography
               variant="h6"
@@ -121,52 +94,43 @@ const EditProfile = ({ userData, onSave, onCancel }) => {
               alignItems="center"
             >
               <Info color="primary" sx={{ mr: 1 }} /> Edit About
-
-          {/* Editable About Section */}
-          <Paper
-            sx={{
-              p: 3,
-              display: "flex",
-              flexDirection: "column",
-              height: "100%",
-            }}
-          >
-            <Typography variant="body1" fontWeight="bold">
-              Edit About
-
             </Typography>
-            <TextField
-              fullWidth
-              multiline
-
-              rows={7}
-              name="about"
-              label="Who are you?"
-              value={formData.about}
-              onChange={handleChange}
+            <Paper
               sx={{
+                p: 3,
+                display: "flex",
+                flexDirection: "column",
                 mt: 2,
-                flexGrow: 1,
-                "& .MuiInputLabel-root": { color: "gray" },
-                "& .MuiInputLabel-root.Mui-focused": { color: "primary.main" },
               }}
-
-              rows={4}
-              name="about"
-              value={formData.about}
-              onChange={handleChange}
-              sx={{ mt: 2 }}
-              color="secondary"
-
-            />
+            >
+              <Typography variant="body1" fontWeight="bold">
+                Edit About
+              </Typography>
+              <TextField
+                fullWidth
+                multiline
+                rows={4}
+                name="about"
+                label="Who are you?"
+                value={formData.about}
+                onChange={handleChange}
+                sx={{
+                  mt: 2,
+                  "& .MuiInputLabel-root": { color: "gray" },
+                  "& .MuiInputLabel-root.Mui-focused": { color: "primary.main" },
+                }}
+                color="secondary"
+              />
+            </Paper>
           </Paper>
         </Grid>
 
-
+        {/* Add Skills Section */}
         <Grid item xs={12}>
           <AddSkillsCard />
         </Grid>
 
+        {/* Editable Goals Section - Primera parte */}
         <Grid item md={12}>
           <Paper sx={{ p: 3 }}>
             <Typography
@@ -190,12 +154,14 @@ const EditProfile = ({ userData, onSave, onCancel }) => {
                 sx={{
                   mt: 2,
                   "& .MuiInputLabel-root": { color: "gray" },
-                  "& .MuiInputLabel-root.Mui-focused": {
-                    color: "primary.main",
-                  },
+                  "& .MuiInputLabel-root.Mui-focused": { color: "primary.main" },
                 }}
+              />
+            ))}
+          </Paper>
+        </Grid>
 
-        {/* Editable Goals Section */}
+        {/* Editable Goals Section - Segunda parte */}
         <Grid item xs={12}>
           <Paper sx={{ p: 3 }}>
             <Typography variant="body1" fontWeight="bold">
@@ -209,47 +175,28 @@ const EditProfile = ({ userData, onSave, onCancel }) => {
                 name={`goal${index}`}
                 value={formData[`goal${index}`] || ""}
                 onChange={handleChange}
-                sx={{ mt: 2, color: "gray" }}
-
+                sx={{ mt: 2 }}
               />
             ))}
           </Paper>
         </Grid>
-
 
         {/* Editable Skills Section */}
         <Grid item xs={12}>
           <SkillsCard />
         </Grid>
 
-        {/* Buttons */}
-
-        <Grid
-          item
-          xs={12}
-          sx={{ display: "flex", justifyContent: "space-between" }}
-        >
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={() => onSave(formData)}
-          >
+        {/* Botones */}
+        <Grid item xs={12} sx={{ display: "flex", justifyContent: "space-between" }}>
+          <Button variant="contained" color="primary" onClick={() => onSave(formData)}>
             Save
           </Button>
           <Button
             variant="outlined"
             sx={{
-
-              bgcolor: "#f5f5f5",
-              color: "black",
-              "&:hover": { bgcolor: "#e0e0e0" },
-
               bgcolor: "text.secondary",
               color: "white",
-              "&:hover": {
-                bgcolor: "gray",
-              },
-
+              "&:hover": { bgcolor: "gray" },
             }}
             onClick={onCancel}
           >
