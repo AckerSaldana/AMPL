@@ -12,6 +12,7 @@ import EditProfile from "./pages/EditProfile";
 import Login from "./pages/Login";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Unauthorized from "./pages/Unauthorized"; // Necesitamos crear esta página
+import ProjectDashboard from "./components/ProjectDashboard"; // Nueva página para el dashboard de proyectos
 
 function App() {
   return (
@@ -35,6 +36,7 @@ function App() {
             <Route path="projects" element={<Projects />} />
             <Route path="settings" element={<Settings />} />
             <Route path="user" element={<User />} />
+            <Route path="/projectlist" element={<ProjectDashboard />} />
             <Route path="edit-profile" element={<EditProfile />} />
           </Route>
 
