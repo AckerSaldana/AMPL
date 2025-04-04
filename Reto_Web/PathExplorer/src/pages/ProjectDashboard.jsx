@@ -116,7 +116,7 @@ const ProjectDashboard = () => {
     if (activeFilter === 'all') return true;
     if (activeFilter === 'Completed') return project.status === 'Completed';
     if (activeFilter === 'In Progress') return project.status === 'In Progress';
-    if (activeFilter === 'On Hold') return project.status === 'On Hold ';
+    if (activeFilter === 'On Hold') return project.status === 'On Hold';
     return true;
   });
 
