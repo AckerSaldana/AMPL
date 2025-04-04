@@ -111,15 +111,20 @@ const ProjectCard = ({ project, onEdit, onDelete, onViewDetails }) => {
               'aria-labelledby': 'project-menu-button',
             }}
           >
-            <MenuItem onClick={handleEdit}>Edit Project</MenuItem>
+            {/* Mostrar Editar solo si onEdit está definido */}
+            {onEdit && <MenuItem onClick={handleEdit}>Edit Project</MenuItem>}
             <MenuItem onClick={handleViewDetails}>View Details</MenuItem>
             <Divider />
-            <MenuItem onClick={handleDelete} sx={{ color: 'error.main' }}>
-              Delete Project
-            </MenuItem>
+            {/* Mostrar Eliminar solo si onDelete está definido */}
+            {onDelete && (
+              <MenuItem onClick={handleDelete} sx={{ color: 'error.main' }}>
+                Delete Project
+              </MenuItem>
+            )}
           </Menu>
         </Box>
 
+        {/* El resto del contenido del ProjectCard sigue igual */}
         <Box sx={{ display: 'flex', mb: 1 }}>
           <Box 
             sx={{ 
@@ -164,24 +169,23 @@ const ProjectCard = ({ project, onEdit, onDelete, onViewDetails }) => {
           Team:
         </Typography>
         <Box sx={{ mb: 1, display: 'flex', flexWrap: 'wrap', mt: 2 }}>
-        <AvatarGroup max={4} sx={{ justifyContent: 'flex-start', mb: 2 }}>
-          {project.team.map((member, index) => (
-            <Avatar 
-              key={index} 
-              alt={member.name} 
-              src={member.avatar || `/avatar-${index+1}.png`}
-              sx={{ 
-                width: 26, 
-                height: 26, 
-                border: '2px solid #fff',
-                bgcolor: member.color || ['#f44336', '#2196f3', '#4caf50', '#ff9800'][index % 4]
-              }}
-            >
-              {!member.avatar && member.name ? member.name.charAt(0) : ''}
-            </Avatar>
-          ))}
-          
-        </AvatarGroup>
+          <AvatarGroup max={4} sx={{ justifyContent: 'flex-start', mb: 2 }}>
+            {project.team.map((member, index) => (
+              <Avatar 
+                key={index} 
+                alt={member.name} 
+                src={member.avatar || `/avatar-${index+1}.png`}
+                sx={{ 
+                  width: 26, 
+                  height: 26, 
+                  border: '2px solid #fff',
+                  bgcolor: member.color || ['#f44336', '#2196f3', '#4caf50', '#ff9800'][index % 4]
+                }}
+              >
+                {!member.avatar && member.name ? member.name.charAt(0) : ''}
+              </Avatar>
+            ))}
+          </AvatarGroup>
         </Box>
 
         <Typography variant="body2" sx={{ mb: 0.5, fontWeight: 500, display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem' }}>

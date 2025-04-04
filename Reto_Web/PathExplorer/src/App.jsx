@@ -15,8 +15,7 @@ import EditProfile from "./pages/EditProfile";
 import Login from "./pages/Login";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Unauthorized from "./pages/Unauthorized"; // Necesitamos crear esta página
-import ProjectDashboard from "./components/ProjectDashboard"; // Nueva página para el dashboard de proyectos
-import ProjectDashboardAdmin from "./components/ProjectDashboardAdmin";
+
 
 function App() {
   return (
@@ -24,7 +23,6 @@ function App() {
       <Routes>
         {/* Ruta pública para login */}
         <Route path="/login" element={<Login />} />
-
         {/* Página de acceso no autorizado */}
         <Route path="/unauthorized" element={<Unauthorized />} />
 
@@ -40,7 +38,6 @@ function App() {
             <Route path="projects" element={<ProjectDashboard />} />
             <Route path="settings" element={<Settings />} />
             <Route path="user" element={<User />} />
-            <Route path="/projectlist" element={<ProjectDashboard />} />
             <Route path="edit-profile" element={<EditProfile />} />
           </Route>
 
@@ -53,11 +50,6 @@ function App() {
           <Route element={<ProtectedRoute allowedRoles={["manager"]} />}>
             <Route path="analytics" element={<Analytics />} />
           </Route>
-          {/* Rutas accesibles solo para TFS y manager */}
-          <Route element={<ProtectedRoute allowedRoles={["TFS", "manager"]} />}>
-            <Route path="/projectadmin" element={<ProjectDashboardAdmin />} />
-          </Route>
-
           {/* Redirección por defecto a dashboard */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>

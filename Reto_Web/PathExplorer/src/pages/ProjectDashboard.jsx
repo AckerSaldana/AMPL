@@ -1,127 +1,65 @@
 // src/components/ProjectDashboard.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';  // Asegúrate de incluir useEffect aquí
 import { Box, Typography, Grid, Card, CardContent, Dialog, DialogTitle, DialogContent, DialogActions, Button, Snackbar, Alert } from '@mui/material';
 import ProjectCard from '../components/ProjectCard.jsx';
 import ProjectFilter from '../components/ProjectFilter.jsx';
 import AddProjectButton from '../components/AddProjectButton.jsx';
+import useAuth from '../hooks/useAuth';
+import { supabase } from '../supabase/supabaseClient.js';
 
 // Componente principal del dashboard
 const ProjectDashboard = () => {
   const [activeFilter, setActiveFilter] = useState('all');
   const [openDialog, setOpenDialog] = useState(false);
   const [dialogAction, setDialogAction] = useState('');
+  const { role } = useAuth(); 
   const [selectedProject, setSelectedProject] = useState(null);
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: '',
     severity: 'success'
   });
+  const [projects, setProjects] = useState([]);
 
-  // Datos de muestra - En una aplicación real vendría de una API
-  const [projects, setProjects] = useState([
-    {
-      id: 1,
-      title: 'Discord function optimization',
-      description: 'Brief description of the project',
-      status: 'In Progress',
-      logo: 'https://assets-global.website-files.com/6257adef93867e50d84d30e2/636e0a6a49cf127bf92de1e2_icon_clyde_blurple_RGB.png',
-      logoBackground: '#5865F2',
-      team: [
-        { name: 'Person 1', avatar: '' },
-        { name: 'Person 2', avatar: '' },
-        { name: 'Person 3', avatar: '' },
-        { name: 'Person 4', avatar: '' }
-      ],
-      progress: 50,
-      assignedDate: '21 Feb 2025',
-      dueDate: '21 Oct 2025'
-    },
-    {
-      id: 2,
-      title: 'Uber Eats function',
-      description: 'Brief description of the project',
-      status: 'In Progress',
-      logo: 'https://d3i4yxtzktqr9n.cloudfront.net/web-eats-v2/ee037401cb5d31b23cf780808ee4ec1f.svg',
-      logoBackground: '#06C167',
-      team: [
-        { name: 'Person 1', avatar: '' },
-        { name: 'Person 2', avatar: '' },
-        { name: 'Person 3', avatar: '' },
-        { name: 'Person 4', avatar: '' }
-      ],
-      progress: 75,
-      assignedDate: '21 Feb 2025',
-      dueDate: '21 Oct 2025'
-    },
-    {
-      id: 3,
-      title: 'RFP MockUp',
-      description: 'Brief description of the project',
-      status: 'Completed',
-      logo: 'https://upload.wikimedia.org/wikipedia/commons/c/cd/Accenture.svg',
-      logoBackground: '#006AD6',
-      team: [
-        { name: 'Person 1', avatar: '' },
-        { name: 'Person 2', avatar: '' },
-        { name: 'Person 3', avatar: '' },
-        { name: 'Person 4', avatar: '' }
-      ],
-      progress: 100,
-      assignedDate: '21 Feb 2025',
-      dueDate: '21 Oct 2025'
-    },
-    {
-      id: 4,
-      title: 'SuperCell New Game',
-      description: 'Brief description of the project',
-      status: 'Not Started',
-      logo: 'https://play-lh.googleusercontent.com/LByrur1mTmPeNr0ljI-uAUcct1rzmTve5Esau1SwoAzjHtZ3nliGwpYjcgklc9Au5g',
-      logoBackground: '#000000',
-      team: [
-        { name: 'Person 1', avatar: '' },
-        { name: 'Person 2', avatar: '' },
-        { name: 'Person 3', avatar: '' },
-        { name: 'Person 4', avatar: '' }
-      ],
-      progress: 0,
-      assignedDate: '21 Feb 2025',
-      dueDate: '21 Oct 2025'
-    },
-    {
-      id: 5,
-      title: 'OpenAI implementation',
-      description: 'Brief description of the project',
-      status: 'In Progress',
-      logo: 'https://seeklogo.com/images/O/open-ai-logo-8B9BFEDC26-seeklogo.com.png',
-      logoBackground: '#ffffff',
-      team: [
-        { name: 'Person 1', avatar: '' },
-        { name: 'Person 2', avatar: '' },
-        { name: 'Person 3', avatar: '' },
-        { name: 'Person 4', avatar: '' }
-      ],
-      progress: 50,
-      assignedDate: '21 Feb 2025',
-      dueDate: '21 Oct 2025'
-    },
-    {
-      id: 6,
-      title: 'Microsoft Copilot Assistant',
-      description: 'Brief description of the project',
-      status: 'In Progress',
-      logo: 'https://upload.wikimedia.org/wikipedia/commons/4/44/Microsoft_logo.svg',
-      logoBackground: '#ffffff',
-      team: [
-        { name: 'Person 1', avatar: '' },
-        { name: 'Person 2', avatar: '' },
-        { name: 'Person 3', avatar: '' },
-        { name: 'Person 4', avatar: '' }
-      ],
-      progress: 25,
-      assignedDate: '21 Feb 2025',
-      dueDate: '21 Oct 2025'
+  // Función para obtener proyectos de Supabase
+  const fetchProjects = async () => {
+    const { data, error } = await supabase
+      .from('Project') // Nombre de la tabla
+      .select('projectID, title, description, status, logo, progress, start_date, end_date'); // Los campos que necesitas
+
+    if (error) {
+      console.error('Error fetching projects:', error.message); // Imprimir el mensaje de error
+      setSnackbar({
+        open: true,
+        message: `Error al cargar los proyectos: ${error.message}`,
+        severity: 'error'
+      });
+    } else {
+      const projectsWithFormattedData = data.map(project => ({
+        id: project.projectID,
+        title: project.title,
+        description: project.description,
+        status: project.status,
+        logo: project.logo,
+        team: [
+          { name: 'Person 1', avatar: '' },
+          { name: 'Person 2', avatar: '' },
+          { name: 'Person 3', avatar: '' },
+          { name: 'Person 4', avatar: '' }
+        ],
+        progress: project.progress,
+        assignedDate: project.start_date,
+        dueDate: project.end_date
+      }));
+      setProjects(projectsWithFormattedData);
     }
-  ]);
+  };
+
+  // Cargar proyectos al montar el componente
+  useEffect(() => {
+    fetchProjects();
+  }, []);
+
 
   // Manejadores de eventos
   const handleAddProject = () => {
@@ -176,9 +114,9 @@ const ProjectDashboard = () => {
   // Filtrar proyectos según el filtro activo
   const filteredProjects = projects.filter(project => {
     if (activeFilter === 'all') return true;
-    if (activeFilter === 'completed') return project.status === 'Completed';
-    if (activeFilter === 'ongoing') return project.status === 'In Progress';
-    if (activeFilter === 'not-started') return project.status === 'Not Started';
+    if (activeFilter === 'Completed') return project.status === 'Completed';
+    if (activeFilter === 'In Progress') return project.status === 'In Progress';
+    if (activeFilter === 'On Hold') return project.status === 'On Hold ';
     return true;
   });
 
@@ -191,18 +129,19 @@ const ProjectDashboard = () => {
       <Grid container spacing={3}>
         {/* Panel izquierdo - filtros y botón de agregar */}
         <Grid item xs={12} md={3} lg={2.5}>
-          <Card variant="outlined" sx={{ borderRadius: 2, mb: 2 }}>
-            <CardContent sx={{ py: 3 }}>
-              <AddProjectButton onClick={handleAddProject} />
-            </CardContent>
-          </Card>
+          {/* Solo muestra el botón si el usuario es "manager" o "TFS" */}
+          {(role === "manager" || role === "TFS") && (
+            <Card variant="outlined" sx={{ borderRadius: 2, mb: 2 }}>
+              <CardContent sx={{ py: 3 }}>
+                <AddProjectButton onClick={handleAddProject} />
+              </CardContent>
+            </Card>
+          )}
+
           
           <Card variant="outlined" sx={{ borderRadius: 2 }}>
             <CardContent sx={{ py: 1 }}>
-              <ProjectFilter 
-                activeFilter={activeFilter} 
-                setActiveFilter={setActiveFilter} 
-              />
+              <ProjectFilter activeFilter={activeFilter} setActiveFilter={setActiveFilter} />
             </CardContent>
           </Card>
         </Grid>
@@ -214,9 +153,9 @@ const ProjectDashboard = () => {
               filteredProjects.map(project => (
                 <Grid item xs={12} sm={6} lg={4} key={project.id}>
                   <ProjectCard 
-                    project={project} 
-                    onEdit={handleEditProject}
-                    onDelete={handleDeleteProject}
+                    project={project}
+                    onEdit={(role === 'manager' || role === 'TFS') ? handleEditProject : undefined}
+                    onDelete={(role === 'manager' || role === 'TFS') ? handleDeleteProject : undefined}
                     onViewDetails={handleViewDetails}
                   />
                 </Grid>
