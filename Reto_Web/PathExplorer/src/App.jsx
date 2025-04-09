@@ -16,13 +16,13 @@ import Login from "./pages/Login";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Unauthorized from "./pages/Unauthorized"; // Necesitamos crear esta página
 
+
 function App() {
   return (
     <BrowserRouter>
       <Routes>
         {/* Ruta pública para login */}
         <Route path="/login" element={<Login />} />
-
         {/* Página de acceso no autorizado */}
         <Route path="/unauthorized" element={<Unauthorized />} />
 
@@ -50,7 +50,6 @@ function App() {
           <Route element={<ProtectedRoute allowedRoles={["manager"]} />}>
             <Route path="analytics" element={<Analytics />} />
           </Route>
-
           {/* Redirección por defecto a dashboard */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
