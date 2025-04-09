@@ -209,7 +209,7 @@ const Login = () => {
           
           <Box sx={{ mb: 4 }}>
             <img 
-              src="/src/brand/AccenturePurpleLogo.png"
+              src={AccenturePurpleLogo}
               alt="Logo"
               style={{ 
                 height: '50px', 
