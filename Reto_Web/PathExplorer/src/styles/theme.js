@@ -6,6 +6,9 @@ const theme = createTheme({
   palette: {
     primary: {
       main: '#973EBC',  // Main purple components
+      dark: '#7D2E99' ,
+      light: '#B96EDE'
+
     },
     secondary: {
       main: '#00BFFF',  // default
@@ -16,7 +19,7 @@ const theme = createTheme({
     text: {
       primary: '#000000', // Black text
       secondary: '#30096E', // Subtitle text (Dark purple)
-      white: '#FFFFFF', // White text
+      white: '#FFFFFF', // White text}
     }
   },
   shape: {

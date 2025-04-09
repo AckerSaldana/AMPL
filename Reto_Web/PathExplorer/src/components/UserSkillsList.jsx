@@ -24,32 +24,31 @@ import JavascriptIcon from "@mui/icons-material/Javascript";
 import DesignServicesIcon from "@mui/icons-material/DesignServices";
 import PhoneIphoneIcon from "@mui/icons-material/PhoneIphone";
 import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
-import StarIcon from "@mui/icons-material/Star";
 import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
 
 // Datos de ejemplo para habilidades basadas en el rol
 const getFrontendSkills = () => [
-  { name: "React", projects: 32, level: "Avanzado", rating: 5 },
-  { name: "JavaScript", projects: 45, level: "Experto", rating: 5 },
-  { name: "TypeScript", projects: 28, level: "Intermedio", rating: 4 },
-  { name: "UI/UX", projects: 15, level: "Básico", rating: 3 },
-  { name: "Angular", projects: 12, level: "Intermedio", rating: 3 }
+  { name: "React", projects: 32 },
+  { name: "JavaScript", projects: 45 },
+  { name: "TypeScript", projects: 28 },
+  { name: "UI/UX", projects: 15 },
+  { name: "Angular", projects: 12 }
 ];
 
 const getBackendSkills = () => [
-  { name: "Node.js", projects: 24, level: "Avanzado", rating: 4 },
-  { name: "Python", projects: 36, level: "Intermedio", rating: 4 },
-  { name: "SQL", projects: 40, level: "Experto", rating: 5 },
-  { name: "MongoDB", projects: 18, level: "Avanzado", rating: 4 },
-  { name: "AWS", projects: 22, level: "Intermedio", rating: 3 }
+  { name: "Node.js", projects: 24 },
+  { name: "Python", projects: 36 },
+  { name: "SQL", projects: 40 },
+  { name: "MongoDB", projects: 18 },
+  { name: "AWS", projects: 22 }
 ];
 
 const getFullstackSkills = () => [
-  { name: "React", projects: 25, level: "Avanzado", rating: 4 },
-  { name: "Node.js", projects: 22, level: "Avanzado", rating: 4 },
-  { name: "MongoDB", projects: 20, level: "Intermedio", rating: 3 },
-  { name: "TypeScript", projects: 30, level: "Intermedio", rating: 4 },
-  { name: "AWS", projects: 15, level: "Básico", rating: 2 }
+  { name: "React", projects: 25 },
+  { name: "Node.js", projects: 22 },
+  { name: "MongoDB", projects: 20 },
+  { name: "TypeScript", projects: 30 },
+  { name: "AWS", projects: 15 }
 ];
 
 export const UserSkillsList = ({ userRole }) => {
@@ -185,35 +184,7 @@ export const UserSkillsList = ({ userRole }) => {
                     </Typography>
                   </Box>
                 </Box>
-                
-                <Box>
-                  <Typography 
-                    variant="caption" 
-                    sx={{ 
-                      fontWeight: 'medium', 
-                      color: theme.palette.primary.main,
-                      display: 'block',
-                      mb: 0.5,
-                      textAlign: 'right'
-                    }}
-                  >
-                    Nivel: {skill.level}
-                  </Typography>
-                  <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <StarIcon 
-                        key={star}
-                        fontSize="small"
-                        sx={{ 
-                          color: star <= skill.rating 
-                            ? theme.palette.secondary.main 
-                            : alpha(theme.palette.secondary.main, 0.3),
-                          fontSize: '0.9rem'
-                        }}
-                      />
-                    ))}
-                  </Box>
-                </Box>
+              
               </Box>
             </CardContent>
           </Card>
