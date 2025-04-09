@@ -1,20 +1,20 @@
-// src/App.jsx
+// src/App.jsx - Versión actualizada
 import React from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import MainLayout from "./layout/MainLayout";
 import Dashboard from "./pages/Dashboard";
-import Projects from "./pages/Projects";
 import Profiles from "./pages/Profiles";
 import Analytics from "./pages/Analytics";
 import Settings from "./pages/Settings";
 import User from "./pages/User";
+import Certifications from "./pages/Certifications"; 
 
 import ProjectDashboard from "./pages/ProjectDashboard.jsx";
 
 import EditProfile from "./pages/EditProfile";
 import Login from "./pages/Login";
 import ProtectedRoute from "./components/ProtectedRoute";
-import Unauthorized from "./pages/Unauthorized"; // Necesitamos crear esta página
+import Unauthorized from "./pages/Unauthorized";
 
 
 function App() {
@@ -36,6 +36,7 @@ function App() {
           >
             <Route index element={<Dashboard />} />
             <Route path="projects" element={<ProjectDashboard />} />
+            <Route path="certifications" element={<Certifications />} />
             <Route path="settings" element={<Settings />} />
             <Route path="user" element={<User />} />
             <Route path="edit-profile" element={<EditProfile />} />
