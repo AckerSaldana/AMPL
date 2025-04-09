@@ -134,7 +134,6 @@ const Dashboard = () => {
         p: 4,
         minHeight: "calc(100vh - 60px)",
         width: "100%", // Expanded navbar is 230px wide
-        maxWidth: "calc(100vw - 150px)", // Non-Expanded navbar is 80px wide
       }}
     >
       {/* Banner superior con bienvenida personalizada */}

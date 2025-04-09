@@ -10,12 +10,14 @@ import {
   useTheme,
   IconButton,
 } from "@mui/material";
+import { useNavigate } from "react-router-dom";
 import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 import DeleteIcon from "@mui/icons-material/Delete";
 import RoleItem from "./RoleItem";
 
 export const AddProjectCard = () => {
   const theme = useTheme();
+  const navigate = useNavigate();
 
   // State for mock roles
   const [roles, setRoles] = useState([
@@ -83,7 +85,7 @@ export const AddProjectCard = () => {
           </Box>
 
           {/* Status & Priority */}
-          <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
+          <Stack direction={{ md: "column", lg: "row" }} spacing={2}>
             <Box flex={1}>
               <Typography fontWeight={600} mb={0.5} color="text.secondary">
                 Status
@@ -113,7 +115,7 @@ export const AddProjectCard = () => {
           </Stack>
 
           {/* Dates */}
-          <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
+          <Stack direction={{ xs: "column", md: "column" }} spacing={2}>
             <Box flex={1}>
               <Typography fontWeight={600} mb={0.5} color="text.secondary">
                 Start Date
@@ -181,6 +183,7 @@ export const AddProjectCard = () => {
           {/* Buttons */}
           <Stack direction="row" spacing={2} justifyContent="center" mt={3}>
             <Button
+              onClick={() => navigate("/role-assign")}
               variant="contained"
               sx={(theme) => ({
                 backgroundColor: theme.palette.primary.main,
