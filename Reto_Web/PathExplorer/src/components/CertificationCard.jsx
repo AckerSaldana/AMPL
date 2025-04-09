@@ -11,6 +11,19 @@ export const CertificationCard = ({
   duration = "40 hours",
   level = "Beginner"
 }) => {
+  // Función para abrir el URL del curso en una nueva pestaña
+  const handleTakeCourse = () => {
+    if (url) {
+      window.open(url, '_blank', 'noopener,noreferrer');
+    }
+  };
+
+  // Función para manejar el clic en "Details" (puedes personalizarla según necesites)
+  const handleViewDetails = () => {
+    // Aquí podrías implementar una navegación a una página de detalles o mostrar un modal
+    console.log("Ver detalles de:", title);
+  };
+
   return (
     <Paper
       elevation={1}
@@ -130,6 +143,7 @@ export const CertificationCard = ({
           <Button
             variant="contained"
             size="small"
+            onClick={handleTakeCourse} // Agregar el manejador de eventos para abrir la URL
             sx={{
               bgcolor: "#973EBC",
               color: "#fff",
@@ -150,6 +164,7 @@ export const CertificationCard = ({
           <Button
             variant="text"
             size="small"
+            onClick={handleViewDetails} // Agregar el manejador de eventos para ver detalles
             sx={{
               color: "#973EBC",
               textTransform: "none",
