@@ -1,13 +1,15 @@
 // src/components/ProjectDashboard.jsx
-import React, { useState, useEffect } from 'react';  // Asegúrate de incluir useEffect aquí
-import { Box, Typography, Grid, Card, CardContent, Dialog, DialogTitle, DialogContent, DialogActions, Button, Snackbar, Alert } from '@mui/material';
+import React, { useState, useEffect } from 'react';
+import { 
+  Box, Typography, Grid, Card, CardContent, Dialog, DialogTitle, 
+  DialogContent, DialogActions, Button, Snackbar, Alert 
+} from '@mui/material';
 import ProjectCard from '../components/ProjectCard.jsx';
 import ProjectFilter from '../components/ProjectFilter.jsx';
 import AddProjectButton from '../components/AddProjectButton.jsx';
 import useAuth from '../hooks/useAuth';
 import { supabase } from '../supabase/supabaseClient.js';
 
-// Componente principal del dashboard
 const ProjectDashboard = () => {
   const [activeFilter, setActiveFilter] = useState('all');
   const [openDialog, setOpenDialog] = useState(false);
@@ -21,50 +23,71 @@ const ProjectDashboard = () => {
   });
   const [projects, setProjects] = useState([]);
 
-  // Función para obtener proyectos de Supabase
+  // 🔁 Obtener proyectos con usuarios asignados (con JOIN)
   const fetchProjects = async () => {
-    const { data, error } = await supabase
-      .from('Project') // Nombre de la tabla
-      .select('projectID, title, description, status, logo, progress, start_date, end_date'); // Los campos que necesitas
-
-    if (error) {
-      console.error('Error fetching projects:', error.message); // Imprimir el mensaje de error
+    // Paso 1: Obtener todos los proyectos
+    const { data: projectsData, error: projectsError } = await supabase
+      .from('Project')
+      .select('projectID, title, description, status, logo, progress, start_date, end_date');
+  
+    if (projectsError) {
+      console.error('Error fetching projects:', projectsError.message);
       setSnackbar({
         open: true,
-        message: `Error al cargar los proyectos: ${error.message}`,
+        message: `Error al cargar los proyectos: ${projectsError.message}`,
         severity: 'error'
       });
-    } else {
-      const projectsWithFormattedData = data.map(project => ({
-        id: project.projectID,
-        title: project.title,
-        description: project.description,
-        status: project.status,
-        logo: project.logo,
-        team: [
-          { name: 'Person 1', avatar: '' },
-          { name: 'Person 2', avatar: '' },
-          { name: 'Person 3', avatar: '' },
-          { name: 'Person 4', avatar: '' }
-        ],
-        progress: project.progress,
-        assignedDate: project.start_date,
-        dueDate: project.end_date
-      }));
-      setProjects(projectsWithFormattedData);
+      return;
     }
+  
+    // Paso 2: Obtener roles de usuarios por proyecto con la info de usuario
+    const { data: userRolesData, error: rolesError } = await supabase
+      .from('UserRole')
+      .select('project_id, user_id, User:User(user_id, name, profile_pic)');
+  
+    if (rolesError) {
+      console.error('Error fetching user roles:', rolesError.message);
+      setSnackbar({
+        open: true,
+        message: `Error al cargar los equipos: ${rolesError.message}`,
+        severity: 'error'
+      });
+      return;
+    }
+  
+    // Agrupar usuarios por proyecto
+    const teamByProject = {};
+    userRolesData.forEach(({ project_id, User }) => {
+      if (!teamByProject[project_id]) teamByProject[project_id] = [];
+      if (User) {
+        teamByProject[project_id].push({
+          name: User.name || 'Usuario',
+          avatar: User.profile_pic || ''
+        });
+      }
+    });
+  
+    // Construir los datos combinados
+    const combinedData = projectsData.map(project => ({
+      id: project.projectID,
+      title: project.title,
+      description: project.description,
+      status: project.status,
+      logo: project.logo,
+      team: teamByProject[project.projectID] || [],
+      progress: project.progress,
+      assignedDate: project.start_date,
+      dueDate: project.end_date
+    }));
+  
+    setProjects(combinedData);
   };
-
-  // Cargar proyectos al montar el componente
+  
   useEffect(() => {
     fetchProjects();
   }, []);
 
-
-  // Manejadores de eventos
   const handleAddProject = () => {
-    // Aquí se abriría un formulario para crear un nuevo proyecto
-    // Por ahora solo mostramos un mensaje
     setSnackbar({
       open: true,
       message: '¡Función de agregar proyecto implementada próximamente!',
@@ -96,7 +119,6 @@ const ProjectDashboard = () => {
 
   const handleConfirmAction = () => {
     if (dialogAction === 'delete' && selectedProject) {
-      // Eliminar el proyecto del estado
       setProjects(projects.filter(p => p.id !== selectedProject.id));
       setSnackbar({
         open: true,
@@ -111,7 +133,6 @@ const ProjectDashboard = () => {
     setSnackbar({ ...snackbar, open: false });
   };
 
-  // Filtrar proyectos según el filtro activo
   const filteredProjects = projects.filter(project => {
     if (activeFilter === 'all') return true;
     if (activeFilter === 'Completed') return project.status === 'Completed';
@@ -127,9 +148,7 @@ const ProjectDashboard = () => {
       </Typography>
       
       <Grid container spacing={3}>
-        {/* Panel izquierdo - filtros y botón de agregar */}
         <Grid item xs={12} md={3} lg={2.5}>
-          {/* Solo muestra el botón si el usuario es "manager" o "TFS" */}
           {(role === "manager" || role === "TFS") && (
             <Card variant="outlined" sx={{ borderRadius: 2, mb: 2 }}>
               <CardContent sx={{ py: 3 }}>
@@ -138,7 +157,6 @@ const ProjectDashboard = () => {
             </Card>
           )}
 
-          
           <Card variant="outlined" sx={{ borderRadius: 2 }}>
             <CardContent sx={{ py: 1 }}>
               <ProjectFilter activeFilter={activeFilter} setActiveFilter={setActiveFilter} />
@@ -146,7 +164,6 @@ const ProjectDashboard = () => {
           </Card>
         </Grid>
         
-        {/* Panel derecho - Tarjetas de proyectos */}
         <Grid item xs={12} md={9} lg={9.5}>
           <Grid container spacing={3}>
             {filteredProjects.length > 0 ? (
@@ -182,7 +199,6 @@ const ProjectDashboard = () => {
         </Grid>
       </Grid>
 
-      {/* Diálogo de confirmación */}
       <Dialog open={openDialog} onClose={handleCloseDialog}>
         <DialogTitle>
           {dialogAction === 'delete' 
@@ -229,7 +245,6 @@ const ProjectDashboard = () => {
         </DialogActions>
       </Dialog>
 
-      {/* Snackbar para notificaciones */}
       <Snackbar
         open={snackbar.open}
         autoHideDuration={6000}
