@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { 
   TextField, 
   Button, 
-  Checkbox, 
+  Checkbox,  
   FormControlLabel, 
   Box, 
   Typography,
@@ -14,14 +14,18 @@ import {
 } from '@mui/material';
 import { Visibility, VisibilityOff } from '@mui/icons-material';
 import useBodyStyles from '../hooks/useBodyStyles.js';
+import { useEffect } from 'react';
 
-import AccentureLogo from '../brand/AccenturePurpleLogo.png';
+
 
 const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [forgotMode, setForgotMode] = useState(false);
+  const [recoveryEmail, setRecoveryEmail] = useState('');
+
 
   useBodyStyles();
 
@@ -31,6 +35,36 @@ const Login = () => {
     setShowPassword(!showPassword);
   };
 
+  useEffect(() => {
+    const storedEmail = localStorage.getItem('rememberedEmail');
+    const storedPassword = localStorage.getItem('rememberedPassword');
+  
+    if (storedEmail) {
+      setEmail(storedEmail);
+      setRememberMe(true);
+    }
+  
+    if (storedPassword) {
+      setPassword(storedPassword);
+    }
+  }, []);
+
+  const handleRememberMeChange = (e) => {
+    const checked = e.target.checked;
+    setRememberMe(checked);
+  
+    if (!checked) {
+      // Borrar de localStorage
+      localStorage.removeItem('rememberedEmail');
+      localStorage.removeItem('rememberedPassword');
+  
+      // Limpiar del formulario
+      setEmail('');
+      setPassword('');
+    }
+  };
+  
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     console.log({ email, password, rememberMe });
@@ -39,7 +73,15 @@ const Login = () => {
       email,
       password,
     });
-  
+
+    if (rememberMe) {
+      localStorage.setItem('rememberedEmail', email);
+      localStorage.setItem('rememberedPassword', password); // 👈 Nuevo
+    } else {
+      localStorage.removeItem('rememberedEmail');
+      localStorage.removeItem('rememberedPassword'); // 👈 Nuevo
+    }
+
     if (error) {
       console.error('Error al iniciar sesión:', error.message);
       alert('Credenciales incorrectas o usuario no registrado');
@@ -167,7 +209,7 @@ const Login = () => {
           
           <Box sx={{ mb: 4 }}>
             <img 
-              src={AccentureLogo}
+              src={AccenturePurpleLogo}
               alt="Logo"
               style={{ 
                 height: '50px', 
@@ -177,189 +219,277 @@ const Login = () => {
             />
           </Box>
           
-          <Typography component="h1" variant="h4" sx={{ 
-            fontWeight: 'bold', 
-            mb: 1,
-            fontFamily: '"Graphik", "Arial", sans-serif',
-            color: '#333333',
-            textAlign: 'left', 
-          }}>
-            Hello !
-          </Typography>
-          
-          <Typography variant="body1" sx={{ 
-            color: 'text.secondary', 
-            mb: 4,
-            fontFamily: '"Palanquin", "Arial", sans-serif',
-            textAlign: 'left', 
-          }}>
-            Enter your login information.
-          </Typography>
+          {!forgotMode ? (
+  <>
+    <Typography component="h1" variant="h4" sx={{ 
+      fontWeight: 'bold', 
+      mb: 1,
+      fontFamily: '"Graphik", "Arial", sans-serif',
+      color: '#333333',
+      textAlign: 'left', 
+    }}>
+      Hello !
+    </Typography>
 
-          <Box component="form" onSubmit={handleSubmit} noValidate>
-            <Box sx={{ mb: 6, textAlign: 'left' }}>
-              <Typography variant="body2" sx={{ 
-                textAlign: 'left', 
-                mb: 1,
-                fontFamily: '"Palanquin", "Arial", sans-serif',
-              }}>
-                Email
-              </Typography>
-              <TextField
-                required
-                fullWidth
-                id="email"
-                name="email"
-                autoComplete="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Email"
-                variant="outlined"
+    <Typography variant="body1" sx={{ 
+      color: 'text.secondary', 
+      mb: 4,
+      fontFamily: '"Palanquin", "Arial", sans-serif',
+      textAlign: 'left', 
+    }}>
+      Enter your login information.
+    </Typography>
+  </>
+) : (
+  <>
+    <Typography component="h1" variant="h4" sx={{ 
+      fontWeight: 'bold', 
+      mb: 1,
+      fontFamily: '"Graphik", "Arial", sans-serif',
+      color: '#333333',
+      textAlign: 'left', 
+    }}>
+      Reset your password
+    </Typography>
+
+    <Typography variant="body1" sx={{ 
+      color: 'text.secondary', 
+      mb: 4,
+      fontFamily: '"Palanquin", "Arial", sans-serif',
+      textAlign: 'left', 
+    }}>
+      We'll send you a link to reset it.
+    </Typography>
+  </>
+)}
+
+
+          {!forgotMode ? (
+  <Box component="form" onSubmit={handleSubmit} noValidate>
+    <Box sx={{ mb: 6, textAlign: 'left' }}>
+      <Typography variant="body2" sx={{ textAlign: 'left', mb: 1, fontFamily: '"Palanquin", "Arial", sans-serif' }}>
+        Email
+      </Typography>
+      <TextField
+        required
+        fullWidth
+        id="email"
+        name="email"
+        autoComplete="email"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        placeholder="Email"
+        variant="outlined"
+        size="small"
+        sx={{
+          '& .MuiOutlinedInput-root': {
+            '& fieldset': {
+              borderColor: '#E0E0E0',
+              transition: 'all 0.2s ease'
+            },
+            '&:hover fieldset': {
+              borderColor: '#973EBC'
+            },
+            '&.Mui-focused fieldset': {
+              borderColor: '#973EBC',
+              borderWidth: '1px'
+            }
+          }
+        }}
+        InputProps={{
+          style: { fontFamily: '"Palanquin", "Arial", sans-serif' }
+        }}
+      />
+    </Box>
+
+    <Box sx={{ mb: 1, textAlign: 'left' }}>
+      <Typography variant="body2" sx={{ textAlign: 'left', mb: 1, fontFamily: '"Palanquin", "Arial", sans-serif' }}>
+        Password
+      </Typography>
+      <TextField
+        required
+        fullWidth
+        name="password"
+        id="password"
+        type={showPassword ? 'text' : 'password'}
+        autoComplete="current-password"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+        placeholder="Password"
+        variant="outlined"
+        size="small"
+        sx={{
+          '& .MuiOutlinedInput-root': {
+            '& fieldset': {
+              borderColor: '#E0E0E0',
+              transition: 'all 0.2s ease'
+            },
+            '&:hover fieldset': {
+              borderColor: '#973EBC'
+            },
+            '&.Mui-focused fieldset': {
+              borderColor: '#973EBC',
+              borderWidth: '1px'
+            }
+          }
+        }}
+        InputProps={{
+          style: { fontFamily: '"Palanquin", "Arial", sans-serif' },
+          endAdornment: (
+            <InputAdornment position="end">
+              <IconButton
+                aria-label="toggle password visibility"
+                onClick={handleClickShowPassword}
+                edge="end"
                 size="small"
-                sx={{
-                  '& .MuiOutlinedInput-root': {
-                    '& fieldset': {
-                      borderColor: '#E0E0E0',
-                      transition: 'all 0.2s ease'
-                    },
-                    '&:hover fieldset': {
-                      borderColor: '#973EBC'
-                    },
-                    '&.Mui-focused fieldset': {
-                      borderColor: '#973EBC',
-                      borderWidth: '1px'
-                    }
-                  }
-                }}
-                InputProps={{
-                  style: { fontFamily: '"Palanquin", "Arial", sans-serif' }
-                }}
-              />
-            </Box>
+                sx={{ color: '#973EBC' }}
+              >
+                {showPassword ? <VisibilityOff /> : <Visibility />}
+              </IconButton>
+            </InputAdornment>
+          ),
+        }}
+      />
+    </Box>
 
-            <Box sx={{ mb: 1, textAlign: 'left' }}>
-              <Typography variant="body2" sx={{ 
-                textAlign: 'left', 
-                mb: 1,
-                fontFamily: '"Palanquin", "Arial", sans-serif',
-              }}>
-                Password
-              </Typography>
-              <TextField
-                required
-                fullWidth
-                name="password"
-                id="password"
-                type={showPassword ? 'text' : 'password'}
-                autoComplete="current-password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Password"
-                variant="outlined"
-                size="small"
-                sx={{
-                  '& .MuiOutlinedInput-root': {
-                    '& fieldset': {
-                      borderColor: '#E0E0E0',
-                      transition: 'all 0.2s ease'
-                    },
-                    '&:hover fieldset': {
-                      borderColor: '#973EBC'
-                    },
-                    '&.Mui-focused fieldset': {
-                      borderColor: '#973EBC',
-                      borderWidth: '1px'
-                    }
-                  }
-                }}
-                InputProps={{
-                  style: { fontFamily: '"Palanquin", "Arial", sans-serif' },
-                  endAdornment: (
-                    <InputAdornment position="end">
-                      <IconButton
-                        aria-label="toggle password visibility"
-                        onClick={handleClickShowPassword}
-                        edge="end"
-                        size="small"
-                        sx={{ color: '#973EBC' }}
-                      >
-                        {showPassword ? <VisibilityOff /> : <Visibility />}
-                      </IconButton>
-                    </InputAdornment>
-                  ),
-                }}
-              />
-            </Box>
-
-            <Box sx={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              mb: 4,
-              justifyContent: 'space-between'
-            }}>
-              <FormControlLabel
-                control={
-                  <Checkbox 
-                    value="remember" 
-                    color="primary" 
-                    checked={rememberMe}
-                    onChange={(e) => setRememberMe(e.target.checked)}
-                    size="small"
-                    sx={{
-                      '&.Mui-checked': {
-                        color: '#973EBC',
-                      }
-                    }}
-                  />
-                }
-                label={
-                  <Typography variant="body2" sx={{ 
-                    fontFamily: '"Palanquin", "Arial", sans-serif'
-                  }}>
-                    Remember me
-                  </Typography>
-                }
-              />
-
-              <Link href="#" underline="hover" sx={{
+    <Box sx={{ display: 'flex', alignItems: 'center', mb: 4, justifyContent: 'space-between' }}>
+      <FormControlLabel
+        control={
+          <Checkbox
+            value="remember"
+            color="primary"
+            checked={rememberMe}
+            onChange={handleRememberMeChange}
+            size="small"
+            sx={{
+              '&.Mui-checked': {
                 color: '#973EBC',
-                fontFamily: '"Palanquin", "Arial", sans-serif',
-                fontSize: '0.8rem',
-                transition: 'all 0.2s ease',
-                '&:hover': {
-                  color: '#7B1FA2'
-                }
-              }}>
-                Forgot password?
-              </Link>
-            </Box>
+              }
+            }}
+          />
+        }
+        label={
+          <Typography variant="body2" sx={{ fontFamily: '"Palanquin", "Arial", sans-serif' }}>
+            Remember me
+          </Typography>
+        }
+      />
 
-            <Button
-              type="submit"
-              fullWidth
-              variant="contained"
-              sx={{ 
-                py: 1, 
-                backgroundColor: '#973EBC', 
-                '&:hover': { 
-                  backgroundColor: '#7B1FA2',
-                  boxShadow: '0 4px 12px rgba(151, 62, 188, 0.3)'
-                },
-                color: 'white',
-                fontWeight: 700,
-                textTransform: 'none',
-                borderRadius: '5px',
-                fontFamily: '"Palanquin", "Arial", sans-serif',
-                transition: 'all 0.3s ease'
-              }}
-            >
-              Sign In
-            </Button>
-          </Box>
+      <Link
+        component="button"
+        onClick={() => setForgotMode(true)}
+        underline="hover"
+        sx={{
+          color: '#973EBC',
+          fontFamily: '"Palanquin", "Arial", sans-serif',
+          fontSize: '0.8rem',
+          transition: 'all 0.2s ease',
+          '&:hover': {
+            color: '#7B1FA2'
+          }
+        }}
+      >
+        Forgot password?
+      </Link>
+    </Box>
+
+    <Button
+      type="submit"
+      fullWidth
+      variant="contained"
+      sx={{
+        py: 1,
+        backgroundColor: '#973EBC',
+        '&:hover': {
+          backgroundColor: '#7B1FA2',
+          boxShadow: '0 4px 12px rgba(151, 62, 188, 0.3)'
+        },
+        color: 'white',
+        fontWeight: 700,
+        textTransform: 'none',
+        borderRadius: '5px',
+        fontFamily: '"Palanquin", "Arial", sans-serif',
+        transition: 'all 0.3s ease'
+      }}
+    >
+      Sign In
+    </Button>
+  </Box>
+) : (
+  <Box sx={{ animation: 'fadeIn 0.5s ease-out' }}>
+    
+
+    <Typography variant="body1" sx={{
+      color: 'text.secondary',
+      mb: 3,
+      fontFamily: '"Palanquin", "Arial", sans-serif',
+      textAlign: 'left'
+    }}>
+      Enter the email associated with your account, and we’ll send you a link to reset your password.
+    </Typography>
+
+    <TextField
+      fullWidth
+      size="small"
+      type="email"
+      placeholder="Email"
+      value={recoveryEmail}
+      onChange={(e) => setRecoveryEmail(e.target.value)}
+      sx={{ mb: 3 }}
+    />
+
+    <Box sx={{ display: 'flex', gap: 2 }}>
+      <Button
+        variant="contained"
+        fullWidth
+        onClick={async () => {
+          if (!recoveryEmail) {
+            alert('Please enter an email');
+            return;
+          }
+
+          const { error } = await supabase.auth.resetPasswordForEmail(recoveryEmail, {
+            redirectTo: 'http://localhost:3000/update-password',
+          });
+
+          if (error) {
+            alert('Error sending recovery email: ' + error.message);
+          } else {
+            alert('Recovery email sent. Check your inbox.');
+            setForgotMode(false);
+            setRecoveryEmail('');
+          }
+        }}
+        sx={{
+          backgroundColor: '#973EBC',
+          color: 'white',
+          textTransform: 'none',
+          '&:hover': {
+            backgroundColor: '#7B1FA2'
+          }
+        }}
+      >
+        Send Link
+      </Button>
+
+      <Button
+        variant="text"
+        fullWidth
+        onClick={() => {
+          setForgotMode(false);
+          setRecoveryEmail('');
+        }}
+        sx={{ textTransform: 'none' }}
+      >
+        Cancel
+      </Button>
+    </Box>
+  </Box>
+)}
         </Box>
       </Box>
     </Box>
   );
-};
+}
 
 export default Login;
