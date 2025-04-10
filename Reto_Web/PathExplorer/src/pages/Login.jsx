@@ -16,6 +16,7 @@ import { Visibility, VisibilityOff } from '@mui/icons-material';
 import useBodyStyles from '../hooks/useBodyStyles.js';
 import { useEffect } from 'react';
 
+import AccentureLogo from '../brand/AccenturePurpleLogo.png';
 
 
 const Login = () => {
@@ -209,7 +210,7 @@ const Login = () => {
           
           <Box sx={{ mb: 4 }}>
             <img 
-              src={AccenturePurpleLogo}
+              src={AccentureLogo}
               alt="Logo"
               style={{ 
                 height: '50px', 
