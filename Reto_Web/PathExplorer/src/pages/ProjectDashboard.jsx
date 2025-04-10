@@ -153,13 +153,9 @@ const ProjectDashboard = () => {
     setSnackbar({ ...snackbar, open: false });
   };
 
-  const filteredProjects = projects.filter((project) => {
-    if (activeFilter === "all") return true;
-    if (activeFilter === "completed") return project.status === "Completed";
-    if (activeFilter === "ongoing") return project.status === "In Progress";
-    if (activeFilter === "not-started") return project.status === "Not Started";
-    if (activeFilter === "on-hold") return project.status === "On Hold";
-    return true;
+  const filteredProjects = projects.filter(project => {
+    if (activeFilter.toLowerCase() === 'all') return true;
+    return project.status?.toLowerCase() === activeFilter.toLowerCase();
   });
 
   return (
