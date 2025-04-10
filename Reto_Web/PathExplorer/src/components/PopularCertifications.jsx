@@ -60,16 +60,17 @@ export const PopularCertifications = ({ certifications }) => {
         <Typography variant="h6" fontWeight="bold">Popular certifications</Typography>
         <Box sx={{ flexGrow: 1 }} />
         <Button 
-          size="small"
-          color="secondary"
-          endIcon={<ArrowForwardIosIcon sx={{ fontSize: '0.8rem' }} />}
-          sx={{ 
-            textTransform: 'none',
-            fontSize: '0.8rem'
-          }}
-        >
-          Ver todas
-        </Button>
+  size="small"
+  color="secondary"
+  endIcon={<ArrowForwardIosIcon sx={{ fontSize: '0.8rem' }} />}
+  onClick={() => navigate('/certifications')}
+  sx={{ 
+    textTransform: 'none',
+    fontSize: '0.8rem'
+  }}
+>
+  Ver todas
+</Button>
       </Box>
       
       <Box sx={{ px: 0.5 }}>
