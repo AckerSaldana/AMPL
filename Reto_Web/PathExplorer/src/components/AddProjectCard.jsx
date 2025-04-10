@@ -1,25 +1,21 @@
 import React, { useState } from "react";
 import {
-  Paper,
   Box,
+  Paper,
   Typography,
   TextField,
   MenuItem,
-  Stack,
   Button,
   useTheme,
   IconButton,
 } from "@mui/material";
-import { useNavigate } from "react-router-dom";
-import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 import DeleteIcon from "@mui/icons-material/Delete";
-import RoleItem from "./RoleItem";
+import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
+import { useNavigate } from "react-router-dom";
 
 export const AddProjectCard = () => {
   const theme = useTheme();
   const navigate = useNavigate();
-
-  // State for mock roles
   const [roles, setRoles] = useState([
     "Frontend Developer",
     "Backend Developer",
@@ -30,187 +26,263 @@ export const AddProjectCard = () => {
     setRoles((prev) => [...prev, newRole]);
   };
 
-  const handleDeleteRole = (number) => {
+  const handleDeleteRole = (index) => {
     setRoles((prev) => prev.filter((_, i) => i !== index));
   };
 
   return (
-    <Paper sx={{ height: "100%" }}>
-      {/* Heading */}
+    <Paper 
+      sx={{ 
+        height: "100%", 
+        boxShadow: "0px 4px 12px rgba(0, 0, 0, 0.08)",
+        borderRadius: 1,
+        overflow: "hidden",
+        display: "flex",
+        flexDirection: "column",
+      }}
+    >
+      {/* Encabezado */}
       <Box
         sx={{
           backgroundColor: theme.palette.primary.main,
-          color: "#fff",
-          px: 2,
-          py: 1.5,
-          display: "flex",
-          alignItems: "center",
-          gap: 1,
-          borderTopLeftRadius: "4px",
-          borderTopRightRadius: "4px",
-          height: "3.5rem",
+          py: 2,
+          px: 3,
+          borderTopLeftRadius: 4,
+          borderTopRightRadius: 4,
         }}
       >
-        <AddCircleOutlineIcon />
-        <Typography fontWeight={600}>Add a project</Typography>
+        <Typography variant="h6" fontWeight={600} color="white">
+          Add a project
+        </Typography>
       </Box>
 
-      {/* Content */}
-      <Box sx={{ p: 3 }}>
-        <Stack spacing={2}>
-          {/* Project title */}
-          <Box>
-            <Typography fontWeight={600} mb={0.5} color="text.secondary">
+      {/* Contenido principal - con flex-grow para que ocupe el espacio disponible */}
+      <Box sx={{ p: 3, flexGrow: 1, display: "flex", flexDirection: "column" }}>
+        {/* Contenido scrollable */}
+        <Box sx={{ flexGrow: 1, overflow: "auto" }}>
+          <Box mb={3}>
+            <Typography fontWeight={600} mb={1} color="text.primary">
               Project title
             </Typography>
             <TextField
               fullWidth
-              size="small"
               placeholder="Add project title here..."
+              size="small"
+              sx={{
+                "& .MuiOutlinedInput-root": {
+                  borderRadius: 1,
+                },
+              }}
             />
           </Box>
 
-          {/* Description */}
-          <Box>
-            <Typography fontWeight={600} mb={0.5} color="text.secondary">
+          <Box mb={3}>
+            <Typography fontWeight={600} mb={1} color="text.primary">
               Description
             </Typography>
             <TextField
               fullWidth
-              size="small"
+              placeholder="Add a description here..."
               multiline
               rows={4}
-              placeholder="Add a description here..."
+              sx={{
+                "& .MuiOutlinedInput-root": {
+                  borderRadius: 1,
+                },
+              }}
             />
           </Box>
 
-          {/* Status & Priority */}
-          <Stack direction={{ md: "column", lg: "row" }} spacing={2}>
+          <Box display="flex" gap={3} mb={3}>
             <Box flex={1}>
-              <Typography fontWeight={600} mb={0.5} color="text.secondary">
+              <Typography fontWeight={600} mb={1} color="text.primary">
                 Status
               </Typography>
               <TextField
                 select
                 fullWidth
-                size="small"
                 defaultValue="Not Started"
+                size="small"
+                sx={{
+                  "& .MuiOutlinedInput-root": {
+                    borderRadius: 1,
+                  },
+                }}
               >
                 <MenuItem value="Not Started">Not Started</MenuItem>
                 <MenuItem value="In Progress">In Progress</MenuItem>
                 <MenuItem value="Completed">Completed</MenuItem>
               </TextField>
             </Box>
-
             <Box flex={1}>
-              <Typography fontWeight={600} mb={0.5} color="text.secondary">
+              <Typography fontWeight={600} mb={1} color="text.primary">
                 Priority
               </Typography>
-              <TextField select fullWidth size="small" defaultValue="High">
+              <TextField
+                select
+                fullWidth
+                defaultValue="High"
+                size="small"
+                sx={{
+                  "& .MuiOutlinedInput-root": {
+                    borderRadius: 1,
+                  },
+                }}
+              >
                 <MenuItem value="Low">Low</MenuItem>
                 <MenuItem value="Medium">Medium</MenuItem>
                 <MenuItem value="High">High</MenuItem>
               </TextField>
             </Box>
-          </Stack>
+          </Box>
 
-          {/* Dates */}
-          <Stack direction={{ xs: "column", md: "column" }} spacing={2}>
-            <Box flex={1}>
-              <Typography fontWeight={600} mb={0.5} color="text.secondary">
-                Start Date
-              </Typography>
-              <TextField
-                fullWidth
-                type="date"
-                size="small"
-                defaultValue="2025-02-10"
-              />
-            </Box>
-            <Box flex={1}>
-              <Typography fontWeight={600} mb={0.5} color="text.secondary">
-                End Date
-              </Typography>
-              <TextField
-                fullWidth
-                type="date"
-                size="small"
-                defaultValue="2025-10-25"
-              />
-            </Box>
-          </Stack>
+          <Box mb={3}>
+            <Typography fontWeight={600} mb={1} color="text.primary">
+              Start Date
+            </Typography>
+            <TextField
+              fullWidth
+              type="date"
+              defaultValue="2025-02-10"
+              size="small"
+              InputProps={{
+                sx: {
+                  borderRadius: 1,
+                },
+              }}
+            />
+          </Box>
 
-          {/* Role list */}
-          <Box>
-            <Box
-              display="flex"
-              justifyContent="space-between"
+          <Box mb={3}>
+            <Typography fontWeight={600} mb={1} color="text.primary">
+              End Date
+            </Typography>
+            <TextField
+              fullWidth
+              type="date"
+              defaultValue="2025-10-25"
+              size="small"
+              InputProps={{
+                sx: {
+                  borderRadius: 1,
+                },
+              }}
+            />
+          </Box>
+
+          <Box mb={3}>
+            <Box 
+              display="flex" 
+              justifyContent="space-between" 
               alignItems="center"
-              mb={1}
+              mb={1.5}
             >
-              <Typography fontWeight={600} color="text.secondary">
+              <Typography fontWeight={600} color="text.primary">
                 Role list
               </Typography>
               <Button
                 startIcon={<AddCircleOutlineIcon />}
                 size="small"
+                variant="text"
+                color="primary"
                 onClick={handleAddRole}
+                sx={{
+                  textTransform: "uppercase",
+                }}
               >
-                Add Role
+                ADD ROLE
               </Button>
             </Box>
-
-            {/* Scrollable list of RoleItems */}
+            
             <Box
               sx={{
+                border: "1px solid",
+                borderColor: "divider",
+                borderRadius: 1,
+                p: 0,
                 maxHeight: 200,
                 overflowY: "auto",
-                display: "flex",
-                flexDirection: "column",
-                gap: 1,
               }}
             >
               {roles.map((role, index) => (
-                <RoleItem
+                <Box
                   key={index}
-                  title={role}
-                  onDelete={() => handleDeleteRole(index)}
-                />
+                  sx={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    p: 1.5,
+                    borderBottom: index < roles.length - 1 ? "1px solid" : "none",
+                    borderColor: "divider",
+                  }}
+                >
+                  <Typography variant="body2" fontWeight={500}>{role}</Typography>
+                  <IconButton
+                    size="small"
+                    onClick={() => handleDeleteRole(index)}
+                    sx={{ 
+                      color: "white",
+                      backgroundColor: theme.palette.error.main,
+                      width: 24,
+                      height: 24,
+                      '&:hover': {
+                        backgroundColor: theme.palette.error.dark,
+                      }
+                    }}
+                  >
+                    <DeleteIcon fontSize="small" />
+                  </IconButton>
+                </Box>
               ))}
             </Box>
           </Box>
+        </Box>
 
-          {/* Buttons */}
-          <Stack direction="row" spacing={2} justifyContent="center" mt={3}>
-            <Button
-              onClick={() => navigate("/role-assign")}
-              variant="contained"
-              sx={(theme) => ({
-                backgroundColor: theme.palette.primary.main,
-                color: "#fff",
-                "&:hover": {
-                  backgroundColor: theme.palette.primary.dark,
-                },
-              })}
-            >
-              Assign
-            </Button>
-            <Button
-              variant="contained"
-              sx={(theme) => ({
-                backgroundColor: theme.palette.text.secondary,
-                color: theme.palette.getContrastText(
-                  theme.palette.text.secondary
-                ),
-                "&:hover": {
-                  backgroundColor: theme.palette.grey[700],
-                },
-              })}
-            >
-              Cancel
-            </Button>
-          </Stack>
-        </Stack>
+        {/* Contenedor para los botones - Posición fija en la parte inferior */}
+        <Box 
+          sx={{ 
+            display: "flex", 
+            justifyContent: "center",
+            pt: 3,
+            mt: "auto", // Empuja hacia abajo
+          }}
+        >
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={() => navigate("/role-assign")}
+            sx={{ 
+              minWidth: 110, 
+              mx: 1, 
+              py: 1,
+              px: 3, 
+              borderRadius: 1,
+              textTransform: "uppercase",
+              fontWeight: 600,
+              backgroundColor: theme.palette.primary.main,
+            }}
+          >
+            ASSIGN
+          </Button>
+          <Button
+            variant="contained"
+            sx={{ 
+              minWidth: 110, 
+              mx: 1, 
+              py: 1,
+              px: 3, 
+              borderRadius: 1,
+              backgroundColor: theme.palette.grey[700],
+              "&:hover": {
+                backgroundColor: theme.palette.grey[800],
+              },
+              textTransform: "uppercase",
+              fontWeight: 600,
+            }}
+          >
+            CANCEL
+          </Button>
+        </Box>
       </Box>
     </Paper>
   );
