@@ -20,8 +20,6 @@ import AddProject from "./pages/AddProject.jsx";
 import RoleAssign from "./pages/RoleAssign.jsx";
 
 
-
-
 function App() {
   return (
     <BrowserRouter>
@@ -42,10 +40,12 @@ function App() {
             <Route index element={<Dashboard />} />
             <Route path="projects" element={<ProjectDashboard />} />
 
+
             <Route path="add-projects" element={<AddProject />} />
             <Route path="role-assign" element={<RoleAssign />} />
 
             <Route path="certifications" element={<Certifications />} />
+
 
             <Route path="settings" element={<Settings />} />
             <Route path="user" element={<User />} />
