@@ -1,4 +1,3 @@
-// src/components/ProjectDashboard.jsx
 import React, { useState, useEffect } from "react";
 import {
   Box,
@@ -33,13 +32,9 @@ const ProjectDashboard = () => {
     severity: "success",
   });
   const [projects, setProjects] = useState([]);
-
-  // Navigation component
   const navigate = useNavigate();
 
-  // 🔁 Obtener proyectos con usuarios asignados (con JOIN)
   const fetchProjects = async () => {
-    // Paso 1: Obtener todos los proyectos
     const { data: projectsData, error: projectsError } = await supabase
       .from("Project")
       .select(
@@ -56,7 +51,6 @@ const ProjectDashboard = () => {
       return;
     }
 
-    // Paso 2: Obtener roles de usuarios por proyecto con la info de usuario
     const { data: userRolesData, error: rolesError } = await supabase
       .from("UserRole")
       .select("project_id, user_id, User:User(user_id, name, profile_pic)");
@@ -71,7 +65,6 @@ const ProjectDashboard = () => {
       return;
     }
 
-    // Agrupar usuarios por proyecto
     const teamByProject = {};
     userRolesData.forEach(({ project_id, User }) => {
       if (!teamByProject[project_id]) teamByProject[project_id] = [];
@@ -83,7 +76,6 @@ const ProjectDashboard = () => {
       }
     });
 
-    // Construir los datos combinados
     const combinedData = projectsData.map((project) => ({
       id: project.projectID,
       title: project.title,
@@ -132,7 +124,6 @@ const ProjectDashboard = () => {
   const handleConfirmAction = async () => {
     if (dialogAction === "delete" && selectedProject) {
       try {
-        // Eliminar el proyecto de la base de datos
         const { error } = await supabase
           .from("Project")
           .delete()
@@ -140,7 +131,6 @@ const ProjectDashboard = () => {
 
         if (error) throw error;
 
-        // Actualizar el estado local
         setProjects(projects.filter((p) => p.id !== selectedProject.id));
         setSnackbar({
           open: true,

@@ -15,9 +15,9 @@ const ProjectFilter = ({ activeFilter, setActiveFilter }) => {
   // Lista de filtros disponibles
   const filters = [
     { id: 'all', label: 'All projects', icon: <GridViewIcon sx={{ mr: 1 }} /> },
-    { id: 'completed', label: 'Completed', icon: <CheckCircleOutlineIcon sx={{ mr: 1 }} /> },
-    { id: 'ongoing', label: 'Ongoing', icon: <ScheduleIcon sx={{ mr: 1 }} /> },
-    { id: 'not-started', label: 'Not started', icon: <PauseCircleOutlineIcon sx={{ mr: 1 }} /> },
+    { id: 'Completed', label: 'Completed', icon: <CheckCircleOutlineIcon sx={{ mr: 1 }} /> },
+    { id: 'In Progress', label: 'Ongoing', icon: <ScheduleIcon sx={{ mr: 1 }} /> },
+    { id: 'On Hold', label: 'Not started', icon: <PauseCircleOutlineIcon sx={{ mr: 1 }} /> },
   ];
 
   return (

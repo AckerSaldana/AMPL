@@ -43,12 +43,11 @@ const ProjectCard = ({ project, onEdit, onDelete, onViewDetails }) => {
     if (onViewDetails) onViewDetails(project);
   };
 
-  // Función para determinar el color de la barra de progreso
   const getProgressColor = () => {
     if (project.status === 'Completed') return 'success.main';
-    if (project.progress >= 70) return '#8bc34a'; // verde claro
-    if (project.progress >= 30) return '#9c27b0'; // morado
-    return '#e0e0e0'; // gris para proyectos no iniciados
+    if (project.progress >= 70) return '#8bc34a';
+    if (project.progress >= 30) return '#9c27b0';
+    return '#e0e0e0';
   };
 
   return (
@@ -77,9 +76,7 @@ const ProjectCard = ({ project, onEdit, onDelete, onViewDetails }) => {
                   ? 'rgba(155, 79, 234, 0.1)' 
                   : project.status === 'Completed' 
                     ? 'rgba(111, 207, 151, 0.1)' 
-                    : project.status === 'Not Started'
-                      ? 'rgba(245, 159, 0, 0.1)'
-                      : 'rgba(245, 159, 0, 0.1)',
+                    : 'rgba(245, 159, 0, 0.1)',
               color: 
                 project.status === 'In Progress' 
                   ? 'rgb(155, 79, 234)' 
@@ -111,12 +108,14 @@ const ProjectCard = ({ project, onEdit, onDelete, onViewDetails }) => {
               'aria-labelledby': 'project-menu-button',
             }}
           >
-            <MenuItem onClick={handleEdit}>Edit Project</MenuItem>
+            {onEdit && <MenuItem onClick={handleEdit}>Edit Project</MenuItem>}
             <MenuItem onClick={handleViewDetails}>View Details</MenuItem>
             <Divider />
-            <MenuItem onClick={handleDelete} sx={{ color: 'error.main' }}>
-              Delete Project
-            </MenuItem>
+            {onDelete && (
+              <MenuItem onClick={handleDelete} sx={{ color: 'error.main' }}>
+                Delete Project
+              </MenuItem>
+            )}
           </Menu>
         </Box>
 
@@ -164,24 +163,40 @@ const ProjectCard = ({ project, onEdit, onDelete, onViewDetails }) => {
           Team:
         </Typography>
         <Box sx={{ mb: 1, display: 'flex', flexWrap: 'wrap', mt: 2 }}>
-        <AvatarGroup max={4} sx={{ justifyContent: 'flex-start', mb: 2 }}>
-          {project.team.map((member, index) => (
-            <Avatar 
-              key={index} 
-              alt={member.name} 
-              src={member.avatar || `/avatar-${index+1}.png`}
-              sx={{ 
-                width: 26, 
-                height: 26, 
+        <AvatarGroup
+            max={4}
+            sx={{
+              justifyContent: 'flex-start',
+              mb: 2,
+              '& .MuiAvatar-root': {
+                width: 36,
+                height: 36,
+                fontSize: '0.75rem',
                 border: '2px solid #fff',
-                bgcolor: member.color || ['#f44336', '#2196f3', '#4caf50', '#ff9800'][index % 4]
-              }}
-            >
-              {!member.avatar && member.name ? member.name.charAt(0) : ''}
-            </Avatar>
-          ))}
-          
-        </AvatarGroup>
+              },
+              '& .MuiAvatarGroup-avatar': {
+                width: 36,
+                height: 36,
+                fontSize: '0.75rem',
+              }
+            }}
+          >
+            {project.team.map((member, index) => (
+              <Avatar 
+                key={index} 
+                alt={member.name}
+                src={member.avatar || undefined}
+                sx={{
+                  bgcolor: member.avatar
+                    ? 'transparent'
+                    : ['#f44336', '#2196f3', '#4caf50', '#ff9800'][index % 4],
+                }}
+              >
+                {!member.avatar && member.name ? member.name.charAt(0).toUpperCase() : ''}
+              </Avatar>
+            ))}
+          </AvatarGroup>
+
         </Box>
 
         <Typography variant="body2" sx={{ mb: 0.5, fontWeight: 500, display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem' }}>

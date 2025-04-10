@@ -27,7 +27,9 @@ const ProfilePage = () => {
       sx={{
         p: { xs: 2, md: 4 },
         minHeight: "calc(100vh - 60px)",
-        width: "100%",
+        width: "100%", // Expanded navbar is 230px wide
+        
+
       }}
     >
       {/* This wrapper limits the maximum width and centers the content */}
