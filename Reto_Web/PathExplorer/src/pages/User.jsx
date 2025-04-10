@@ -1,5 +1,5 @@
 import React from "react";
-import { Box, Grid } from "@mui/material";
+import { Box, Grid, Container } from "@mui/material";
 
 // User page components
 import { BannerProfile } from "../components/BannerProfile";
@@ -25,23 +25,15 @@ const ProfilePage = () => {
   return (
     <Box
       sx={{
-        p: { xs: 2, md: 4 },
+        p: 4,
         minHeight: "calc(100vh - 60px)",
-
-        width: "100%",
-
         width: "100%", // Expanded navbar is 230px wide
         
-
       }}
     >
-      {/* This wrapper limits the maximum width and centers the content */}
-      <Box sx={{ maxWidth: "1200px", mx: "auto" }}>
+      <Grid container spacing={3}>
+        <BannerProfile />
         <Grid container spacing={3}>
-          <Grid item xs={12}>
-            <BannerProfile />
-          </Grid>
-
           {/* Left Section */}
           <Grid item xs={12} md={4}>
             <Information {...userData} />
@@ -56,7 +48,7 @@ const ProfilePage = () => {
             <PastProjectsCard />
           </Grid>
         </Grid>
-      </Box>
+      </Grid>
     </Box>
   );
 };
