@@ -29,6 +29,7 @@ import ClearAllIcon from '@mui/icons-material/ClearAll';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import CategoryIcon from '@mui/icons-material/Category';
 import SkillsIcon from '@mui/icons-material/Psychology';
+import IconButton from '@mui/material/IconButton';
 
 // Importar supabase
 import { supabase } from '../supabase/supabaseClient';
