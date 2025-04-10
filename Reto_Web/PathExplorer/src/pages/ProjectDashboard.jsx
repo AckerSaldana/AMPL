@@ -1,4 +1,5 @@
 // src/components/ProjectDashboard.jsx
+
 import React, { useState } from "react";
 import {
   Box,
@@ -19,17 +20,35 @@ import ProjectFilter from "../components/ProjectFilter.jsx";
 import AddProjectButton from "../components/AddProjectButton.jsx";
 import { useNavigate } from "react-router-dom";
 
-// Componente principal del dashboard
+import React, { useState, useEffect } from 'react';
+import { 
+  Box, Typography, Grid, Card, CardContent, Dialog, DialogTitle, 
+  DialogContent, DialogActions, Button, Snackbar, Alert 
+} from '@mui/material';
+import ProjectCard from '../components/ProjectCard.jsx';
+import ProjectFilter from '../components/ProjectFilter.jsx';
+import AddProjectButton from '../components/AddProjectButton.jsx';
+import useAuth from '../hooks/useAuth';
+import { supabase } from '../supabase/supabaseClient.js';
+
+
 const ProjectDashboard = () => {
   const [activeFilter, setActiveFilter] = useState("all");
   const [openDialog, setOpenDialog] = useState(false);
+
   const [dialogAction, setDialogAction] = useState("");
+
+  const [dialogAction, setDialogAction] = useState('');
+  const { role } = useAuth(); 
+
   const [selectedProject, setSelectedProject] = useState(null);
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: "",
     severity: "success",
   });
+  const [projects, setProjects] = useState([]);
+
 
   // Navigation component
   const navigate = useNavigate();
@@ -140,9 +159,81 @@ const ProjectDashboard = () => {
     },
   ]);
 
-  // Manejadores de eventos
+  // 🔁 Obtener proyectos con usuarios asignados (con JOIN)
+  const fetchProjects = async () => {
+    // Paso 1: Obtener todos los proyectos
+    const { data: projectsData, error: projectsError } = await supabase
+      .from('Project')
+      .select('projectID, title, description, status, logo, progress, start_date, end_date');
+  
+    if (projectsError) {
+      console.error('Error fetching projects:', projectsError.message);
+      setSnackbar({
+        open: true,
+        message: `Error al cargar los proyectos: ${projectsError.message}`,
+        severity: 'error'
+      });
+      return;
+    }
+  
+    // Paso 2: Obtener roles de usuarios por proyecto con la info de usuario
+    const { data: userRolesData, error: rolesError } = await supabase
+      .from('UserRole')
+      .select('project_id, user_id, User:User(user_id, name, profile_pic)');
+  
+    if (rolesError) {
+      console.error('Error fetching user roles:', rolesError.message);
+      setSnackbar({
+        open: true,
+        message: `Error al cargar los equipos: ${rolesError.message}`,
+        severity: 'error'
+      });
+      return;
+    }
+  
+    // Agrupar usuarios por proyecto
+    const teamByProject = {};
+    userRolesData.forEach(({ project_id, User }) => {
+      if (!teamByProject[project_id]) teamByProject[project_id] = [];
+      if (User) {
+        teamByProject[project_id].push({
+          name: User.name || 'Usuario',
+          avatar: User.profile_pic || ''
+        });
+      }
+    });
+  
+    // Construir los datos combinados
+    const combinedData = projectsData.map(project => ({
+      id: project.projectID,
+      title: project.title,
+      description: project.description,
+      status: project.status,
+      logo: project.logo,
+      team: teamByProject[project.projectID] || [],
+      progress: project.progress,
+      assignedDate: project.start_date,
+      dueDate: project.end_date
+    }));
+  
+    setProjects(combinedData);
+  };
+  
+  useEffect(() => {
+    fetchProjects();
+  }, []);
+
+
   const handleAddProject = () => {
+
     navigate("/add-projects");
+
+    setSnackbar({
+      open: true,
+      message: '¡Función de agregar proyecto implementada próximamente!',
+      severity: 'info'
+    });
+
   };
 
   const handleEditProject = (project) => {
@@ -168,9 +259,14 @@ const ProjectDashboard = () => {
   };
 
   const handleConfirmAction = () => {
+
     if (dialogAction === "delete" && selectedProject) {
       // Eliminar el proyecto del estado
       setProjects(projects.filter((p) => p.id !== selectedProject.id));
+
+    if (dialogAction === 'delete' && selectedProject) {
+      setProjects(projects.filter(p => p.id !== selectedProject.id));
+
       setSnackbar({
         open: true,
         message: `Proyecto "${selectedProject.title}" eliminado con éxito`,
@@ -184,12 +280,20 @@ const ProjectDashboard = () => {
     setSnackbar({ ...snackbar, open: false });
   };
 
+
   // Filtrar proyectos según el filtro activo
   const filteredProjects = projects.filter((project) => {
     if (activeFilter === "all") return true;
     if (activeFilter === "completed") return project.status === "Completed";
     if (activeFilter === "ongoing") return project.status === "In Progress";
     if (activeFilter === "not-started") return project.status === "Not Started";
+
+  const filteredProjects = projects.filter(project => {
+    if (activeFilter === 'all') return true;
+    if (activeFilter === 'Completed') return project.status === 'Completed';
+    if (activeFilter === 'In Progress') return project.status === 'In Progress';
+    if (activeFilter === 'On Hold') return project.status === 'On Hold';
+
     return true;
   });
 
@@ -200,8 +304,8 @@ const ProjectDashboard = () => {
       </Typography>
 
       <Grid container spacing={3}>
-        {/* Panel izquierdo - filtros y botón de agregar */}
         <Grid item xs={12} md={3} lg={2.5}>
+
           <Card variant="outlined" sx={{ borderRadius: 2, mb: 2 }}>
             <CardContent sx={{ py: 3 }}>
               <AddProjectButton onClick={handleAddProject} />
@@ -219,15 +323,39 @@ const ProjectDashboard = () => {
         </Grid>
 
         {/* Panel derecho - Tarjetas de proyectos */}
+
+          {(role === "manager" || role === "TFS") && (
+            <Card variant="outlined" sx={{ borderRadius: 2, mb: 2 }}>
+              <CardContent sx={{ py: 3 }}>
+                <AddProjectButton onClick={handleAddProject} />
+              </CardContent>
+            </Card>
+          )}
+
+          <Card variant="outlined" sx={{ borderRadius: 2 }}>
+            <CardContent sx={{ py: 1 }}>
+              <ProjectFilter activeFilter={activeFilter} setActiveFilter={setActiveFilter} />
+            </CardContent>
+          </Card>
+        </Grid>
+        
+
         <Grid item xs={12} md={9} lg={9.5}>
           <Grid container spacing={3}>
             {filteredProjects.length > 0 ? (
               filteredProjects.map((project) => (
                 <Grid item xs={12} sm={6} lg={4} key={project.id}>
+
                   <ProjectCard
                     project={project}
                     onEdit={handleEditProject}
                     onDelete={handleDeleteProject}
+
+                  <ProjectCard 
+                    project={project}
+                    onEdit={(role === 'manager' || role === 'TFS') ? handleEditProject : undefined}
+                    onDelete={(role === 'manager' || role === 'TFS') ? handleDeleteProject : undefined}
+
                     onViewDetails={handleViewDetails}
                   />
                 </Grid>
@@ -254,7 +382,6 @@ const ProjectDashboard = () => {
         </Grid>
       </Grid>
 
-      {/* Diálogo de confirmación */}
       <Dialog open={openDialog} onClose={handleCloseDialog}>
         <DialogTitle>
           {dialogAction === "delete"
@@ -318,7 +445,6 @@ const ProjectDashboard = () => {
         </DialogActions>
       </Dialog>
 
-      {/* Snackbar para notificaciones */}
       <Snackbar
         open={snackbar.open}
         autoHideDuration={6000}
