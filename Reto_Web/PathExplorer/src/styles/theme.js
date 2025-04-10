@@ -6,6 +6,7 @@ const theme = createTheme({
   palette: {
     primary: {
       main: '#973EBC',  // Main purple components
+      secondary: '#30096E',   // Text Dark purple
       dark: '#7D2E99' ,
       light: '#B96EDE'
 

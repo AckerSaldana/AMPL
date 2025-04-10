@@ -10,6 +10,7 @@ import {
   Container,
 } from "@mui/material";
 import { alpha } from "@mui/material/styles";
+import { useNavigate } from "react-router-dom";
 
 // Componentes personalizados
 import { IconInfo } from "../components/IconInfo";
@@ -36,6 +37,8 @@ const Dashboard = () => {
   const options = { day: "numeric", month: "long", year: "numeric" };
   const formattedDate = today.toLocaleDateString("en-US", options);
   const finalDate = formattedDate;
+
+  const navigate = useNavigate();
 
   // Efecto para cargar datos de path
   useEffect(() => {
@@ -134,7 +137,6 @@ const Dashboard = () => {
         p: 4,
         minHeight: "calc(100vh - 60px)",
         width: "100%", // Expanded navbar is 230px wide
-        maxWidth: "calc(100vw - 150px)", // Non-Expanded navbar is 80px wide
       }}
     >
       {/* Banner superior con bienvenida personalizada */}
@@ -160,23 +162,24 @@ const Dashboard = () => {
           <Typography variant="body1">Today is {finalDate}</Typography>
         </Box>
         <Box sx={{ mt: { xs: 2, md: 0 } }}>
-          <Button
-            variant="contained"
-            sx={{
-              borderRadius: 8,
-              px: 3,
-              py: 1,
-              textTransform: "none",
-              fontWeight: 500,
-              bgcolor: "#ffffff",
-              color: theme.palette.primary.main,
-              "&:hover": {
-                bgcolor: "#f5f5f5",
-              },
-            }}
-          >
-            Explorar certificaciones
-          </Button>
+                <Button
+          variant="contained"
+          onClick={() => navigate('/certifications')}
+          sx={{
+            borderRadius: 8,
+            px: 3,
+            py: 1,
+            textTransform: "none",
+            fontWeight: 500,
+            bgcolor: "#ffffff",
+            color: theme.palette.primary.main,
+            "&:hover": {
+              bgcolor: "#f5f5f5",
+            },
+          }}
+        >
+          Explorar certificaciones
+        </Button>
         </Box>
       </Paper>
 

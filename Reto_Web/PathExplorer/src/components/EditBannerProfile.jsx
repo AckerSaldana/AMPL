@@ -1,13 +1,6 @@
 import React, { useState, useRef } from "react";
-import {
-  Box,
-  IconButton,
-  Typography,
-  useTheme,
-} from "@mui/material";
-import {
-  CameraAlt,
-} from "@mui/icons-material";
+import { Box, IconButton, Typography, useTheme } from "@mui/material";
+import { CameraAlt } from "@mui/icons-material";
 
 export const EditBannerProfile = ({ initialBanner, onBannerChange }) => {
   const theme = useTheme();
@@ -19,14 +12,14 @@ export const EditBannerProfile = ({ initialBanner, onBannerChange }) => {
     if (event.target.files && event.target.files[0]) {
       const file = event.target.files[0];
       const reader = new FileReader();
-      
+
       reader.onloadend = () => {
         setBannerImage(reader.result);
         if (onBannerChange) {
           onBannerChange(reader.result, file);
         }
       };
-      
+
       reader.readAsDataURL(file);
     }
   };
@@ -41,10 +34,9 @@ export const EditBannerProfile = ({ initialBanner, onBannerChange }) => {
         position: "relative",
         height: 200,
         width: "100%",
-        borderRadius: "8px 8px 0 0",
         overflow: "hidden",
         backgroundColor: "#6699cc", // Default light blue color
-        backgroundImage: bannerImage ? `url(${bannerImage})` : 'none',
+        backgroundImage: bannerImage ? `url(${bannerImage})` : "none",
         backgroundSize: "cover",
         backgroundPosition: "center",
       }}
@@ -72,7 +64,10 @@ export const EditBannerProfile = ({ initialBanner, onBannerChange }) => {
         onClick={openFileSelector}
       >
         <CameraAlt sx={{ color: "white", fontSize: 40, mb: 1 }} />
-        <Typography variant="subtitle1" sx={{ color: "white", fontWeight: 500 }}>
+        <Typography
+          variant="subtitle1"
+          sx={{ color: "white", fontWeight: 500 }}
+        >
           Click to upload banner image
         </Typography>
       </Box>
