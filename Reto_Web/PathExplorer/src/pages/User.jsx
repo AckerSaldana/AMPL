@@ -27,8 +27,7 @@ const ProfilePage = () => {
       sx={{
         p: 4,
         minHeight: "calc(100vh - 60px)",
-        width: "100%", // Expanded navbar is 230px wide
-        
+        width: "100%"
       }}
     >
       <Grid container spacing={3}>

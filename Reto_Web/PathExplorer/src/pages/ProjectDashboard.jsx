@@ -134,11 +134,8 @@ const ProjectDashboard = () => {
   };
 
   const filteredProjects = projects.filter(project => {
-    if (activeFilter === 'all') return true;
-    if (activeFilter === 'Completed') return project.status === 'Completed';
-    if (activeFilter === 'In Progress') return project.status === 'In Progress';
-    if (activeFilter === 'On Hold') return project.status === 'On Hold';
-    return true;
+    if (activeFilter.toLowerCase() === 'all') return true;
+    return project.status?.toLowerCase() === activeFilter.toLowerCase();
   });
 
   return (
