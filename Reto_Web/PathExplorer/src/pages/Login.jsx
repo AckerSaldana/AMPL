@@ -15,6 +15,7 @@ import {
 import { Visibility, VisibilityOff } from '@mui/icons-material';
 import useBodyStyles from '../hooks/useBodyStyles.js';
 import { useEffect } from 'react';
+import { Snackbar, Alert } from '@mui/material';
 
 
 
@@ -25,7 +26,8 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const [forgotMode, setForgotMode] = useState(false);
   const [recoveryEmail, setRecoveryEmail] = useState('');
-
+  const [loginError, setLoginError] = useState('');
+  const [openError, setOpenError] = useState(false);
 
   useBodyStyles();
 
@@ -67,12 +69,49 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!navigator.onLine) {
+      setLoginError('Sin conexión a Internet. Revisa tu red.');
+      setOpenError(true);
+      return;
+    }
+  
+    if (!email || !password) {
+      setLoginError('Por favor completa todos los campos.');
+      setOpenError(true);
+      return;
+    }
+  
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setLoginError('El formato del email no es válido.');
+      setOpenError(true);
+      return;
+    }
+  
+    if (password.length < 6) {
+      setLoginError('La contraseña debe tener al menos 6 caracteres.');
+      setOpenError(true);
+      return;
+    }
+
     console.log({ email, password, rememberMe });
     // Aquí va la lógica de autenticación
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
+
+    if (error && error.message.includes('FetchError')) {
+      setLoginError('Error al conectar con el servidor. Intenta más tarde.');
+      setOpenError(true);
+      return;
+    }
+  
+    if (error) {
+      setLoginError('Credenciales incorrectas o usuario no registrado');
+      setOpenError(true);
+      return;
+    }
 
     if (rememberMe) {
       localStorage.setItem('rememberedEmail', email);
@@ -84,7 +123,8 @@ const Login = () => {
 
     if (error) {
       console.error('Error al iniciar sesión:', error.message);
-      alert('Credenciales incorrectas o usuario no registrado');
+      setLoginError('Credenciales incorrectas o usuario no registrado');
+      setOpenError(true); // 👈 Activa la alerta visual
       return;
     }
   
@@ -487,6 +527,21 @@ const Login = () => {
   </Box>
 )}
         </Box>
+        {/* Snackbar de error centrado */}
+    <Snackbar
+      open={openError}
+      autoHideDuration={4000}
+      onClose={() => setOpenError(false)}
+      anchorOrigin={{ vertical: 'center', horizontal: 'center' }}
+    >
+      <Alert 
+        onClose={() => setOpenError(false)} 
+        severity="error" 
+        sx={{ width: '100%' }}
+      >
+        {loginError}
+      </Alert>
+    </Snackbar>
       </Box>
     </Box>
   );

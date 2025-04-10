@@ -34,6 +34,13 @@ import LogoutIcon from "@mui/icons-material/Logout";
 import { supabase } from "../supabase/supabaseClient";
 
 import AccentureLogo from "../brand/AccenturePurpleLogo.png";
+import { Popover, Divider, ListItemButton } from "@mui/material";
+import AssignmentIcon from '@mui/icons-material/Assignment';
+import EventIcon from '@mui/icons-material/Event';
+import UpdateIcon from '@mui/icons-material/Update';
+import RateReviewIcon from '@mui/icons-material/RateReview';
+import MessageIcon from '@mui/icons-material/Message';
+
 
 const RippleEffect = ({ active }) => {
   return (
@@ -70,6 +77,29 @@ const Navbar = ({ children }) => {
   const [activeItem, setActiveItem] = useState("Dashboard");
   const navBgColor = darkMode ? "#222" : "#fff";
   const [userName, setUserName] = useState("");
+  const [notifAnchorEl, setNotifAnchorEl] = useState(null);
+
+  const handleNotificationPopoverClick = (event) => {
+    setNotifAnchorEl(event.currentTarget);
+  };
+
+  const handleCloseNotifications = () => {
+    setNotifAnchorEl(null);
+  };
+
+  const openNotifications = Boolean(notifAnchorEl);
+
+  const getIconByType = (type) => {
+    switch (type) {
+      case "task": return <AssignmentIcon fontSize="small" />;
+      case "event": return <EventIcon fontSize="small" />;
+      case "update": return <UpdateIcon fontSize="small" />;
+      case "review": return <RateReviewIcon fontSize="small" />;
+      case "message": return <MessageIcon fontSize="small" />;
+      default: return null;
+    }
+  };
+
 
   useEffect(() => {
     // Obtener información del usuario cuando se carga el componente
@@ -161,6 +191,18 @@ const Navbar = ({ children }) => {
     // Por defecto, devolver solo los elementos base (empleado)
     return baseItems;
   };
+
+  const [notifications, setNotifications] = useState([
+    { id: 1, text: "Nueva tarea asignada", type: "task", read: false },
+    { id: 2, text: "Recordatorio de reunión", type: "event", read: false },
+    { id: 3, text: "Proyecto actualizado", type: "update", read: false },
+    { id: 4, text: "Revisión pendiente", type: "review", read: false },
+    { id: 5, text: "Mensaje de tu supervisor", type: "message", read: false },
+  ]);
+
+  const unreadCount = notifications.filter(n => !n.read).length;
+
+
 
   const menuItems = getMenuItems();
 
@@ -309,6 +351,7 @@ const Navbar = ({ children }) => {
               {expanded ? <ChevronLeftIcon /> : <MenuIcon />}
             </Box>
           </IconButton>
+
         </Box>
 
         {/* Lado derecho: acciones (modo oscuro, notificaciones, avatar) */}
@@ -389,7 +432,7 @@ const Navbar = ({ children }) => {
 
           {/* Notificaciones con tamaño fijo */}
           <IconButton
-            onClick={handleNotificationClick}
+            onClick={handleNotificationPopoverClick}
             size="small"
             sx={{
               color: secondaryTextColor,
@@ -430,7 +473,7 @@ const Navbar = ({ children }) => {
             }}
           >
             <Badge
-              badgeContent={notificationCount}
+              badgeContent={unreadCount}
               color="error"
               sx={{
                 "& .MuiBadge-badge": {
@@ -456,6 +499,73 @@ const Navbar = ({ children }) => {
               <NotificationsIcon fontSize="small" />
             </Badge>
           </IconButton>
+          <Popover
+  open={openNotifications}
+  anchorEl={notifAnchorEl}
+  onClose={handleCloseNotifications}
+  anchorOrigin={{
+    vertical: "bottom",
+    horizontal: "right",
+  }}
+  transformOrigin={{
+    vertical: "top",
+    horizontal: "right",
+  }}
+  PaperProps={{
+    sx: {
+      mt: 1.5,
+      width: 280,
+      maxHeight: 360,
+      overflowY: "auto",
+      boxShadow: 4,
+      borderRadius: "12px",
+      bgcolor: navBgColor,
+      border: `1px solid ${borderColor}`,
+    },
+  }}
+>
+  <Box sx={{ p: 2 }}>
+    <Typography variant="subtitle1" sx={{ fontWeight: 600, color: textColor }}>
+      Notificaciones
+    </Typography>
+  </Box>
+  <Divider />
+  <List disablePadding>
+  {notifications.map((notif) => (
+  <ListItemButton
+    key={notif.id}
+    onClick={() => {
+      setNotifications((prev) => prev.filter((n) => n.id !== notif.id));
+    }}
+    // ... estilos
+  >
+    {/* Círculo e ícono */}
+    <Box
+      sx={{
+        width: 36,
+        height: 36,
+        borderRadius: "50%",
+        bgcolor: primaryColor,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        color: "white",
+        flexShrink: 0,
+        boxShadow: `0 0 6px ${alpha(primaryColor, 0.3)}`
+      }}
+    >
+      {getIconByType(notif.type)}
+    </Box>
+
+    {/* Texto */}
+    <Typography variant="body2" sx={{ fontSize: '0.9rem' }}>
+      {notif.text}
+    </Typography>
+  </ListItemButton>
+))}
+</List>
+</Popover>
+
           
           {/* Botón de cerrar sesión */}
           <Tooltip title="Cerrar sesión" arrow TransitionComponent={Zoom}>
