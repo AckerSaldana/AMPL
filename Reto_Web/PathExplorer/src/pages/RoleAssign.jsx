@@ -1,12 +1,26 @@
 import React, { useState } from "react";
-import { Box, Grid, Paper, Typography, useTheme, Button } from "@mui/material";
+import { 
+  Box, 
+  Grid, 
+  Paper, 
+  Typography, 
+  useTheme, 
+  Button, 
+  Divider,
+  IconButton,
+  Chip
+} from "@mui/material";
 import AssistantIcon from "@mui/icons-material/Assistant";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import CloseIcon from "@mui/icons-material/Close";
+import { alpha } from "@mui/material/styles";
 import RoleCard from "../components/RoleCard";
 import MatchedEmployeeCard from "../components/MatchedEmployeeCard";
 
+// Base de datos inicial de empleados y roles
 const initialRoles = [
   {
-    id: "frontend",
+    id: "frontend1",
     role: "Frontend Developer",
     assigned: {
       id: "bruno",
@@ -14,7 +28,13 @@ const initialRoles = [
       avatar: "/avatars/1.jpg",
       score: 100,
     },
-    matches: [
+    allCandidates: [
+      {
+        id: "bruno",
+        name: "Bruno Jiménez",
+        avatar: "/avatars/1.jpg",
+        score: 100,
+      },
       {
         id: "valeria",
         name: "Valeria Oliva",
@@ -36,17 +56,53 @@ const initialRoles = [
     ],
   },
   {
-    id: "frontend",
+    id: "frontend2",
     role: "Frontend Developer",
     assigned: {
-      id: "bruno",
+      id: "bruno2",
       name: "Bruno Jiménez",
       avatar: "/avatars/1.jpg",
       score: 100,
     },
-    matches: [
+    allCandidates: [
       {
-        id: "valeria",
+        id: "bruno2",
+        name: "Bruno Jiménez",
+        avatar: "/avatars/1.jpg",
+        score: 100,
+      },
+      {
+        id: "valeria2",
+        name: "Valeria Oliva",
+        avatar: "/avatars/6.jpg",
+        score: 94,
+      },
+      {
+        id: "daniel2",
+        name: "Daniel Morales",
+        avatar: "/avatars/7.jpg",
+        score: 90,
+      },
+    ],
+  },
+  {
+    id: "frontend3",
+    role: "Frontend Developer",
+    assigned: {
+      id: "bruno3",
+      name: "Bruno Jiménez",
+      avatar: "/avatars/1.jpg",
+      score: 100,
+    },
+    allCandidates: [
+      {
+        id: "bruno3",
+        name: "Bruno Jiménez",
+        avatar: "/avatars/1.jpg",
+        score: 100,
+      },
+      {
+        id: "valeria3",
         name: "Valeria Oliva",
         avatar: "/avatars/6.jpg",
         score: 94,
@@ -54,35 +110,23 @@ const initialRoles = [
     ],
   },
   {
-    id: "frontend",
+    id: "frontend4",
     role: "Frontend Developer",
     assigned: {
-      id: "bruno",
+      id: "bruno4",
       name: "Bruno Jiménez",
       avatar: "/avatars/1.jpg",
-      score: 100,
+      score: 83,
     },
-    matches: [
+    allCandidates: [
       {
-        id: "valeria",
-        name: "Valeria Oliva",
-        avatar: "/avatars/6.jpg",
-        score: 94,
+        id: "bruno4",
+        name: "Bruno Jiménez",
+        avatar: "/avatars/1.jpg",
+        score: 83,
       },
-    ],
-  },
-  {
-    id: "frontend",
-    role: "Frontend Developer",
-    assigned: {
-      id: "bruno",
-      name: "Bruno Jiménez",
-      avatar: "/avatars/1.jpg",
-      score: 100,
-    },
-    matches: [
       {
-        id: "valeria",
+        id: "valeria4",
         name: "Valeria Oliva",
         avatar: "/avatars/6.jpg",
         score: 94,
@@ -98,7 +142,13 @@ const initialRoles = [
       avatar: "/avatars/2.jpg",
       score: 100,
     },
-    matches: [
+    allCandidates: [
+      {
+        id: "andres",
+        name: "Andrés Aguilar",
+        avatar: "/avatars/2.jpg",
+        score: 100,
+      },
       {
         id: "rodrigo",
         name: "Rodrigo Cortés",
@@ -135,73 +185,145 @@ const initialRoles = [
         avatar: "/avatars/8.jpg",
         score: 85,
       },
-      {
-        id: "jazmin",
-        name: "Jazmin Pérez",
-        avatar: "/avatars/8.jpg",
-        score: 85,
-      },
     ],
   },
 ];
 
 const RoleAssign = () => {
   const theme = useTheme();
-  const [roles, setRoles] = useState(initialRoles);
   const [selectedRoleIndex, setSelectedRoleIndex] = useState(0);
+  
+  // Inicializar el estado con el formato correcto que incluye allCandidates y calcula matches
+  const [roles, setRoles] = useState(() => {
+    return initialRoles.map(role => ({
+      ...role,
+      // Calcular candidatos disponibles (todos excepto el asignado)
+      matches: role.allCandidates.filter(candidate => 
+        candidate.id !== role.assigned.id
+      )
+    }));
+  });
 
-  const handleEmployeeChange = (roleIndex, newEmployee) => {
-    const updated = [...roles];
-    updated[roleIndex].assigned = newEmployee;
-    setRoles(updated);
+  // Función para manejar el cambio de empleado asignado
+  const handleEmployeeChange = (roleIndex, newEmployeeId) => {
+    setRoles(prevRoles => {
+      const updatedRoles = [...prevRoles];
+      const currentRole = {...updatedRoles[roleIndex]};
+      
+      // Encontrar el nuevo empleado a asignar de la lista completa
+      const newEmployee = currentRole.allCandidates.find(
+        candidate => candidate.id === newEmployeeId
+      );
+      
+      // Si no encontramos al empleado, no hacemos cambios
+      if (!newEmployee) return prevRoles;
+      
+      // Guardar el empleado actualmente asignado (para intercambiarlo)
+      const previouslyAssigned = currentRole.assigned;
+      
+      // Asignar el nuevo empleado
+      currentRole.assigned = newEmployee;
+      
+      // Recalcular la lista de matches (todos los candidatos excepto el asignado)
+      currentRole.matches = currentRole.allCandidates.filter(
+        candidate => candidate.id !== newEmployee.id
+      );
+      
+      // Actualizar el rol actual
+      updatedRoles[roleIndex] = currentRole;
+      
+      return updatedRoles;
+    });
   };
+  
+  // Calcular los candidatos disponibles (excluyendo el asignado)
+  const availableCandidates = roles[selectedRoleIndex]?.matches || [];
 
   return (
-    <Paper>
+    <Paper 
+      elevation={3}
+      sx={{
+        borderRadius: 2,
+        overflow: "hidden"
+      }}
+    >
       {/* Heading */}
       <Box
         sx={{
           backgroundColor: theme.palette.primary.main,
-          color: theme.palette.text.white,
-          p: 2,
-          borderTopLeftRadius: "4px",
-          borderTopRightRadius: "4px",
-          height: "3.5rem",
+          color: "#fff",
+          px: 3,
+          py: 2,
+          borderTopLeftRadius: 8,
+          borderTopRightRadius: 8,
+          height: "4rem",
           display: "flex",
           alignItems: "center",
         }}
       >
-        <AssistantIcon />
-        <Typography variant="body1" fontWeight={600} sx={{ pl: 1 }}>
+        <AssistantIcon sx={{ mr: 1.5 }} />
+        <Typography variant="h6" fontWeight={600}>
           Assign Roles
         </Typography>
+        <Chip 
+          label={`${roles.length} Roles`}
+          size="small"
+          sx={{ 
+            ml: 2, 
+            backgroundColor: alpha("#fff", 0.2),
+            color: "#fff",
+            fontWeight: 500
+          }}
+        />
       </Box>
 
       {/* Content */}
-      <Box sx={{ p: 2 }}>
-        <Grid container spacing={2}>
+      <Box sx={{ p: 3 }}>
+        <Grid container spacing={3}>
           {/* Left Side */}
           <Grid item xs={12} md={6}>
-            <Typography variant="subtitle1" fontWeight={600} mb={1}>
-              AI Suggested Employees
-            </Typography>
+            <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
+              <Box 
+                sx={{ 
+                  backgroundColor: theme.palette.primary.light, 
+                  color: "#fff",
+                  width: 28,
+                  height: 28,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  borderRadius: "50%",
+                  mr: 1.5,
+                  fontWeight: "bold"
+                }}
+              >
+                1
+              </Box>
+              <Typography variant="subtitle1" fontWeight={700} color="text.primary">
+                AI Suggested Role Assignments
+              </Typography>
+            </Box>
 
             <Box
               sx={{
-                maxHeight: 400,
+                maxHeight: 480,
                 overflowY: "auto",
                 pr: 1,
-                "&::-webkit-scrollbar": { width: "6px" },
+                pb: 1,
+                "&::-webkit-scrollbar": { width: "8px" },
                 "&::-webkit-scrollbar-thumb": {
-                  backgroundColor: "#ccc",
+                  backgroundColor: alpha(theme.palette.primary.main, 0.3),
                   borderRadius: "4px",
                 },
-                "&::-webkit-scrollbar-track": { backgroundColor: "#f1f1f1" },
+                "&::-webkit-scrollbar-track": { 
+                  backgroundColor: alpha(theme.palette.primary.main, 0.05),
+                  borderRadius: "4px"
+                },
               }}
             >
               {roles.map((r, i) => (
                 <RoleCard
-                  key={r.id}
+                  key={`${r.id}-${i}`}
                   role={r.role}
                   name={r.assigned.name}
                   avatar={r.assigned.avatar}
@@ -215,47 +337,112 @@ const RoleAssign = () => {
 
           {/* Right Side */}
           <Grid item xs={12} md={6}>
-            <Typography variant="subtitle1" fontWeight={600} mb={1}>
-              All matched employees for "{roles[selectedRoleIndex].role}"
-            </Typography>
+            <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
+              <Box 
+                sx={{ 
+                  backgroundColor: theme.palette.primary.light, 
+                  color: "#fff",
+                  width: 28,
+                  height: 28,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  borderRadius: "50%",
+                  mr: 1.5,
+                  fontWeight: "bold"
+                }}
+              >
+                2
+              </Box>
+              <Typography variant="subtitle1" fontWeight={700} color="text.primary">
+                Candidate Matches for{" "}
+                <Typography 
+                  component="span" 
+                  color="primary"
+                  sx={{ fontWeight: 700 }}
+                >
+                  {roles[selectedRoleIndex].role}
+                </Typography>
+              </Typography>
+            </Box>
 
             <Box
               sx={{
-                maxHeight: 400,
+                maxHeight: 480,
                 overflowY: "auto",
-                backgroundColor: "#ededed",
-                borderRadius: 1,
-                p: 1,
-                "&::-webkit-scrollbar": { width: "6px" },
+                backgroundColor: alpha(theme.palette.primary.main, 0.03),
+                borderRadius: 2,
+                p: 2,
+                border: "1px solid",
+                borderColor: alpha(theme.palette.primary.main, 0.1),
+                "&::-webkit-scrollbar": { width: "8px" },
                 "&::-webkit-scrollbar-thumb": {
-                  backgroundColor: "#ccc",
+                  backgroundColor: alpha(theme.palette.primary.main, 0.3),
                   borderRadius: "4px",
                 },
-                "&::-webkit-scrollbar-track": { backgroundColor: "#f1f1f1" },
+                "&::-webkit-scrollbar-track": { 
+                  backgroundColor: alpha(theme.palette.primary.main, 0.05),
+                  borderRadius: "4px"
+                },
               }}
             >
-              {roles[selectedRoleIndex].matches.map((match) => (
-                <MatchedEmployeeCard
-                  key={match.id}
-                  name={match.name}
-                  avatar={match.avatar}
-                  score={match.score}
-                  onSelect={() =>
-                    handleEmployeeChange(selectedRoleIndex, match)
-                  }
-                />
-              ))}
+              {availableCandidates.length > 0 ? (
+                availableCandidates.map((match) => (
+                  <MatchedEmployeeCard
+                    key={match.id}
+                    name={match.name}
+                    avatar={match.avatar}
+                    score={match.score}
+                    onSelect={() => handleEmployeeChange(selectedRoleIndex, match.id)}
+                  />
+                ))
+              ) : (
+                <Box sx={{ 
+                  textAlign: "center", 
+                  py: 4,
+                  color: "text.secondary"
+                }}>
+                  <Typography>No other candidates available for this role</Typography>
+                </Box>
+              )}
             </Box>
           </Grid>
         </Grid>
 
+        <Divider sx={{ my: 4 }} />
+
         {/* Bottom Buttons */}
-        <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 4 }}>
-          <Button variant="outlined" color="primary" sx={{ mr: 2 }}>
-            Cancel
+        <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
+          <Button 
+            variant="outlined" 
+            color="inherit" 
+            sx={{ 
+              mr: 2,
+              color: theme.palette.text.secondary,
+              borderColor: theme.palette.divider,
+              "&:hover": {
+                borderColor: theme.palette.text.secondary,
+                backgroundColor: alpha(theme.palette.text.secondary, 0.04),
+              }
+            }}
+            startIcon={<CloseIcon />}
+          >
+            CANCEL
           </Button>
-          <Button variant="contained" color="primary">
-            Create
+          <Button 
+            variant="contained" 
+            color="primary"
+            startIcon={<CheckCircleIcon />}
+            sx={{ 
+              fontWeight: 600,
+              boxShadow: 2,
+              px: 3,
+              "&:hover": {
+                boxShadow: 4,
+              }
+            }}
+          >
+            CONFIRM ASSIGNMENTS
           </Button>
         </Box>
       </Box>
