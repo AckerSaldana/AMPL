@@ -14,7 +14,13 @@ import ProjectDashboard from "./pages/ProjectDashboard.jsx";
 import EditProfile from "./pages/EditProfile";
 import Login from "./pages/Login";
 import ProtectedRoute from "./components/ProtectedRoute";
+
+import Unauthorized from "./pages/Unauthorized"; // Necesitamos crear esta página
+import AddProject from "./pages/AddProject.jsx";
+import RoleAssign from "./pages/RoleAssign.jsx";
+
 import Unauthorized from "./pages/Unauthorized";
+
 
 
 function App() {
@@ -36,7 +42,12 @@ function App() {
           >
             <Route index element={<Dashboard />} />
             <Route path="projects" element={<ProjectDashboard />} />
+
+            <Route path="add-projects" element={<AddProject />} />
+            <Route path="role-assign" element={<RoleAssign />} />
+
             <Route path="certifications" element={<Certifications />} />
+
             <Route path="settings" element={<Settings />} />
             <Route path="user" element={<User />} />
             <Route path="edit-profile" element={<EditProfile />} />
