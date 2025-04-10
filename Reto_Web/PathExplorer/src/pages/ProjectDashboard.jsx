@@ -1,5 +1,5 @@
 // src/components/ProjectDashboard.jsx
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Box,
   Typography,
@@ -17,130 +17,92 @@ import {
 import ProjectCard from "../components/ProjectCard.jsx";
 import ProjectFilter from "../components/ProjectFilter.jsx";
 import AddProjectButton from "../components/AddProjectButton.jsx";
+import useAuth from "../hooks/useAuth";
+import { supabase } from "../supabase/supabaseClient.js";
 import { useNavigate } from "react-router-dom";
 
-// Componente principal del dashboard
 const ProjectDashboard = () => {
   const [activeFilter, setActiveFilter] = useState("all");
   const [openDialog, setOpenDialog] = useState(false);
   const [dialogAction, setDialogAction] = useState("");
+  const { role } = useAuth();
   const [selectedProject, setSelectedProject] = useState(null);
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: "",
     severity: "success",
   });
+  const [projects, setProjects] = useState([]);
 
   // Navigation component
   const navigate = useNavigate();
 
-  // Datos de muestra - En una aplicación real vendría de una API
-  const [projects, setProjects] = useState([
-    {
-      id: 1,
-      title: "Discord function optimization",
-      description: "Brief description of the project",
-      status: "In Progress",
-      logo: "https://assets-global.website-files.com/6257adef93867e50d84d30e2/636e0a6a49cf127bf92de1e2_icon_clyde_blurple_RGB.png",
-      logoBackground: "#5865F2",
-      team: [
-        { name: "Person 1", avatar: "" },
-        { name: "Person 2", avatar: "" },
-        { name: "Person 3", avatar: "" },
-        { name: "Person 4", avatar: "" },
-      ],
-      progress: 50,
-      assignedDate: "21 Feb 2025",
-      dueDate: "21 Oct 2025",
-    },
-    {
-      id: 2,
-      title: "Uber Eats function",
-      description: "Brief description of the project",
-      status: "In Progress",
-      logo: "https://d3i4yxtzktqr9n.cloudfront.net/web-eats-v2/ee037401cb5d31b23cf780808ee4ec1f.svg",
-      logoBackground: "#06C167",
-      team: [
-        { name: "Person 1", avatar: "" },
-        { name: "Person 2", avatar: "" },
-        { name: "Person 3", avatar: "" },
-        { name: "Person 4", avatar: "" },
-      ],
-      progress: 75,
-      assignedDate: "21 Feb 2025",
-      dueDate: "21 Oct 2025",
-    },
-    {
-      id: 3,
-      title: "RFP MockUp",
-      description: "Brief description of the project",
-      status: "Completed",
-      logo: "https://upload.wikimedia.org/wikipedia/commons/c/cd/Accenture.svg",
-      logoBackground: "#006AD6",
-      team: [
-        { name: "Person 1", avatar: "" },
-        { name: "Person 2", avatar: "" },
-        { name: "Person 3", avatar: "" },
-        { name: "Person 4", avatar: "" },
-      ],
-      progress: 100,
-      assignedDate: "21 Feb 2025",
-      dueDate: "21 Oct 2025",
-    },
-    {
-      id: 4,
-      title: "SuperCell New Game",
-      description: "Brief description of the project",
-      status: "Not Started",
-      logo: "https://play-lh.googleusercontent.com/LByrur1mTmPeNr0ljI-uAUcct1rzmTve5Esau1SwoAzjHtZ3nliGwpYjcgklc9Au5g",
-      logoBackground: "#000000",
-      team: [
-        { name: "Person 1", avatar: "" },
-        { name: "Person 2", avatar: "" },
-        { name: "Person 3", avatar: "" },
-        { name: "Person 4", avatar: "" },
-      ],
-      progress: 0,
-      assignedDate: "21 Feb 2025",
-      dueDate: "21 Oct 2025",
-    },
-    {
-      id: 5,
-      title: "OpenAI implementation",
-      description: "Brief description of the project",
-      status: "In Progress",
-      logo: "https://seeklogo.com/images/O/open-ai-logo-8B9BFEDC26-seeklogo.com.png",
-      logoBackground: "#ffffff",
-      team: [
-        { name: "Person 1", avatar: "" },
-        { name: "Person 2", avatar: "" },
-        { name: "Person 3", avatar: "" },
-        { name: "Person 4", avatar: "" },
-      ],
-      progress: 50,
-      assignedDate: "21 Feb 2025",
-      dueDate: "21 Oct 2025",
-    },
-    {
-      id: 6,
-      title: "Microsoft Copilot Assistant",
-      description: "Brief description of the project",
-      status: "In Progress",
-      logo: "https://upload.wikimedia.org/wikipedia/commons/4/44/Microsoft_logo.svg",
-      logoBackground: "#ffffff",
-      team: [
-        { name: "Person 1", avatar: "" },
-        { name: "Person 2", avatar: "" },
-        { name: "Person 3", avatar: "" },
-        { name: "Person 4", avatar: "" },
-      ],
-      progress: 25,
-      assignedDate: "21 Feb 2025",
-      dueDate: "21 Oct 2025",
-    },
-  ]);
+  // 🔁 Obtener proyectos con usuarios asignados (con JOIN)
+  const fetchProjects = async () => {
+    // Paso 1: Obtener todos los proyectos
+    const { data: projectsData, error: projectsError } = await supabase
+      .from("Project")
+      .select(
+        "projectID, title, description, status, logo, progress, start_date, end_date"
+      );
 
-  // Manejadores de eventos
+    if (projectsError) {
+      console.error("Error fetching projects:", projectsError.message);
+      setSnackbar({
+        open: true,
+        message: `Error al cargar los proyectos: ${projectsError.message}`,
+        severity: "error",
+      });
+      return;
+    }
+
+    // Paso 2: Obtener roles de usuarios por proyecto con la info de usuario
+    const { data: userRolesData, error: rolesError } = await supabase
+      .from("UserRole")
+      .select("project_id, user_id, User:User(user_id, name, profile_pic)");
+
+    if (rolesError) {
+      console.error("Error fetching user roles:", rolesError.message);
+      setSnackbar({
+        open: true,
+        message: `Error al cargar los equipos: ${rolesError.message}`,
+        severity: "error",
+      });
+      return;
+    }
+
+    // Agrupar usuarios por proyecto
+    const teamByProject = {};
+    userRolesData.forEach(({ project_id, User }) => {
+      if (!teamByProject[project_id]) teamByProject[project_id] = [];
+      if (User) {
+        teamByProject[project_id].push({
+          name: User.name || "Usuario",
+          avatar: User.profile_pic || "",
+        });
+      }
+    });
+
+    // Construir los datos combinados
+    const combinedData = projectsData.map((project) => ({
+      id: project.projectID,
+      title: project.title,
+      description: project.description,
+      status: project.status,
+      logo: project.logo,
+      team: teamByProject[project.projectID] || [],
+      progress: project.progress,
+      assignedDate: project.start_date,
+      dueDate: project.end_date,
+    }));
+
+    setProjects(combinedData);
+  };
+
+  useEffect(() => {
+    fetchProjects();
+  }, []);
+
   const handleAddProject = () => {
     navigate("/add-projects");
   };
@@ -151,7 +113,7 @@ const ProjectDashboard = () => {
     setOpenDialog(true);
   };
 
-  const handleDeleteProject = (project) => {
+  const handleDeleteProject = async (project) => {
     setSelectedProject(project);
     setDialogAction("delete");
     setOpenDialog(true);
@@ -167,15 +129,32 @@ const ProjectDashboard = () => {
     setOpenDialog(false);
   };
 
-  const handleConfirmAction = () => {
+  const handleConfirmAction = async () => {
     if (dialogAction === "delete" && selectedProject) {
-      // Eliminar el proyecto del estado
-      setProjects(projects.filter((p) => p.id !== selectedProject.id));
-      setSnackbar({
-        open: true,
-        message: `Proyecto "${selectedProject.title}" eliminado con éxito`,
-        severity: "success",
-      });
+      try {
+        // Eliminar el proyecto de la base de datos
+        const { error } = await supabase
+          .from("Project")
+          .delete()
+          .eq("projectID", selectedProject.id);
+
+        if (error) throw error;
+
+        // Actualizar el estado local
+        setProjects(projects.filter((p) => p.id !== selectedProject.id));
+        setSnackbar({
+          open: true,
+          message: `Proyecto "${selectedProject.title}" eliminado con éxito`,
+          severity: "success",
+        });
+      } catch (error) {
+        console.error("Error deleting project:", error.message);
+        setSnackbar({
+          open: true,
+          message: `Error al eliminar el proyecto: ${error.message}`,
+          severity: "error",
+        });
+      }
     }
     setOpenDialog(false);
   };
@@ -184,12 +163,12 @@ const ProjectDashboard = () => {
     setSnackbar({ ...snackbar, open: false });
   };
 
-  // Filtrar proyectos según el filtro activo
   const filteredProjects = projects.filter((project) => {
     if (activeFilter === "all") return true;
     if (activeFilter === "completed") return project.status === "Completed";
     if (activeFilter === "ongoing") return project.status === "In Progress";
     if (activeFilter === "not-started") return project.status === "Not Started";
+    if (activeFilter === "on-hold") return project.status === "On Hold";
     return true;
   });
 
@@ -200,13 +179,14 @@ const ProjectDashboard = () => {
       </Typography>
 
       <Grid container spacing={3}>
-        {/* Panel izquierdo - filtros y botón de agregar */}
         <Grid item xs={12} md={3} lg={2.5}>
-          <Card variant="outlined" sx={{ borderRadius: 2, mb: 2 }}>
-            <CardContent sx={{ py: 3 }}>
-              <AddProjectButton onClick={handleAddProject} />
-            </CardContent>
-          </Card>
+          {(role === "manager" || role === "TFS" || true) && (
+            <Card variant="outlined" sx={{ borderRadius: 2, mb: 2 }}>
+              <CardContent sx={{ py: 3 }}>
+                <AddProjectButton onClick={handleAddProject} />
+              </CardContent>
+            </Card>
+          )}
 
           <Card variant="outlined" sx={{ borderRadius: 2 }}>
             <CardContent sx={{ py: 1 }}>
@@ -218,7 +198,6 @@ const ProjectDashboard = () => {
           </Card>
         </Grid>
 
-        {/* Panel derecho - Tarjetas de proyectos */}
         <Grid item xs={12} md={9} lg={9.5}>
           <Grid container spacing={3}>
             {filteredProjects.length > 0 ? (
@@ -226,8 +205,16 @@ const ProjectDashboard = () => {
                 <Grid item xs={12} sm={6} lg={4} key={project.id}>
                   <ProjectCard
                     project={project}
-                    onEdit={handleEditProject}
-                    onDelete={handleDeleteProject}
+                    onEdit={
+                      role === "manager" || role === "TFS"
+                        ? handleEditProject
+                        : undefined
+                    }
+                    onDelete={
+                      role === "manager" || role === "TFS"
+                        ? handleDeleteProject
+                        : undefined
+                    }
                     onViewDetails={handleViewDetails}
                   />
                 </Grid>
@@ -254,7 +241,6 @@ const ProjectDashboard = () => {
         </Grid>
       </Grid>
 
-      {/* Diálogo de confirmación */}
       <Dialog open={openDialog} onClose={handleCloseDialog}>
         <DialogTitle>
           {dialogAction === "delete"
@@ -318,7 +304,6 @@ const ProjectDashboard = () => {
         </DialogActions>
       </Dialog>
 
-      {/* Snackbar para notificaciones */}
       <Snackbar
         open={snackbar.open}
         autoHideDuration={6000}
