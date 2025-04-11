@@ -1,10 +1,19 @@
 import React from "react";
-import { Box, Typography, Paper, Avatar, IconButton, Chip } from "@mui/material";
+import { Box, Typography, Paper, Avatar, IconButton, Chip, Tooltip } from "@mui/material";
 import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
 import PersonIcon from "@mui/icons-material/Person";
+import TipsAndUpdatesIcon from "@mui/icons-material/TipsAndUpdates";
+import BuildIcon from "@mui/icons-material/Build";
 import { alpha } from "@mui/material/styles";
 
-const MatchedEmployeeCard = ({ name, avatar, score, onSelect }) => (
+const MatchedEmployeeCard = ({ 
+  name, 
+  avatar, 
+  score, 
+  technicalScore = 0, 
+  contextualScore = 0, 
+  onSelect 
+}) => (
   <Paper
     elevation={1}
     sx={{
@@ -86,28 +95,54 @@ const MatchedEmployeeCard = ({ name, avatar, score, onSelect }) => (
         />
       </Box>
     </Box>
-    <Box sx={{ 
-      display: "flex", 
-      flexDirection: "column",
-      alignItems: "center",
-      mr: 1.5,
-      minWidth: "60px"
-    }}>
-      <Typography 
-        variant="h6" 
-        fontWeight={700}
-        sx={{ 
-          color: score >= 90 ? "success.main" : score >= 70 ? "warning.main" : "error.main"
-        }}
-      >{`${score}%`}</Typography>
-      <Typography 
-        variant="caption" 
-        color="text.secondary"
-        sx={{ fontSize: "0.7rem" }}
-      >
-        Match Score
-      </Typography>
-    </Box>
+    <Tooltip
+      title={
+        <React.Fragment>
+          <Box sx={{ p: 0.5 }}>
+            <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
+              Desglose de compatibilidad:
+            </Typography>
+            <Box sx={{ display: "flex", alignItems: "center", mb: 0.5 }}>
+              <BuildIcon fontSize="small" sx={{ mr: 1, color: "warning.main" }} />
+              <Typography variant="body2">
+                Técnico: <b>{technicalScore}%</b> <small>(peso 60%)</small>
+              </Typography>
+            </Box>
+            <Box sx={{ display: "flex", alignItems: "center" }}>
+              <TipsAndUpdatesIcon fontSize="small" sx={{ mr: 1, color: "info.main" }} />
+              <Typography variant="body2">
+                Contextual: <b>{contextualScore}%</b> <small>(peso 40%)</small>
+              </Typography>
+            </Box>
+          </Box>
+        </React.Fragment>
+      }
+      arrow
+      placement="top"
+    >
+      <Box sx={{ 
+        display: "flex", 
+        flexDirection: "column",
+        alignItems: "center",
+        mr: 1.5,
+        minWidth: "60px"
+      }}>
+        <Typography 
+          variant="h6" 
+          fontWeight={700}
+          sx={{ 
+            color: score >= 90 ? "success.main" : score >= 70 ? "warning.main" : "error.main"
+          }}
+        >{`${score}%`}</Typography>
+        <Typography 
+          variant="caption" 
+          color="text.secondary"
+          sx={{ fontSize: "0.7rem" }}
+        >
+          Match Score
+        </Typography>
+      </Box>
+    </Tooltip>
     <IconButton 
       size="small" 
       color="primary"

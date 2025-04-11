@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { 
-  Box, 
-  Grid, 
-  Paper, 
-  Typography, 
-  useTheme, 
-  Button, 
+import {
+  Box,
+  Grid,
+  Paper,
+  Typography,
+  useTheme,
+  Button,
   Divider,
   IconButton,
   Chip,
@@ -16,199 +16,129 @@ import {
   DialogTitle,
   DialogContent,
   DialogContentText,
-  DialogActions
+  DialogActions,
+  Tooltip
 } from "@mui/material";
 import AssistantIcon from "@mui/icons-material/Assistant";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import CloseIcon from "@mui/icons-material/Close";
+import InfoIcon from "@mui/icons-material/Info";
 import { alpha } from "@mui/material/styles";
 import RoleCard from "../components/RoleCard";
 import MatchedEmployeeCard from "../components/MatchedEmployeeCard";
 import { supabase } from "../supabase/supabaseClient";
 import { useNavigate } from "react-router-dom";
 
-/**
- * --- Funciones AI/Contextuales ---
- */
+// Función para generar descripción de rol basada en sus habilidades
+function generateRoleDescription(roleName, skills = [], skillMap = {}) {
+  if (!skills || skills.length === 0) {
+    return `El rol de ${roleName} requiere un profesional versátil con experiencia en tecnología y desarrollo.`;
+  }
 
-// Función para llamar a un endpoint backend que obtenga el embedding usando OpenAI
-async function getEmbedding(text) {
-  const response = await fetch("/api/getEmbedding", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({ input: text })
+  // Obtener nombres de habilidades
+  const skillNames = skills.map(skill => {
+    const skillId = skill.id || skill.skill_ID;
+    return skillMap[skillId]?.name || `Skill #${skillId}`;
   });
-  const data = await response.json();
-  return data.embedding;
+
+  // Determinar años de experiencia promedio requeridos
+  const yearsRequired = skills.map(s => s.years || 0).filter(y => y > 0);
+  const avgYears = yearsRequired.length > 0 
+    ? Math.round(yearsRequired.reduce((sum, y) => sum + y, 0) / yearsRequired.length) 
+    : 1;
+
+  let experienceText = "";
+  if (avgYears <= 1) {
+    experienceText = "conocimientos básicos";
+  } else if (avgYears <= 3) {
+    experienceText = "experiencia intermedia";
+  } else {
+    experienceText = `al menos ${avgYears} años de experiencia`;
+  }
+
+  // Construir descripción basada en habilidades
+  return `El rol de ${roleName} requiere un profesional con ${experienceText} en tecnología y desarrollo, específicamente en ${skillNames.join(", ")}. Se requiere capacidad para trabajar en equipo y enfoque en resultados.`;
 }
 
-// Función para calcular la similitud coseno entre dos vectores
-function cosineSimilarity(vecA, vecB) {
-  const dotProduct = vecA.reduce((acc, val, i) => acc + val * vecB[i], 0);
-  const normA = Math.sqrt(vecA.reduce((acc, val) => acc + val * val, 0));
-  const normB = Math.sqrt(vecB.reduce((acc, val) => acc + val * val, 0));
-  return dotProduct / (normA * normB);
-}
-
-// Función para calcular el score contextual dado el texto de un rol y el "bio" del candidato
-// Se escala a 0-100
-async function calculateContextualScore(roleDescription, candidateBio) {
+// Función para llamar al endpoint backend que procesa el matching para un rol.
+async function getMatchesForRole(role, employees, skillMap) {
   try {
-    // Obtén los embeddings mediante el endpoint (puedes cachear estos valores para evitar múltiples llamadas)
-    const roleEmbedding = await getEmbedding(roleDescription);
-    const candidateEmbedding = await getEmbedding(candidateBio || "");
-    const similarity = cosineSimilarity(roleEmbedding, candidateEmbedding);
-    // Supongamos que la similitud varía de 0 a 1, se escala a porcentaje
-    return Math.floor(similarity * 100);
+    // Debug de habilidades requeridas para el rol y sus tipos
+    if (role.skills && role.skills.length > 0) {
+      console.log("Habilidades requeridas para el rol:", role.skills.map(skill => {
+        const skillId = skill.id || skill.skill_ID;
+        return {
+          id: skillId,
+          nombre: skillMap[skillId]?.name || "Desconocida",
+          tipo: skillMap[skillId]?.type || "Desconocido",
+          años: skill.years || 0,
+          importancia: skill.importance || 1
+        };
+      }));
+    }
+
+    console.log("skillMap enviado:", {
+      totalSkills: Object.keys(skillMap).length,
+      muestra: Object.entries(skillMap).slice(0, 3),
+      ejemplo: skillMap[Object.keys(skillMap)[0]],
+      types: countSkillTypes(skillMap)
+    });
+
+    console.log("Enviando datos al API:", { 
+      role: {...role, skills: role.skills?.slice(0, 2) || []}, 
+      employeesCount: employees?.length || 0,
+      skillMapCount: Object.keys(skillMap).length
+    });
+    
+    const response = await fetch("http://localhost:3001/api/getMatches", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ role, employees, skillMap })
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ error: "Error desconocido" }));
+      throw new Error(errorData.error || `Error de servidor: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    
+    // Ahora podemos mostrar los pesos utilizados si están disponibles
+    if (data.weights) {
+      console.log(`Pesos utilizados - Técnico: ${data.weights.technical}%, Contextual: ${data.weights.contextual}%`);
+    }
+    
+    return data.matches || []; // Asegurar que siempre devuelva un array
   } catch (error) {
-    console.error("Error al calcular contextual score:", error);
-    return 0;
+    console.error("Error en getMatchesForRole:", error);
+    return []; // Devolver un array vacío en caso de error
   }
 }
 
-/**
- * --- Funciones de Matching Técnico (ya existentes) ---
- */
-const calculateSkillMatch = (userSkills, roleSkills, skillMap) => {
-  console.log("Calculating match with:", {
-    userSkills: userSkills || [],
-    roleSkills: roleSkills || [],
-    skillMapSample: Object.keys(skillMap || {}).slice(0, 3)
-  });
-
-  if (!roleSkills || roleSkills.length === 0) {
-    return 75;
-  }
+function countSkillTypes(skillMap) {
+  const counts = { technical: 0, soft: 0, unknown: 0 };
   
-  let totalScore = 0;
-  let maxPossibleScore = roleSkills.length * 100;
-  
-  roleSkills.forEach(roleSkill => {
-    // Comparar los IDs de las skills del usuario y la del rol
-    const matchingSkill = userSkills?.find(
-      userSkill => String(userSkill.skill_ID) === String(roleSkill.id)
-    );
-    
-    if (matchingSkill) {
-      console.log(`Match found for skill ${roleSkill.id} (${skillMap[roleSkill.id] || 'unknown'})`, 
-                  { userExperience: matchingSkill.year_Exp, proficiency: matchingSkill.proficiency });
-      
-      let skillScore = 50;
-      const expYears = matchingSkill.year_Exp || 0;
-      const requiredYears = roleSkill.years || 0;
-      
-      if (expYears >= requiredYears) {
-        skillScore += 30;
-      } else if (expYears > 0 && requiredYears > 0) {
-        skillScore += Math.floor((expYears / requiredYears) * 30);
-      }
-      
-      if (matchingSkill.proficiency === "High") {
-        skillScore += 20;
-      } else if (matchingSkill.proficiency === "Medium") {
-        skillScore += 10;
-      } else if (matchingSkill.proficiency === "Low") {
-        skillScore += 5;
-      }
-      
-      totalScore += skillScore;
+  Object.values(skillMap).forEach(skill => {
+    if (!skill.type) {
+      counts.unknown++;
+    } else if (skill.type.toLowerCase() === 'technical' || skill.type.toLowerCase() === 'hard') {
+      counts.technical++;
+    } else if (skill.type.toLowerCase() === 'soft' || skill.type.toLowerCase() === 'personal') {
+      counts.soft++;
     } else {
-      console.log(`No match found for skill ${roleSkill.id} (${skillMap[roleSkill.id] || 'unknown'})`);
+      counts.unknown++;
     }
   });
   
-  const finalScore = Math.min(Math.floor((totalScore / maxPossibleScore) * 100), 100);
-  console.log(`Final score: ${finalScore}% (total: ${totalScore}/${maxPossibleScore})`);
-  return finalScore;
-};
-
-/**
- * --- Función para obtener best matches combinando Matching Técnico y Contextual ---
- * Convertida en función asíncrona para poder usar los embeddings.
- */
-async function getBestMatches(employees, role, skillMap, maxResults = 5) {
-  if (!employees || !employees.length || !role || !role.skills) {
-    console.warn("Datos insuficientes para getBestMatches", { 
-      employeesCount: employees?.length || 0,
-      hasRole: !!role,
-      roleSkillsCount: role?.skills?.length || 0
-    });
-    return [];
-  }
-
-  console.log("Getting best matches", {
-    roleId: role.id || "unknown",
-    roleName: role.name || "unknown",
-    skillsCount: role.skills.length,
-    employeesCount: employees.length
-  });
-  
-  if (role.skills.length > 0) {
-    console.log("First role skill:", role.skills[0]);
-  }
-  
-  if (employees.length > 0 && employees[0].skills) {
-    console.log("First employee skills sample:", employees[0].skills.slice(0, 2));
-  }
-  
-  // Normalizar las skills del rol (usar skill_ID o id según corresponda)
-  const roleSkills = (role.skills || []).map(skill => ({
-    id: skill.skill_ID || skill.id,
-    years: skill.years || 0,
-    importance: skill.importance || 1,
-    name: skillMap[skill.skill_ID || skill.id] || `Skill ${skill.skill_ID || skill.id}`
-  }));
-  
-  // Pesos para la combinación de scores (ajustables)
-  const alpha = 0.6; // peso para el score técnico
-  const beta = 0.4;  // peso para el score contextual
-
-  // Para cada empleado, calcular de forma asíncrona su score combinado
-  const scoredEmployees = await Promise.all(employees.map(async employee => {
-    if (!employee.skills || !Array.isArray(employee.skills)) {
-      console.warn(`Employee ${employee.id} has no skills or invalid skills data`);
-      return { ...employee, score: 0, skillMatches: [] };
-    }
-    
-    // Score técnico mediante tu función existente
-    const technicalScore = calculateSkillMatch(employee.skills, roleSkills, skillMap);
-    // Para el contextual, se usa la descripción del rol y el "bio" del candidato
-    // Si el candidato no tiene bio, se usa cadena vacía
-    const contextualScore = await calculateContextualScore(role.description || "", employee.bio || "");
-    
-    // Combinar ambos scores
-    const combinedScore = Math.min(
-      Math.floor(alpha * technicalScore + beta * contextualScore),
-      100
-    );
-    
-    return {
-      ...employee,
-      score: combinedScore,
-      skillMatches: roleSkills.map(roleSkill => {
-        const empSkill = employee.skills.find(s => String(s.skill_ID) === String(roleSkill.id));
-        return {
-          skillId: roleSkill.id,
-          skillName: skillMap[roleSkill.id] || `Skill ${roleSkill.id}`,
-          required: true,
-          hasSkill: !!empSkill,
-          experience: empSkill ? empSkill.year_Exp : 0,
-          requiredExperience: roleSkill.years || 0,
-          proficiency: empSkill ? empSkill.proficiency : null
-        };
-      })
-    };
-  }));
-
-  return scoredEmployees.sort((a, b) => b.score - a.score).slice(0, maxResults);
+  return counts;
 }
 
 const RoleAssign = () => {
   const theme = useTheme();
   const navigate = useNavigate();
-  
+
   // Estados para la UI
   const [selectedRoleIndex, setSelectedRoleIndex] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -219,19 +149,20 @@ const RoleAssign = () => {
     message: "",
     severity: "success"
   });
-  
+
   // Estados para los datos
   const [roles, setRoles] = useState([]);
   const [employees, setEmployees] = useState([]);
   const [tempProject, setTempProject] = useState(null);
   const [tempProjectData, setTempProjectData] = useState(null);
+  const [skillMap, setSkillMap] = useState({});
 
-  // Cargar datos iniciales (incluye corrección en mapeo de skills)
+  // Cargar datos iniciales
   useEffect(() => {
     const loadInitialData = async () => {
       try {
         setLoading(true);
-        
+
         // 1. Obtener proyecto temporal desde localStorage
         const storedProject = localStorage.getItem("tempProject");
         if (!storedProject) {
@@ -249,47 +180,82 @@ const RoleAssign = () => {
           title: projectData.projectData.title,
           rolesCount: projectData.roles?.length || 0
         });
-        
-        if (projectData.roles && projectData.roles.length > 0) {
-          console.log("Sample role data:", projectData.roles[0]);
-        }
-        
-        // 2. Obtener lista completa de skills
+
+        // 2. Obtener lista completa de skills de Supabase con sus tipos
         const { data: allSkills, error: skillsError } = await supabase
           .from("Skill")
-          .select("skill_ID, name");
+          .select("skill_ID, name, type, category");
+          
         if (skillsError) throw skillsError;
         
-        const skillMap = {};
+        // Crear mapa de skills con su tipo (technical o soft)
+        const newSkillMap = {};
         allSkills.forEach(skill => {
-          skillMap[skill.skill_ID] = skill.name;
+          // Asegurar que el ID sea string para usarlo como clave
+          const skillId = String(skill.skill_ID);
+          
+          // Determinar el tipo de la skill basado en la categoría o el campo type
+          let skillType = "technical"; // Por defecto es técnica
+          
+          if (skill.type) {
+            // Si existe el campo type, usarlo directamente
+            skillType = skill.type.toLowerCase();
+          } else if (skill.category) {
+            // Si existe categoría, determinar el tipo en base a ella
+            const softCategories = ["soft skill", "personal", "interpersonal", "communication", "leadership", "management", "emotional"];
+            const technicalCategories = ["programming", "development", "frontend", "backend", "database", "cloud", "technical"];
+            
+            if (softCategories.some(cat => skill.category.toLowerCase().includes(cat))) {
+              skillType = "soft";
+            } else if (technicalCategories.some(cat => skill.category.toLowerCase().includes(cat))) {
+              skillType = "technical";
+            }
+          }
+          
+          newSkillMap[skillId] = {
+            name: skill.name,
+            type: skillType, // "technical" o "soft"
+            category: skill.category || "" // Guardar la categoría para referencia
+          };
         });
+        
+        setSkillMap(newSkillMap);
+        
+        // Detectar los primeros 5 IDs para verificación
+        const firstFiveSkillIds = allSkills.slice(0, 5).map(skill => skill.skill_ID);
         
         console.log("Skills loaded:", {
           count: allSkills?.length || 0,
-          sampleKeys: Object.keys(skillMap).slice(0, 5)
+          sampleKeys: firstFiveSkillIds,
+          sampleData: firstFiveSkillIds.map(id => newSkillMap[id]),
+          typeCounts: {
+            technical: Object.values(newSkillMap).filter(skill => skill.type === "technical").length,
+            soft: Object.values(newSkillMap).filter(skill => skill.type === "soft").length,
+            unknown: Object.values(newSkillMap).filter(skill => !skill.type).length
+          }
         });
-        
+
         // 3. Obtener todos los usuarios básicos
         const { data: userData, error: userError } = await supabase
           .from("User")
-          .select("user_id, name, last_name, profile_pic");
+          .select("user_id, name, last_name, profile_pic, about");
+          
         if (userError) throw userError;
-        
         console.log("Users loaded:", { count: userData?.length || 0 });
-        
-        // 4. Obtener todas las skills de los usuarios (usar "user_ID" como columna)
+
+        // 4. Obtener todas las skills de los usuarios
         const { data: allUserSkills, error: userSkillError } = await supabase
           .from("UserSkill")
           .select("user_ID, skill_ID, proficiency, year_Exp");
+          
         if (userSkillError) throw userSkillError;
         
         console.log("User skills loaded:", {
           count: allUserSkills?.length || 0,
           sample: allUserSkills.slice(0, 3)
         });
-        
-        // Agrupar las skills por usuario (clave: "user_ID")
+
+        // Agrupar las skills por usuario
         const userSkillsMap = {};
         allUserSkills.forEach(skill => {
           const userId = skill.user_ID;
@@ -304,69 +270,100 @@ const RoleAssign = () => {
         });
         
         console.log("User skills grouped:", {
-          userCount: Object.keys(userSkillsMap).length,
-          sampleUser: Object.keys(userSkillsMap)[0],
-          sampleSkills: userSkillsMap[Object.keys(userSkillsMap)[0]]
+          userCount: Object.keys(userSkillsMap).length
         });
-        
-        // 5. Preparar empleados vinculando sus skills
+
+        // 5. Preparar empleados vinculando sus skills y usando el campo "about" como bio
         const employeesWithSkills = userData.map(user => {
           const userId = user.user_id;
           const userSkills = userSkillsMap[userId] || [];
-          // Si no existe bio, se asigna cadena vacía (puedes agregar más datos si dispones)
+          const userName = `${user.name || ""} ${user.last_name || ""}`.trim() || "Usuario sin nombre";
+          
           return {
             id: userId,
-            name: `${user.name || ""} ${user.last_name || ""}`.trim() || "Usuario sin nombre",
+            name: userName,
             avatar: user.profile_pic || null,
             skills: userSkills,
-            bio: "" // Agrega información adicional aquí si la tienes
+            bio: user.about || `Profesional del área de tecnología: ${userName}` // Usar el campo about como bio
           };
         });
+        
         setEmployees(employeesWithSkills);
         
         console.log("Employees prepared:", {
           count: employeesWithSkills.length,
-          sampleEmployee: employeesWithSkills[0],
-          sampleSkills: employeesWithSkills[0]?.skills?.slice(0, 3) || []
+          sampleEmployee: employeesWithSkills[0]?.name || "N/A",
+          sampleSkills: employeesWithSkills[0]?.skills?.slice(0, 3) || [],
+          sampleBio: employeesWithSkills[0]?.bio || "N/A"
         });
+
+        // 6. Para cada rol, llamar al endpoint de matching
+        if (!projectData.roles || !Array.isArray(projectData.roles) || projectData.roles.length === 0) {
+          throw new Error("No hay roles definidos en el proyecto");
+        }
         
-        // 6. Preparar roles con sugerencias (matchmaking)
-        // Dado que vamos a usar funciones asíncronas en el matching (con embeddings),
-        // usamos Promise.all para esperar cada cálculo
+        console.log("Raw role skills:", projectData.roles[0]?.skills || []);
+        
         const rolesWithSuggestions = await Promise.all(
           projectData.roles.map(async (role, index) => {
-            console.log("Raw role skills:", role.skills);
-            const normalizedRoleSkills = (role.skills || []).map(skill => ({
-              id: skill.skill_ID || skill.id,
+            // Asegurarse de que role.skills siempre sea un array
+            const roleSkills = role.skills || [];
+            console.log(`Procesando rol ${index+1}/${projectData.roles.length}: ${role.name || "Sin nombre"}`);
+            
+            const normalizedRoleSkills = roleSkills.map(skill => ({
+              id: String(skill.skill_ID || skill.id), // Asegurar que sea string
               years: skill.years || 0,
               importance: skill.importance || 1
             }));
-            console.log("Normalized role skills:", normalizedRoleSkills);
-            const normalizedRole = { ...role, skills: normalizedRoleSkills };
-            // Es importante que el rol tenga una descripción para el matching contextual
-            // Si no la tiene, se puede asignar una cadena vacía
-            normalizedRole.description = role.description || "";
             
-            // Obtener los best matches combinando el matching técnico y contextual
-            const bestMatches = await getBestMatches(employeesWithSkills, normalizedRole, skillMap, 10);
-            const bestCandidate = bestMatches.length > 0 ? bestMatches[0] : null;
+            // Generar descripción del rol si no tiene
+            let roleDescription = role.description;
+            if (!roleDescription || roleDescription.trim() === "") {
+              roleDescription = generateRoleDescription(role.name, normalizedRoleSkills, newSkillMap);
+            }
             
-            return {
-              id: role.id || `role-${index}`,
-              role: role.name,
-              area: role.area,
-              yearsOfExperience: role.yearsOfExperience,
+            const normalizedRole = { 
+              ...role, 
               skills: normalizedRoleSkills,
-              description: normalizedRole.description,
-              assigned: bestCandidate,
-              allCandidates: bestMatches,
-              matches: bestMatches.slice(1)
+              description: roleDescription
             };
+
+            // Llamar al endpoint para obtener candidatos, incluyendo el skillMap
+            try {
+              const bestMatches = await getMatchesForRole(normalizedRole, employeesWithSkills, newSkillMap);
+              const bestCandidate = bestMatches.length > 0 ? bestMatches[0] : null;
+
+              return {
+                id: role.id || `role-${index}`,
+                role: role.name,
+                area: role.area,
+                yearsOfExperience: role.yearsOfExperience,
+                skills: normalizedRoleSkills,
+                description: normalizedRole.description,
+                assigned: bestCandidate,
+                allCandidates: bestMatches,
+                matches: bestMatches.slice(1)
+              };
+            } catch (matchError) {
+              console.error(`Error obteniendo matches para rol ${role.name}:`, matchError);
+              return {
+                id: role.id || `role-${index}`,
+                role: role.name,
+                area: role.area,
+                yearsOfExperience: role.yearsOfExperience,
+                skills: normalizedRoleSkills,
+                description: normalizedRole.description,
+                assigned: null,
+                allCandidates: [],
+                matches: []
+              };
+            }
           })
         );
+        
         console.log("Roles prepared:", {
           count: rolesWithSuggestions.length,
-          sampleRole: rolesWithSuggestions[0],
+          sampleRole: rolesWithSuggestions[0]?.role || "N/A",
           sampleMatches: rolesWithSuggestions[0]?.matches?.length || 0
         });
         
@@ -390,27 +387,22 @@ const RoleAssign = () => {
     setRoles(prevRoles => {
       const updatedRoles = [...prevRoles];
       const currentRole = { ...updatedRoles[roleIndex] };
-      
       const newEmployee = currentRole.allCandidates.find(
         candidate => candidate.id === newEmployeeId
       );
-      
       if (!newEmployee) return prevRoles;
-      
       currentRole.assigned = newEmployee;
       currentRole.matches = currentRole.allCandidates.filter(
         candidate => candidate.id !== newEmployee.id
       );
       updatedRoles[roleIndex] = currentRole;
-      
       return updatedRoles;
     });
   };
-  
+
   const handleFinalConfirmation = async () => {
     setDialogOpen(false);
     setConfirming(true);
-  
     try {
       const projectData = {
         title: tempProjectData.projectData.title,
@@ -423,22 +415,19 @@ const RoleAssign = () => {
         progress: tempProjectData.projectData.progress || 0,
         priority: tempProjectData.projectData.priority || "Medium"
       };
-  
       const rolesData = roles.map(role => ({
         name: role.role,
         area: role.area || "General",
-        description: `Role for ${role.role} in project ${projectData.title}`
+        description: role.description || `Role for ${role.role} in project ${projectData.title}`
       }));
-  
       const assignmentsData = roles.map(roleObj => {
         if (!roleObj.assigned) return null;
         return {
           user_id: roleObj.assigned.id,
           role_name: roleObj.role,
-          feedback_notes: `Assigned with ${roleObj.assigned.score}% match score`
+          feedback_notes: `Assigned with ${roleObj.assigned.score}% match score (Technical: ${roleObj.assigned.technicalScore}%, Contextual: ${roleObj.assigned.contextualScore}%)`
         };
       }).filter(Boolean);
-  
       const { data, error } = await supabase.rpc(
         "create_project_with_roles_and_assignments",
         {
@@ -447,16 +436,13 @@ const RoleAssign = () => {
           _assignments: assignmentsData
         }
       );
-  
       if (error) throw error;
       if (!data) throw new Error("No se obtuvo el ID del proyecto.");
-  
       setSnackbar({
         open: true,
         message: `¡Proyecto "${projectData.title}" creado con éxito! ID: ${data}`,
         severity: "success"
       });
-  
       localStorage.removeItem("tempProject");
       setTimeout(() => {
         navigate("/projects");
@@ -472,10 +458,9 @@ const RoleAssign = () => {
       setConfirming(false);
     }
   };
-  
+
   const handleConfirmAssignments = () => {
     const hasUnassignedRoles = roles.some(role => !role.assigned);
-    
     if (hasUnassignedRoles) {
       setSnackbar({
         open: true,
@@ -486,14 +471,14 @@ const RoleAssign = () => {
     }
     setDialogOpen(true);
   };
-  
+
   const handleCancel = () => {
     if (window.confirm("¿Estás seguro de que deseas cancelar? Se perderá la información del proyecto.")) {
       localStorage.removeItem("tempProject");
       navigate("/projects");
     }
   };
-  
+
   const availableCandidates = roles[selectedRoleIndex]?.matches || [];
 
   if (loading) {
@@ -503,18 +488,15 @@ const RoleAssign = () => {
         <Typography variant="h6" color="text.secondary">
           Analizando perfiles y calculando compatibilidad...
         </Typography>
+        <Typography variant="caption" color="text.secondary" sx={{ mt: 1 }}>
+          Analizando perfiles profesionales y habilidades técnicas
+        </Typography>
       </Box>
     );
   }
 
   return (
-    <Paper 
-      elevation={3}
-      sx={{
-        borderRadius: 2,
-        overflow: "hidden"
-      }}
-    >
+    <Paper elevation={3} sx={{ borderRadius: 2, overflow: "hidden" }}>
       <Box
         sx={{
           backgroundColor: theme.palette.primary.main,
@@ -532,7 +514,7 @@ const RoleAssign = () => {
         <Typography variant="h6" fontWeight={600}>
           {tempProject ? `Assign Roles for: ${tempProject.title}` : "Assign Roles"}
         </Typography>
-        <Chip 
+        <Chip
           label={`${roles.length} Roles`}
           size="small"
           sx={{
@@ -588,15 +570,29 @@ const RoleAssign = () => {
                 }}
               >
                 {roles.map((r, i) => (
-                  <RoleCard
-                    key={`${r.id}-${i}`}
-                    role={r.role}
-                    name={r.assigned?.name || "Sin asignar"}
-                    avatar={r.assigned?.avatar}
-                    percentage={r.assigned?.score || 0}
-                    onClick={() => setSelectedRoleIndex(i)}
-                    selected={selectedRoleIndex === i}
-                  />
+                  <React.Fragment key={`${r.id}-${i}`}>
+                    <RoleCard
+                      role={r.role}
+                      name={r.assigned?.name || "Sin asignar"}
+                      avatar={r.assigned?.avatar}
+                      percentage={r.assigned?.score || 0}
+                      onClick={() => setSelectedRoleIndex(i)}
+                      selected={selectedRoleIndex === i}
+                    />
+                    {i === selectedRoleIndex && (
+                      <Box sx={{ mt: 1, mb: 2, px: 1 }}>
+                        <Typography variant="caption" color="text.secondary" sx={{ display: 'flex', alignItems: 'center' }}>
+                          <InfoIcon fontSize="inherit" sx={{ mr: 0.5 }} />
+                          Descripción: {r.description?.substring(0, 100)}...
+                        </Typography>
+                        {r.assigned && (
+                          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+                            Pesos: Técnico {r.assigned.weights?.technical || "60"}%, Contextual {r.assigned.weights?.contextual || "40"}%
+                          </Typography>
+                        )}
+                      </Box>
+                    )}
+                  </React.Fragment>
                 ))}
               </Box>
             ) : (
@@ -666,6 +662,9 @@ const RoleAssign = () => {
                       name={match.name}
                       avatar={match.avatar}
                       score={match.score}
+                      technicalScore={match.technicalScore}
+                      contextualScore={match.contextualScore}
+                      weights={match.weights}
                       onSelect={() => handleEmployeeChange(selectedRoleIndex, match.id)}
                     />
                   ))
@@ -759,7 +758,7 @@ const RoleAssign = () => {
         onClose={() => setSnackbar({ ...snackbar, open: false })}
         anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
       >
-        <Alert onClose={() => setSnackbar({ ...snackbar, open: false })} severity={snackbar.severity} sx={{ width: '100%' }}>
+        <Alert onClose={() => setSnackbar({ ...snackbar, open: false })} severity={snackbar.severity} sx={{ width: "100%" }}>
           {snackbar.message}
         </Alert>
       </Snackbar>
