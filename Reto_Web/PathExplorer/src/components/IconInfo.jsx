@@ -1,80 +1,66 @@
+// src/components/IconInfo.jsx
 import React from "react";
-import { Box, Typography, Paper, useTheme } from "@mui/material";
-import PropTypes from "prop-types";
+import { Box, Paper, Typography, Avatar, useTheme } from "@mui/material";
+import { alpha } from "@mui/material/styles";
 
 export const IconInfo = ({ icon: Icon, title, value, color = "primary" }) => {
   const theme = useTheme();
-
-  // Function to get the correct color
-  const getIconColor = () => {
+  
+  // Función para obtener el color según el tipo
+  const getColor = () => {
     switch (color) {
       case "primary":
         return theme.palette.primary.main;
       case "secondary":
         return theme.palette.secondary.main;
       case "accent":
-        return theme.palette.accent.main;
+        return "#ff9800"; // Color naranja para "accent"
       default:
-        return color; // Allow custom color strings
+        return theme.palette.primary.main;
     }
   };
-
+  
+  const colorMain = getColor();
+  
   return (
     <Paper
+      elevation={0}
       sx={{
+        p: 2.5,
+        height: "100%",
         display: "flex",
         alignItems: "center",
-        p: 2,
-        height: "100%",
-        width: "100%",
-        justifyContent: "space-between",
-        backgroundColor: `${getIconColor()}10`, // Light background with 10% opacity
+        borderRadius: 2,
+        boxShadow: "0 3px 10px rgba(0,0,0,0.08)",
+        transition: "transform 0.2s ease",
+        "&:hover": {
+          transform: "translateY(-3px)",
+          boxShadow: "0 6px 15px rgba(0,0,0,0.1)",
+        },
       }}
     >
-      <Box
+      {/* Icono con fondo */}
+      <Avatar
         sx={{
-          display: "flex",
-          alignItems: "center",
-          gap: 1,
-          flexDirection: "column",
-          width: "100%",
+          bgcolor: alpha(colorMain, 0.1),
+          color: colorMain,
+          width: 50,
+          height: 50,
+          mr: 2,
         }}
       >
-        {Icon && (
-          <Icon
-            sx={{
-              fontSize: 40,
-              color: getIconColor(),
-            }}
-          />
-        )}
-        <Box
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            flexDirection: "column",
-            textAlign: "center",
-          }}
-        >
-          <Typography color="text.primary">{title}</Typography>
-          <Typography
-            variant="h6"
-            fontWeight="bold"
-            sx={{ color: getIconColor() }}
-          >
-            {value}
-          </Typography>
-        </Box>
+        <Icon />
+      </Avatar>
+      
+      {/* Información */}
+      <Box sx={{ flex: 1 }}>
+        <Typography variant="h4" fontWeight="bold" color={colorMain}>
+          {value}
+        </Typography>
+        <Typography variant="body2" color="text.secondary">
+          {title}
+        </Typography>
       </Box>
     </Paper>
   );
 };
-
-IconInfo.propTypes = {
-  icon: PropTypes.elementType.isRequired,
-  title: PropTypes.string.isRequired,
-  value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
-  color: PropTypes.oneOf(["primary", "secondary", "accent", "inherit"]),
-};
-
-export default IconInfo;
