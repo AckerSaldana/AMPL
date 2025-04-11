@@ -27,6 +27,184 @@ import MatchedEmployeeCard from "../components/MatchedEmployeeCard";
 import { supabase } from "../supabase/supabaseClient";
 import { useNavigate } from "react-router-dom";
 
+/**
+ * --- Funciones AI/Contextuales ---
+ */
+
+// Función para llamar a un endpoint backend que obtenga el embedding usando OpenAI
+async function getEmbedding(text) {
+  const response = await fetch("/api/getEmbedding", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ input: text })
+  });
+  const data = await response.json();
+  return data.embedding;
+}
+
+// Función para calcular la similitud coseno entre dos vectores
+function cosineSimilarity(vecA, vecB) {
+  const dotProduct = vecA.reduce((acc, val, i) => acc + val * vecB[i], 0);
+  const normA = Math.sqrt(vecA.reduce((acc, val) => acc + val * val, 0));
+  const normB = Math.sqrt(vecB.reduce((acc, val) => acc + val * val, 0));
+  return dotProduct / (normA * normB);
+}
+
+// Función para calcular el score contextual dado el texto de un rol y el "bio" del candidato
+// Se escala a 0-100
+async function calculateContextualScore(roleDescription, candidateBio) {
+  try {
+    // Obtén los embeddings mediante el endpoint (puedes cachear estos valores para evitar múltiples llamadas)
+    const roleEmbedding = await getEmbedding(roleDescription);
+    const candidateEmbedding = await getEmbedding(candidateBio || "");
+    const similarity = cosineSimilarity(roleEmbedding, candidateEmbedding);
+    // Supongamos que la similitud varía de 0 a 1, se escala a porcentaje
+    return Math.floor(similarity * 100);
+  } catch (error) {
+    console.error("Error al calcular contextual score:", error);
+    return 0;
+  }
+}
+
+/**
+ * --- Funciones de Matching Técnico (ya existentes) ---
+ */
+const calculateSkillMatch = (userSkills, roleSkills, skillMap) => {
+  console.log("Calculating match with:", {
+    userSkills: userSkills || [],
+    roleSkills: roleSkills || [],
+    skillMapSample: Object.keys(skillMap || {}).slice(0, 3)
+  });
+
+  if (!roleSkills || roleSkills.length === 0) {
+    return 75;
+  }
+  
+  let totalScore = 0;
+  let maxPossibleScore = roleSkills.length * 100;
+  
+  roleSkills.forEach(roleSkill => {
+    // Comparar los IDs de las skills del usuario y la del rol
+    const matchingSkill = userSkills?.find(
+      userSkill => String(userSkill.skill_ID) === String(roleSkill.id)
+    );
+    
+    if (matchingSkill) {
+      console.log(`Match found for skill ${roleSkill.id} (${skillMap[roleSkill.id] || 'unknown'})`, 
+                  { userExperience: matchingSkill.year_Exp, proficiency: matchingSkill.proficiency });
+      
+      let skillScore = 50;
+      const expYears = matchingSkill.year_Exp || 0;
+      const requiredYears = roleSkill.years || 0;
+      
+      if (expYears >= requiredYears) {
+        skillScore += 30;
+      } else if (expYears > 0 && requiredYears > 0) {
+        skillScore += Math.floor((expYears / requiredYears) * 30);
+      }
+      
+      if (matchingSkill.proficiency === "High") {
+        skillScore += 20;
+      } else if (matchingSkill.proficiency === "Medium") {
+        skillScore += 10;
+      } else if (matchingSkill.proficiency === "Low") {
+        skillScore += 5;
+      }
+      
+      totalScore += skillScore;
+    } else {
+      console.log(`No match found for skill ${roleSkill.id} (${skillMap[roleSkill.id] || 'unknown'})`);
+    }
+  });
+  
+  const finalScore = Math.min(Math.floor((totalScore / maxPossibleScore) * 100), 100);
+  console.log(`Final score: ${finalScore}% (total: ${totalScore}/${maxPossibleScore})`);
+  return finalScore;
+};
+
+/**
+ * --- Función para obtener best matches combinando Matching Técnico y Contextual ---
+ * Convertida en función asíncrona para poder usar los embeddings.
+ */
+async function getBestMatches(employees, role, skillMap, maxResults = 5) {
+  if (!employees || !employees.length || !role || !role.skills) {
+    console.warn("Datos insuficientes para getBestMatches", { 
+      employeesCount: employees?.length || 0,
+      hasRole: !!role,
+      roleSkillsCount: role?.skills?.length || 0
+    });
+    return [];
+  }
+
+  console.log("Getting best matches", {
+    roleId: role.id || "unknown",
+    roleName: role.name || "unknown",
+    skillsCount: role.skills.length,
+    employeesCount: employees.length
+  });
+  
+  if (role.skills.length > 0) {
+    console.log("First role skill:", role.skills[0]);
+  }
+  
+  if (employees.length > 0 && employees[0].skills) {
+    console.log("First employee skills sample:", employees[0].skills.slice(0, 2));
+  }
+  
+  // Normalizar las skills del rol (usar skill_ID o id según corresponda)
+  const roleSkills = (role.skills || []).map(skill => ({
+    id: skill.skill_ID || skill.id,
+    years: skill.years || 0,
+    importance: skill.importance || 1,
+    name: skillMap[skill.skill_ID || skill.id] || `Skill ${skill.skill_ID || skill.id}`
+  }));
+  
+  // Pesos para la combinación de scores (ajustables)
+  const alpha = 0.6; // peso para el score técnico
+  const beta = 0.4;  // peso para el score contextual
+
+  // Para cada empleado, calcular de forma asíncrona su score combinado
+  const scoredEmployees = await Promise.all(employees.map(async employee => {
+    if (!employee.skills || !Array.isArray(employee.skills)) {
+      console.warn(`Employee ${employee.id} has no skills or invalid skills data`);
+      return { ...employee, score: 0, skillMatches: [] };
+    }
+    
+    // Score técnico mediante tu función existente
+    const technicalScore = calculateSkillMatch(employee.skills, roleSkills, skillMap);
+    // Para el contextual, se usa la descripción del rol y el "bio" del candidato
+    // Si el candidato no tiene bio, se usa cadena vacía
+    const contextualScore = await calculateContextualScore(role.description || "", employee.bio || "");
+    
+    // Combinar ambos scores
+    const combinedScore = Math.min(
+      Math.floor(alpha * technicalScore + beta * contextualScore),
+      100
+    );
+    
+    return {
+      ...employee,
+      score: combinedScore,
+      skillMatches: roleSkills.map(roleSkill => {
+        const empSkill = employee.skills.find(s => String(s.skill_ID) === String(roleSkill.id));
+        return {
+          skillId: roleSkill.id,
+          skillName: skillMap[roleSkill.id] || `Skill ${roleSkill.id}`,
+          required: true,
+          hasSkill: !!empSkill,
+          experience: empSkill ? empSkill.year_Exp : 0,
+          requiredExperience: roleSkill.years || 0,
+          proficiency: empSkill ? empSkill.proficiency : null
+        };
+      })
+    };
+  }));
+
+  return scoredEmployees.sort((a, b) => b.score - a.score).slice(0, maxResults);
+}
+
 const RoleAssign = () => {
   const theme = useTheme();
   const navigate = useNavigate();
@@ -47,124 +225,6 @@ const RoleAssign = () => {
   const [employees, setEmployees] = useState([]);
   const [tempProject, setTempProject] = useState(null);
   const [tempProjectData, setTempProjectData] = useState(null);
-
-  // Función para calcular el match de skills entre un empleado y un rol
-  const calculateSkillMatch = (userSkills, roleSkills, skillMap) => {
-    console.log("Calculating match with:", {
-      userSkills: userSkills || [],
-      roleSkills: roleSkills || [],
-      skillMapSample: Object.keys(skillMap || {}).slice(0, 3)
-    });
-
-    if (!roleSkills || roleSkills.length === 0) {
-      return 75;
-    }
-    
-    let totalScore = 0;
-    let maxPossibleScore = roleSkills.length * 100;
-    
-    roleSkills.forEach(roleSkill => {
-      // Comparar los IDs de las skills (los del usuario y la del rol)
-      const matchingSkill = userSkills?.find(
-        userSkill => String(userSkill.skill_ID) === String(roleSkill.id)
-      );
-      
-      if (matchingSkill) {
-        console.log(`Match found for skill ${roleSkill.id} (${skillMap[roleSkill.id] || 'unknown'})`, 
-                    { userExperience: matchingSkill.year_Exp, proficiency: matchingSkill.proficiency });
-        
-        let skillScore = 50;
-        const expYears = matchingSkill.year_Exp || 0;
-        const requiredYears = roleSkill.years || 0;
-        
-        if (expYears >= requiredYears) {
-          skillScore += 30;
-        } else if (expYears > 0 && requiredYears > 0) {
-          skillScore += Math.floor((expYears / requiredYears) * 30);
-        }
-        
-        if (matchingSkill.proficiency === "High") {
-          skillScore += 20;
-        } else if (matchingSkill.proficiency === "Medium") {
-          skillScore += 10;
-        } else if (matchingSkill.proficiency === "Low") {
-          skillScore += 5;
-        }
-        
-        totalScore += skillScore;
-      } else {
-        console.log(`No match found for skill ${roleSkill.id} (${skillMap[roleSkill.id] || 'unknown'})`);
-      }
-    });
-    
-    const finalScore = Math.min(Math.floor((totalScore / maxPossibleScore) * 100), 100);
-    console.log(`Final score: ${finalScore}% (total: ${totalScore}/${maxPossibleScore})`);
-    return finalScore;
-  };
-
-  // Función para obtener las mejores coincidencias para un rol
-  const getBestMatches = (employees, role, skillMap, maxResults = 5) => {
-    if (!employees || !employees.length || !role || !role.skills) {
-      console.warn("Datos insuficientes para getBestMatches", { 
-        employeesCount: employees?.length || 0,
-        hasRole: !!role,
-        roleSkillsCount: role?.skills?.length || 0
-      });
-      return [];
-    }
-
-    console.log("Getting best matches", {
-      roleId: role.id || "unknown",
-      roleName: role.name || "unknown",
-      skillsCount: role.skills.length,
-      employeesCount: employees.length
-    });
-    
-    if (role.skills.length > 0) {
-      console.log("First role skill:", role.skills[0]);
-    }
-    
-    if (employees.length > 0 && employees[0].skills) {
-      console.log("First employee skills sample:", employees[0].skills.slice(0, 2));
-    }
-    
-    // Normalizar las skills del rol:
-    // Aquí se intenta usar "skill.skill_ID"; si no existe, se usa "skill.id"
-    const roleSkills = (role.skills || []).map(skill => ({
-      id: skill.skill_ID || skill.id,
-      years: skill.years || 0,
-      importance: skill.importance || 1,
-      name: skillMap[skill.skill_ID || skill.id] || `Skill ${skill.skill_ID || skill.id}`
-    }));
-    
-    const scoredEmployees = employees.map(employee => {
-      if (!employee.skills || !Array.isArray(employee.skills)) {
-        console.warn(`Employee ${employee.id} has no skills or invalid skills data`);
-        return { ...employee, score: 0, skillMatches: [] };
-      }
-      
-      const score = calculateSkillMatch(employee.skills, roleSkills, skillMap);
-      
-      return {
-        ...employee,
-        score,
-        skillMatches: roleSkills.map(roleSkill => {
-          const empSkill = employee.skills.find(s => String(s.skill_ID) === String(roleSkill.id));
-          return {
-            skillId: roleSkill.id,
-            skillName: skillMap[roleSkill.id] || `Skill ${roleSkill.id}`,
-            required: true,
-            hasSkill: !!empSkill,
-            experience: empSkill ? empSkill.year_Exp : 0,
-            requiredExperience: roleSkill.years || 0,
-            proficiency: empSkill ? empSkill.proficiency : null
-          };
-        })
-      };
-    });
-    
-    return scoredEmployees.sort((a, b) => b.score - a.score).slice(0, maxResults);
-  };
 
   // Cargar datos iniciales (incluye corrección en mapeo de skills)
   useEffect(() => {
@@ -253,11 +313,13 @@ const RoleAssign = () => {
         const employeesWithSkills = userData.map(user => {
           const userId = user.user_id;
           const userSkills = userSkillsMap[userId] || [];
+          // Si no existe bio, se asigna cadena vacía (puedes agregar más datos si dispones)
           return {
             id: userId,
             name: `${user.name || ""} ${user.last_name || ""}`.trim() || "Usuario sin nombre",
             avatar: user.profile_pic || null,
-            skills: userSkills
+            skills: userSkills,
+            bio: "" // Agrega información adicional aquí si la tienes
           };
         });
         setEmployees(employeesWithSkills);
@@ -269,36 +331,39 @@ const RoleAssign = () => {
         });
         
         // 6. Preparar roles con sugerencias (matchmaking)
-        const rolesWithSuggestions = projectData.roles.map((role, index) => {
-          // Verifica la data cruda de skills para identificar si viene "id" o "skill_ID"
-          console.log("Raw role skills:", role.skills);
-          const normalizedRoleSkills = (role.skills || []).map(skill => ({
-            id: skill.skill_ID || skill.id,
-            years: skill.years || 0,
-            importance: skill.importance || 1
-          }));
-          console.log("Normalized role skills:", normalizedRoleSkills);
-          const normalizedRole = { ...role, skills: normalizedRoleSkills };
-          
-          const bestMatches = getBestMatches(
-            employeesWithSkills, 
-            normalizedRole, 
-            skillMap,
-            10
-          );
-          const bestCandidate = bestMatches.length > 0 ? bestMatches[0] : null;
-          
-          return {
-            id: role.id || `role-${index}`,
-            role: role.name,
-            area: role.area,
-            yearsOfExperience: role.yearsOfExperience,
-            skills: normalizedRoleSkills,
-            assigned: bestCandidate,
-            allCandidates: bestMatches,
-            matches: bestMatches.slice(1)
-          };
-        });
+        // Dado que vamos a usar funciones asíncronas en el matching (con embeddings),
+        // usamos Promise.all para esperar cada cálculo
+        const rolesWithSuggestions = await Promise.all(
+          projectData.roles.map(async (role, index) => {
+            console.log("Raw role skills:", role.skills);
+            const normalizedRoleSkills = (role.skills || []).map(skill => ({
+              id: skill.skill_ID || skill.id,
+              years: skill.years || 0,
+              importance: skill.importance || 1
+            }));
+            console.log("Normalized role skills:", normalizedRoleSkills);
+            const normalizedRole = { ...role, skills: normalizedRoleSkills };
+            // Es importante que el rol tenga una descripción para el matching contextual
+            // Si no la tiene, se puede asignar una cadena vacía
+            normalizedRole.description = role.description || "";
+            
+            // Obtener los best matches combinando el matching técnico y contextual
+            const bestMatches = await getBestMatches(employeesWithSkills, normalizedRole, skillMap, 10);
+            const bestCandidate = bestMatches.length > 0 ? bestMatches[0] : null;
+            
+            return {
+              id: role.id || `role-${index}`,
+              role: role.name,
+              area: role.area,
+              yearsOfExperience: role.yearsOfExperience,
+              skills: normalizedRoleSkills,
+              description: normalizedRole.description,
+              assigned: bestCandidate,
+              allCandidates: bestMatches,
+              matches: bestMatches.slice(1)
+            };
+          })
+        );
         console.log("Roles prepared:", {
           count: rolesWithSuggestions.length,
           sampleRole: rolesWithSuggestions[0],
