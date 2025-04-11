@@ -28,12 +28,10 @@ const ProfilePage = () => {
         p: { xs: 2, md: 4 },
         minHeight: "calc(100vh - 60px)",
         width: "100%", // Expanded navbar is 230px wide
-        
-
       }}
     >
       {/* This wrapper limits the maximum width and centers the content */}
-      <Box sx={{ maxWidth: "1200px", mx: "auto" }}>
+      <Box sx={{ mx: "auto" }}>
         <Grid container spacing={3}>
           <Grid item xs={12}>
             <BannerProfile />
