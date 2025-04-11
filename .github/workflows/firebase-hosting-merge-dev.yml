@@ -16,7 +16,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install and Build Frontend
+      - name: Install and Build Project (Frontend)
         working-directory: ./Reto_Web/PathExplorer
         run: |
           npm install
@@ -27,12 +27,9 @@ jobs:
 
       - name: Install Functions Dependencies
         working-directory: ./Reto_Web/PathExplorer/functions
-        run: |
-          npm install
+        run: npm install
 
       - name: Deploy Hosting and Functions
         working-directory: ./Reto_Web/PathExplorer
         run: |
-          firebase deploy --only hosting,functions \
-            --project ampl-fdb59 \
-            --token ${{ secrets.FIREBASE_TOKEN }}
+          firebase deploy --only hosting,functions --project ampl-fdb59 --token ${{ secrets.FIREBASE_TOKEN }}
