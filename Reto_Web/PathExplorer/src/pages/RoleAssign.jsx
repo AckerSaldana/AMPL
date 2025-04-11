@@ -48,13 +48,131 @@ const RoleAssign = () => {
   const [tempProject, setTempProject] = useState(null);
   const [tempProjectData, setTempProjectData] = useState(null);
 
-  // Cargar datos iniciales
+  // Función para calcular el match de skills entre un empleado y un rol
+  const calculateSkillMatch = (userSkills, roleSkills, skillMap) => {
+    console.log("Calculating match with:", {
+      userSkills: userSkills || [],
+      roleSkills: roleSkills || [],
+      skillMapSample: Object.keys(skillMap || {}).slice(0, 3)
+    });
+
+    if (!roleSkills || roleSkills.length === 0) {
+      return 75;
+    }
+    
+    let totalScore = 0;
+    let maxPossibleScore = roleSkills.length * 100;
+    
+    roleSkills.forEach(roleSkill => {
+      // Comparar los IDs de las skills (los del usuario y la del rol)
+      const matchingSkill = userSkills?.find(
+        userSkill => String(userSkill.skill_ID) === String(roleSkill.id)
+      );
+      
+      if (matchingSkill) {
+        console.log(`Match found for skill ${roleSkill.id} (${skillMap[roleSkill.id] || 'unknown'})`, 
+                    { userExperience: matchingSkill.year_Exp, proficiency: matchingSkill.proficiency });
+        
+        let skillScore = 50;
+        const expYears = matchingSkill.year_Exp || 0;
+        const requiredYears = roleSkill.years || 0;
+        
+        if (expYears >= requiredYears) {
+          skillScore += 30;
+        } else if (expYears > 0 && requiredYears > 0) {
+          skillScore += Math.floor((expYears / requiredYears) * 30);
+        }
+        
+        if (matchingSkill.proficiency === "High") {
+          skillScore += 20;
+        } else if (matchingSkill.proficiency === "Medium") {
+          skillScore += 10;
+        } else if (matchingSkill.proficiency === "Low") {
+          skillScore += 5;
+        }
+        
+        totalScore += skillScore;
+      } else {
+        console.log(`No match found for skill ${roleSkill.id} (${skillMap[roleSkill.id] || 'unknown'})`);
+      }
+    });
+    
+    const finalScore = Math.min(Math.floor((totalScore / maxPossibleScore) * 100), 100);
+    console.log(`Final score: ${finalScore}% (total: ${totalScore}/${maxPossibleScore})`);
+    return finalScore;
+  };
+
+  // Función para obtener las mejores coincidencias para un rol
+  const getBestMatches = (employees, role, skillMap, maxResults = 5) => {
+    if (!employees || !employees.length || !role || !role.skills) {
+      console.warn("Datos insuficientes para getBestMatches", { 
+        employeesCount: employees?.length || 0,
+        hasRole: !!role,
+        roleSkillsCount: role?.skills?.length || 0
+      });
+      return [];
+    }
+
+    console.log("Getting best matches", {
+      roleId: role.id || "unknown",
+      roleName: role.name || "unknown",
+      skillsCount: role.skills.length,
+      employeesCount: employees.length
+    });
+    
+    if (role.skills.length > 0) {
+      console.log("First role skill:", role.skills[0]);
+    }
+    
+    if (employees.length > 0 && employees[0].skills) {
+      console.log("First employee skills sample:", employees[0].skills.slice(0, 2));
+    }
+    
+    // Normalizar las skills del rol:
+    // Aquí se intenta usar "skill.skill_ID"; si no existe, se usa "skill.id"
+    const roleSkills = (role.skills || []).map(skill => ({
+      id: skill.skill_ID || skill.id,
+      years: skill.years || 0,
+      importance: skill.importance || 1,
+      name: skillMap[skill.skill_ID || skill.id] || `Skill ${skill.skill_ID || skill.id}`
+    }));
+    
+    const scoredEmployees = employees.map(employee => {
+      if (!employee.skills || !Array.isArray(employee.skills)) {
+        console.warn(`Employee ${employee.id} has no skills or invalid skills data`);
+        return { ...employee, score: 0, skillMatches: [] };
+      }
+      
+      const score = calculateSkillMatch(employee.skills, roleSkills, skillMap);
+      
+      return {
+        ...employee,
+        score,
+        skillMatches: roleSkills.map(roleSkill => {
+          const empSkill = employee.skills.find(s => String(s.skill_ID) === String(roleSkill.id));
+          return {
+            skillId: roleSkill.id,
+            skillName: skillMap[roleSkill.id] || `Skill ${roleSkill.id}`,
+            required: true,
+            hasSkill: !!empSkill,
+            experience: empSkill ? empSkill.year_Exp : 0,
+            requiredExperience: roleSkill.years || 0,
+            proficiency: empSkill ? empSkill.proficiency : null
+          };
+        })
+      };
+    });
+    
+    return scoredEmployees.sort((a, b) => b.score - a.score).slice(0, maxResults);
+  };
+
+  // Cargar datos iniciales (incluye corrección en mapeo de skills)
   useEffect(() => {
     const loadInitialData = async () => {
       try {
         setLoading(true);
         
-        // 1. Obtener datos del proyecto temporal desde localStorage
+        // 1. Obtener proyecto temporal desde localStorage
         const storedProject = localStorage.getItem("tempProject");
         if (!storedProject) {
           throw new Error("No se encontró información del proyecto temporal");
@@ -67,75 +185,124 @@ const RoleAssign = () => {
           tempId: projectData.tempId
         });
         
-        // 2. Obtener todos los usuarios y sus skills
+        console.log("Project data loaded:", {
+          title: projectData.projectData.title,
+          rolesCount: projectData.roles?.length || 0
+        });
+        
+        if (projectData.roles && projectData.roles.length > 0) {
+          console.log("Sample role data:", projectData.roles[0]);
+        }
+        
+        // 2. Obtener lista completa de skills
+        const { data: allSkills, error: skillsError } = await supabase
+          .from("Skill")
+          .select("skill_ID, name");
+        if (skillsError) throw skillsError;
+        
+        const skillMap = {};
+        allSkills.forEach(skill => {
+          skillMap[skill.skill_ID] = skill.name;
+        });
+        
+        console.log("Skills loaded:", {
+          count: allSkills?.length || 0,
+          sampleKeys: Object.keys(skillMap).slice(0, 5)
+        });
+        
+        // 3. Obtener todos los usuarios básicos
         const { data: userData, error: userError } = await supabase
           .from("User")
           .select("user_id, name, last_name, profile_pic");
-          
         if (userError) throw userError;
         
-        // 3. Para cada usuario, obtener sus skills desde UserSkill
-        const employeesWithSkills = await Promise.all(
-          userData.map(async (user) => {
-            // Obtener skills del usuario
-            const { data: userSkills } = await supabase
-              .from("UserSkill")
-              .select("skill_ID, proficiency, year_Exp")
-              .eq("user_ID", user.user_id);
-            
-            return {
-              id: user.user_id,
-              name: `${user.name || ""} ${user.last_name || ""}`.trim() || "Usuario sin nombre",
-              avatar: user.profile_pic || null,
-              skills: userSkills || []
-            };
-          })
-        );
+        console.log("Users loaded:", { count: userData?.length || 0 });
         
+        // 4. Obtener todas las skills de los usuarios (usar "user_ID" como columna)
+        const { data: allUserSkills, error: userSkillError } = await supabase
+          .from("UserSkill")
+          .select("user_ID, skill_ID, proficiency, year_Exp");
+        if (userSkillError) throw userSkillError;
+        
+        console.log("User skills loaded:", {
+          count: allUserSkills?.length || 0,
+          sample: allUserSkills.slice(0, 3)
+        });
+        
+        // Agrupar las skills por usuario (clave: "user_ID")
+        const userSkillsMap = {};
+        allUserSkills.forEach(skill => {
+          const userId = skill.user_ID;
+          if (!userSkillsMap[userId]) {
+            userSkillsMap[userId] = [];
+          }
+          userSkillsMap[userId].push({
+            skill_ID: skill.skill_ID,
+            proficiency: skill.proficiency || "Low",
+            year_Exp: skill.year_Exp || 0
+          });
+        });
+        
+        console.log("User skills grouped:", {
+          userCount: Object.keys(userSkillsMap).length,
+          sampleUser: Object.keys(userSkillsMap)[0],
+          sampleSkills: userSkillsMap[Object.keys(userSkillsMap)[0]]
+        });
+        
+        // 5. Preparar empleados vinculando sus skills
+        const employeesWithSkills = userData.map(user => {
+          const userId = user.user_id;
+          const userSkills = userSkillsMap[userId] || [];
+          return {
+            id: userId,
+            name: `${user.name || ""} ${user.last_name || ""}`.trim() || "Usuario sin nombre",
+            avatar: user.profile_pic || null,
+            skills: userSkills
+          };
+        });
         setEmployees(employeesWithSkills);
         
-        // 4. Obtener toda la lista de skills disponibles para tener nombres completos
-        const { data: allSkills } = await supabase
-          .from("Skill")
-          .select("skill_ID, name");
+        console.log("Employees prepared:", {
+          count: employeesWithSkills.length,
+          sampleEmployee: employeesWithSkills[0],
+          sampleSkills: employeesWithSkills[0]?.skills?.slice(0, 3) || []
+        });
         
-        const skillMap = {};
-        if (allSkills) {
-          allSkills.forEach(skill => {
-            skillMap[skill.skill_ID] = skill.name;
-          });
-        }
-        
-        // 5. Preparar los roles con sugerencias de IA (empleo matchmaking)
+        // 6. Preparar roles con sugerencias (matchmaking)
         const rolesWithSuggestions = projectData.roles.map((role, index) => {
-          // Para cada rol, calcular la compatibilidad con cada empleado
-          const matchedEmployees = employeesWithSkills.map(employee => {
-            const skillMatchScore = calculateSkillMatch(
-              employee.skills, 
-              role.skills || [], 
-              skillMap
-            );
-            
-            return {
-              ...employee,
-              score: skillMatchScore
-            };
-          })
-          .sort((a, b) => b.score - a.score); // Ordenar por puntuación de mayor a menor
+          // Verifica la data cruda de skills para identificar si viene "id" o "skill_ID"
+          console.log("Raw role skills:", role.skills);
+          const normalizedRoleSkills = (role.skills || []).map(skill => ({
+            id: skill.skill_ID || skill.id,
+            years: skill.years || 0,
+            importance: skill.importance || 1
+          }));
+          console.log("Normalized role skills:", normalizedRoleSkills);
+          const normalizedRole = { ...role, skills: normalizedRoleSkills };
           
-          // El mejor candidato es el primero
-          const bestCandidate = matchedEmployees.length > 0 ? matchedEmployees[0] : null;
+          const bestMatches = getBestMatches(
+            employeesWithSkills, 
+            normalizedRole, 
+            skillMap,
+            10
+          );
+          const bestCandidate = bestMatches.length > 0 ? bestMatches[0] : null;
           
           return {
             id: role.id || `role-${index}`,
             role: role.name,
             area: role.area,
             yearsOfExperience: role.yearsOfExperience,
-            skills: role.skills || [],
+            skills: normalizedRoleSkills,
             assigned: bestCandidate,
-            allCandidates: matchedEmployees,
-            matches: matchedEmployees.slice(1) // Todos menos el primero (ya asignado)
+            allCandidates: bestMatches,
+            matches: bestMatches.slice(1)
           };
+        });
+        console.log("Roles prepared:", {
+          count: rolesWithSuggestions.length,
+          sampleRole: rolesWithSuggestions[0],
+          sampleMatches: rolesWithSuggestions[0]?.matches?.length || 0
         });
         
         setRoles(rolesWithSuggestions);
@@ -154,93 +321,32 @@ const RoleAssign = () => {
     loadInitialData();
   }, []);
 
-  // Función para calcular el match de skills entre un empleado y un rol
-  const calculateSkillMatch = (userSkills, roleSkills, skillMap) => {
-    if (!roleSkills || roleSkills.length === 0) {
-      // Si el rol no tiene skills específicas, asignar un puntaje base
-      return 75; // Puntaje base del 75%
-    }
-    
-    let totalScore = 0;
-    let maxPossibleScore = roleSkills.length * 100; // Máximo puntaje posible
-    
-    roleSkills.forEach(roleSkill => {
-      // Buscar si el usuario tiene esta skill
-      const matchingSkill = userSkills.find(
-        userSkill => userSkill.skill_ID === roleSkill.id
-      );
-      
-      if (matchingSkill) {
-        // Puntos base por tener la skill
-        let skillScore = 50;
-        
-        // Puntos adicionales por años de experiencia (hasta 30 puntos)
-        const expYears = matchingSkill.year_Exp || 0;
-        const requiredYears = roleSkill.years || 0;
-        
-        if (expYears >= requiredYears) {
-          skillScore += 30;
-        } else if (expYears > 0) {
-          // Puntos proporcionales a los años que tiene vs. los requeridos
-          skillScore += Math.floor((expYears / requiredYears) * 30);
-        }
-        
-        // Puntos adicionales por nivel de competencia (hasta 20 puntos)
-        if (matchingSkill.proficiency === "High") {
-          skillScore += 20;
-        } else if (matchingSkill.proficiency === "Medium") {
-          skillScore += 10;
-        }
-        
-        totalScore += skillScore;
-      }
-    });
-    
-    // Calcular porcentaje final (máximo 100%)
-    const finalScore = Math.min(
-      Math.floor((totalScore / maxPossibleScore) * 100), 
-      100
-    );
-    
-    return finalScore;
-  };
-
-  // Función para manejar el cambio de empleado asignado
   const handleEmployeeChange = (roleIndex, newEmployeeId) => {
     setRoles(prevRoles => {
       const updatedRoles = [...prevRoles];
-      const currentRole = {...updatedRoles[roleIndex]};
+      const currentRole = { ...updatedRoles[roleIndex] };
       
-      // Encontrar el nuevo empleado a asignar
       const newEmployee = currentRole.allCandidates.find(
         candidate => candidate.id === newEmployeeId
       );
       
-      // Si no encontramos al empleado, no hacemos cambios
       if (!newEmployee) return prevRoles;
       
-      // Asignar el nuevo empleado
       currentRole.assigned = newEmployee;
-      
-      // Recalcular la lista de matches (todos los candidatos excepto el asignado)
       currentRole.matches = currentRole.allCandidates.filter(
         candidate => candidate.id !== newEmployee.id
       );
-      
-      // Actualizar el rol actual
       updatedRoles[roleIndex] = currentRole;
       
       return updatedRoles;
     });
   };
   
-  // Función modificada para crear el proyecto y asignar roles
   const handleFinalConfirmation = async () => {
     setDialogOpen(false);
     setConfirming(true);
   
     try {
-      // 1. Preparar datos del proyecto
       const projectData = {
         title: tempProjectData.projectData.title,
         description: tempProjectData.projectData.description,
@@ -253,25 +359,21 @@ const RoleAssign = () => {
         priority: tempProjectData.projectData.priority || "Medium"
       };
   
-      // 2. Preparar datos de roles
       const rolesData = roles.map(role => ({
         name: role.role,
         area: role.area || "General",
         description: `Role for ${role.role} in project ${projectData.title}`
       }));
   
-      // 3. Preparar datos de asignaciones
       const assignmentsData = roles.map(roleObj => {
         if (!roleObj.assigned) return null;
-        
         return {
           user_id: roleObj.assigned.id,
           role_name: roleObj.role,
           feedback_notes: `Assigned with ${roleObj.assigned.score}% match score`
         };
-      }).filter(Boolean); // Eliminar valores nulos (roles sin asignar)
+      }).filter(Boolean);
   
-      // 4. Ejecutar la función RPC
       const { data, error } = await supabase.rpc(
         "create_project_with_roles_and_assignments",
         {
@@ -284,7 +386,6 @@ const RoleAssign = () => {
       if (error) throw error;
       if (!data) throw new Error("No se obtuvo el ID del proyecto.");
   
-      // 5. Mostrar mensaje de éxito y redireccionar
       setSnackbar({
         open: true,
         message: `¡Proyecto "${projectData.title}" creado con éxito! ID: ${data}`,
@@ -307,9 +408,7 @@ const RoleAssign = () => {
     }
   };
   
-  // Función para confirmar las asignaciones
   const handleConfirmAssignments = () => {
-    // Verificar que todos los roles tienen alguien asignado
     const hasUnassignedRoles = roles.some(role => !role.assigned);
     
     if (hasUnassignedRoles) {
@@ -320,12 +419,9 @@ const RoleAssign = () => {
       });
       return;
     }
-    
-    // Abrir diálogo de confirmación
     setDialogOpen(true);
   };
   
-  // Función modificada para cancelar - ahora es más simple
   const handleCancel = () => {
     if (window.confirm("¿Estás seguro de que deseas cancelar? Se perderá la información del proyecto.")) {
       localStorage.removeItem("tempProject");
@@ -333,10 +429,8 @@ const RoleAssign = () => {
     }
   };
   
-  // Obtener los candidatos disponibles para el rol seleccionado
   const availableCandidates = roles[selectedRoleIndex]?.matches || [];
 
-  // Mostrar pantalla de carga mientras se obtienen los datos
   if (loading) {
     return (
       <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "70vh" }}>
@@ -356,7 +450,6 @@ const RoleAssign = () => {
         overflow: "hidden"
       }}
     >
-      {/* Heading */}
       <Box
         sx={{
           backgroundColor: theme.palette.primary.main,
@@ -367,20 +460,18 @@ const RoleAssign = () => {
           borderTopRightRadius: 8,
           height: "4rem",
           display: "flex",
-          alignItems: "center",
+          alignItems: "center"
         }}
       >
         <AssistantIcon sx={{ mr: 1.5 }} />
         <Typography variant="h6" fontWeight={600}>
-          {tempProject 
-            ? `Assign Roles for: ${tempProject.title}` 
-            : "Assign Roles"}
+          {tempProject ? `Assign Roles for: ${tempProject.title}` : "Assign Roles"}
         </Typography>
         <Chip 
           label={`${roles.length} Roles`}
           size="small"
-          sx={{ 
-            ml: 2, 
+          sx={{
+            ml: 2,
             backgroundColor: alpha("#fff", 0.2),
             color: "#fff",
             fontWeight: 500
@@ -388,15 +479,13 @@ const RoleAssign = () => {
         />
       </Box>
 
-      {/* Content */}
       <Box sx={{ p: 3 }}>
         <Grid container spacing={3}>
-          {/* Left Side - Roles con asignaciones sugeridas */}
           <Grid item xs={12} md={6}>
             <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
-              <Box 
-                sx={{ 
-                  backgroundColor: theme.palette.primary.light, 
+              <Box
+                sx={{
+                  backgroundColor: theme.palette.primary.light,
                   color: "#fff",
                   width: 28,
                   height: 28,
@@ -425,12 +514,12 @@ const RoleAssign = () => {
                   "&::-webkit-scrollbar": { width: "8px" },
                   "&::-webkit-scrollbar-thumb": {
                     backgroundColor: alpha(theme.palette.primary.main, 0.3),
-                    borderRadius: "4px",
-                  },
-                  "&::-webkit-scrollbar-track": { 
-                    backgroundColor: alpha(theme.palette.primary.main, 0.05),
                     borderRadius: "4px"
                   },
+                  "&::-webkit-scrollbar-track": {
+                    backgroundColor: alpha(theme.palette.primary.main, 0.05),
+                    borderRadius: "4px"
+                  }
                 }}
               >
                 {roles.map((r, i) => (
@@ -452,12 +541,11 @@ const RoleAssign = () => {
             )}
           </Grid>
 
-          {/* Right Side - Lista de candidatos para el rol seleccionado */}
           <Grid item xs={12} md={6}>
             <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
-              <Box 
-                sx={{ 
-                  backgroundColor: theme.palette.primary.light, 
+              <Box
+                sx={{
+                  backgroundColor: theme.palette.primary.light,
                   color: "#fff",
                   width: 28,
                   height: 28,
@@ -475,11 +563,7 @@ const RoleAssign = () => {
                 {roles.length > 0 ? (
                   <>
                     Candidate Matches for{" "}
-                    <Typography 
-                      component="span" 
-                      color="primary"
-                      sx={{ fontWeight: 700 }}
-                    >
+                    <Typography component="span" color="primary" sx={{ fontWeight: 700 }}>
                       {roles[selectedRoleIndex]?.role || ""}
                     </Typography>
                   </>
@@ -501,17 +585,17 @@ const RoleAssign = () => {
                 "&::-webkit-scrollbar": { width: "8px" },
                 "&::-webkit-scrollbar-thumb": {
                   backgroundColor: alpha(theme.palette.primary.main, 0.3),
-                  borderRadius: "4px",
-                },
-                "&::-webkit-scrollbar-track": { 
-                  backgroundColor: alpha(theme.palette.primary.main, 0.05),
                   borderRadius: "4px"
                 },
+                "&::-webkit-scrollbar-track": {
+                  backgroundColor: alpha(theme.palette.primary.main, 0.05),
+                  borderRadius: "4px"
+                }
               }}
             >
               {roles.length > 0 ? (
                 availableCandidates.length > 0 ? (
-                  availableCandidates.map((match) => (
+                  availableCandidates.map(match => (
                     <MatchedEmployeeCard
                       key={match.id}
                       name={match.name}
@@ -521,20 +605,12 @@ const RoleAssign = () => {
                     />
                   ))
                 ) : (
-                  <Box sx={{ 
-                    textAlign: "center", 
-                    py: 4,
-                    color: "text.secondary"
-                  }}>
+                  <Box sx={{ textAlign: "center", py: 4, color: "text.secondary" }}>
                     <Typography>No hay más candidatos disponibles para este rol</Typography>
                   </Box>
                 )
               ) : (
-                <Box sx={{ 
-                  textAlign: "center", 
-                  py: 4,
-                  color: "text.secondary"
-                }}>
+                <Box sx={{ textAlign: "center", py: 4, color: "text.secondary" }}>
                   <Typography>Seleccione un rol primero</Typography>
                 </Box>
               )}
@@ -544,38 +620,39 @@ const RoleAssign = () => {
 
         <Divider sx={{ my: 4 }} />
 
-        {/* Bottom Buttons */}
         <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
-          <Button 
-            variant="outlined" 
-            color="inherit" 
+          <Button
+            variant="outlined"
+            color="inherit"
             onClick={handleCancel}
             disabled={confirming}
-            sx={{ 
+            sx={{
               mr: 2,
               color: theme.palette.text.secondary,
               borderColor: theme.palette.divider,
               "&:hover": {
                 borderColor: theme.palette.text.secondary,
-                backgroundColor: alpha(theme.palette.text.secondary, 0.04),
+                backgroundColor: alpha(theme.palette.text.secondary, 0.04)
               }
             }}
             startIcon={<CloseIcon />}
           >
             CANCEL
           </Button>
-          <Button 
-            variant="contained" 
+          <Button
+            variant="contained"
             color="primary"
             onClick={handleConfirmAssignments}
             disabled={confirming || roles.length === 0}
-            startIcon={confirming ? <CircularProgress size={20} color="inherit" /> : <CheckCircleIcon />}
-            sx={{ 
+            startIcon={
+              confirming ? <CircularProgress size={20} color="inherit" /> : <CheckCircleIcon />
+            }
+            sx={{
               fontWeight: 600,
               boxShadow: 2,
               px: 3,
               "&:hover": {
-                boxShadow: 4,
+                boxShadow: 4
               }
             }}
           >
@@ -584,20 +661,16 @@ const RoleAssign = () => {
         </Box>
       </Box>
 
-      {/* Diálogo de confirmación final */}
-      <Dialog
-        open={dialogOpen}
-        onClose={() => setDialogOpen(false)}
-      >
+      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)}>
         <DialogTitle>Confirmar Proyecto y Asignaciones</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            Estás a punto de <strong>crear el proyecto y finalizar</strong> el proceso de asignación de roles. 
+            Estás a punto de <strong>crear el proyecto y finalizar</strong> el proceso de asignación de roles.
             Se asignarán los siguientes roles:
             <Box component="ul" sx={{ mt: 2 }}>
               {roles.map((role, index) => (
                 <Box component="li" key={index} sx={{ mb: 1 }}>
-                  <strong>{role.role}</strong>: {role.assigned?.name || "Sin asignar"} 
+                  <strong>{role.role}</strong>: {role.assigned?.name || "Sin asignar"}
                   {role.assigned?.score ? ` (${role.assigned.score}% de compatibilidad)` : ""}
                 </Box>
               ))}
@@ -615,18 +688,13 @@ const RoleAssign = () => {
         </DialogActions>
       </Dialog>
 
-      {/* Snackbar para mensajes */}
       <Snackbar
         open={snackbar.open}
         autoHideDuration={6000}
         onClose={() => setSnackbar({ ...snackbar, open: false })}
         anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
       >
-        <Alert 
-          onClose={() => setSnackbar({ ...snackbar, open: false })} 
-          severity={snackbar.severity} 
-          sx={{ width: '100%' }}
-        >
+        <Alert onClose={() => setSnackbar({ ...snackbar, open: false })} severity={snackbar.severity} sx={{ width: '100%' }}>
           {snackbar.message}
         </Alert>
       </Snackbar>

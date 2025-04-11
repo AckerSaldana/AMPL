@@ -38,7 +38,8 @@ export const AddRoleCard = ({ onRoleCreated, onCancel, initialRole }) => {
     severity: "success",
   });
 
-  // Inicializar las skills seleccionadas con las del rol existente
+  // Estado para las skills seleccionadas
+  // Ahora guardaremos el objeto completo (con id, name y years)
   const [selectedSkills, setSelectedSkills] = useState([]);
 
   // Efecto para cargar los datos del rol cuando cambia initialRole
@@ -86,12 +87,13 @@ export const AddRoleCard = ({ onRoleCreated, onCancel, initialRole }) => {
         
         // Transformar los datos para tener el formato esperado
         if (data) {
+          // Aquí usamos "id" para guardar el identificador real (skill_ID)
           const formattedSkills = data.map(skill => ({
             id: skill.skill_ID,
             name: skill.name,
             description: skill.description || (
               parseInt(skill.skill_ID) % 2 === 0 ? "Component-based library" : "Framework"
-            ) // Fallback a la descripción que tenía antes
+            )
           }));
           
           setAvailableSkills(formattedSkills);
@@ -116,31 +118,34 @@ export const AddRoleCard = ({ onRoleCreated, onCancel, initialRole }) => {
     }));
   };
 
+  // Función para eliminar una skill seleccionada
   const handleDeleteSkill = (index) => {
-    setSelectedSkills((prev) => prev.filter((_, i) => i !== index));
+    setSelectedSkills(prev => prev.filter((_, i) => i !== index));
   };
 
-  const handleAddSkill = (skillName) => {
-    // Verificar si la habilidad ya existe
-    if (!selectedSkills.some(skill => skill.name === skillName)) {
-      setSelectedSkills([...selectedSkills, { name: skillName, years: 1 }]);
+  // Función para agregar una skill
+  // Se modifica para que reciba el objeto completo de la skill
+  const handleAddSkill = (skill) => {
+    // Verificar si la habilidad ya existe usando el id
+    if (!selectedSkills.some(s => s.id === skill.id)) {
+      // Se agrega un objeto con id, name y un valor por defecto de años
+      setSelectedSkills([...selectedSkills, { id: skill.id, name: skill.name, years: 1 }]);
       
-      // Mostrar snackbar de confirmación
       setSnackbar({
         open: true,
-        message: `Habilidad "${skillName}" agregada correctamente.`,
+        message: `Habilidad "${skill.name}" agregada correctamente.`,
         severity: "success",
       });
     } else {
-      // Mostrar mensaje si ya está en la lista
       setSnackbar({
         open: true,
-        message: `La habilidad "${skillName}" ya está en la lista.`,
+        message: `La habilidad "${skill.name}" ya está en la lista.`,
         severity: "warning",
       });
     }
   };
 
+  // Manejar cambio en la cantidad de años para una skill seleccionada
   const handleChangeYears = (index, value) => {
     const newSkills = [...selectedSkills];
     newSkills[index].years = value;
@@ -166,36 +171,31 @@ export const AddRoleCard = ({ onRoleCreated, onCancel, initialRole }) => {
     try {
       setSubmitting(true);
       
-      // En un caso real, aquí podrías guardar el rol en la base de datos
-      // Por ahora, simplemente simulamos una demora y devolvemos el rol creado/actualizado
-      
-      // Simular una demora para mostrar el estado de carga
+      // Simulación de demora para mostrar estado de carga
       await new Promise(resolve => setTimeout(resolve, 800));
       
-      // Crear o actualizar el objeto de rol con todos los datos
+      // Crear u actualizar el objeto rol con todos los datos
       const roleObject = {
         name: roleData.name,
         area: roleData.area,
         yearsOfExperience: roleData.yearsOfExperience || 0,
         description: roleData.description,
-        skills: selectedSkills,
-        // Mantener el ID si estamos editando, o generar uno nuevo si estamos creando
+        skills: selectedSkills, // Aquí cada skill tendrá id y name
+        // Si se está editando, se mantiene el id; si no, se genera uno nuevo
         id: initialRole?.id || `role-${Date.now()}`
       };
       
-      // Llamar a la función de callback con el rol
+      // Se llama la función de callback para informar al padre
       if (onRoleCreated) {
         onRoleCreated(roleObject);
       }
       
-      // Mostrar mensaje de éxito
       setSnackbar({
         open: true,
         message: `Rol "${roleData.name}" ${initialRole ? 'actualizado' : 'creado'} correctamente`,
         severity: "success",
       });
 
-      // Si estamos creando un nuevo rol (no editando), limpiamos el formulario
       if (!initialRole) {
         resetForm();
       }
@@ -220,7 +220,7 @@ export const AddRoleCard = ({ onRoleCreated, onCancel, initialRole }) => {
         borderRadius: 1,
         overflow: "hidden",
         display: "flex",
-        flexDirection: "column",
+        flexDirection: "column"
       }}
     >
       {/* Encabezado */}
@@ -230,7 +230,7 @@ export const AddRoleCard = ({ onRoleCreated, onCancel, initialRole }) => {
           py: 2,
           px: 3,
           borderTopLeftRadius: 4,
-          borderTopRightRadius: 4,
+          borderTopRightRadius: 4
         }}
       >
         <Typography variant="h6" fontWeight={600} color="white">
@@ -238,7 +238,7 @@ export const AddRoleCard = ({ onRoleCreated, onCancel, initialRole }) => {
         </Typography>
       </Box>
 
-      {/* Contenido Principal - con flex-grow para que ocupe el espacio disponible */}
+      {/* Contenido Principal */}
       <Box sx={{ p: 3, flexGrow: 1, display: "flex", flexDirection: "column" }}>
         {/* Área scrollable principal */}
         <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column" }}>
@@ -258,8 +258,8 @@ export const AddRoleCard = ({ onRoleCreated, onCancel, initialRole }) => {
                   onChange={handleInputChange}
                   sx={{
                     "& .MuiOutlinedInput-root": {
-                      borderRadius: 1,
-                    },
+                      borderRadius: 1
+                    }
                   }}
                 />
               </Box>
@@ -277,8 +277,8 @@ export const AddRoleCard = ({ onRoleCreated, onCancel, initialRole }) => {
                   size="small"
                   sx={{
                     "& .MuiOutlinedInput-root": {
-                      borderRadius: 1,
-                    },
+                      borderRadius: 1
+                    }
                   }}
                 >
                   <MenuItem value="FRONTEND">FRONTEND</MenuItem>
@@ -301,8 +301,8 @@ export const AddRoleCard = ({ onRoleCreated, onCancel, initialRole }) => {
                   size="small"
                   sx={{
                     "& .MuiOutlinedInput-root": {
-                      borderRadius: 1,
-                    },
+                      borderRadius: 1
+                    }
                   }}
                 />
               </Box>
@@ -321,14 +321,14 @@ export const AddRoleCard = ({ onRoleCreated, onCancel, initialRole }) => {
                   onChange={handleInputChange}
                   sx={{
                     "& .MuiOutlinedInput-root": {
-                      borderRadius: 1,
-                    },
+                      borderRadius: 1
+                    }
                   }}
                 />
               </Box>
             </Grid>
             
-            {/* Columna derecha: Habilidades */}
+            {/* Columna derecha: Habilidades disponibles */}
             <Grid item xs={12} md={6}>
               <Box mb={3}>
                 <Typography fontWeight={600} mb={1} color="text.primary">
@@ -348,16 +348,16 @@ export const AddRoleCard = ({ onRoleCreated, onCancel, initialRole }) => {
                     maxHeight: "415px", 
                     overflowY: "auto",
                     "&::-webkit-scrollbar": {
-                      width: "8px",
+                      width: "8px"
                     },
                     "&::-webkit-scrollbar-track": {
                       backgroundColor: "rgba(0,0,0,0.05)",
-                      borderRadius: "4px",
+                      borderRadius: "4px"
                     },
                     "&::-webkit-scrollbar-thumb": {
                       backgroundColor: theme.palette.primary.light,
-                      borderRadius: "4px",
-                    },
+                      borderRadius: "4px"
+                    }
                   }}>
                     {availableSkills.map((skill, index) => (
                       <Box
@@ -373,8 +373,8 @@ export const AddRoleCard = ({ onRoleCreated, onCancel, initialRole }) => {
                           borderRadius: 1,
                           cursor: "pointer",
                           "&:hover": {
-                            backgroundColor: theme.palette.action.hover,
-                          },
+                            backgroundColor: theme.palette.action.hover
+                          }
                         }}
                       >
                         <Box display="flex" alignItems="center" gap={1.5}>
@@ -388,7 +388,7 @@ export const AddRoleCard = ({ onRoleCreated, onCancel, initialRole }) => {
                               alignItems: "center",
                               justifyContent: "center",
                               color: "white",
-                              fontWeight: "bold",
+                              fontWeight: "bold"
                             }}
                           >
                             {skill.name ? skill.name[0] : 'S'}
@@ -405,7 +405,7 @@ export const AddRoleCard = ({ onRoleCreated, onCancel, initialRole }) => {
                         <Button
                           size="small"
                           variant="outlined"
-                          onClick={() => handleAddSkill(skill.name)}
+                          onClick={() => handleAddSkill(skill)}
                           sx={{
                             minWidth: "32px",
                             width: "32px",
@@ -426,7 +426,7 @@ export const AddRoleCard = ({ onRoleCreated, onCancel, initialRole }) => {
             </Grid>
           </Grid>
           
-          {/* Skills Selected - Con scroll independiente */}
+          {/* Sección de Skills Seleccionadas */}
           <Box mb={3}>
             <Typography fontWeight={600} mb={1.5} color="text.primary">
               Skills selected
@@ -436,8 +436,8 @@ export const AddRoleCard = ({ onRoleCreated, onCancel, initialRole }) => {
                 border: "1px solid",
                 borderColor: "divider",
                 borderRadius: 1,
-                maxHeight: "180px", // altura máxima fija
-                overflow: "hidden", // oculta el contenido que excede el tamaño
+                maxHeight: "180px",
+                overflow: "hidden"
               }}
             >
               <Box
@@ -445,16 +445,16 @@ export const AddRoleCard = ({ onRoleCreated, onCancel, initialRole }) => {
                   maxHeight: "180px",
                   overflowY: "auto",
                   "&::-webkit-scrollbar": {
-                    width: "8px",
+                    width: "8px"
                   },
                   "&::-webkit-scrollbar-track": {
                     backgroundColor: "rgba(0,0,0,0.05)",
-                    borderRadius: "4px",
+                    borderRadius: "4px"
                   },
                   "&::-webkit-scrollbar-thumb": {
                     backgroundColor: theme.palette.primary.light,
-                    borderRadius: "4px",
-                  },
+                    borderRadius: "4px"
+                  }
                 }}
               >
                 {selectedSkills.length > 0 ? (
@@ -467,10 +467,12 @@ export const AddRoleCard = ({ onRoleCreated, onCancel, initialRole }) => {
                         alignItems: "center",
                         p: 1.5,
                         borderBottom: index < selectedSkills.length - 1 ? "1px solid" : "none",
-                        borderColor: "divider",
+                        borderColor: "divider"
                       }}
                     >
-                      <Typography variant="body2" fontWeight={500}>{skill.name}</Typography>
+                      <Typography variant="body2" fontWeight={500}>
+                        {skill.name}
+                      </Typography>
                       <Box display="flex" alignItems="center" gap={1}>
                         <Typography variant="caption" color="text.secondary">
                           Years of Experience
@@ -484,7 +486,7 @@ export const AddRoleCard = ({ onRoleCreated, onCancel, initialRole }) => {
                             sx: { 
                               borderRadius: 1,
                               height: 32,
-                              width: 60,
+                              width: 60
                             }
                           }}
                         />
@@ -519,13 +521,13 @@ export const AddRoleCard = ({ onRoleCreated, onCancel, initialRole }) => {
           </Box>
         </Box>
 
-        {/* Contenedor para los botones - Posición fija en la parte inferior */}
+        {/* Botones inferiores */}
         <Box 
           sx={{ 
             display: "flex", 
             justifyContent: "center",
             pt: 3,
-            mt: "auto", // Empuja hacia abajo
+            mt: "auto"
           }}
         >
           <Button
@@ -541,7 +543,7 @@ export const AddRoleCard = ({ onRoleCreated, onCancel, initialRole }) => {
               borderRadius: 1,
               textTransform: "uppercase",
               fontWeight: 600,
-              backgroundColor: theme.palette.primary.main,
+              backgroundColor: theme.palette.primary.main
             }}
           >
             {submitting ? (
@@ -564,10 +566,10 @@ export const AddRoleCard = ({ onRoleCreated, onCancel, initialRole }) => {
               borderRadius: 1,
               backgroundColor: theme.palette.grey[700],
               "&:hover": {
-                backgroundColor: theme.palette.grey[800],
+                backgroundColor: theme.palette.grey[800]
               },
               textTransform: "uppercase",
-              fontWeight: 600,
+              fontWeight: 600
             }}
           >
             {initialRole ? "CANCEL" : "CLEAR"}
@@ -575,7 +577,7 @@ export const AddRoleCard = ({ onRoleCreated, onCancel, initialRole }) => {
         </Box>
       </Box>
 
-      {/* Snackbar para notificaciones */}
+      {/* Snackbar */}
       <Snackbar
         open={snackbar.open}
         autoHideDuration={4000}
