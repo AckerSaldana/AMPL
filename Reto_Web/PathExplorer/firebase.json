@@ -40,7 +40,7 @@
     }
   ],
   "functions": {
-    "source": "Reto_Web/PathExplorer/functions",
+    "source": "functions",
     "runtime": "nodejs22"
   }
 }
