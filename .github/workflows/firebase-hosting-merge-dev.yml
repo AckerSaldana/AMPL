@@ -13,8 +13,6 @@ on:
 jobs:
   build_and_deploy:
     runs-on: ubuntu-latest
-    env:
-      GOOGLE_APPLICATION_CREDENTIALS: ${{ github.workspace }}/service-account.json
     steps:
       - uses: actions/checkout@v4
 
@@ -31,17 +29,7 @@ jobs:
         working-directory: ./Reto_Web/PathExplorer/functions
         run: npm install
 
-      - name: Setup Firebase Service Account Credentials
-        working-directory: ./Reto_Web/PathExplorer
-        run: |
-          # Usa printf para evitar modificaciones en el contenido
-          printf '%s' "${{ secrets.FIREBASE_SERVICE_ACCOUNT }}" > service-account.json
-          # Opcional: muestra información del archivo para depuración
-          ls -la service-account.json
-          echo "File size: $(stat -c%s service-account.json) bytes"
-
       - name: Deploy Hosting and Functions
         working-directory: ./Reto_Web/PathExplorer
         run: |
-          firebase deploy --only hosting,functions --project ampl-fdb59
-
+          firebase deploy --only hosting,functions --project ampl-fdb59 --token "${{ secrets.FIREBASE_TOKEN }}"
