@@ -22,16 +22,27 @@ const __dirname = dirname(__filename);
 // Inicializamos cache (TTL: 1 día)
 const embeddingCache = new NodeCache({ stdTTL: 86400 });
 
-// Inicialización de OpenAI
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// Inicialización de OpenAI con manejo de errores
+let openai;
+try {
+  openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY || 'dummy-key-for-deployment',
+  });
+} catch (error) {
+  console.error('Error al inicializar OpenAI:', error);
+  // Proporcionar un objeto simulado para permitir que el despliegue continúe
+  openai = {
+    embeddings: {
+      create: async () => ({ data: [{ embedding: Array(1536).fill(0) }] })
+    }
+  };
+}
 
 // Verificación de API Key
-if (process.env.OPENAI_API_KEY) {
+if (process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY !== 'dummy-key-for-deployment') {
   console.log("API Key cargada: Sí");
 } else {
-  console.log("API Key cargada: No");
+  console.log("API Key cargada: No (se usará una clave ficticia para despliegue)");
 }
 
 // Función hash para claves de caché
@@ -41,6 +52,11 @@ function generateCacheKey(text) {
 
 // Función para verificar la API Key
 export async function testAPIKey() {
+  if (!process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY === 'dummy-key-for-deployment') {
+    console.error('No se ha configurado la API Key de OpenAI');
+    return false;
+  }
+  
   try {
     const startTime = Date.now();
     const response = await openai.embeddings.create({
@@ -94,6 +110,15 @@ export async function getBatchEmbeddings(texts, sources = []) {
   });
 
   if (textsToProcess.length === 0) return results;
+
+  // Verificar si tenemos una API key válida antes de llamar a la API
+  if (!process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY === 'dummy-key-for-deployment') {
+    console.warn('No hay API Key válida, generando embeddings simples');
+    textsToProcess.forEach((text, i) => {
+      results[indicesMap[i]] = generateSimpleEmbedding(text);
+    });
+    return results;
+  }
 
   try {
     const startTime = Date.now();
@@ -192,13 +217,23 @@ export async function calculateBatchContextualSimilarities(roleEmbedding, candid
 
 function startSimilarityWorker(roleEmbedding, candidateEmbeddings) {
   return new Promise((resolve, reject) => {
-    const worker = new Worker(__filename, { workerData: { roleEmbedding, candidateEmbeddings } });
-    worker.on("message", (result) => resolve(result));
-    worker.on("error", reject);
-    worker.on("exit", (code) => {
-      if (code !== 0)
-        reject(new Error(`Worker finalizó con código ${code}`));
-    });
+    try {
+      const worker = new Worker(__filename, { workerData: { roleEmbedding, candidateEmbeddings } });
+      worker.on("message", (result) => resolve(result));
+      worker.on("error", reject);
+      worker.on("exit", (code) => {
+        if (code !== 0)
+          reject(new Error(`Worker finalizó con código ${code}`));
+      });
+    } catch (error) {
+      console.error("Error al iniciar el worker:", error);
+      // Fallback para el modo de despliegue
+      const similarities = candidateEmbeddings.map((candidate) => {
+        const sim = cosineSimilarity(roleEmbedding, candidate);
+        return Math.floor(sim * 100);
+      });
+      resolve(similarities);
+    }
   });
 }
 
