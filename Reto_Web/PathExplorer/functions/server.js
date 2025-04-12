@@ -30,7 +30,7 @@ try {
   });
 } catch (error) {
   console.error('Error al inicializar OpenAI:', error);
-  // Proporcionar un objeto simulado para permitir que el despliegue continúe
+  // Objeto simulado para permitir despliegue
   openai = {
     embeddings: {
       create: async () => ({ data: [{ embedding: Array(1536).fill(0) }] })
@@ -56,7 +56,6 @@ export async function testAPIKey() {
     console.error('No se ha configurado la API Key de OpenAI');
     return false;
   }
-  
   try {
     const startTime = Date.now();
     const response = await openai.embeddings.create({
@@ -111,7 +110,7 @@ export async function getBatchEmbeddings(texts, sources = []) {
 
   if (textsToProcess.length === 0) return results;
 
-  // Verificar si tenemos una API key válida antes de llamar a la API
+  // Verificar si tenemos una API Key válida antes de llamar a la API
   if (!process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY === 'dummy-key-for-deployment') {
     console.warn('No hay API Key válida, generando embeddings simples');
     textsToProcess.forEach((text, i) => {
@@ -208,7 +207,7 @@ export async function calculateBatchContextualSimilarities(roleEmbedding, candid
     const similarities = await startSimilarityWorker(roleEmbedding, candidateEmbeddings);
     return similarities;
   } catch (error) {
-    return candidateEmbeddings.map((candidate) => {
+    return candidateEmbeddings.map(candidate => {
       const sim = cosineSimilarity(roleEmbedding, candidate);
       return Math.floor(sim * 100);
     });
@@ -227,8 +226,7 @@ function startSimilarityWorker(roleEmbedding, candidateEmbeddings) {
       });
     } catch (error) {
       console.error("Error al iniciar el worker:", error);
-      // Fallback para el modo de despliegue
-      const similarities = candidateEmbeddings.map((candidate) => {
+      const similarities = candidateEmbeddings.map(candidate => {
         const sim = cosineSimilarity(roleEmbedding, candidate);
         return Math.floor(sim * 100);
       });
@@ -239,14 +237,10 @@ function startSimilarityWorker(roleEmbedding, candidateEmbeddings) {
 
 // Función de pesos dinámicos basada en la descripción y skills del rol
 export function calculateDynamicWeights(roleDescription = "", roleSkills = [], skillMap = {}) {
-  let alpha = 0.6,
-    beta = 0.4;
-
+  let alpha = 0.6, beta = 0.4;
   console.log("Calculando pesos dinámicos basados en skills y descripción del rol");
-
   let technicalSkills = [];
   let softSkills = [];
-
   if (roleSkills && roleSkills.length > 0 && skillMap && Object.keys(skillMap).length > 0) {
     console.log(`Clasificando ${roleSkills.length} skills del rol usando mapa de skills`);
     roleSkills.forEach((skill) => {
@@ -255,105 +249,40 @@ export function calculateDynamicWeights(roleDescription = "", roleSkills = [], s
         const skillInfo = skillMap[skillId];
         const skillType = (skillInfo.type || skillInfo.skillType || "unknown").toLowerCase();
         if (skillType === "technical" || skillType === "hard") {
-          technicalSkills.push({
-            ...skill,
-            name: skillInfo.name || `Skill #${skillId}`,
-            importance: skill.importance || 1,
-          });
+          technicalSkills.push({ ...skill, name: skillInfo.name || `Skill #${skillId}`, importance: skill.importance || 1 });
         } else if (skillType === "soft" || skillType === "personal") {
-          softSkills.push({
-            ...skill,
-            name: skillInfo.name || `Skill #${skillId}`,
-            importance: skill.importance || 1,
-          });
+          softSkills.push({ ...skill, name: skillInfo.name || `Skill #${skillId}`, importance: skill.importance || 1 });
         }
       }
     });
-    console.log(
-      `Skills clasificadas - Técnicas: ${technicalSkills.length}, Blandas: ${softSkills.length}`
-    );
+    console.log(`Skills clasificadas - Técnicas: ${technicalSkills.length}, Blandas: ${softSkills.length}`);
   }
-
-  let technicalImportance = technicalSkills.reduce(
-    (sum, skill) => sum + (skill.importance || 1),
-    0
-  );
+  let technicalImportance = technicalSkills.reduce((sum, skill) => sum + (skill.importance || 1), 0);
   let softImportance = softSkills.reduce((sum, skill) => sum + (skill.importance || 1), 0);
-
-  if (
-    (technicalImportance === 0 && softImportance === 0) ||
-    technicalSkills.length + softSkills.length < 3
-  ) {
+  if ((technicalImportance === 0 && softImportance === 0) || technicalSkills.length + softSkills.length < 3) {
     console.log("Información de skills insuficiente, analizando descripción del rol");
     const technicalKeywords = [
-      "programación",
-      "coding",
-      "desarrollo",
-      "development",
-      "técnico",
-      "technical",
-      "react",
-      "javascript",
-      "python",
-      "java",
-      "frontend",
-      "backend",
-      "fullstack",
-      "cloud",
-      "database",
-      "api",
-      "arquitectura",
-      "devops",
-      "mobile",
-      "web",
-      "testing",
-      "qa",
-      "algorithm",
-      "data",
-      "analytics",
-      "machine learning",
+      "programación", "coding", "desarrollo", "development", "técnico", "technical",
+      "react", "javascript", "python", "java", "frontend", "backend", "fullstack",
+      "cloud", "database", "api", "arquitectura", "devops", "mobile", "web",
+      "testing", "qa", "algorithm", "data", "analytics", "machine learning"
     ];
     const softKeywords = [
-      "comunicación",
-      "communication",
-      "liderazgo",
-      "leadership",
-      "trabajo en equipo",
-      "teamwork",
-      "creatividad",
-      "creativity",
-      "resolución de problemas",
-      "problem solving",
-      "gestión",
-      "management",
-      "colaboración",
-      "collaboration",
-      "adaptabilidad",
-      "adaptability",
-      "empatía",
-      "empathy",
-      "organización",
-      "organization",
-      "pensamiento crítico",
+      "comunicación", "communication", "liderazgo", "leadership", "trabajo en equipo", 
+      "teamwork", "creatividad", "creativity", "resolución de problemas", "problem solving",
+      "gestión", "management", "colaboración", "collaboration", "adaptabilidad", "adaptability",
+      "empatía", "empathy", "organización", "organization", "pensamiento crítico"
     ];
     if (roleDescription && roleDescription.trim().length > 0) {
       const descLower = roleDescription.toLowerCase();
-      let technicalCount = 0,
-        softCount = 0;
-      technicalKeywords.forEach((kw) => {
-        if (descLower.includes(kw.toLowerCase())) technicalCount++;
-      });
-      softKeywords.forEach((kw) => {
-        if (descLower.includes(kw.toLowerCase())) softCount++;
-      });
+      let technicalCount = 0, softCount = 0;
+      technicalKeywords.forEach((kw) => { if (descLower.includes(kw.toLowerCase())) technicalCount++; });
+      softKeywords.forEach((kw) => { if (descLower.includes(kw.toLowerCase())) softCount++; });
       technicalImportance = technicalCount;
       softImportance = softCount * 1.5;
-      console.log(
-        `Análisis de descripción - Técnicas: ${technicalCount}, Blandas: ${softCount}`
-      );
+      console.log(`Análisis de descripción - Técnicas: ${technicalCount}, Blandas: ${softCount}`);
     }
   }
-
   const totalImportance = technicalImportance + softImportance;
   if (totalImportance > 0) {
     alpha = technicalImportance / totalImportance;
@@ -366,33 +295,20 @@ export function calculateDynamicWeights(roleDescription = "", roleSkills = [], s
     alpha = alpha / sum;
     beta = beta / sum;
   }
-
   if (roleDescription) {
     const descLower = roleDescription.toLowerCase();
-    if (
-      descLower.includes("altamente técnico") ||
-      descLower.includes("highly technical")
-    ) {
+    if (descLower.includes("altamente técnico") || descLower.includes("highly technical")) {
       alpha = 0.75;
       beta = 0.25;
       console.log("Ajuste especial: Rol altamente técnico");
-    } else if (
-      descLower.includes("cultural fit") ||
-      descLower.includes("soft skills") ||
-      descLower.includes("trabajo en equipo") ||
-      descLower.includes("liderazgo")
-    ) {
+    } else if (descLower.includes("cultural fit") || descLower.includes("soft skills") || 
+               descLower.includes("trabajo en equipo") || descLower.includes("liderazgo")) {
       alpha = 0.4;
       beta = 0.6;
       console.log("Ajuste especial: Rol enfocado en habilidades blandas/cultura");
     }
   }
-
-  console.log(
-    `Pesos calculados - Técnico: ${Math.round(alpha * 100)}%, Contextual: ${Math.round(
-      beta * 100
-    )}%`
-  );
+  console.log(`Pesos calculados - Técnico: ${Math.round(alpha * 100)}%, Contextual: ${Math.round(beta * 100)}%`);
   return { alpha, beta };
 }
 
@@ -455,7 +371,7 @@ export function calculateSkillMatch(employeeSkills, roleSkills, employeeName = "
 }
 
 // Iniciar el servidor localmente solo si se ejecuta directamente
-if (process.env.NODE_ENV !== "firebase") {
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const port = process.env.PORT || 3001;
   app.listen(port, () => {
     console.log(`Servidor corriendo en el puerto ${port}`);
