@@ -16,6 +16,7 @@ import {
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "../supabase/supabaseClient"; // Make sure this path is correct
 
 export const AddRoleCard = ({ onRoleCreated, onCancel, initialRole = null }) => {
   const theme = useTheme();
@@ -31,6 +32,10 @@ export const AddRoleCard = ({ onRoleCreated, onCancel, initialRole = null }) => 
     skills: []
   });
 
+  // Estado para las skills disponibles de la base de datos
+  const [availableSkills, setAvailableSkills] = useState([]);
+  const [loadingSkills, setLoadingSkills] = useState(true);
+
   // Cargar datos del rol si estamos editando
   useEffect(() => {
     if (initialRole) {
@@ -41,6 +46,7 @@ export const AddRoleCard = ({ onRoleCreated, onCancel, initialRole = null }) => 
         yearsOfExperience: initialRole.yearsOfExperience || "",
         description: initialRole.description || "",
         skills: initialRole.skills?.map(skill => ({
+          id: skill.id || skill.skill_ID, // Asegurar que tenemos un ID
           name: skill.name,
           years: skill.years
         })) || []
@@ -48,20 +54,40 @@ export const AddRoleCard = ({ onRoleCreated, onCancel, initialRole = null }) => 
     }
   }, [initialRole]);
   
-  // Catálogo de skills disponibles
-  const availableSkills = [
-    { name: "React", description: "Component-based library" },
-    { name: "HTML 5", description: "Markup language" },
-    { name: "Angular", description: "Framework" },
-    { name: "VueJS", description: "Progressive framework" },
-    { name: "NextJS", description: "React framework" },
-    { name: "Tailwind CSS", description: "Utility-first CSS framework" },
-    { name: "JavaScript", description: "Programming language" },
-    { name: "TypeScript", description: "Typed superset of JavaScript" },
-    { name: "Node.js", description: "JavaScript runtime" },
-    { name: "Express", description: "Web framework for Node.js" },
-    { name: "SQL", description: "Database query language" }
-  ];
+  // Cargar skills desde la base de datos
+  useEffect(() => {
+    const fetchSkills = async () => {
+      try {
+        setLoadingSkills(true);
+        const { data, error } = await supabase
+          .from("Skill")
+          .select("skill_ID, name, description, category, type");
+        
+        if (error) throw error;
+        
+        // Transformar datos para el formato que necesitamos
+        const formattedSkills = data.map(skill => ({
+          id: skill.skill_ID,
+          name: skill.name,
+          description: skill.description || skill.category || "Skill",
+          type: skill.type || "Technical" // Por defecto es técnica si no hay valor
+        }));
+        
+        setAvailableSkills(formattedSkills);
+      } catch (error) {
+        console.error("Error fetching skills:", error);
+        setSnackbar({
+          open: true,
+          message: "Error cargando las habilidades",
+          severity: "error",
+        });
+      } finally {
+        setLoadingSkills(false);
+      }
+    };
+
+    fetchSkills();
+  }, []);
 
   // Estados UI
   const [loading, setLoading] = useState(false);
@@ -87,12 +113,26 @@ export const AddRoleCard = ({ onRoleCreated, onCancel, initialRole = null }) => 
     setRoleData({ ...roleData, skills: newSkills });
   };
 
-  const handleAddSkill = (skillName) => {
+  const handleAddSkill = (skillId) => {
+    // Encontrar la skill por ID
+    const skillToAdd = availableSkills.find(skill => skill.id === skillId);
+    
+    if (!skillToAdd) {
+      console.error(`Skill with ID ${skillId} not found`);
+      return;
+    }
+    
     // Verificar si la habilidad ya existe
-    if (!roleData.skills.some(skill => skill.name === skillName)) {
+    if (!roleData.skills.some(skill => skill.id === skillId)) {
       setRoleData({
         ...roleData,
-        skills: [...roleData.skills, { name: skillName, years: 1 }]
+        skills: [...roleData.skills, { 
+          id: skillId, 
+          skill_ID: skillId, // Añadir para compatibilidad
+          name: skillToAdd.name,
+          years: 1,
+          importance: 1 // Añadir para compatibilidad con el API de matching
+        }]
       });
     } else {
       // Mostrar mensaje de que la habilidad ya existe
@@ -142,9 +182,11 @@ export const AddRoleCard = ({ onRoleCreated, onCancel, initialRole = null }) => 
         yearsOfExperience: roleData.yearsOfExperience,
         description: roleData.description,
         skills: roleData.skills.map(skill => ({
-          id: Date.now() + Math.random(), // Generar un ID único para cada skill
+          id: skill.id,
+          skill_ID: skill.id, // Asegurar que tenemos skill_ID para compatibilidad
           name: skill.name,
-          years: skill.years
+          years: skill.years,
+          importance: skill.importance || 1 // Asegurar que tenemos importancia para el matching
         }))
       };
       
@@ -332,68 +374,80 @@ export const AddRoleCard = ({ onRoleCreated, onCancel, initialRole = null }) => 
                     borderRadius: "4px",
                   },
                 }}>
-                  {availableSkills.map((skill, index) => (
-                    <Box
-                      key={index}
-                      sx={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        p: 1.5,
-                        mb: 1,
-                        border: "1px solid",
-                        borderColor: "divider",
-                        borderRadius: 1,
-                        cursor: "pointer",
-                        "&:hover": {
-                          backgroundColor: theme.palette.action.hover,
-                        },
-                      }}
-                    >
-                      <Box display="flex" alignItems="center" gap={1.5}>
-                        <Box 
-                          sx={{ 
-                            width: 32, 
-                            height: 32, 
-                            borderRadius: "4px",
-                            backgroundColor: theme.palette.primary.light,
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            color: "white",
-                            fontWeight: "bold",
-                          }}
-                        >
-                          {skill.name[0]}
-                        </Box>
-                        <Box>
-                          <Typography variant="body2" fontWeight={500}>
-                            {skill.name}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            {skill.description}
-                          </Typography>
-                        </Box>
-                      </Box>
-                      <Button
-                        size="small"
-                        variant="outlined"
-                        onClick={() => handleAddSkill(skill.name)}
-                        disabled={roleData.skills.some(s => s.name === skill.name)}
+                  {loadingSkills ? (
+                    <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
+                      <CircularProgress size={30} />
+                    </Box>
+                  ) : availableSkills.length > 0 ? (
+                    availableSkills.map((skill) => (
+                      <Box
+                        key={skill.id}
                         sx={{
-                          minWidth: "32px",
-                          width: "32px",
-                          height: "32px",
-                          p: 0,
-                          color: theme.palette.primary.main,
-                          borderColor: theme.palette.primary.main,
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          p: 1.5,
+                          mb: 1,
+                          border: "1px solid",
+                          borderColor: "divider",
                           borderRadius: 1,
+                          cursor: "pointer",
+                          "&:hover": {
+                            backgroundColor: theme.palette.action.hover,
+                          },
                         }}
                       >
-                        +
-                      </Button>
+                        <Box display="flex" alignItems="center" gap={1.5}>
+                          <Box 
+                            sx={{ 
+                              width: 32, 
+                              height: 32, 
+                              borderRadius: "4px",
+                              backgroundColor: theme.palette.primary.light,
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              color: "white",
+                              fontWeight: "bold",
+                            }}
+                          >
+                            {skill.name[0]}
+                          </Box>
+                          <Box>
+                            <Typography variant="body2" fontWeight={500}>
+                              {skill.name}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              {skill.description}
+                            </Typography>
+                          </Box>
+                        </Box>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          onClick={() => handleAddSkill(skill.id)}
+                          disabled={roleData.skills.some(s => s.id === skill.id)}
+                          sx={{
+                            minWidth: "32px",
+                            width: "32px",
+                            height: "32px",
+                            p: 0,
+                            color: theme.palette.primary.main,
+                            borderColor: theme.palette.primary.main,
+                            borderRadius: 1,
+                          }}
+                        >
+                          +
+                        </Button>
+                      </Box>
+                    ))
+                  ) : (
+                    <Box sx={{ textAlign: 'center', p: 3 }}>
+                      <Typography variant="body2" color="text.secondary">
+                        No skills available in the database
+                      </Typography>
                     </Box>
-                  ))}
+                  )}
                 </Box>
               </Box>
             </Grid>
