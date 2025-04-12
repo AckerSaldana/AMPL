@@ -36,3 +36,4 @@ jobs:
           export GOOGLE_APPLICATION_CREDENTIALS=$(pwd)/service-account.json
           firebase deploy --only hosting,functions --project ampl-fdb59
 
+
