@@ -1,12 +1,11 @@
-// functions/index.js
 import * as functions from 'firebase-functions';
 import cors from 'cors';
-import app from './server.js'; // Tu aplicación existente
+import app from './server.js'; // Asegúrate que la ruta sea correcta
 
 // Crea un middleware de CORS
 const corsMiddleware = cors({ 
-  origin: true, // Permite cualquier origen
-  methods: ['GET', 'POST', 'OPTIONS'], // Métodos permitidos
+  origin: true, // Permite cualquier origen. Ajusta según necesites restringir (por ejemplo, a dominios específicos)
+  methods: ['GET', 'POST', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 });
 
