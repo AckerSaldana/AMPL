@@ -29,7 +29,12 @@ jobs:
         working-directory: ./Reto_Web/PathExplorer/functions
         run: npm install
 
+      - name: Setup Firebase Service Account Credentials
+        run: |
+          echo "${{ secrets.FIREBASE_SERVICE_ACCOUNT }}" > service-account.json
+          echo "GOOGLE_APPLICATION_CREDENTIALS=$(pwd)/service-account.json" >> $GITHUB_ENV
+
       - name: Deploy Hosting and Functions
         working-directory: ./Reto_Web/PathExplorer
         run: |
-          firebase deploy --only hosting,functions --project ampl-fdb59 --token ${{ secrets.FIREBASE_TOKEN }}
+          firebase deploy --only hosting,functions --project ampl-fdb59
