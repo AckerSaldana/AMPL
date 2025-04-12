@@ -1,3 +1,4 @@
+
 // functions/index.js
 import * as functions from 'firebase-functions';
 import app from './server.js'; // Asegúrate de que server.js también use sintaxis import/export
