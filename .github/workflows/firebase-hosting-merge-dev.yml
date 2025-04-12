@@ -29,6 +29,11 @@ jobs:
         working-directory: ./Reto_Web/PathExplorer/functions
         run: npm install
 
+      - name: Set Environment Variables
+        working-directory: ./Reto_Web/PathExplorer
+        run: |
+          firebase functions:config:set openai.apikey="${{ secrets.OPENAI_API_KEY }}" --token "${{ secrets.FIREBASE_TOKEN }}" --project ampl-fdb59
+
       - name: Deploy Hosting and Functions
         working-directory: ./Reto_Web/PathExplorer
         run: |
