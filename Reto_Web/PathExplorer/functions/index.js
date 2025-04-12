@@ -1,6 +1,7 @@
+
 // functions/index.js
-const functions = require('firebase-functions');
-const app = require('./server.js'); // Asegúrate de que la ruta sea correcta
+import * as functions from 'firebase-functions';
+import app from './server.js'; // Asegúrate de que server.js también use sintaxis import/export
 
 // Exporta la app como función HTTP
-exports.api = functions.https.onRequest(app);
+export const api = functions.https.onRequest(app);
