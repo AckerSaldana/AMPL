@@ -91,7 +91,7 @@ async function getMatchesForRole(role, employees, skillMap) {
     });
     
     // URL de la API en Firebase Functions
-    const apiUrl = "https://us-central1-ampl-fdb59.cloudfunctions.net/api/getMatches";
+    const apiUrl = "https://cors-anywhere.herokuapp.com/https://us-central1-ampl-fdb59.cloudfunctions.net/api/getMatches";
     
     const response = await fetch(apiUrl, {
       method: "POST",
