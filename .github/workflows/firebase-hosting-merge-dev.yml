@@ -44,4 +44,4 @@ jobs:
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
-          firebase deploy --only hosting,functions --project ampl-fdb59 --token "${{ secrets.FIREBASE_TOKEN }}" --force
+          firebase deploy --only hosting:dev-ampl,functions --project ampl-fdb59 --token "${{ secrets.FIREBASE_TOKEN }}" --force
