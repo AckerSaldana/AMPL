@@ -10,205 +10,181 @@ import {
   useTheme,
   IconButton,
   CircularProgress,
+  Snackbar,
   Alert,
-  Snackbar
+  Chip
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
-import { supabase } from "../supabase/supabaseClient";
+import { useNavigate } from "react-router-dom";
 
-export const AddRoleCard = ({ onRoleCreated, onCancel, initialRole }) => {
+export const AddRoleCard = ({ onRoleCreated, onCancel, initialRole = null }) => {
   const theme = useTheme();
+  const navigate = useNavigate();
   
-  // Estado para el formulario del rol, inicializado con los datos existentes si los hay
+  // Estado para el rol
   const [roleData, setRoleData] = useState({
+    id: Date.now(), // ID temporal
     name: "",
     area: "FRONTEND",
     yearsOfExperience: "",
-    description: ""
+    description: "",
+    skills: []
   });
+
+  // Cargar datos del rol si estamos editando
+  useEffect(() => {
+    if (initialRole) {
+      setRoleData({
+        id: initialRole.id,
+        name: initialRole.name || "",
+        area: initialRole.area || "FRONTEND",
+        yearsOfExperience: initialRole.yearsOfExperience || "",
+        description: initialRole.description || "",
+        skills: initialRole.skills?.map(skill => ({
+          name: skill.name,
+          years: skill.years
+        })) || []
+      });
+    }
+  }, [initialRole]);
   
-  // Estados para skills
-  const [availableSkills, setAvailableSkills] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [submitting, setSubmitting] = useState(false);
+  // Catálogo de skills disponibles
+  const availableSkills = [
+    { name: "React", description: "Component-based library" },
+    { name: "HTML 5", description: "Markup language" },
+    { name: "Angular", description: "Framework" },
+    { name: "VueJS", description: "Progressive framework" },
+    { name: "NextJS", description: "React framework" },
+    { name: "Tailwind CSS", description: "Utility-first CSS framework" },
+    { name: "JavaScript", description: "Programming language" },
+    { name: "TypeScript", description: "Typed superset of JavaScript" },
+    { name: "Node.js", description: "JavaScript runtime" },
+    { name: "Express", description: "Web framework for Node.js" },
+    { name: "SQL", description: "Database query language" }
+  ];
+
+  // Estados UI
+  const [loading, setLoading] = useState(false);
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: "",
     severity: "success",
   });
 
-  // Estado para las skills seleccionadas
-  // Ahora guardaremos el objeto completo (con id, name y years)
-  const [selectedSkills, setSelectedSkills] = useState([]);
-
-  // Efecto para cargar los datos del rol cuando cambia initialRole
-  useEffect(() => {
-    if (initialRole) {
-      // Si estamos editando un rol, cargamos sus datos
-      setRoleData({
-        name: initialRole.name || "",
-        area: initialRole.area || "FRONTEND",
-        yearsOfExperience: initialRole.yearsOfExperience || "",
-        description: initialRole.description || ""
-      });
-      setSelectedSkills(initialRole.skills || []);
-    } else {
-      // Si estamos creando un nuevo rol, limpiamos el formulario
-      resetForm();
-    }
-  }, [initialRole]);
-
-  // Función para resetear el formulario
-  const resetForm = () => {
-    setRoleData({
-      name: "",
-      area: "FRONTEND",
-      yearsOfExperience: "",
-      description: ""
-    });
-    setSelectedSkills([]);
-  };
-
-  // Cargar las skills desde la base de datos al montar el componente
-  useEffect(() => {
-    const fetchSkills = async () => {
-      try {
-        setLoading(true);
-        const { data, error } = await supabase
-          .from('Skill')
-          .select('skill_ID, name, description');
-        
-        if (error) {
-          console.error('Error fetching skills:', error);
-          setError('Error al cargar las habilidades. Por favor, intenta de nuevo.');
-          return;
-        }
-        
-        // Transformar los datos para tener el formato esperado
-        if (data) {
-          // Aquí usamos "id" para guardar el identificador real (skill_ID)
-          const formattedSkills = data.map(skill => ({
-            id: skill.skill_ID,
-            name: skill.name,
-            description: skill.description || (
-              parseInt(skill.skill_ID) % 2 === 0 ? "Component-based library" : "Framework"
-            )
-          }));
-          
-          setAvailableSkills(formattedSkills);
-        }
-      } catch (err) {
-        console.error('Unexpected error:', err);
-        setError('Error inesperado. Por favor, intenta de nuevo más tarde.');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchSkills();
-  }, []);
-
-  // Manejar cambios en los campos del formulario
+  // Handlers para el formulario
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setRoleData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    setRoleData({
+      ...roleData,
+      [name]: value,
+    });
   };
 
-  // Función para eliminar una skill seleccionada
+  // Manejar skills
   const handleDeleteSkill = (index) => {
-    setSelectedSkills(prev => prev.filter((_, i) => i !== index));
+    const newSkills = [...roleData.skills];
+    newSkills.splice(index, 1);
+    setRoleData({ ...roleData, skills: newSkills });
   };
 
-  // Función para agregar una skill
-  // Se modifica para que reciba el objeto completo de la skill
-  const handleAddSkill = (skill) => {
-    // Verificar si la habilidad ya existe usando el id
-    if (!selectedSkills.some(s => s.id === skill.id)) {
-      // Se agrega un objeto con id, name y un valor por defecto de años
-      setSelectedSkills([...selectedSkills, { id: skill.id, name: skill.name, years: 1 }]);
-      
-      setSnackbar({
-        open: true,
-        message: `Habilidad "${skill.name}" agregada correctamente.`,
-        severity: "success",
+  const handleAddSkill = (skillName) => {
+    // Verificar si la habilidad ya existe
+    if (!roleData.skills.some(skill => skill.name === skillName)) {
+      setRoleData({
+        ...roleData,
+        skills: [...roleData.skills, { name: skillName, years: 1 }]
       });
     } else {
+      // Mostrar mensaje de que la habilidad ya existe
       setSnackbar({
         open: true,
-        message: `La habilidad "${skill.name}" ya está en la lista.`,
-        severity: "warning",
+        message: "This skill is already in your list",
+        severity: "info",
       });
     }
   };
 
-  // Manejar cambio en la cantidad de años para una skill seleccionada
   const handleChangeYears = (index, value) => {
-    const newSkills = [...selectedSkills];
-    newSkills[index].years = value;
-    setSelectedSkills(newSkills);
+    const newSkills = [...roleData.skills];
+    newSkills[index].years = parseInt(value) || 0;
+    setRoleData({ ...roleData, skills: newSkills });
   };
 
-  const handleCloseSnackbar = () => {
-    setSnackbar({ ...snackbar, open: false });
-  };
-  
-  // Función para crear o actualizar el rol
-  const handleCreateRole = async () => {
-    // Validación básica
+  // Enviar el formulario
+  const handleSubmit = () => {
+    // Validar datos
     if (!roleData.name.trim()) {
       setSnackbar({
         open: true,
-        message: "Por favor, ingresa un nombre para el rol",
-        severity: "error",
+        message: "Please enter a role name",
+        severity: "warning",
       });
       return;
     }
-    
+
+    if (!roleData.yearsOfExperience) {
+      setSnackbar({
+        open: true,
+        message: "Please enter years of experience",
+        severity: "warning",
+      });
+      return;
+    }
+
     try {
-      setSubmitting(true);
+      setLoading(true);
       
-      // Simulación de demora para mostrar estado de carga
-      await new Promise(resolve => setTimeout(resolve, 800));
-      
-      // Crear u actualizar el objeto rol con todos los datos
-      const roleObject = {
+      // Preparar el rol con el formato esperado para RoleAssign
+      const formattedRole = {
+        id: roleData.id,
         name: roleData.name,
         area: roleData.area,
-        yearsOfExperience: roleData.yearsOfExperience || 0,
+        yearsOfExperience: roleData.yearsOfExperience,
         description: roleData.description,
-        skills: selectedSkills, // Aquí cada skill tendrá id y name
-        // Si se está editando, se mantiene el id; si no, se genera uno nuevo
-        id: initialRole?.id || `role-${Date.now()}`
+        skills: roleData.skills.map(skill => ({
+          id: Date.now() + Math.random(), // Generar un ID único para cada skill
+          name: skill.name,
+          years: skill.years
+        }))
       };
       
-      // Se llama la función de callback para informar al padre
-      if (onRoleCreated) {
-        onRoleCreated(roleObject);
+      // Llamar al callback con los datos del rol
+      if (typeof onRoleCreated === 'function') {
+        onRoleCreated(formattedRole);
+        
+        // Si todo va bien, mostrar mensaje de éxito
+        setSnackbar({
+          open: true,
+          message: initialRole 
+            ? "Role updated successfully" 
+            : "Role added successfully",
+          severity: "success",
+        });
+        
+        // Limpiar formulario si no estamos editando
+        if (!initialRole) {
+          setRoleData({
+            id: Date.now(),
+            name: "",
+            area: "FRONTEND",
+            yearsOfExperience: "",
+            description: "",
+            skills: []
+          });
+        }
+      } else {
+        console.error("onRoleCreated is not a function", onRoleCreated);
+        throw new Error("Error al guardar el rol: onRoleCreated no es una función");
       }
-      
-      setSnackbar({
-        open: true,
-        message: `Rol "${roleData.name}" ${initialRole ? 'actualizado' : 'creado'} correctamente`,
-        severity: "success",
-      });
-
-      if (!initialRole) {
-        resetForm();
-      }
-      
     } catch (error) {
-      console.error("Error creating/updating role:", error);
+      console.error("Error saving role:", error);
       setSnackbar({
         open: true,
-        message: `Error al ${initialRole ? 'actualizar' : 'crear'} el rol: ${error.message}`,
+        message: `Error: ${error.message}`,
         severity: "error",
       });
     } finally {
-      setSubmitting(false);
+      setLoading(false);
     }
   };
 
@@ -220,7 +196,7 @@ export const AddRoleCard = ({ onRoleCreated, onCancel, initialRole }) => {
         borderRadius: 1,
         overflow: "hidden",
         display: "flex",
-        flexDirection: "column"
+        flexDirection: "column",
       }}
     >
       {/* Encabezado */}
@@ -230,7 +206,7 @@ export const AddRoleCard = ({ onRoleCreated, onCancel, initialRole }) => {
           py: 2,
           px: 3,
           borderTopLeftRadius: 4,
-          borderTopRightRadius: 4
+          borderTopRightRadius: 4,
         }}
       >
         <Typography variant="h6" fontWeight={600} color="white">
@@ -238,28 +214,29 @@ export const AddRoleCard = ({ onRoleCreated, onCancel, initialRole }) => {
         </Typography>
       </Box>
 
-      {/* Contenido Principal */}
+      {/* Contenido Principal - con flex-grow para que ocupe el espacio disponible */}
       <Box sx={{ p: 3, flexGrow: 1, display: "flex", flexDirection: "column" }}>
         {/* Área scrollable principal */}
-        <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column" }}>
+        <Box sx={{ flexGrow: 1, overflow: "auto" }}>
           <Grid container spacing={3}>
             {/* Columna izquierda: Detalles del rol */}
             <Grid item xs={12} md={6}>
               <Box mb={3}>
                 <Typography fontWeight={600} mb={1} color="text.primary">
-                  Role name
+                  Role name *
                 </Typography>
                 <TextField
                   fullWidth
-                  placeholder="Frontend Developer"
-                  size="small"
                   name="name"
                   value={roleData.name}
                   onChange={handleInputChange}
+                  placeholder="Frontend Developer"
+                  size="small"
+                  required
                   sx={{
                     "& .MuiOutlinedInput-root": {
-                      borderRadius: 1
-                    }
+                      borderRadius: 1,
+                    },
                   }}
                 />
               </Box>
@@ -277,32 +254,38 @@ export const AddRoleCard = ({ onRoleCreated, onCancel, initialRole }) => {
                   size="small"
                   sx={{
                     "& .MuiOutlinedInput-root": {
-                      borderRadius: 1
-                    }
+                      borderRadius: 1,
+                    },
                   }}
                 >
                   <MenuItem value="FRONTEND">FRONTEND</MenuItem>
                   <MenuItem value="BACKEND">BACKEND</MenuItem>
                   <MenuItem value="FULLSTACK">FULLSTACK</MenuItem>
+                  <MenuItem value="DEVOPS">DEVOPS</MenuItem>
+                  <MenuItem value="UX/UI">UX/UI</MenuItem>
+                  <MenuItem value="QA">QA</MenuItem>
+                  <MenuItem value="MOBILE">MOBILE</MenuItem>
                 </TextField>
               </Box>
               
               <Box mb={3}>
                 <Typography fontWeight={600} mb={1} color="text.primary">
-                  Years of experience on the area
+                  Years of experience in the area *
                 </Typography>
                 <TextField
                   fullWidth
                   type="number"
-                  placeholder="3"
                   name="yearsOfExperience"
                   value={roleData.yearsOfExperience}
                   onChange={handleInputChange}
+                  placeholder="3"
                   size="small"
+                  required
+                  inputProps={{ min: 0 }}
                   sx={{
                     "& .MuiOutlinedInput-root": {
-                      borderRadius: 1
-                    }
+                      borderRadius: 1,
+                    },
                   }}
                 />
               </Box>
@@ -313,152 +296,43 @@ export const AddRoleCard = ({ onRoleCreated, onCancel, initialRole }) => {
                 </Typography>
                 <TextField
                   fullWidth
-                  placeholder="Add a description here..."
                   multiline
                   rows={4}
                   name="description"
                   value={roleData.description}
                   onChange={handleInputChange}
+                  placeholder="Add a description here..."
                   sx={{
                     "& .MuiOutlinedInput-root": {
-                      borderRadius: 1
-                    }
+                      borderRadius: 1,
+                    },
                   }}
                 />
               </Box>
             </Grid>
             
-            {/* Columna derecha: Habilidades disponibles */}
+            {/* Columna derecha: Habilidades */}
             <Grid item xs={12} md={6}>
               <Box mb={3}>
                 <Typography fontWeight={600} mb={1} color="text.primary">
-                  Skill list
+                  Available skills
                 </Typography>
-                
-                {loading ? (
-                  <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
-                    <CircularProgress size={40} />
-                  </Box>
-                ) : error ? (
-                  <Alert severity="error" sx={{ mb: 2 }}>
-                    {error}
-                  </Alert>
-                ) : (
-                  <Box sx={{ 
-                    maxHeight: "415px", 
-                    overflowY: "auto",
-                    "&::-webkit-scrollbar": {
-                      width: "8px"
-                    },
-                    "&::-webkit-scrollbar-track": {
-                      backgroundColor: "rgba(0,0,0,0.05)",
-                      borderRadius: "4px"
-                    },
-                    "&::-webkit-scrollbar-thumb": {
-                      backgroundColor: theme.palette.primary.light,
-                      borderRadius: "4px"
-                    }
-                  }}>
-                    {availableSkills.map((skill, index) => (
-                      <Box
-                        key={skill.id || index}
-                        sx={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "center",
-                          p: 1.5,
-                          mb: 1,
-                          border: "1px solid",
-                          borderColor: "divider",
-                          borderRadius: 1,
-                          cursor: "pointer",
-                          "&:hover": {
-                            backgroundColor: theme.palette.action.hover
-                          }
-                        }}
-                      >
-                        <Box display="flex" alignItems="center" gap={1.5}>
-                          <Box 
-                            sx={{ 
-                              width: 32, 
-                              height: 32, 
-                              borderRadius: "4px",
-                              backgroundColor: theme.palette.primary.light,
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              color: "white",
-                              fontWeight: "bold"
-                            }}
-                          >
-                            {skill.name ? skill.name[0] : 'S'}
-                          </Box>
-                          <Box>
-                            <Typography variant="body2" fontWeight={500}>
-                              {skill.name}
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary">
-                              {skill.description || (index % 2 === 0 ? "Component-based library" : "Framework")}
-                            </Typography>
-                          </Box>
-                        </Box>
-                        <Button
-                          size="small"
-                          variant="outlined"
-                          onClick={() => handleAddSkill(skill)}
-                          sx={{
-                            minWidth: "32px",
-                            width: "32px",
-                            height: "32px",
-                            p: 0,
-                            color: theme.palette.primary.main,
-                            borderColor: theme.palette.primary.main,
-                            borderRadius: 1,
-                          }}
-                        >
-                          +
-                        </Button>
-                      </Box>
-                    ))}
-                  </Box>
-                )}
-              </Box>
-            </Grid>
-          </Grid>
-          
-          {/* Sección de Skills Seleccionadas */}
-          <Box mb={3}>
-            <Typography fontWeight={600} mb={1.5} color="text.primary">
-              Skills selected
-            </Typography>
-            <Box
-              sx={{
-                border: "1px solid",
-                borderColor: "divider",
-                borderRadius: 1,
-                maxHeight: "180px",
-                overflow: "hidden"
-              }}
-            >
-              <Box
-                sx={{
-                  maxHeight: "180px",
+                <Box sx={{ 
+                  maxHeight: "415px", 
                   overflowY: "auto",
                   "&::-webkit-scrollbar": {
-                    width: "8px"
+                    width: "8px",
                   },
                   "&::-webkit-scrollbar-track": {
                     backgroundColor: "rgba(0,0,0,0.05)",
-                    borderRadius: "4px"
+                    borderRadius: "4px",
                   },
                   "&::-webkit-scrollbar-thumb": {
                     backgroundColor: theme.palette.primary.light,
-                    borderRadius: "4px"
-                  }
-                }}
-              >
-                {selectedSkills.length > 0 ? (
-                  selectedSkills.map((skill, index) => (
+                    borderRadius: "4px",
+                  },
+                }}>
+                  {availableSkills.map((skill, index) => (
                     <Box
                       key={index}
                       sx={{
@@ -466,13 +340,118 @@ export const AddRoleCard = ({ onRoleCreated, onCancel, initialRole }) => {
                         justifyContent: "space-between",
                         alignItems: "center",
                         p: 1.5,
-                        borderBottom: index < selectedSkills.length - 1 ? "1px solid" : "none",
-                        borderColor: "divider"
+                        mb: 1,
+                        border: "1px solid",
+                        borderColor: "divider",
+                        borderRadius: 1,
+                        cursor: "pointer",
+                        "&:hover": {
+                          backgroundColor: theme.palette.action.hover,
+                        },
                       }}
                     >
-                      <Typography variant="body2" fontWeight={500}>
-                        {skill.name}
-                      </Typography>
+                      <Box display="flex" alignItems="center" gap={1.5}>
+                        <Box 
+                          sx={{ 
+                            width: 32, 
+                            height: 32, 
+                            borderRadius: "4px",
+                            backgroundColor: theme.palette.primary.light,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            color: "white",
+                            fontWeight: "bold",
+                          }}
+                        >
+                          {skill.name[0]}
+                        </Box>
+                        <Box>
+                          <Typography variant="body2" fontWeight={500}>
+                            {skill.name}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {skill.description}
+                          </Typography>
+                        </Box>
+                      </Box>
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        onClick={() => handleAddSkill(skill.name)}
+                        disabled={roleData.skills.some(s => s.name === skill.name)}
+                        sx={{
+                          minWidth: "32px",
+                          width: "32px",
+                          height: "32px",
+                          p: 0,
+                          color: theme.palette.primary.main,
+                          borderColor: theme.palette.primary.main,
+                          borderRadius: 1,
+                        }}
+                      >
+                        +
+                      </Button>
+                    </Box>
+                  ))}
+                </Box>
+              </Box>
+            </Grid>
+          </Grid>
+          
+          {/* Skills Selected - Con scroll independiente */}
+          <Box mb={3}>
+            <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
+              <Typography fontWeight={600} color="text.primary">
+                Skills selected
+              </Typography>
+              <Chip 
+                label={`${roleData.skills.length} skills`} 
+                size="small" 
+                color="primary" 
+                variant="outlined"
+              />
+            </Box>
+            <Box
+              sx={{
+                border: "1px solid",
+                borderColor: "divider",
+                borderRadius: 1,
+                maxHeight: "180px", // altura máxima fija
+                overflow: "hidden", // oculta el contenido que excede el tamaño
+              }}
+            >
+              <Box
+                sx={{
+                  maxHeight: "180px",
+                  overflowY: "auto",
+                  "&::-webkit-scrollbar": {
+                    width: "8px",
+                  },
+                  "&::-webkit-scrollbar-track": {
+                    backgroundColor: "rgba(0,0,0,0.05)",
+                    borderRadius: "4px",
+                  },
+                  "&::-webkit-scrollbar-thumb": {
+                    backgroundColor: theme.palette.primary.light,
+                    borderRadius: "4px",
+                  },
+                }}
+              >
+                {roleData.skills.length > 0 ? (
+                  roleData.skills.map((skill, index) => (
+                    <Box
+                      key={index}
+                      sx={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        p: 1.5,
+                        borderBottom: index < roleData.skills.length - 1 ? "1px solid" : "none",
+                        borderColor: "divider",
+                      }}
+                    >
+                      <Typography variant="body2" fontWeight={500}>{skill.name}</Typography>
                       <Box display="flex" alignItems="center" gap={1}>
                         <Typography variant="caption" color="text.secondary">
                           Years of Experience
@@ -482,11 +461,12 @@ export const AddRoleCard = ({ onRoleCreated, onCancel, initialRole }) => {
                           type="number"
                           value={skill.years}
                           onChange={(e) => handleChangeYears(index, e.target.value)}
+                          inputProps={{ min: 0 }}
                           InputProps={{
                             sx: { 
                               borderRadius: 1,
                               height: 32,
-                              width: 60
+                              width: 60,
                             }
                           }}
                         />
@@ -521,20 +501,20 @@ export const AddRoleCard = ({ onRoleCreated, onCancel, initialRole }) => {
           </Box>
         </Box>
 
-        {/* Botones inferiores */}
+        {/* Contenedor para los botones - Posición fija en la parte inferior */}
         <Box 
           sx={{ 
             display: "flex", 
             justifyContent: "center",
             pt: 3,
-            mt: "auto"
+            mt: "auto", // Empuja hacia abajo
           }}
         >
           <Button
             variant="contained"
             color="primary"
-            onClick={handleCreateRole}
-            disabled={submitting}
+            onClick={handleSubmit}
+            disabled={loading}
             sx={{ 
               minWidth: 110, 
               mx: 1, 
@@ -543,21 +523,19 @@ export const AddRoleCard = ({ onRoleCreated, onCancel, initialRole }) => {
               borderRadius: 1,
               textTransform: "uppercase",
               fontWeight: 600,
-              backgroundColor: theme.palette.primary.main
+              backgroundColor: theme.palette.primary.main,
             }}
           >
-            {submitting ? (
+            {loading ? (
               <CircularProgress size={24} color="inherit" />
-            ) : initialRole ? (
-              "UPDATE"
             ) : (
-              "CREATE"
+              initialRole ? "UPDATE" : "CREATE"
             )}
           </Button>
           <Button
             variant="contained"
-            onClick={initialRole ? onCancel : resetForm}
-            disabled={submitting}
+            onClick={onCancel}
+            disabled={loading}
             sx={{ 
               minWidth: 110, 
               mx: 1, 
@@ -566,29 +544,28 @@ export const AddRoleCard = ({ onRoleCreated, onCancel, initialRole }) => {
               borderRadius: 1,
               backgroundColor: theme.palette.grey[700],
               "&:hover": {
-                backgroundColor: theme.palette.grey[800]
+                backgroundColor: theme.palette.grey[800],
               },
               textTransform: "uppercase",
-              fontWeight: 600
+              fontWeight: 600,
             }}
           >
-            {initialRole ? "CANCEL" : "CLEAR"}
+            CANCEL
           </Button>
         </Box>
       </Box>
 
-      {/* Snackbar */}
+      {/* Snackbar para mensajes */}
       <Snackbar
         open={snackbar.open}
-        autoHideDuration={4000}
-        onClose={handleCloseSnackbar}
-        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+        autoHideDuration={6000}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
       >
         <Alert 
-          onClose={handleCloseSnackbar} 
-          severity={snackbar.severity} 
-          variant="filled"
-          sx={{ width: "100%" }}
+          onClose={() => setSnackbar({ ...snackbar, open: false })} 
+          severity={snackbar.severity}
+          sx={{ width: '100%' }}
         >
           {snackbar.message}
         </Alert>

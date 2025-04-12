@@ -90,7 +90,10 @@ async function getMatchesForRole(role, employees, skillMap) {
       skillMapCount: Object.keys(skillMap).length
     });
     
-    const response = await fetch("https://dev-ampl.web.app/api/getMatches", {
+    // URL de la API en Firebase Functions
+    const apiUrl = "https://us-central1-ampl-fdb59.cloudfunctions.net/api/getMatches";
+    
+    const response = await fetch(apiUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
