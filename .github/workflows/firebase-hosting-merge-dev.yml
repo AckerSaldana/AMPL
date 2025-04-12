@@ -40,3 +40,4 @@ jobs:
         working-directory: ./Reto_Web/PathExplorer
         run: |
           firebase deploy --only hosting,functions --project ampl-fdb59
+
