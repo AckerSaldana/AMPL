@@ -90,7 +90,7 @@ async function getMatchesForRole(role, employees, skillMap) {
       skillMapCount: Object.keys(skillMap).length
     });
     
-    const response = await fetch("http://localhost:3001/api/getMatches", {
+    const response = await fetch("https://dev-ampl.web.app/api/getMatches", {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
