@@ -21,6 +21,7 @@ import EditIcon from "@mui/icons-material/Edit";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../supabase/supabaseClient";
 
+// Modificado para usar props: roles, onEditRole, onDeleteRole
 export const AddProjectCard = ({ roles, onEditRole, onDeleteRole }) => {
   const theme = useTheme();
   const navigate = useNavigate();
@@ -107,6 +108,22 @@ export const AddProjectCard = ({ roles, onEditRole, onDeleteRole }) => {
     try {
       setLoading(true);
 
+      // Preparar los roles con el formato correcto para el matching
+      const formattedRoles = roles.map(role => ({
+        id: role.id,
+        name: role.name,
+        area: role.area,
+        yearsOfExperience: role.yearsOfExperience,
+        description: role.description,
+        skills: role.skills.map(skill => ({
+          id: skill.id,
+          skill_ID: skill.id, // Asegurar compatibilidad
+          name: skill.name,
+          years: skill.years,
+          importance: skill.importance || 1
+        }))
+      }));
+
       // En lugar de crear el proyecto en la base de datos,
       // simplemente guardar todos los datos en localStorage
       const tempProjectData = {
@@ -122,7 +139,7 @@ export const AddProjectCard = ({ roles, onEditRole, onDeleteRole }) => {
           progress: projectData.progress
         },
         // Array de roles
-        roles: roles,
+        roles: formattedRoles,
         // Timestamp para identificación única (simular ID)
         tempId: Date.now()
       };
