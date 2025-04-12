@@ -13,13 +13,10 @@ on:
 jobs:
   build_and_deploy:
     runs-on: ubuntu-latest
-    env:
-      # Se establece GOOGLE_APPLICATION_CREDENTIALS para que Firebase CLI use las credenciales
-      GOOGLE_APPLICATION_CREDENTIALS: ${{ github.workspace }}/service-account.json
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install and Build Project (Frontend)
+      - name: Install and Build Frontend
         working-directory: ./Reto_Web/PathExplorer
         run: |
           npm install
@@ -32,11 +29,9 @@ jobs:
         working-directory: ./Reto_Web/PathExplorer/functions
         run: npm install
 
-      - name: Setup Firebase Service Account Credentials
-        run: |
-          echo "${{ secrets.FIREBASE_SERVICE_ACCOUNT }}" > service-account.json
-
       - name: Deploy Hosting and Functions
         working-directory: ./Reto_Web/PathExplorer
         run: |
+          echo "${{ secrets.FIREBASE_SERVICE_ACCOUNT }}" > service-account.json
+          export GOOGLE_APPLICATION_CREDENTIALS=$(pwd)/service-account.json
           firebase deploy --only hosting,functions --project ampl-fdb59
