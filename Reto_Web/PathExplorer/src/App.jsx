@@ -7,9 +7,10 @@ import Profiles from "./pages/Profiles";
 import Analytics from "./pages/Analytics";
 import Settings from "./pages/Settings";
 import User from "./pages/User";
-import Certifications from "./pages/Certifications"; 
+import Certifications from "./pages/Certifications";
 
 import ProjectDashboard from "./pages/ProjectDashboard.jsx";
+import ProjectDetail from "./pages/ProjectDetail.jsx";
 
 import EditProfile from "./pages/EditProfile";
 import Login from "./pages/Login";
@@ -18,7 +19,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import Unauthorized from "./pages/Unauthorized"; // Necesitamos crear esta página
 import AddProject from "./pages/AddProject.jsx";
 import RoleAssign from "./pages/RoleAssign.jsx";
-
+import ProjectEdit from "./pages/ProjectEdit.jsx";
 
 function App() {
   return (
@@ -39,13 +40,13 @@ function App() {
           >
             <Route index element={<Dashboard />} />
             <Route path="projects" element={<ProjectDashboard />} />
-
+            <Route path="/project-detail/:id" element={<ProjectDetail />} />
+            <Route path="/project-edit/:id" element={<ProjectEdit />} />
 
             <Route path="add-projects" element={<AddProject />} />
             <Route path="role-assign" element={<RoleAssign />} />
 
             <Route path="certifications" element={<Certifications />} />
-
 
             <Route path="settings" element={<Settings />} />
             <Route path="user" element={<User />} />
