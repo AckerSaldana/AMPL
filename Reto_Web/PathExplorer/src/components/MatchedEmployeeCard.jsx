@@ -9,11 +9,13 @@ import { alpha } from "@mui/material/styles";
 const MatchedEmployeeCard = ({ 
   name, 
   avatar, 
-  score, 
+  score = 0,  // Valor predeterminado 
   technicalScore = 0, 
   contextualScore = 0, 
+  weights = { technical: 60, contextual: 40 },  // Valores predeterminados
   onSelect 
 }) => (
+  
   <Paper
     elevation={1}
     sx={{
@@ -34,6 +36,7 @@ const MatchedEmployeeCard = ({
     }}
     onClick={onSelect}
   >
+    console.log(`Avatar para ${name}:`, avatar);
     <Avatar
       src={avatar}
       sx={{ 
@@ -105,13 +108,13 @@ const MatchedEmployeeCard = ({
             <Box sx={{ display: "flex", alignItems: "center", mb: 0.5 }}>
               <BuildIcon fontSize="small" sx={{ mr: 1, color: "warning.main" }} />
               <Typography variant="body2">
-                Técnico: <b>{technicalScore}%</b> <small>(peso 60%)</small>
+                Técnico: <b>{technicalScore}%</b> <small>(peso {weights?.technical || 60}%)</small>
               </Typography>
             </Box>
             <Box sx={{ display: "flex", alignItems: "center" }}>
               <TipsAndUpdatesIcon fontSize="small" sx={{ mr: 1, color: "info.main" }} />
               <Typography variant="body2">
-                Contextual: <b>{contextualScore}%</b> <small>(peso 40%)</small>
+                Contextual: <b>{contextualScore}%</b> <small>(peso {weights?.contextual || 40}%)</small>
               </Typography>
             </Box>
           </Box>
@@ -133,7 +136,7 @@ const MatchedEmployeeCard = ({
           sx={{ 
             color: score >= 90 ? "success.main" : score >= 70 ? "warning.main" : "error.main"
           }}
-        >{`${score}%`}</Typography>
+        >{`${score || 0}%`}</Typography>
         <Typography 
           variant="caption" 
           color="text.secondary"
