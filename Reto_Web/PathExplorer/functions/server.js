@@ -419,6 +419,10 @@ app.post("/getMatches", async (req, res) => {
   }
 });
 
+app.get('/test', (req, res) => {
+  res.json({ status: 'ok', message: 'Servidor funcionando correctamente' });
+});
+
 // ----------------------------------------------------------------------------
 
 // Iniciar el servidor localmente solo si se ejecuta directamente
