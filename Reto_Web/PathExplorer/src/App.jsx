@@ -15,7 +15,7 @@ import EditProfile from "./pages/EditProfile";
 import Login from "./pages/Login";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Unauthorized from "./pages/Unauthorized";
-
+import SubmitCertification from "./pages/SubmitCertification.jsx";
 
 function App() {
   return (
@@ -40,6 +40,7 @@ function App() {
             <Route path="settings" element={<Settings />} />
             <Route path="user" element={<User />} />
             <Route path="edit-profile" element={<EditProfile />} />
+            <Route path="/submit-certification" element={<SubmitCertification />} />
           </Route>
 
           {/* Rutas accesibles solo para TFS y manager */}
