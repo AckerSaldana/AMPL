@@ -61,7 +61,7 @@ function generateRoleDescription(roleName, skills = [], skillMap = {}) {
 }
 
 // Función para llamar al endpoint backend que procesa el matching para un rol.
-// Función para llamar al endpoint backend que procesa el matching para un rol.
+
 async function getMatchesForRole(role, employees, skillMap) {
   try {
     // Debug de habilidades requeridas para el rol y sus tipos
@@ -117,14 +117,20 @@ async function getMatchesForRole(role, employees, skillMap) {
     const data = await response.json();
     
     // Mapear los resultados para incluir 'score' a partir de 'combinedScore'
-    const mappedMatches = data.matches.map(match => ({
-      ...match,
-      score: match.combinedScore || 0,  // Asignar combinedScore a score
-      weights: {
-        technical: data.weights?.technical || 60,
-        contextual: data.weights?.contextual || 40
-      }
-    }));
+    const mappedMatches = data.matches.map(match => {
+      // Buscar el empleado original para obtener su avatar
+      const originalEmployee = employees.find(emp => emp.id === match.id);
+      
+      return {
+        ...match,
+        avatar: originalEmployee?.avatar || null, // Usar el avatar del empleado original
+        score: match.combinedScore || 0,  // Asignar combinedScore a score
+        weights: {
+          technical: data.weights?.technical || 60,
+          contextual: data.weights?.contextual || 40
+        }
+      };
+    });
     
     // Ordenar los candidatos por score de mayor a menor
     mappedMatches.sort((a, b) => (b.score || 0) - (a.score || 0));
@@ -307,32 +313,13 @@ const RoleAssign = () => {
           const userSkills = userSkillsMap[userId] || [];
           const userName = `${user.name || ""} ${user.last_name || ""}`.trim() || "Usuario sin nombre";
           
-          // Obtener URL del avatar
-          let avatarUrl = null;
-          if (user.profile_pic) {
-            // Determinar la carpeta correcta basada en alguna lógica o verificar el profile_pic
-            let path = user.profile_pic;
-            
-            // Si el profile_pic no incluye ya la carpeta, añadirla
-            if (path && !path.includes('/')) {
-              // Puedes usar un campo del usuario para determinar la carpeta correcta
-              // o simplemente verificar si existe en una carpeta u otra
-              const folder = user.gender === 'male' ? 'Profile-Pic Mn' : 'Profile-Pic Wm';
-              path = `${folder}/${path}`;
-            }
-            
-            const { data } = supabase.storage
-              .from('profile-user')
-              .getPublicUrl(path);
-            
-            avatarUrl = data?.publicUrl || null;
-            console.log(`Avatar construido para ${userName}:`, avatarUrl);
-          }
+          // Usar directamente el enlace almacenado en profile_pic
+          const avatarUrl = user.profile_pic || null;
           
           return {
             id: userId,
             name: userName,
-            avatar: avatarUrl,
+            avatar: avatarUrl, 
             skills: userSkills,
             bio: user.about || `Profesional del área de tecnología: ${userName}`
           };

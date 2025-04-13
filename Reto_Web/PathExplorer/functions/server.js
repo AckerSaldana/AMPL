@@ -533,6 +533,7 @@ app.post("/getMatches", async (req, res) => {
     const matches = employees.map((emp, idx) => ({
       id: emp.id,
       name: emp.name,
+      avatar: emp.avatar,
       technicalScore: technicalScores[idx],
       contextualScore: contextualScores[idx],
       combinedScore: combinedScores[idx],
@@ -610,6 +611,7 @@ app.post("/api/getMatches", async (req, res) => {
     const matches = employees.map((emp, idx) => ({
       id: emp.id,
       name: emp.name,
+      avatar: emp.avatar,
       technicalScore: technicalScores[idx],
       contextualScore: contextualScores[idx],
       combinedScore: combinedScores[idx],
