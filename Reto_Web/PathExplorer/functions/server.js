@@ -675,5 +675,4 @@ if (!process.env.FUNCTION_NAME) {
   });
 }
 
-
 export default app;
