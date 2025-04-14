@@ -659,24 +659,19 @@ app.get('/test-openai', async (req, res) => {
 
 // ----------------------------------------------------------------------------
 
-// Iniciar el servidor localmente solo si se ejecuta directamente
-if (process.env.NODE_ENV !== "firebase") {
+// Solo iniciar el servidor localmente si no estamos en producción o en Firebase
+if (!process.env.FUNCTION_NAME) {
   const port = process.env.PORT || 3001;
   app.listen(port, () => {
     console.log(`Servidor corriendo en el puerto ${port}`);
     console.log("Sistema de matching IA optimizado listo");
-    // Probar la API Key al inicio
-    testAPIKey()
-      .then(valid => {
-        if (valid) {
-          console.log("✅ API Key de OpenAI verificada y funcionando correctamente");
-        } else {
-          console.log("⚠️ No se pudo verificar la API Key de OpenAI, se usarán embeddings simples");
-        }
-      })
-      .catch(err => {
-        console.error("Error verificando API Key:", err);
-      });
+    testAPIKey().then(valid => {
+      if (valid) {
+        console.log("✅ API Key de OpenAI verificada y funcionando correctamente");
+      } else {
+        console.log("⚠️ No se pudo verificar la API Key de OpenAI, se usarán embeddings simples");
+      }
+    }).catch(err => console.error("Error verificando API Key:", err));
   });
 }
 
