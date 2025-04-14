@@ -8,9 +8,11 @@ import {
   Card, 
   CardContent, 
   Avatar,
-  Button
+  Button,
+  CircularProgress
 } from "@mui/material";
 import { alpha } from "@mui/material/styles";
+import { supabase } from "../supabase/supabaseClient";
 
 // Iconos
 import CodeIcon from "@mui/icons-material/Code";
@@ -26,93 +28,145 @@ import PhoneIphoneIcon from "@mui/icons-material/PhoneIphone";
 import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
 import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
 
-// Datos de ejemplo para habilidades basadas en el rol
-const getFrontendSkills = () => [
-  { name: "React", projects: 32 },
-  { name: "JavaScript", projects: 45 },
-  { name: "TypeScript", projects: 28 },
-  { name: "UI/UX", projects: 15 },
-  { name: "Angular", projects: 12 }
-];
-
-const getBackendSkills = () => [
-  { name: "Node.js", projects: 24 },
-  { name: "Python", projects: 36 },
-  { name: "SQL", projects: 40 },
-  { name: "MongoDB", projects: 18 },
-  { name: "AWS", projects: 22 }
-];
-
-const getFullstackSkills = () => [
-  { name: "React", projects: 25 },
-  { name: "Node.js", projects: 22 },
-  { name: "MongoDB", projects: 20 },
-  { name: "TypeScript", projects: 30 },
-  { name: "AWS", projects: 15 }
-];
-
-export const UserSkillsList = ({ userRole }) => {
-  const theme = useTheme();
+export const UserSkillsList = ({ userRole, userId }) => {
   const [skills, setSkills] = useState([]);
-  
-  // Cargar habilidades basadas en el rol
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+
   useEffect(() => {
-    let skillsData;
-    switch(userRole) {
-      case "Frontend":
-        skillsData = getFrontendSkills();
-        break;
-      case "Backend":
-        skillsData = getBackendSkills();
-        break;
-      default:
-        skillsData = getFullstackSkills();
+    const fetchSkills = async () => {
+      try {
+        setIsLoading(true);
+        
+        // Fetch user skills based on role
+        let query = supabase
+          .from('UserSkill')
+          .select(`skill_ID, 
+            user_ID, 
+            proficiency,
+            Skill (
+            name, 
+            category,
+            type
+            )
+            `)
+          .eq('user_ID', userId)
+
+        if (userRole) {
+          query = query.eq('name', userRole.toLowerCase());
+        }
+
+        const { data, error: queryError } = await query
+          .order('name', { ascending: false })
+          .limit(5);
+
+        if (queryError) throw queryError;
+
+        if (data && data.length > 0) {
+          setSkills(data);
+        } else {
+          // Fallback data
+          setSkills(getFallbackSkills(userRole));
+        }
+      } catch (error) {
+        console.error("Error fetching skills:", error);
+        setError(error.message);
+        setSkills(getFallbackSkills(userRole));
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (userId) {
+      fetchSkills();
     }
-    setSkills(skillsData);
-  }, [userRole]);
-  
-  // Función para obtener el icono por tipo de skill
-  const getSkillIcon = (type) => {
-    switch (type) {
-      case 'JavaScript':
-      case 'TypeScript':
-        return <JavascriptIcon fontSize="small" />;
-      case 'React':
-      case 'Angular':
-      case 'Vue':
-        return <LaptopIcon fontSize="small" />;
-      case 'Node.js':
-      case 'Express':
-        return <CodeIcon fontSize="small" />;
-      case 'Python':
-      case 'Django':
-      case 'Flask':
-        return <CodeIcon fontSize="small" />;
-      case 'SQL':
-      case 'PostgreSQL':
-      case 'MongoDB':
-        return <StorageOutlinedIcon fontSize="small" />;
-      case 'UI/UX':
-      case 'Figma':
-        return <DesignServicesIcon fontSize="small" />;
-      case 'AWS':
-      case 'Azure':
-      case 'GCP':
-        return <CloudIcon fontSize="small" />;
-      case 'DevOps':
-      case 'Docker':
-      case 'Kubernetes':
-        return <DataObjectIcon fontSize="small" />;
-      case 'Mobile':
-      case 'React Native':
-      case 'Flutter':
-        return <PhoneIphoneIcon fontSize="small" />;
-      case 'AI/ML':
-        return <AutoFixHighIcon fontSize="small" />;
+  }, [userRole, userId]);
+
+  // Fallback skills data
+  const getFallbackSkills = (role) => {
+    const commonSkills = [
+      { name: "JavaScript", projects: 32 },
+      { name: "React", projects: 28 },
+      { name: "Node.js", projects: 25 },
+      { name: "HTML/CSS", projects: 22 },
+      { name: "Git", projects: 18 }
+    ];
+
+    const frontendSkills = [
+      { name: "React", projects: 45 },
+      { name: "JavaScript", projects: 42 },
+      { name: "TypeScript", projects: 28 },
+      { name: "HTML/CSS", projects: 35 },
+      { name: "UI/UX", projects: 15 }
+    ];
+
+    const backendSkills = [
+      { name: "Node.js", projects: 36 },
+      { name: "Python", projects: 32 },
+      { name: "SQL", projects: 28 },
+      { name: "Docker", projects: 22 },
+      { name: "API Design", projects: 18 }
+    ];
+
+    switch(role) {
+      case "Frontend":
+        return frontendSkills;
+      case "Backend":
+        return backendSkills;
       default:
-        return <CodeIcon fontSize="small" />;
+        return commonSkills;
     }
   };
+
+  // Función para obtener el icono por tipo de skill
+  const getSkillIcon = (skillName) => {
+    const lowerSkill = skillName.toLowerCase();
+    
+    if (lowerSkill.includes('react') || lowerSkill.includes('javascript') || lowerSkill.includes('typescript')) {
+      return <JavascriptIcon fontSize="small" />;
+    }
+    if (lowerSkill.includes('node') || lowerSkill.includes('python') || lowerSkill.includes('java')) {
+      return <CodeIcon fontSize="small" />;
+    }
+    if (lowerSkill.includes('html') || lowerSkill.includes('css') || lowerSkill.includes('ui/ux')) {
+      return <LaptopIcon fontSize="small" />;
+    }
+    if (lowerSkill.includes('sql') || lowerSkill.includes('database') || lowerSkill.includes('mongodb')) {
+      return <StorageOutlinedIcon fontSize="small" />;
+    }
+    if (lowerSkill.includes('docker') || lowerSkill.includes('kubernetes') || lowerSkill.includes('devops')) {
+      return <CloudIcon fontSize="small" />;
+    }
+    if (lowerSkill.includes('git') || lowerSkill.includes('github') || lowerSkill.includes('version')) {
+      return <DataObjectIcon fontSize="small" />;
+    }
+    if (lowerSkill.includes('security') || lowerSkill.includes('cyber') || lowerSkill.includes('auth')) {
+      return <SecurityIcon fontSize="small" />;
+    }
+    if (lowerSkill.includes('analytics') || lowerSkill.includes('data') || lowerSkill.includes('ai')) {
+      return <AnalyticsIcon fontSize="small" />;
+    }
+    if (lowerSkill.includes('mobile') || lowerSkill.includes('ios') || lowerSkill.includes('android')) {
+      return <PhoneIphoneIcon fontSize="small" />;
+    }
+    return <CodeIcon fontSize="small" />;
+  };
+
+  if (isLoading) {
+    return (
+      <Paper sx={{ p: 3, borderRadius: 3, height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+        <CircularProgress size={24} />
+      </Paper>
+    );
+  }
+
+  if (error) {
+    return (
+      <Paper sx={{ p: 3, borderRadius: 3, height: '100%', textAlign: 'center' }}>
+        <Typography color="error">Error loading skills</Typography>
+      </Paper>
+    );
+  }
   
   return (
     <Paper
@@ -128,7 +182,7 @@ export const UserSkillsList = ({ userRole }) => {
           <CodeIcon />
         </Avatar>
         <Typography variant="h6" fontWeight="bold">
-          Top Skills ({userRole})
+          Top Skills ({userRole || 'Full Stack'})
         </Typography>
         <Box sx={{ flexGrow: 1 }} />
         <Button 
@@ -139,7 +193,7 @@ export const UserSkillsList = ({ userRole }) => {
             fontSize: '0.8rem'
           }}
         >
-          Ver todas
+          View All
         </Button>
       </Box>
       
@@ -180,7 +234,7 @@ export const UserSkillsList = ({ userRole }) => {
                       {skill.name}
                     </Typography>
                     <Typography variant="caption" color="text.secondary">
-                      {skill.projects} proyectos disponibles
+                      {skill.projects} Available Projects
                     </Typography>
                   </Box>
                 </Box>
