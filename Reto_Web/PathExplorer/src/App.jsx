@@ -13,12 +13,14 @@ import Settings from "./pages/Settings";
 import User from "./pages/User";
 import Certifications from "./pages/Certifications";
 import ProjectDashboard from "./pages/ProjectDashboard.jsx";
+import ProjectDetail from "./pages/ProjectDetail.jsx";
 import EditProfile from "./pages/EditProfile";
 import Login from "./pages/Login";
 import Unauthorized from "./pages/Unauthorized";
 import SubmitCertification from "./pages/SubmitCertification.jsx";
 import AddProject from "./pages/AddProject.jsx";
 import RoleAssign from "./pages/RoleAssign.jsx";
+import ProjectEdit from "./pages/ProjectEdit.jsx";
 
 // Protección de rutas
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -35,13 +37,11 @@ function App() {
         {/* Rutas protegidas dentro del layout principal */}
         <Route path="/" element={<MainLayout />}>
           {/* Rutas accesibles para todos los roles (empleado, TFS, manager) */}
-          <Route
-            element={
-              <ProtectedRoute allowedRoles={["empleado", "TFS", "manager"]} />
-            }
-          >
+          <Route element={<ProtectedRoute allowedRoles={["empleado", "TFS", "manager"]} />}>
             <Route index element={<Dashboard />} />
             <Route path="projects" element={<ProjectDashboard />} />
+            <Route path="project-detail/:id" element={<ProjectDetail />} />
+            <Route path="project-edit/:id" element={<ProjectEdit />} />
             <Route path="add-projects" element={<AddProject />} />
             <Route path="role-assign" element={<RoleAssign />} />
             <Route path="certifications" element={<Certifications />} />
