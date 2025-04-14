@@ -3,15 +3,14 @@ import React, { useState, useEffect } from "react";
 import { 
   Box, 
   Typography, 
-  Paper, 
-  useTheme, 
+  Paper,  
   Card, 
   CardContent, 
   Avatar,
   Button,
   CircularProgress
 } from "@mui/material";
-import { alpha } from "@mui/material/styles";
+import { alpha, useTheme } from "@mui/material/styles";
 import { supabase } from "../supabase/supabaseClient";
 
 // Iconos
@@ -29,7 +28,9 @@ import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
 import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
 
 export const UserSkillsList = ({ userRole, userId }) => {
+  const theme = useTheme();
   const [skills, setSkills] = useState([]);
+  const [roleName, setRoleName] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -38,47 +39,62 @@ export const UserSkillsList = ({ userRole, userId }) => {
       try {
         setIsLoading(true);
         
-        // Fetch user skills based on role
-        let query = supabase
-          .from('UserSkill')
-          .select(`skill_ID, 
-            user_ID, 
-            proficiency,
-            Skill (
-            name, 
-            category,
-            type
-            )
-            `)
-          .eq('user_ID', userId)
+        const { data: userSkills, error: queryError } = await supabase
+        .from('UserSkill')
+        .select('skill_ID, proficiency')
+        .eq('user_ID', userId)
+        .limit(5);
 
-        if (userRole) {
-          query = query.eq('name', userRole.toLowerCase());
+        if (queryError) throw queryError;       
+
+        // Obtener los nombres de las skills
+        const skillIds = userSkills.map(s => s.skill_ID);
+
+        if (skillIds.length === 0) {
+          setSkills([]);
+          return;
         }
 
-        const { data, error: queryError } = await query
-          .order('name', { ascending: false })
-          .limit(5);
+        const { data: skillNames, error: skillError } = await supabase
+        .from('Skill')
+        .select('skill_ID, name')
+        .in('skill_ID', skillIds);
 
-        if (queryError) throw queryError;
+        if (skillError) throw skillError;
 
-        if (data && data.length > 0) {
-          setSkills(data);
-        } else {
-          // Fallback data
-          setSkills(getFallbackSkills(userRole));
-        }
-      } catch (error) {
+        const skillMap = Object.fromEntries(skillNames.map(s => [s.skill_ID, s.name]));
+
+        setSkills(userSkills.map(s => ({
+          name: skillMap[s.skill_ID] || 'Unknown',
+          proficiency: s.proficiency || 0
+        })));
+        } catch (error) {
         console.error("Error fetching skills:", error);
         setError(error.message);
         setSkills(getFallbackSkills(userRole));
-      } finally {
-        setIsLoading(false);
-      }
-    };
+  } finally {
+    setIsLoading(false);
+  }
+};
+
+const fetchUserRole = async () => {
+  const { data, error } = await supabase
+    .from('UserRole')
+    .select('role_name')
+    .eq('user_id', userId)
+    .single();
+
+  if (error) {
+    console.error("Error fetching user role:", error);
+  } else {
+    setRoleName(data?.role_name || 'Full Stack');
+  }
+};
+
 
     if (userId) {
       fetchSkills();
+      fetchUserRole();
     }
   }, [userRole, userId]);
 
@@ -118,38 +134,23 @@ export const UserSkillsList = ({ userRole, userId }) => {
     }
   };
 
-  // Función para obtener el icono por tipo de skill
+  const iconList = [
+    <CodeIcon fontSize="small" />,
+    <LaptopIcon fontSize="small" />,
+    <StorageOutlinedIcon fontSize="small" />,
+    <DataObjectIcon fontSize="small" />,
+    <CloudIcon fontSize="small" />,
+    <SecurityIcon fontSize="small" />,
+    <AnalyticsIcon fontSize="small" />,
+    <JavascriptIcon fontSize="small" />,
+    <DesignServicesIcon fontSize="small" />,
+    <PhoneIphoneIcon fontSize="small" />,
+    <AutoFixHighIcon fontSize="small" />
+  ];
+  
   const getSkillIcon = (skillName) => {
-    const lowerSkill = skillName.toLowerCase();
-    
-    if (lowerSkill.includes('react') || lowerSkill.includes('javascript') || lowerSkill.includes('typescript')) {
-      return <JavascriptIcon fontSize="small" />;
-    }
-    if (lowerSkill.includes('node') || lowerSkill.includes('python') || lowerSkill.includes('java')) {
-      return <CodeIcon fontSize="small" />;
-    }
-    if (lowerSkill.includes('html') || lowerSkill.includes('css') || lowerSkill.includes('ui/ux')) {
-      return <LaptopIcon fontSize="small" />;
-    }
-    if (lowerSkill.includes('sql') || lowerSkill.includes('database') || lowerSkill.includes('mongodb')) {
-      return <StorageOutlinedIcon fontSize="small" />;
-    }
-    if (lowerSkill.includes('docker') || lowerSkill.includes('kubernetes') || lowerSkill.includes('devops')) {
-      return <CloudIcon fontSize="small" />;
-    }
-    if (lowerSkill.includes('git') || lowerSkill.includes('github') || lowerSkill.includes('version')) {
-      return <DataObjectIcon fontSize="small" />;
-    }
-    if (lowerSkill.includes('security') || lowerSkill.includes('cyber') || lowerSkill.includes('auth')) {
-      return <SecurityIcon fontSize="small" />;
-    }
-    if (lowerSkill.includes('analytics') || lowerSkill.includes('data') || lowerSkill.includes('ai')) {
-      return <AnalyticsIcon fontSize="small" />;
-    }
-    if (lowerSkill.includes('mobile') || lowerSkill.includes('ios') || lowerSkill.includes('android')) {
-      return <PhoneIphoneIcon fontSize="small" />;
-    }
-    return <CodeIcon fontSize="small" />;
+    const index = [...skillName].reduce((acc, char) => acc + char.charCodeAt(0), 0) % iconList.length;
+    return iconList[index];
   };
 
   if (isLoading) {
@@ -182,7 +183,7 @@ export const UserSkillsList = ({ userRole, userId }) => {
           <CodeIcon />
         </Avatar>
         <Typography variant="h6" fontWeight="bold">
-          Top Skills ({userRole || 'Full Stack'})
+          Top Skills ({roleName || 'Full Stack'})
         </Typography>
         <Box sx={{ flexGrow: 1 }} />
         <Button 
@@ -233,9 +234,15 @@ export const UserSkillsList = ({ userRole, userId }) => {
                     <Typography variant="body1" fontWeight="bold">
                       {skill.name}
                     </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      {skill.projects} Available Projects
+
+                    <Typography variant="caption" color="text.secondary" display="block">
+                      Proficiency: <Box component="span" fontWeight="bold" display="inline">{skill.proficiency}</Box>
                     </Typography>
+
+                    <Typography variant="caption" color="text.secondary" display="block">
+                      Available Projects: <Box component="span" fontWeight="bold" display="inline">{Math.floor(Math.random() * 10) + 1}</Box>
+                    </Typography>
+
                   </Box>
                 </Box>
               

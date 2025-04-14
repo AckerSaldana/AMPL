@@ -40,12 +40,12 @@ export const CertificationGrid = ({ userId }) => {
 
         if (certError) throw certError;
 
-    // Paso 2: Juntar todos los skill IDs de todas las certificaciones
+    //Juntar todos los skill ods de todas las certificaciones
     const allSkillIDs = [...new Set(
       data.flatMap(cert => cert.Certifications?.skill_acquired || [])
     )];
 
-    // Paso 3: Buscar los nombres reales desde la tabla Skill
+    // Llamar nombres reales desde la tabla Skill
     const { data: skillData, error: skillError } = await supabase
       .from('Skill')
       .select('skill_ID, name')
@@ -53,10 +53,9 @@ export const CertificationGrid = ({ userId }) => {
 
     if (skillError) throw skillError;
 
-    // Paso 4: Crear un diccionario skill_ID => name
+    //Crear un diccionario skill_ID => name
     const skillMap = Object.fromEntries(skillData.map(s => [s.skill_ID, s.name]));
 
-    // Paso 5: Armar tus certificaciones con los nombres en lugar de los IDs
     setCertifications(
       data.map(cert => ({
         id: cert.certification_ID,

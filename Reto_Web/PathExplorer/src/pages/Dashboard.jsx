@@ -80,14 +80,49 @@ const Dashboard = () => {
         setCalendarEvents(eventsData || []);
 
         // Fetch top certifications (most popular)
-        const { data: topCertsData, error: topCertsError } = await supabase
-          .from('Certifications')
-          .select('*')
-          .order('title', { ascending: false })
-          .limit(3);
+        // Obtener conteo de certificaciones por usuarios
+        const { data: certCountData, error: countError } = await supabase
+        .from('UserCertifications')
+        .select('certification_ID');
 
-        if (topCertsError) throw topCertsError;
-        setTopCertifications(topCertsData || []);
+if (countError) throw countError;
+
+// Agrupar por certification_ID
+const certCountMap = {};
+certCountData.forEach(entry => {
+const id = entry.certification_ID;
+certCountMap[id] = (certCountMap[id] || 0) + 1;
+});
+
+const topCertIDs = Object.entries(certCountMap)
+.sort((a, b) => b[1] - a[1])
+.slice(0, 3)
+.map(([id]) => id);
+
+// Obtener detalles de esas certificaciones
+const { data: certDetails, error: detailError } = await supabase
+.from('Certifications')
+.select('certification_id, title, issuer, type')
+.in('certification_id', topCertIDs);
+
+if (detailError) throw detailError;
+
+// Calcular popularidad relativa
+const maxCount = Math.max(...Object.values(certCountMap));
+
+const topCertifications = certDetails.map(cert => {
+const count = certCountMap[cert.certification_id] || 0;
+return {
+  id: cert.certification_id,
+  name: cert.title,
+  category: cert.type,
+  completions: count,
+  popularity: Math.round((count / maxCount) * 100),
+  iconType: cert.type // para íconos en el componente
+};
+});
+
+setTopCertifications(topCertifications);
 
         // Fetch stats
         const { count: availableCount } = await supabase
@@ -229,7 +264,7 @@ const Dashboard = () => {
       >
         <Box>
           <Typography variant="h4" fontWeight="bold" sx={{ mb: 1 }}>
-            Welcome back, {user.name}!
+            Welcome back!
           </Typography>
           <Typography variant="body1">Today is {finalDate}</Typography>
         </Box>
@@ -389,7 +424,7 @@ const Dashboard = () => {
                 overflow: "hidden",
               }}
             >
-              <CalendarWithReminders events={calendarEvents} />
+              <CalendarWithReminders userId={user?.id} />
             </Paper>
           </Box>
 
