@@ -20,7 +20,6 @@ export const BannerProfile = () => {
         flexDirection: "column",
         textAlign: "left",
         p: 3,
-        mb: 3,
         overflow: "hidden",
         "&::before": {
           content: "''",

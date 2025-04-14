@@ -31,6 +31,7 @@ export const SkillList = () => {
         Skill list
       </Typography>
 
+      {/* Aquí se cargan las Skills de la db */}
       <Stack spacing={2}>
         {skills.map((skill, index) => (
           <Paper
