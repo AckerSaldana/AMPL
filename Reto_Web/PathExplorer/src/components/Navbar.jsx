@@ -102,6 +102,8 @@ const Navbar = ({ children }) => {
       case "update": return <UpdateIcon fontSize="small" />;
       case "review": return <RateReviewIcon fontSize="small" />;
       case "message": return <MessageIcon fontSize="small" />;
+      case "project": return <FolderIcon fontSize="small" />;
+
       default: return null;
     }
   };
@@ -135,6 +137,39 @@ const Navbar = ({ children }) => {
 
     fetchUserInfo();
   }, [user]);
+
+  useEffect(() => {
+    const fetchProjectNotifications = async () => {
+      const { data: projectsData, error } = await supabase
+        .from("Project")
+        .select("projectID, title, status, progress, end_date")
+        .in("status", ["In Progress", "On Hold"]);
+  
+      if (!error && projectsData) {
+        const notifs = projectsData.map((project) => {
+          const isDueSoon = new Date(project.end_date) - new Date() < 7 * 24 * 60 * 60 * 1000;
+  
+          return {
+            id: project.projectID,
+            text: `Proyecto activo: ${project.title}${isDueSoon ? " (fecha límite próxima)" : ""}`,
+            type: "project",
+            read: false,
+          };
+        });
+  
+        setNotifications(notifs);
+      }
+    };
+  
+    fetchProjectNotifications(); // Primer fetch inmediato
+  
+    const interval = setInterval(fetchProjectNotifications, 60000); // ⏱️ cada 60 segundos
+  
+    return () => clearInterval(interval); // limpiar al desmontar
+  }, []);
+  
+  
+
   
   // Determinar el elemento activo basado en la ruta actual
   useEffect(() => {
@@ -744,13 +779,21 @@ const Navbar = ({ children }) => {
   <List disablePadding>
   {notifications.map((notif) => (
   <ListItemButton
-    key={notif.id}
-    onClick={() => {
-      setNotifications((prev) => prev.filter((n) => n.id !== notif.id));
+  key={notif.id}
+  onClick={() => {
+    navigate("/projects");
+    setNotifications((prev) => prev.filter((n) => n.id !== notif.id));
+    handleCloseNotifications();
+  }}
+>
+  <Box
+    sx={{
+      display: "flex",
+      alignItems: "center",
+      gap: 2,
+      width: "100%",
     }}
-    // ... estilos
   >
-    {/* Círculo e ícono */}
     <Box
       sx={{
         width: 36,
@@ -768,11 +811,19 @@ const Navbar = ({ children }) => {
       {getIconByType(notif.type)}
     </Box>
 
-    {/* Texto */}
-    <Typography variant="body2" sx={{ fontSize: '0.9rem' }}>
+    <Typography
+      variant="body2"
+      sx={{
+        fontSize: '0.9rem',
+        color: textColor,
+        lineHeight: 1.4,
+      }}
+    >
       {notif.text}
     </Typography>
-  </ListItemButton>
+  </Box>
+</ListItemButton>
+
 ))}
 </List>
 </Popover>
