@@ -1,6 +1,7 @@
 import React, { useState, useRef } from "react";
 import { Box, IconButton, Typography, useTheme } from "@mui/material";
 import { CameraAlt } from "@mui/icons-material";
+import { supabase } from "../supabase/supabaseClient";
 
 export const EditBannerProfile = ({ initialBanner, onBannerChange }) => {
   const theme = useTheme();
