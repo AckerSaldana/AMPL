@@ -1,9 +1,33 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Paper, Typography, Box, Chip, IconButton } from "@mui/material";
-
-const mockSkills = ["React", "JavaScript", "CSS", "HTML", "Node.js", "UI/UX"];
+import { supabase } from "../supabase/supabaseClient";
 
 export const SkillsCard = () => {
+  const [skills, setSkills] = useState([]);
+
+  useEffect(() => {
+    const fetchSkills = async () => {
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+
+      if (userError || !user) return;
+
+      const { data, error } = await supabase
+        .from("UserSkill")
+        .select("skill_ID(name)")
+        .eq("user_ID", user.id);
+
+      if (!error && data) {
+        const skillTitles = data.map((entry) => entry.skill_ID.name);
+        setSkills(skillTitles);
+      }
+    };
+
+    fetchSkills();
+  }, []);
+
   return (
     <Paper
       sx={{
@@ -41,7 +65,7 @@ export const SkillsCard = () => {
           },
         }}
       >
-        {mockSkills.map((skill, index) => (
+        {skills.map((skill, index) => (
           <Chip
             key={index}
             label={skill}
