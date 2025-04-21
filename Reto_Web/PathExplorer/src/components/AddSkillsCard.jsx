@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Box,
   Card,
@@ -27,10 +27,13 @@ import {
   ExpandMore,
   ExpandLess,
 } from "@mui/icons-material";
+import { supabase } from "../supabase/supabaseClient";
 
-export const AddSkillsCard = ({ initialSkills = [] }) => {
+export const AddSkillsCard = ({ userId, userRole }) => {
   const theme = useTheme();
-  const [skills, setSkills] = useState(initialSkills);
+  const [skills, setSkills] = useState([]);
+  const [availableSkills, setAvailableSkills] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [newSkill, setNewSkill] = useState("");
   const [category, setCategory] = useState("technical");
@@ -39,8 +42,81 @@ export const AddSkillsCard = ({ initialSkills = [] }) => {
     soft: true,
   });
 
+  useEffect(() => {
+    const fetchSkillsCard = async () => {
+      try{
+        setIsLoading(true);
+
+        // Get all available skills
+          const { data: allSkills, error: skillError } = await supabase
+          .from('Skill')
+          .select('skill_ID, name, type');
+
+        if (skillError) throw skillError;
+
+        // Get skills and their proficiency
+          const { data: userSkills, error: userSkillError } = await supabase
+          .from('UserSkill')
+          .select('skill_ID, proficiency')
+          .eq('user_ID', userId);
+
+        if (userSkillError) throw userSkillError;
+
+        const userSkillMap = {};
+        userSkills.forEach(({ skill_ID, proficiency }) => {
+          userSkillMap[skill_ID] = proficiency;
+        });
+
+        const userSkillList = allSkills
+        .filter((skill) => userSkillMap[skill.skill_ID])
+        .map(({ skill_ID, name, type }) => {
+          const category =
+            type === "Technical Skill"
+              ? "technical"
+              : type === "Soft Skill"
+              ? "soft"
+              : "other";
+
+          return {
+            id: skill_ID,
+            name,
+            category,
+            level: userSkillMap[skill_ID] || 1,
+            proficiency: userSkillMap[skill_ID] || 1,
+          };
+        });
+
+      setSkills(userSkillList);
+
+      const skillIDsUserHas = new Set(userSkills.map(s => s.skill_ID));
+
+      const remainingSkills = allSkills
+        .filter(skill => !skillIDsUserHas.has(skill.skill_ID))
+        .map(({ skill_ID, name, type }) => ({
+          id: skill_ID,
+          name,
+          category: type === "Technical Skill" ? "technical" : "soft",
+        }));
+
+      setAvailableSkills(remainingSkills);
+
+
+    } catch (error) {
+      console.error("Error fetching skills:", error);
+      setError(error.message);
+      setSkills([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (userId) {
+    fetchSkillsCard();
+  }
+}, [userId]);
+
   // Predefined skill suggestions by category
-  const skillSuggestions = {
+  const getFallbackSkillSuggestions = {
     technical: [
       "JavaScript",
       "React",
@@ -74,7 +150,7 @@ export const AddSkillsCard = ({ initialSkills = [] }) => {
   };
 
   // Group skills by category
-  const groupedSkills = {
+  const getFallbackGroupedSkills = {
     technical: skills.filter((skill) => skill.category === "technical"),
     soft: skills.filter((skill) => skill.category === "soft"),
   };
@@ -297,12 +373,12 @@ export const AddSkillsCard = ({ initialSkills = [] }) => {
             {renderSkillCategory(
               "technical",
               "Technical Skills",
-              groupedSkills.technical
+              skills.filter((skill) => skill.category === "technical")
             )}
             {renderSkillCategory(
               "soft",
               "Soft Skills",
-              groupedSkills.soft
+              skills.filter((skill) => skill.category === "soft")
             )}
           </Grid>
         </Grid>
@@ -316,7 +392,11 @@ export const AddSkillsCard = ({ initialSkills = [] }) => {
         <DialogContent>
           <Autocomplete
             freeSolo
-            options={skillSuggestions[category] || []}
+            options={
+              availableSkills
+                .filter((s) => s.category === category)
+                .map((s) => s.name)
+            }
             inputValue={newSkill}
             onInputChange={(_, value) => setNewSkill(value)}
             fullWidth

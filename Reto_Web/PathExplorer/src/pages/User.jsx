@@ -10,7 +10,7 @@ import { GoalsCard } from "../components/GoalsCard";
 import { About } from "../components/About";
 import { PastProjectsCard } from "../components/PastProjectsCard";
 
-const ProfilePage = () => {
+export const ProfilePage = () => {
   const userData = {
     fullName: "Benito Antonio Martinez Ocasio",
     phone: "+1 234 567 890",
