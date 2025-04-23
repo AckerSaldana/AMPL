@@ -3,14 +3,15 @@ import React, { useState, useEffect } from "react";
 import { 
   Box, 
   Typography, 
-  Paper, 
-  useTheme, 
+  Paper,  
   Card, 
   CardContent, 
   Avatar,
-  Button
+  Button,
+  CircularProgress
 } from "@mui/material";
-import { alpha } from "@mui/material/styles";
+import { alpha, useTheme } from "@mui/material/styles";
+import { supabase } from "../supabase/supabaseClient";
 
 // Iconos
 import CodeIcon from "@mui/icons-material/Code";
@@ -26,93 +27,147 @@ import PhoneIphoneIcon from "@mui/icons-material/PhoneIphone";
 import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
 import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
 
-// Datos de ejemplo para habilidades basadas en el rol
-const getFrontendSkills = () => [
-  { name: "React", projects: 32 },
-  { name: "JavaScript", projects: 45 },
-  { name: "TypeScript", projects: 28 },
-  { name: "UI/UX", projects: 15 },
-  { name: "Angular", projects: 12 }
-];
-
-const getBackendSkills = () => [
-  { name: "Node.js", projects: 24 },
-  { name: "Python", projects: 36 },
-  { name: "SQL", projects: 40 },
-  { name: "MongoDB", projects: 18 },
-  { name: "AWS", projects: 22 }
-];
-
-const getFullstackSkills = () => [
-  { name: "React", projects: 25 },
-  { name: "Node.js", projects: 22 },
-  { name: "MongoDB", projects: 20 },
-  { name: "TypeScript", projects: 30 },
-  { name: "AWS", projects: 15 }
-];
-
-export const UserSkillsList = ({ userRole }) => {
+export const UserSkillsList = ({ userRole, userId }) => {
   const theme = useTheme();
   const [skills, setSkills] = useState([]);
-  
-  // Cargar habilidades basadas en el rol
+  const [roleName, setRoleName] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+
   useEffect(() => {
-    let skillsData;
-    switch(userRole) {
-      case "Frontend":
-        skillsData = getFrontendSkills();
-        break;
-      case "Backend":
-        skillsData = getBackendSkills();
-        break;
-      default:
-        skillsData = getFullstackSkills();
+    const fetchSkills = async () => {
+      try {
+        setIsLoading(true);
+        
+        const { data: userSkills, error: queryError } = await supabase
+        .from('UserSkill')
+        .select('skill_ID, proficiency')
+        .eq('user_ID', userId)
+        .limit(5);
+
+        if (queryError) throw queryError;       
+
+        // Obtener los nombres de las skills
+        const skillIds = userSkills.map(s => s.skill_ID);
+
+        if (skillIds.length === 0) {
+          setSkills([]);
+          return;
+        }
+
+        const { data: skillNames, error: skillError } = await supabase
+        .from('Skill')
+        .select('skill_ID, name')
+        .in('skill_ID', skillIds);
+
+        if (skillError) throw skillError;
+
+        const skillMap = Object.fromEntries(skillNames.map(s => [s.skill_ID, s.name]));
+
+        setSkills(userSkills.map(s => ({
+          name: skillMap[s.skill_ID] || 'Unknown',
+          proficiency: s.proficiency || 0
+        })));
+        } catch (error) {
+        console.error("Error fetching skills:", error);
+        setError(error.message);
+        setSkills(getFallbackSkills(userRole));
+  } finally {
+    setIsLoading(false);
+  }
+};
+
+const fetchUserRole = async () => {
+  const { data, error } = await supabase
+    .from('UserRole')
+    .select('role_name')
+    .eq('user_id', userId)
+    .single();
+
+  if (error) {
+    console.error("Error fetching user role:", error);
+  } else {
+    setRoleName(data?.role_name || 'Full Stack');
+  }
+};
+
+
+    if (userId) {
+      fetchSkills();
+      fetchUserRole();
     }
-    setSkills(skillsData);
-  }, [userRole]);
-  
-  // Función para obtener el icono por tipo de skill
-  const getSkillIcon = (type) => {
-    switch (type) {
-      case 'JavaScript':
-      case 'TypeScript':
-        return <JavascriptIcon fontSize="small" />;
-      case 'React':
-      case 'Angular':
-      case 'Vue':
-        return <LaptopIcon fontSize="small" />;
-      case 'Node.js':
-      case 'Express':
-        return <CodeIcon fontSize="small" />;
-      case 'Python':
-      case 'Django':
-      case 'Flask':
-        return <CodeIcon fontSize="small" />;
-      case 'SQL':
-      case 'PostgreSQL':
-      case 'MongoDB':
-        return <StorageOutlinedIcon fontSize="small" />;
-      case 'UI/UX':
-      case 'Figma':
-        return <DesignServicesIcon fontSize="small" />;
-      case 'AWS':
-      case 'Azure':
-      case 'GCP':
-        return <CloudIcon fontSize="small" />;
-      case 'DevOps':
-      case 'Docker':
-      case 'Kubernetes':
-        return <DataObjectIcon fontSize="small" />;
-      case 'Mobile':
-      case 'React Native':
-      case 'Flutter':
-        return <PhoneIphoneIcon fontSize="small" />;
-      case 'AI/ML':
-        return <AutoFixHighIcon fontSize="small" />;
+  }, [userRole, userId]);
+
+  // Fallback skills data
+  const getFallbackSkills = (role) => {
+    const commonSkills = [
+      { name: "JavaScript", projects: 32 },
+      { name: "React", projects: 28 },
+      { name: "Node.js", projects: 25 },
+      { name: "HTML/CSS", projects: 22 },
+      { name: "Git", projects: 18 }
+    ];
+
+    const frontendSkills = [
+      { name: "React", projects: 45 },
+      { name: "JavaScript", projects: 42 },
+      { name: "TypeScript", projects: 28 },
+      { name: "HTML/CSS", projects: 35 },
+      { name: "UI/UX", projects: 15 }
+    ];
+
+    const backendSkills = [
+      { name: "Node.js", projects: 36 },
+      { name: "Python", projects: 32 },
+      { name: "SQL", projects: 28 },
+      { name: "Docker", projects: 22 },
+      { name: "API Design", projects: 18 }
+    ];
+
+    switch(role) {
+      case "Frontend":
+        return frontendSkills;
+      case "Backend":
+        return backendSkills;
       default:
-        return <CodeIcon fontSize="small" />;
+        return commonSkills;
     }
   };
+
+  const iconList = [
+    <CodeIcon fontSize="small" />,
+    <LaptopIcon fontSize="small" />,
+    <StorageOutlinedIcon fontSize="small" />,
+    <DataObjectIcon fontSize="small" />,
+    <CloudIcon fontSize="small" />,
+    <SecurityIcon fontSize="small" />,
+    <AnalyticsIcon fontSize="small" />,
+    <JavascriptIcon fontSize="small" />,
+    <DesignServicesIcon fontSize="small" />,
+    <PhoneIphoneIcon fontSize="small" />,
+    <AutoFixHighIcon fontSize="small" />
+  ];
+  
+  const getSkillIcon = (skillName) => {
+    const index = [...skillName].reduce((acc, char) => acc + char.charCodeAt(0), 0) % iconList.length;
+    return iconList[index];
+  };
+
+  if (isLoading) {
+    return (
+      <Paper sx={{ p: 3, borderRadius: 3, height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+        <CircularProgress size={24} />
+      </Paper>
+    );
+  }
+
+  if (error) {
+    return (
+      <Paper sx={{ p: 3, borderRadius: 3, height: '100%', textAlign: 'center' }}>
+        <Typography color="error">Error loading skills</Typography>
+      </Paper>
+    );
+  }
   
   return (
     <Paper
@@ -128,7 +183,7 @@ export const UserSkillsList = ({ userRole }) => {
           <CodeIcon />
         </Avatar>
         <Typography variant="h6" fontWeight="bold">
-          Top Skills ({userRole})
+          Top Skills ({roleName || 'Full Stack'})
         </Typography>
         <Box sx={{ flexGrow: 1 }} />
         <Button 
@@ -139,7 +194,7 @@ export const UserSkillsList = ({ userRole }) => {
             fontSize: '0.8rem'
           }}
         >
-          Ver todas
+          View All
         </Button>
       </Box>
       
@@ -179,9 +234,15 @@ export const UserSkillsList = ({ userRole }) => {
                     <Typography variant="body1" fontWeight="bold">
                       {skill.name}
                     </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      {skill.projects} proyectos disponibles
+
+                    <Typography variant="caption" color="text.secondary" display="block">
+                      Proficiency: <Box component="span" fontWeight="bold" display="inline">{skill.proficiency}</Box>
                     </Typography>
+
+                    <Typography variant="caption" color="text.secondary" display="block">
+                      Available Projects: <Box component="span" fontWeight="bold" display="inline">{Math.floor(Math.random() * 10) + 1}</Box>
+                    </Typography>
+
                   </Box>
                 </Box>
               

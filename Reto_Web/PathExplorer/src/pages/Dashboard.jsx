@@ -7,10 +7,11 @@ import {
   Grid,
   useTheme,
   Button,
-  Container,
+  CircularProgress
 } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "../supabase/supabaseClient";
 
 // Componentes personalizados
 import { IconInfo } from "../components/IconInfo";
@@ -32,6 +33,15 @@ const Dashboard = () => {
   const theme = useTheme();
   const { user, role } = useAuth();
   const [pathItems, setPathItems] = useState([]);
+  const [calendarEvents, setCalendarEvents] = useState([]);
+  const [topCertifications, setTopCertifications] = useState([]);
+  const [stats, setStats] = useState({
+    available: 0,
+    completed: 0,
+    inProgress: 0
+  });
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   const today = new Date();
   const options = { day: "numeric", month: "long", year: "numeric" };
@@ -40,96 +50,193 @@ const Dashboard = () => {
 
   const navigate = useNavigate();
 
-  // Efecto para cargar datos de path
   useEffect(() => {
-    // Datos de ejemplo para la ruta de desarrollo
-    const mockPathData = [
-      {
-        id: 1,
-        title: "Advanced React and Node JS Certificate",
-        type: "AI Suggested Certificate",
-        date: null,
-      },
-      {
-        id: 2,
-        title: "Certificate: AWS Certified Solutions Architect",
-        type: "Certificate",
-        date: "2025-02-26",
-      },
-      {
-        id: 3,
-        title: "Netflix Database Management",
-        type: "Project",
-        date: "2025-02-20",
-      },
-      {
-        id: 4,
-        title: "Disney App Project",
-        type: "Project",
-        date: "2025-01-20",
-      },
-    ];
 
-    // Simular una llamada a API
-    setTimeout(() => {
-      setPathItems(mockPathData);
-    }, 500);
-  }, []);
+    console.log("Current user:", user);
+    if (!user) return;
 
-  // Datos de ejemplo para eventos del calendario (ahora recordatorios)
-  const calendarEvents = [
-    {
-      id: 1,
-      date: "12 Feb 2025",
-      title: "React Certification",
-    },
-    {
-      id: 2,
-      date: "15 Feb 2025",
-      title: "HTML Certification",
-    },
-    {
-      id: 3,
-      date: "20 Feb 2025",
-      title: "Vite course",
-    },
-    {
-      id: 4,
-      date: "28 Feb 2025",
-      title: "From Zero to Hero: Python Masterclass",
-    },
-  ];
+    const fetchDashboardData = async () => {
+      try {
+        setIsLoading(true);
+        
+        // Fetch user path items
+        const { data: pathData, error: pathError } = await supabase
+          .from('UserCertifications')
+          .select('*')
+          .eq('user_ID', user.id)
+          .order('completion_Status', 'TRUE');
 
-  // Datos de ejemplo para certificaciones más populares
-  const topCertifications = [
-    {
-      id: 1,
-      name: "AWS Certified Cloud Practitioner",
-      category: "Cloud",
-      completions: 258,
-      popularity: 92,
-      iconType: "Storage",
-    },
-    {
-      id: 2,
-      name: "React Professional Developer",
-      category: "Frontend",
-      completions: 189,
-      popularity: 87,
-      iconType: "Code",
-    },
-    {
-      id: 3,
-      name: "Scrum Master Professional",
-      category: "Metodologías",
-      completions: 173,
-      popularity: 83,
-      iconType: "Work",
-    },
-  ];
+        if (pathError) throw pathError;
+        setPathItems(pathData || []);
 
-  // Determinar qué conjunto de habilidades mostrar según el rol
-  const userRole = role || "Full Stack";
+        // Fetch calendar events
+        const { data: eventsData, error: eventsError } = await supabase
+          .from('UserCertifications')
+          .select('*')
+          .eq('user_ID', user.id)
+          .order('completion_Status', 'FALSE');
+
+        if (eventsError) throw eventsError;
+        setCalendarEvents(eventsData || []);
+
+        // Fetch top certifications (most popular)
+        // Obtener conteo de certificaciones por usuarios
+        const { data: certCountData, error: countError } = await supabase
+        .from('UserCertifications')
+        .select('certification_ID');
+
+if (countError) throw countError;
+
+// Agrupar por certification_ID
+const certCountMap = {};
+certCountData.forEach(entry => {
+const id = entry.certification_ID;
+certCountMap[id] = (certCountMap[id] || 0) + 1;
+});
+
+const topCertIDs = Object.entries(certCountMap)
+.sort((a, b) => b[1] - a[1])
+.slice(0, 3)
+.map(([id]) => id);
+
+// Obtener detalles de esas certificaciones
+const { data: certDetails, error: detailError } = await supabase
+.from('Certifications')
+.select('certification_id, title, issuer, type')
+.in('certification_id', topCertIDs);
+
+if (detailError) throw detailError;
+
+// Calcular popularidad relativa
+const maxCount = Math.max(...Object.values(certCountMap));
+
+const topCertifications = certDetails.map(cert => {
+const count = certCountMap[cert.certification_id] || 0;
+return {
+  id: cert.certification_id,
+  name: cert.title,
+  category: cert.type,
+  completions: count,
+  popularity: Math.round((count / maxCount) * 100),
+  iconType: cert.type // para íconos en el componente
+};
+});
+
+setTopCertifications(topCertifications);
+
+        // Fetch stats
+        const { count: availableCount } = await supabase
+          .from('Certifications')
+          .select('*', { count: 'exact' });
+
+        const { count: completedCount } = await supabase
+          .from('UserCertifications')
+          .select('*', { count: 'exact' })
+          .eq('user_ID', user.id)
+          .eq('completed_Date', { ascending: false });
+
+        const { count: inProgressCount } = await supabase
+          .from('UserCertifications')
+          .select('*', { count: 'exact' })
+          .eq('user_ID', user.id)
+          .eq('completed_Date', { ascending: false });
+
+        setStats({
+          available: availableCount || 0,
+          completed: completedCount || 0,
+          inProgress: inProgressCount || 0
+        });
+
+      } catch (error) {
+        console.error("Error fetching dashboard data:", error);
+        setError(error.message);
+        setupFallbackData();
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    // Fallback data setup
+    const setupFallbackData = () => {
+      console.log("Using fallback dashboard data");
+      setPathItems([
+        {
+          id,
+          title: "Advanced React and Node JS Certificate",
+          type: "AI Suggested Certificate",
+          date: null,
+        },
+        {
+          id,
+          title: "Certificate: AWS Certified Solutions Architect",
+          type: "Certificate",
+          date: "2025-02-26",
+        }
+      ]);
+
+      setCalendarEvents([
+        {
+          id,
+          date: "12 Feb 2025",
+          title: "React Certification",
+        },
+        {
+          id,
+          date: "15 Feb 2025",
+          title: "HTML Certification",
+        }
+      ]);
+
+      setTopCertifications([
+        {
+          id,
+          name: "AWS Certified Cloud Practitioner",
+          category: "Cloud",
+          completions: 258,
+          iconType: "Storage",
+        },
+        {
+          id,
+          name: "React Professional Developer",
+          category: "Frontend",
+          completions: 189,
+          iconType: "Code",
+        }
+      ]);
+
+      setStats({
+        available: 15,
+        completed: 6,
+        inProgress: 2
+      });
+    };
+
+    fetchDashboardData();
+  }, [user]);
+
+  if (isLoading) {
+    return (
+      <Box sx={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        height: '100vh' 
+      }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (error) {
+    return (
+      <Box sx={{ p: 3, textAlign: 'center' }}>
+        <Typography color="error">Error loading dashboard: {error}</Typography>
+        <Button onClick={() => window.location.reload()} sx={{ mt: 2 }}>
+          Retry
+        </Button>
+      </Box>
+    );
+  }
 
   return (
     <Box
@@ -157,7 +264,7 @@ const Dashboard = () => {
       >
         <Box>
           <Typography variant="h4" fontWeight="bold" sx={{ mb: 1 }}>
-            Welcome back !
+            Welcome back!
           </Typography>
           <Typography variant="body1">Today is {finalDate}</Typography>
         </Box>
@@ -178,7 +285,7 @@ const Dashboard = () => {
             },
           }}
         >
-          Explorar certificaciones
+          Explore Certifications
         </Button>
         </Box>
       </Paper>
@@ -213,7 +320,8 @@ const Dashboard = () => {
             </Box>
             <Box>
               <Typography variant="h4" fontWeight="medium" color="primary.main">
-                15
+                
+                {stats.available}
               </Typography>
               <Typography variant="body2" color="text.secondary">
                 Available Certifications
@@ -250,7 +358,7 @@ const Dashboard = () => {
             </Box>
             <Box>
               <Typography variant="h4" fontWeight="medium" color="#2196f3">
-                6
+                {stats.completed}
               </Typography>
               <Typography variant="body2" color="text.secondary">
                 Completed Certifications
@@ -287,10 +395,10 @@ const Dashboard = () => {
             </Box>
             <Box>
               <Typography variant="h4" fontWeight="medium" color="#ff9800">
-                2
+                {stats.inProgress}
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                On progress certifications
+                On Progress Certifications
               </Typography>
             </Box>
           </Paper>
@@ -316,7 +424,7 @@ const Dashboard = () => {
                 overflow: "hidden",
               }}
             >
-              <CalendarWithReminders events={calendarEvents} />
+              <CalendarWithReminders userId={user?.id} />
             </Paper>
           </Box>
 
@@ -343,7 +451,7 @@ const Dashboard = () => {
                 mb: { xs: 3, lg: 0 },
               }}
             >
-              <UserSkillsList userRole={userRole} />
+              <UserSkillsList userRole={role} userId={user?.id} />
             </Box>
 
             {/* Certificaciones populares */}
@@ -354,7 +462,7 @@ const Dashboard = () => {
 
           {/* Certificaciones Grid */}
           <Box>
-            <CertificationGrid />
+            <CertificationGrid userId={user?.id}/>
           </Box>
         </Box>
       </Box>

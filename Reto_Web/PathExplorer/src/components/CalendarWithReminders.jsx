@@ -1,5 +1,5 @@
 // src/components/dashboard/CalendarWithReminders.jsx
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { 
   Box, 
   Typography, 
@@ -11,6 +11,7 @@ import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DateCalendar } from '@mui/x-date-pickers/DateCalendar';
 import dayjs from 'dayjs';
+import { supabase } from "../supabase/supabaseClient";
 
 // Iconos
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
@@ -18,10 +19,85 @@ import EventNoteIcon from "@mui/icons-material/EventNote";
 import ArrowBackIosNewIcon from "@mui/icons-material/ArrowBackIosNew";
 import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
 
-export const CalendarWithReminders = ({ events }) => {
+export const CalendarWithReminders = ({ userId }) => {
   const theme = useTheme();
   const [selectedDate, setSelectedDate] = useState(dayjs());
   const [currentMonth, setCurrentMonth] = useState(dayjs());
+  const [events, setEvents] = useState([]);
+
+useEffect(() => {
+  const fetchReminders = async () => {
+    try {
+      //Obtener los proyectos conectados al usuario
+      const { data: userRoles, error: roleError } = await supabase
+        .from('UserRole')
+        .select('project_id')
+        .eq('user_id', userId); 
+
+      if (roleError) throw roleError;
+
+      const projectIds = userRoles.map(r => r.project_id);
+      console.log("Project IDs for user:", projectIds);
+
+      if (projectIds.length === 0) {
+        return;
+      }
+
+      // Obtener los detalles de esos proyectos
+      const { data: projects, error: projectError } = await supabase
+        .from('Project')
+        .select('projectID, title, status, priority')
+        .in('projectID', projectIds);
+
+      if (projectError) throw projectError;
+
+      // Mapear al formato que espera el componente
+      const reminders = projects.map(proj => ({
+        id: proj.projectID,
+        title: proj.title,
+        date: `${proj.status} • ${proj.priority}`
+      }));
+
+      // Obtener certificaciones pendientes del usuario
+      const { data: userCerts, error: certError } = await supabase
+      .from('UserCertifications')
+      .select('certification_ID')
+      .eq('user_ID', userId)
+      .eq('completion_Status', false);
+
+      if (certError) throw certError;
+
+      const certIds = userCerts.map(c => c.certification_ID);
+      console.log("Certificaciones pendientes:", certIds);
+
+      if (certIds.length > 0) {
+      const { data: certDetails, error: detailsError } = await supabase
+        .from('Certifications')
+        .select('certification_id, title, type')
+        .in('certification_id', certIds);
+
+      if (detailsError) throw detailsError;
+
+      const certReminders = certDetails.map(cert => ({
+        id: cert.certification_id,
+        title: cert.title,
+        date: `Pending • ${cert.type}`
+      }));
+
+      reminders.push(...certReminders);
+}
+
+      setEvents(reminders);
+    } catch (err) {
+      console.error('Error loading reminders:', err.message);
+    }
+  };
+
+  if (userId) fetchReminders();
+}, [userId]);
+
+  
+
   
   // Función para manejar el cambio de mes
   const handleMonthChange = (direction) => {
