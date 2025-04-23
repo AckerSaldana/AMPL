@@ -2,24 +2,14 @@
 import React from "react";
 import { Navigate, Outlet } from "react-router-dom";
 import useAuth from "../hooks/useAuth";
+import Loading from "../components/Loading";
 
 const ProtectedRoute = ({ allowedRoles }) => {
   const { user, role, loading } = useAuth();
 
   // Mostrar un indicador de carga mientras se verifica la autenticación
   if (loading) {
-    return (
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          height: "100vh",
-        }}
-      >
-        <p>Cargando...</p>
-      </div>
-    );
+    return <Loading />;
   }
 
   // Si no hay usuario autenticado, redirigir al login

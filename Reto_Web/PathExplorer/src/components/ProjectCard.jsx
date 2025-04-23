@@ -29,16 +29,10 @@ const ProjectCard = ({ project }) => {
         month: "short",
         day: "numeric",
         year: "numeric",
-      }); // Resulting format example: "Apr 13, 2025"
+      }); // example: "Apr 13, 2025"
     } catch (error) {
       return dateString;
     }
-  };
-
-  // Truncate description with ellipsis if too long
-  const truncateDescription = (text, maxLength = 60) => {
-    if (text.length <= maxLength) return text;
-    return text.substring(0, maxLength) + "...";
   };
 
   return (
@@ -108,7 +102,7 @@ const ProjectCard = ({ project }) => {
         </Box>
 
         {/* Project Logo and Title */}
-        <Box sx={{ display: "flex", mb: 1 }}>
+        <Box sx={{ display: "flex", mb: 2 }}>
           <Box
             sx={{
               mr: 2,
@@ -139,7 +133,7 @@ const ProjectCard = ({ project }) => {
               </Typography>
             )}
           </Box>
-          <Box>
+          <Box sx={{ width: "100%" }}>
             <Typography
               variant="subtitle1"
               sx={{ fontWeight: 500, mb: 0.5, fontSize: "0.95rem" }}
@@ -157,7 +151,9 @@ const ProjectCard = ({ project }) => {
                   WebkitBoxOrient: "vertical",
                   overflow: "hidden",
                   textOverflow: "ellipsis",
-                  height: "2.4em", // Fixed height for 2 lines
+                  lineHeight: 1.2,
+                  mb: 1,
+                  maxHeight: "unset", // Remove fixed height
                 }}
               >
                 {project.description}
@@ -167,9 +163,9 @@ const ProjectCard = ({ project }) => {
         </Box>
 
         {/* Spacer to push content to consistent positions */}
-        <Box sx={{ flexGrow: 1, minHeight: 12 }} />
+        <Box sx={{ flexGrow: 1, minHeight: 8 }} />
 
-        {/* Team Section - now at consistent height */}
+        {/* Team Section - consistent height */}
         <Box>
           <Typography
             variant="body2"
@@ -177,7 +173,7 @@ const ProjectCard = ({ project }) => {
           >
             Team:
           </Typography>
-          <Box sx={{ mb: 1, display: "flex", flexWrap: "wrap", mt: 2 }}>
+          <Box sx={{ mb: 1, display: "flex", flexWrap: "wrap", mt: 1 }}>
             <AvatarGroup
               max={4}
               sx={{
@@ -244,7 +240,7 @@ const ProjectCard = ({ project }) => {
           />
         </Box>
 
-        {/* Dates - Now formatted */}
+        {/* Dates - formatted */}
         <Box
           sx={{
             display: "flex",
