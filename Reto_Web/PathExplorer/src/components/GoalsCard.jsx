@@ -3,9 +3,7 @@ import React from "react";
 
 export const GoalsCard = () => {
   return (
-    <Paper
-      sx={{ p: 3, mb: 3, display: "flex", flexDirection: "column", gap: 1.5 }}
-    >
+    <Paper sx={{ p: 3, display: "flex", flexDirection: "column", gap: 1.5 }}>
       <Typography variant="body1" fontWeight={"bold"}>
         Goals
       </Typography>

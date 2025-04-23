@@ -1,21 +1,27 @@
-// src/App.jsx - Versión actualizada
+// src/App.jsx
 import React from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+
+// Layout principal
 import MainLayout from "./layout/MainLayout";
+
+// Páginas
 import Dashboard from "./pages/Dashboard";
 import Profiles from "./pages/Profiles";
 import Analytics from "./pages/Analytics";
 import Settings from "./pages/Settings";
 import User from "./pages/User";
-import Certifications from "./pages/Certifications"; 
-
+import Certifications from "./pages/Certifications";
 import ProjectDashboard from "./pages/ProjectDashboard.jsx";
-
 import EditProfile from "./pages/EditProfile";
 import Login from "./pages/Login";
-import ProtectedRoute from "./components/ProtectedRoute";
 import Unauthorized from "./pages/Unauthorized";
 import SubmitCertification from "./pages/SubmitCertification.jsx";
+import AddProject from "./pages/AddProject.jsx";
+import RoleAssign from "./pages/RoleAssign.jsx";
+
+// Protección de rutas
+import ProtectedRoute from "./components/ProtectedRoute";
 
 function App() {
   return (
@@ -36,11 +42,13 @@ function App() {
           >
             <Route index element={<Dashboard />} />
             <Route path="projects" element={<ProjectDashboard />} />
+            <Route path="add-projects" element={<AddProject />} />
+            <Route path="role-assign" element={<RoleAssign />} />
             <Route path="certifications" element={<Certifications />} />
+            <Route path="submit-certification" element={<SubmitCertification />} />
             <Route path="settings" element={<Settings />} />
             <Route path="user" element={<User />} />
             <Route path="edit-profile" element={<EditProfile />} />
-            <Route path="/submit-certification" element={<SubmitCertification />} />
           </Route>
 
           {/* Rutas accesibles solo para TFS y manager */}
@@ -52,7 +60,8 @@ function App() {
           <Route element={<ProtectedRoute allowedRoles={["manager"]} />}>
             <Route path="analytics" element={<Analytics />} />
           </Route>
-          {/* Redirección por defecto a dashboard */}
+
+          {/* Redirección por defecto */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>

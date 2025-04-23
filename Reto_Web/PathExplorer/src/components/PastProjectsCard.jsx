@@ -52,85 +52,87 @@ export const PastProjectsCard = () => {
   const theme = useTheme();
 
   return (
-    <Paper sx={{ padding: 2, overflow: "auto" }}>
+    <Paper sx={{ padding: 2, overflow: "auto", width: "100%" }}>
       <Typography variant="body1" fontWeight={"bold"}>
         Past Projects
       </Typography>
-      <Table>
-        <TableHead>
-          <TableRow>
-            {["Title", "Team", "Role", "Skills Used / Attained"].map(
-              (header, index) => (
-                <TableCell
-                  key={index}
-                  sx={{ color: theme.palette.text.secondary }}
-                >
-                  <strong>{header}</strong>
-                </TableCell>
-              )
-            )}
-          </TableRow>
-        </TableHead>
+      <Box sx={{ overflowX: "auto" }}>
+        <Table sx={{ tableLayout: "fixed", width: "100%" }}>
+          <TableHead>
+            <TableRow>
+              {["Title", "Team", "Role", "Skills Used / Attained"].map(
+                (header, index) => (
+                  <TableCell
+                    key={index}
+                    sx={{ color: theme.palette.text.secondary }}
+                  >
+                    <strong>{header}</strong>
+                  </TableCell>
+                )
+              )}
+            </TableRow>
+          </TableHead>
 
-        <TableBody>
-          {projects.map((project, index) => (
-            <TableRow key={index}>
-              <TableCell sx={{}}>{project.title}</TableCell>
-              <TableCell>
-                <AvatarGroup
-                  max={4}
-                  sx={{
-                    display: "flex",
-                    alignItems: "center",
-                    "& .MuiAvatar-root": {
-                      width: 24,
-                      height: 24,
-                      fontSize: 10,
-                      bgcolor: theme.palette.primary.main,
-                    },
-                  }}
-                >
-                  {[...Array(project.team)].map((_, i) => (
-                    <Avatar
-                      key={i}
-                      sx={{
+          <TableBody>
+            {projects.map((project, index) => (
+              <TableRow key={index}>
+                <TableCell sx={{}}>{project.title}</TableCell>
+                <TableCell>
+                  <AvatarGroup
+                    max={4}
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      "& .MuiAvatar-root": {
                         width: 24,
                         height: 24,
+                        fontSize: 10,
                         bgcolor: theme.palette.primary.main,
-                      }}
-                    />
-                  ))}
-                </AvatarGroup>
-              </TableCell>
-              <TableCell>{project.role}</TableCell>
-              <TableCell>
-                <Box
-                  sx={{
-                    maxWidth: 250,
-                    overflowX: "auto",
-                    whiteSpace: "nowrap",
-                    "&::-webkit-scrollbar": {
-                      height: 0,
-                    },
-                  }}
-                >
-                  {project.skills.map((skill, i) => (
-                    <Chip
-                      key={i}
-                      label={skill}
-                      sx={{
-                        margin: "2px",
-                        backgroundColor: theme.palette.primary.light,
-                        color: theme.palette.common.white,
-                      }}
-                    />
-                  ))}
-                </Box>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+                      },
+                    }}
+                  >
+                    {[...Array(project.team)].map((_, i) => (
+                      <Avatar
+                        key={i}
+                        sx={{
+                          width: 24,
+                          height: 24,
+                          bgcolor: theme.palette.primary.main,
+                        }}
+                      />
+                    ))}
+                  </AvatarGroup>
+                </TableCell>
+                <TableCell>{project.role}</TableCell>
+                <TableCell>
+                  <Box
+                    sx={{
+                      maxWidth: 250,
+                      overflowX: "auto",
+                      whiteSpace: "nowrap",
+                      "&::-webkit-scrollbar": {
+                        height: 0,
+                      },
+                    }}
+                  >
+                    {project.skills.map((skill, i) => (
+                      <Chip
+                        key={i}
+                        label={skill}
+                        sx={{
+                          margin: "2px",
+                          backgroundColor: theme.palette.primary.light,
+                          color: theme.palette.common.white,
+                        }}
+                      />
+                    ))}
+                  </Box>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </Box>
     </Paper>
   );
 };
