@@ -29,6 +29,9 @@ import ClearAllIcon from '@mui/icons-material/ClearAll';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import CategoryIcon from '@mui/icons-material/Category';
 import SkillsIcon from '@mui/icons-material/Psychology';
+import Modal from '@mui/material/Modal';
+import SubmitCertification from './SubmitCertification';
+
 
 // Importar supabase
 import { supabase } from '../supabase/supabaseClient';
@@ -86,6 +89,12 @@ const Certifications = () => {
   const [allSkills, setAllSkills] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [openModal, setOpenModal] = useState(false);
+  const handleOpenModal = () => setOpenModal(true);
+  const handleCloseModal = () => setOpenModal(false);
+
+
+  
 
   // useEffect para cargar datos
   useEffect(() => {
@@ -372,24 +381,25 @@ const Certifications = () => {
   
           {/* Búsqueda, botón submit y filtros */}
           <Box sx={{ display: 'flex', gap: 2, alignSelf: { xs: 'stretch', sm: 'auto' } }}>
-            <Button
-              variant="outlined"
-              startIcon={<SchoolIcon />}
-              sx={{
-                borderRadius: 1.5,
-                fontWeight: 600,
-                bgcolor: '#fff',
-                color: theme.palette.primary.main,
-                borderColor: theme.palette.primary.main,
-                textTransform: 'none',
-                '&:hover': {
-                  bgcolor: alpha(theme.palette.primary.main, 0.05),
-                }
-              }}
-              onClick={() => window.location.href = "/submit-certification"}
-            >
-              Submit Certification
-            </Button>
+          <Button
+            variant="outlined"
+            startIcon={<SchoolIcon />}
+            sx={{
+              borderRadius: 1.5,
+              fontWeight: 600,
+              bgcolor: '#fff',
+              color: theme.palette.primary.main,
+              borderColor: theme.palette.primary.main,
+              textTransform: 'none',
+              '&:hover': {
+                bgcolor: alpha(theme.palette.primary.main, 0.05),
+              }
+            }}
+            onClick={handleOpenModal}
+          >
+            Submit Certification
+          </Button>
+
   
             <TextField
               placeholder="Search certifications..."
@@ -453,6 +463,26 @@ const Certifications = () => {
             </Badge>
           </Box>
         </Box>
+
+        <Modal open={openModal} onClose={handleCloseModal}>
+          <Box
+            sx={{
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              width: { xs: '90%', sm: 600 },
+              bgcolor: 'background.paper',
+              borderRadius: 3,
+              boxShadow: 24,
+              p: 3,
+              maxHeight: '90vh',
+              overflowY: 'auto',
+            }}
+          >
+            <SubmitCertification onClose={handleCloseModal} />
+          </Box>
+        </Modal>
   
         {/* Panel de filtros */}
         {showFilters && (

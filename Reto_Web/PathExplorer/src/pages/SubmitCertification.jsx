@@ -15,7 +15,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import { supabase } from '../supabase/supabaseClient';
 import uploadEvidenceToSupabase from '../utils/uploadEvidenceToSupabase';
 
-const SubmitCertification = () => {
+const SubmitCertification = ({ onClose }) => {
   const [file, setFile] = useState(null);
   const [pdfPreviewUrl, setPdfPreviewUrl] = useState(null);
   const [completedDate, setCompletedDate] = useState('');
@@ -100,6 +100,13 @@ const SubmitCertification = () => {
       <Typography variant="h5" fontWeight={700} mb={3}>
         Submit Certification Evidence
       </Typography>
+
+      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1 }}>
+        <Button onClick={onClose}  size="small" variant="outlined">
+          Close
+        </Button>
+      </Box>
+
 
       <Paper sx={{ p: 3, borderRadius: 3, boxShadow: 2 }}>
         <FormControl fullWidth sx={{ mb: 2 }}>
@@ -191,13 +198,36 @@ const SubmitCertification = () => {
 
         <TextField
           fullWidth
-          type="number"
           label="Score (1 - 100)"
-          inputProps={{ min: 1, max: 100 }}
           value={score}
-          onChange={(e) => setScore(e.target.value)}
+          onChange={(e) => {
+            const input = e.target.value;
+
+            // Permitir solo dígitos (no letras, símbolos, ni más de 3 dígitos)
+            if (/^\d{0,3}$/.test(input)) {
+              setScore(input);
+            }
+          }}
+          onBlur={() => {
+            const num = parseInt(score);
+            if (isNaN(num) || num < 1 || num > 100) {
+              setScore('');
+            }
+          }}
+          error={score !== '' && (parseInt(score) < 1 || parseInt(score) > 100)}
+          helperText={
+            score !== '' && (parseInt(score) < 1 || parseInt(score) > 100)
+              ? "Score must be between 1 and 100"
+              : ""
+          }
+          inputProps={{
+            inputMode: "numeric",
+            pattern: "[0-9]*",
+            maxLength: 3,
+          }}
           sx={{ mb: 3 }}
         />
+
 
         <Button
           variant="contained"
