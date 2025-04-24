@@ -31,6 +31,7 @@ import CategoryIcon from '@mui/icons-material/Category';
 import SkillsIcon from '@mui/icons-material/Psychology';
 import Modal from '@mui/material/Modal';
 import SubmitCertification from './SubmitCertification';
+import IconButton from '@mui/material/IconButton';
 
 
 // Importar supabase
