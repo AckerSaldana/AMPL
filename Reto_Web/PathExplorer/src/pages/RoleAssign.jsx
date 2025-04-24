@@ -61,6 +61,7 @@ function generateRoleDescription(roleName, skills = [], skillMap = {}) {
 }
 
 // Función para llamar al endpoint backend que procesa el matching para un rol.
+
 async function getMatchesForRole(role, employees, skillMap) {
   try {
     // Debug de habilidades requeridas para el rol y sus tipos
@@ -90,8 +91,15 @@ async function getMatchesForRole(role, employees, skillMap) {
       skillMapCount: Object.keys(skillMap).length
     });
     
-    // URL de la API en Firebase Functions
-    const apiUrl = "/api/getMatches";
+    // Determinar si estamos en desarrollo local o en producción
+    const isLocalDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    
+    // URL del API - adaptada según entorno
+    const apiUrl = isLocalDev 
+      ? "http://localhost:3001/getMatches"  // URL directa al localhost
+      : "/api/getMatches";                  // URL con prefijo /api para Firebase
+    
+    console.log(`Usando endpoint: ${apiUrl} (${isLocalDev ? 'desarrollo local' : 'producción'})`);
     
     const response = await fetch(apiUrl, {
       method: "POST",
@@ -108,12 +116,34 @@ async function getMatchesForRole(role, employees, skillMap) {
     
     const data = await response.json();
     
+    // Mapear los resultados para incluir 'score' a partir de 'combinedScore'
+    const mappedMatches = data.matches.map(match => {
+      // Buscar el empleado original para obtener su avatar
+      const originalEmployee = employees.find(emp => emp.id === match.id);
+      
+      return {
+        ...match,
+        avatar: originalEmployee?.avatar || null, // Usar el avatar del empleado original
+        score: match.combinedScore || 0,  // Asignar combinedScore a score
+        weights: {
+          technical: data.weights?.technical || 60,
+          contextual: data.weights?.contextual || 40
+        }
+      };
+    });
+    
+    // Ordenar los candidatos por score de mayor a menor
+    mappedMatches.sort((a, b) => (b.score || 0) - (a.score || 0));
+    
     // Ahora podemos mostrar los pesos utilizados si están disponibles
     if (data.weights) {
       console.log(`Pesos utilizados - Técnico: ${data.weights.technical}%, Contextual: ${data.weights.contextual}%`);
     }
     
-    return data.matches || []; // Asegurar que siempre devuelva un array
+    // Verificar la estructura de los datos mapeados
+    console.log("Datos mapeados:", mappedMatches[0]);
+    
+    return mappedMatches; // Devolver los matches con la estructura corregida y ordenados
   } catch (error) {
     console.error("Error en getMatchesForRole:", error);
     return []; // Devolver un array vacío en caso de error
@@ -277,17 +307,21 @@ const RoleAssign = () => {
         });
 
         // 5. Preparar empleados vinculando sus skills y usando el campo "about" como bio
+        // En tu componente RoleAssign, en la parte donde mapeas los empleados:
         const employeesWithSkills = userData.map(user => {
           const userId = user.user_id;
           const userSkills = userSkillsMap[userId] || [];
           const userName = `${user.name || ""} ${user.last_name || ""}`.trim() || "Usuario sin nombre";
           
+          // Usar directamente el enlace almacenado en profile_pic
+          const avatarUrl = user.profile_pic || null;
+          
           return {
             id: userId,
             name: userName,
-            avatar: user.profile_pic || null,
+            avatar: avatarUrl, 
             skills: userSkills,
-            bio: user.about || `Profesional del área de tecnología: ${userName}` // Usar el campo about como bio
+            bio: user.about || `Profesional del área de tecnología: ${userName}`
           };
         });
         
@@ -332,35 +366,52 @@ const RoleAssign = () => {
             };
 
             // Llamar al endpoint para obtener candidatos, incluyendo el skillMap
-            try {
-              const bestMatches = await getMatchesForRole(normalizedRole, employeesWithSkills, newSkillMap);
-              const bestCandidate = bestMatches.length > 0 ? bestMatches[0] : null;
+            // Dentro del useEffect donde procesas cada rol
+              try {
+                const apiResults = await getMatchesForRole(normalizedRole, employeesWithSkills, newSkillMap);
+                
+                // Asegurarnos de que cada candidato tenga todos los campos necesarios
+                const bestMatches = apiResults.map(match => ({
+                  id: match.id,
+                  name: match.name,
+                  avatar: match.avatar || null,
+                  score: match.combinedScore || match.score || 0,
+                  technicalScore: match.technicalScore || 0,
+                  contextualScore: match.contextualScore || 0,
+                  weights: match.weights || {
+                    technical: 60,
+                    contextual: 40
+                  }
+                }));
+                
+                // Ya no necesitamos ordenar aquí porque lo hacemos en getMatchesForRole
+                const bestCandidate = bestMatches.length > 0 ? bestMatches[0] : null;
 
-              return {
-                id: role.id || `role-${index}`,
-                role: role.name,
-                area: role.area,
-                yearsOfExperience: role.yearsOfExperience,
-                skills: normalizedRoleSkills,
-                description: normalizedRole.description,
-                assigned: bestCandidate,
-                allCandidates: bestMatches,
-                matches: bestMatches.slice(1)
-              };
-            } catch (matchError) {
-              console.error(`Error obteniendo matches para rol ${role.name}:`, matchError);
-              return {
-                id: role.id || `role-${index}`,
-                role: role.name,
-                area: role.area,
-                yearsOfExperience: role.yearsOfExperience,
-                skills: normalizedRoleSkills,
-                description: normalizedRole.description,
-                assigned: null,
-                allCandidates: [],
-                matches: []
-              };
-            }
+                return {
+                  id: role.id || `role-${index}`,
+                  role: role.name,
+                  area: role.area,
+                  yearsOfExperience: role.yearsOfExperience,
+                  skills: normalizedRoleSkills,
+                  description: normalizedRole.description,
+                  assigned: bestCandidate,
+                  allCandidates: bestMatches,
+                  matches: bestMatches.slice(1)
+                };
+              } catch (matchError) {
+                console.error(`Error obteniendo matches para rol ${role.name}:`, matchError);
+                return {
+                  id: role.id || `role-${index}`,
+                  role: role.name,
+                  area: role.area,
+                  yearsOfExperience: role.yearsOfExperience,
+                  skills: normalizedRoleSkills,
+                  description: normalizedRole.description,
+                  assigned: null,
+                  allCandidates: [],
+                  matches: []
+                };
+              }
           })
         );
         
@@ -428,7 +479,7 @@ const RoleAssign = () => {
         return {
           user_id: roleObj.assigned.id,
           role_name: roleObj.role,
-          feedback_notes: `Assigned with ${roleObj.assigned.score}% match score (Technical: ${roleObj.assigned.technicalScore}%, Contextual: ${roleObj.assigned.contextualScore}%)`
+          feedback_notes: `Assigned with ${roleObj.assigned.score || 0}% match score (Technical: ${roleObj.assigned.technicalScore || 0}%, Contextual: ${roleObj.assigned.contextualScore || 0}%)`
         };
       }).filter(Boolean);
       const { data, error } = await supabase.rpc(
@@ -664,10 +715,10 @@ const RoleAssign = () => {
                       key={match.id}
                       name={match.name}
                       avatar={match.avatar}
-                      score={match.score}
-                      technicalScore={match.technicalScore}
-                      contextualScore={match.contextualScore}
-                      weights={match.weights}
+                      score={match.score || match.combinedScore || 0}
+                      technicalScore={match.technicalScore || 0}
+                      contextualScore={match.contextualScore || 0}
+                      weights={match.weights || { technical: 60, contextual: 40 }}
                       onSelect={() => handleEmployeeChange(selectedRoleIndex, match.id)}
                     />
                   ))
@@ -731,7 +782,7 @@ const RoleAssign = () => {
       <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)}>
         <DialogTitle>Confirmar Proyecto y Asignaciones</DialogTitle>
         <DialogContent>
-          <DialogContentText>
+        <DialogContentText>
             Estás a punto de <strong>crear el proyecto y finalizar</strong> el proceso de asignación de roles.
             Se asignarán los siguientes roles:
             <Box component="ul" sx={{ mt: 2 }}>

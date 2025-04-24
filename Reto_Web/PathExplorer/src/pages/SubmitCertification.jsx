@@ -227,8 +227,6 @@ const SubmitCertification = ({ onClose }) => {
           }}
           sx={{ mb: 3 }}
         />
-
-
         <Button
           variant="contained"
           fullWidth

@@ -38,7 +38,7 @@ const ProjectDashboard = () => {
     const { data: projectsData, error: projectsError } = await supabase
       .from("Project")
       .select(
-        "projectID, title, description, status, logo, progress, start_date, end_date"
+        "projectID, title, description, status, logo, progress, start_date, end_date, priority"
       );
 
     if (projectsError) {
@@ -86,7 +86,17 @@ const ProjectDashboard = () => {
       progress: project.progress,
       assignedDate: project.start_date,
       dueDate: project.end_date,
+      priority: project.priority,
     }));
+
+    // Sort projects by priority
+    const priorityOrder = { High: 1, Medium: 2, Low: 3 };
+
+    combinedData.sort((a, b) => {
+      const orderA = priorityOrder[a.priority] || 99;
+      const orderB = priorityOrder[b.priority] || 99;
+      return orderA - orderB;
+    });
 
     setProjects(combinedData);
   };
@@ -153,8 +163,8 @@ const ProjectDashboard = () => {
     setSnackbar({ ...snackbar, open: false });
   };
 
-  const filteredProjects = projects.filter(project => {
-    if (activeFilter.toLowerCase() === 'all') return true;
+  const filteredProjects = projects.filter((project) => {
+    if (activeFilter.toLowerCase() === "all") return true;
     return project.status?.toLowerCase() === activeFilter.toLowerCase();
   });
 
