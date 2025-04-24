@@ -135,7 +135,7 @@ export const CertificationCard = ({
             color="text.secondary"
             sx={{ mb: 2, fontSize: "0.85rem" }}
           >
-            Issuer: {duration}
+            Duration: {duration}
           </Typography>
         </Box>
         

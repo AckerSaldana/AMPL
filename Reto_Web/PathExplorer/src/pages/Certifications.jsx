@@ -29,7 +29,10 @@ import ClearAllIcon from '@mui/icons-material/ClearAll';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import CategoryIcon from '@mui/icons-material/Category';
 import SkillsIcon from '@mui/icons-material/Psychology';
+import Modal from '@mui/material/Modal';
+import SubmitCertification from './SubmitCertification';
 import IconButton from '@mui/material/IconButton';
+
 
 // Importar supabase
 import { supabase } from '../supabase/supabaseClient';
@@ -87,6 +90,12 @@ const Certifications = () => {
   const [allSkills, setAllSkills] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [openModal, setOpenModal] = useState(false);
+  const handleOpenModal = () => setOpenModal(true);
+  const handleCloseModal = () => setOpenModal(false);
+
+
+  
 
   // useEffect para cargar datos
   useEffect(() => {
@@ -370,9 +379,29 @@ const Certifications = () => {
               </Typography>
             </Box>
           </Box>
-          
-          {/* Búsqueda y filtros */}
+  
+          {/* Búsqueda, botón submit y filtros */}
           <Box sx={{ display: 'flex', gap: 2, alignSelf: { xs: 'stretch', sm: 'auto' } }}>
+          <Button
+            variant="outlined"
+            startIcon={<SchoolIcon />}
+            sx={{
+              borderRadius: 1.5,
+              fontWeight: 600,
+              bgcolor: '#fff',
+              color: theme.palette.primary.main,
+              borderColor: theme.palette.primary.main,
+              textTransform: 'none',
+              '&:hover': {
+                bgcolor: alpha(theme.palette.primary.main, 0.05),
+              }
+            }}
+            onClick={handleOpenModal}
+          >
+            Submit Certification
+          </Button>
+
+  
             <TextField
               placeholder="Search certifications..."
               variant="outlined"
@@ -409,7 +438,7 @@ const Certifications = () => {
                 )
               }}
             />
-            
+  
             <Badge 
               badgeContent={activeFilterCount} 
               color="primary"
@@ -436,6 +465,26 @@ const Certifications = () => {
           </Box>
         </Box>
 
+        <Modal open={openModal} onClose={handleCloseModal}>
+          <Box
+            sx={{
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              width: { xs: '90%', sm: 600 },
+              bgcolor: 'background.paper',
+              borderRadius: 3,
+              boxShadow: 24,
+              p: 3,
+              maxHeight: '90vh',
+              overflowY: 'auto',
+            }}
+          >
+            <SubmitCertification onClose={handleCloseModal} />
+          </Box>
+        </Modal>
+  
         {/* Panel de filtros */}
         {showFilters && (
           <Paper sx={{ 
@@ -455,35 +504,26 @@ const Certifications = () => {
                 <FilterListIcon sx={{ verticalAlign: 'middle', mr: 1 }} />
                 Filter Certifications
               </Typography>
-              
+  
               <Button 
                 variant="text" 
                 startIcon={<ClearAllIcon />}
                 onClick={handleClearFilters}
-                sx={{ 
-                  color: theme.palette.primary.main,
-                }}
+                sx={{ color: theme.palette.primary.main }}
                 disabled={!searchTerm && categoryFilter === 'all' && !skillFilter.length}
               >
                 Clear all
               </Button>
             </Box>
-            
+  
             <Divider sx={{ mb: 2 }} />
-            
+  
             {/* Filtros de categoría y skills */}
-            <Box sx={{ 
-              display: 'flex', 
-              flexWrap: 'wrap', 
-              gap: 2
-            }}>
-              {/* Categoría */}
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
               <Box sx={{ minWidth: 200, flex: 1 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
                   <CategoryIcon sx={{ color: theme.palette.text.secondary, mr: 1, fontSize: 18 }} />
-                  <Typography variant="subtitle2" fontWeight={600}>
-                    Category
-                  </Typography>
+                  <Typography variant="subtitle2" fontWeight={600}>Category</Typography>
                 </Box>
                 <TextField
                   select
@@ -491,11 +531,7 @@ const Certifications = () => {
                   size="small"
                   value={categoryFilter}
                   onChange={(e) => setCategoryFilter(e.target.value)}
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
-                      borderRadius: 1.5,
-                    }
-                  }}
+                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
                 >
                   {categories.map((category) => (
                     <MenuItem key={category} value={category}>
@@ -504,14 +540,11 @@ const Certifications = () => {
                   ))}
                 </TextField>
               </Box>
-              
-              {/* Skills */}
+  
               <Box sx={{ flex: 2 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
                   <SkillsIcon sx={{ color: theme.palette.text.secondary, mr: 1, fontSize: 18 }} />
-                  <Typography variant="subtitle2" fontWeight={600}>
-                    Skills
-                  </Typography>
+                  <Typography variant="subtitle2" fontWeight={600}>Skills</Typography>
                 </Box>
                 <Box 
                   sx={{ 
@@ -559,18 +592,10 @@ const Certifications = () => {
                 </Box>
               </Box>
             </Box>
-            
-            {/* Filtros activos */}
+  
             {(searchTerm || categoryFilter !== 'all' || skillFilter.length > 0) && (
-              <Box sx={{ 
-                mt: 2, 
-                display: 'flex', 
-                flexWrap: 'wrap',
-                gap: 1
-              }}>
-                <Typography variant="body2" color="text.secondary">
-                  Active filters:
-                </Typography>
+              <Box sx={{ mt: 2, display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                <Typography variant="body2" color="text.secondary">Active filters:</Typography>
                 {searchTerm && (
                   <Chip
                     label={`Search: ${searchTerm}`}
@@ -600,7 +625,7 @@ const Certifications = () => {
           </Paper>
         )}
       </Box>
-
+  
       {/* Resultados - Grid de certificaciones */}
       {filteredCerts.length > 0 ? (
         <Grid container spacing={2}>
@@ -645,7 +670,7 @@ const Certifications = () => {
         </Paper>
       )}
     </Box>
-  );
+  );  
 };
 
 export default Certifications;

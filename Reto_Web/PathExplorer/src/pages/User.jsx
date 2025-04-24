@@ -10,7 +10,7 @@ import { GoalsCard } from "../components/GoalsCard";
 import { About } from "../components/About";
 import { PastProjectsCard } from "../components/PastProjectsCard";
 
-const ProfilePage = () => {
+export const ProfilePage = () => {
   const userData = {
     fullName: "Benito Antonio Martinez Ocasio",
     phone: "+1 234 567 890",
@@ -28,12 +28,10 @@ const ProfilePage = () => {
         p: { xs: 2, md: 4 },
         minHeight: "calc(100vh - 60px)",
         width: "100%", // Expanded navbar is 230px wide
-        
-
       }}
     >
       {/* This wrapper limits the maximum width and centers the content */}
-      <Box sx={{ maxWidth: "1200px", mx: "auto" }}>
+      <Box sx={{ mx: "auto" }}>
         <Grid container spacing={3}>
           <Grid item xs={12}>
             <BannerProfile />
