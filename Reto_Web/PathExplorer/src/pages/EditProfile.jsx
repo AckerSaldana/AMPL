@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Box,
   Grid,
@@ -25,15 +25,68 @@ import {
 } from "@mui/icons-material";
 import { AddSkillsCard } from "../components/AddSkillsCard";
 import { EditBannerProfile } from "../components/EditBannerProfile";
+import { supabase } from "../supabase/supabaseClient"; 
 
-const EditProfile = ({ userData, onSave, onCancel }) => {
+const EditProfile = ({ onSave, onCancel }) => {
   const theme = useTheme();
-  const [formData, setFormData] = useState({
-    ...userData,
-    position: userData?.position || "Frontend Developer", // Default title if not provided
-  });
+  
+    const [formData, setFormData] = useState({
+      fullName: "",
+      email: "",
+      phone: "",
+      about: "",
+      position: "",
+      userId: null, 
+    });
+
   const [avatarFile, setAvatarFile] = useState(null);
-  const [avatarPreview, setAvatarPreview] = useState(userData?.avatar || null);
+  const [avatarPreview, setAvatarPreview] = useState(null);
+
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+  
+        if (!user) {
+          console.error("No logged in user");
+          return;
+        }
+  
+        const { data: userInfo, error: userError } = await supabase
+          .from("User")
+          .select("user_id, name, last_name, mail, phone, about")
+          .eq("user_id", user.id)
+          .single();
+  
+        if (userError) throw error;
+
+        const { data: roleInfo, error: roleError } = await supabase
+        .from("UserRole")
+        .select("role_name")
+        .eq("user_id", user.id)
+        .single();
+        
+        if (roleError) throw roleError;
+  
+        setFormData((prev) => ({
+          ...prev,
+          fullName: `${userInfo.name} ${userInfo.last_name}`,
+          phone: userInfo.phone || "",
+          email: userInfo.mail || "",
+          about: userInfo.about || "",
+          userId: userInfo.user_id,
+          position: roleInfo?.role_name || "",
+        }));
+      } catch (err) {
+        console.error("Error loading user data:", err.message);
+      }
+    };
+  
+    fetchUserData();
+  }, []);
+  
+  
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -365,7 +418,9 @@ const EditProfile = ({ userData, onSave, onCancel }) => {
 
         {/* Skills Card */}
         <Grid item xs={12}>
-          <AddSkillsCard initialSkills={userData?.skills || []} />
+        {formData.userId && (
+        <AddSkillsCard userId={formData.userId} />
+        )}
         </Grid>
 
         {/* Goals */}
