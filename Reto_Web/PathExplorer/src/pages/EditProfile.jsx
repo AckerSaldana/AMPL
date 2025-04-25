@@ -1,8 +1,5 @@
 import React, { useState, useEffect } from "react";
-<<<<<<< HEAD
 import { useNavigate } from 'react-router-dom';
-=======
->>>>>>> origin/sprint2-web
 import {
   Box,
   Grid,
@@ -14,7 +11,6 @@ import {
   Divider,
   IconButton,
   useTheme,
-  alpha,
   InputAdornment,
 } from "@mui/material";
 import {
@@ -29,82 +25,60 @@ import {
 } from "@mui/icons-material";
 import { AddSkillsCard } from "../components/AddSkillsCard";
 import { EditBannerProfile } from "../components/EditBannerProfile";
-import { supabase } from "../supabase/supabaseClient"; 
+import { supabase } from "../supabase/supabaseClient";
 
-<<<<<<< HEAD
 const EditProfile = () => {
   const theme = useTheme();
   const navigate = useNavigate();
-=======
-const EditProfile = ({ onSave, onCancel }) => {
-  const theme = useTheme();
->>>>>>> origin/sprint2-web
-  
-    const [formData, setFormData] = useState({
-      fullName: "",
-      email: "",
-      phone: "",
-      about: "",
-      position: "",
-      userId: null, 
-    });
+
+  const [formData, setFormData] = useState({
+    fullName: "",
+    email: "",
+    phone: "",
+    about: "",
+    position: "",
+    userId: null,
+    avatar: null,
+    banner: null,
+    bannerFile: null,
+  });
 
   const [avatarFile, setAvatarFile] = useState(null);
   const [avatarPreview, setAvatarPreview] = useState(null);
-<<<<<<< HEAD
   const [goals, setGoals] = useState(["", "", ""]);
 
-
   useEffect(() => {
-
-=======
-
-
-  useEffect(() => {
->>>>>>> origin/sprint2-web
     const fetchUserData = async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
-  
+
         if (!user) {
           console.error("No logged in user");
           return;
         }
-  
+
         const { data: userInfo, error: userError } = await supabase
           .from("User")
-<<<<<<< HEAD
           .select("user_id, name, last_name, mail, phone, about, goals, profile_pic")
-=======
-          .select("user_id, name, last_name, mail, phone, about")
->>>>>>> origin/sprint2-web
           .eq("user_id", user.id)
           .single();
-  
-        if (userError) throw error;
 
-<<<<<<< HEAD
-        console.log("Profile pic from DB:", userInfo.profile_pic);
+        if (userError) throw userError;
 
-=======
->>>>>>> origin/sprint2-web
         const { data: roleInfo, error: roleError } = await supabase
-        .from("UserRole")
-        .select("role_name")
-        .eq("user_id", user.id)
-        .single();
-        
+          .from("UserRole")
+          .select("role_name")
+          .eq("user_id", user.id)
+          .single();
+
         if (roleError) throw roleError;
-<<<<<<< HEAD
 
         const [short = "", mid = "", long = ""] = Array.isArray(userInfo.goals)
-        ? userInfo.goals
-        : ["", "", ""];
+          ? userInfo.goals
+          : ["", "", ""];
 
         setGoals([short, mid, long]);
-=======
->>>>>>> origin/sprint2-web
-  
+
         setFormData((prev) => ({
           ...prev,
           fullName: `${userInfo.name} ${userInfo.last_name}`,
@@ -112,33 +86,19 @@ const EditProfile = ({ onSave, onCancel }) => {
           email: userInfo.mail || "",
           about: userInfo.about || "",
           userId: userInfo.user_id,
-<<<<<<< HEAD
           avatar: userInfo.profile_pic || null,
           position: roleInfo?.role_name || "",
         }));
 
         setAvatarPreview(userInfo.profile_pic || "/default-avatar.jpg");
-        
+
       } catch (err) {
         console.error("Error loading user data:", err.message);
-        
-=======
-          position: roleInfo?.role_name || "",
-        }));
-      } catch (err) {
-        console.error("Error loading user data:", err.message);
->>>>>>> origin/sprint2-web
       }
     };
-  
+
     fetchUserData();
   }, []);
-<<<<<<< HEAD
-
-=======
-  
-  
->>>>>>> origin/sprint2-web
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -149,7 +109,6 @@ const EditProfile = ({ onSave, onCancel }) => {
       const file = e.target.files[0];
       setAvatarFile(file);
 
-      // Create temporal avatar preview
       const reader = new FileReader();
       reader.onloadend = () => {
         setAvatarPreview(reader.result);
@@ -161,19 +120,18 @@ const EditProfile = ({ onSave, onCancel }) => {
   const handleSave = async () => {
     const updatedData = { ...formData };
     let uploadedImageUrl = formData.avatar;
-  
+
     if (avatarFile) {
       const fileExt = avatarFile.name.split('.').pop();
       const fileName = `${formData.userId}-${Date.now()}.${fileExt}`;
       const filePath = `avatars/${fileName}`;
-    
-      //Subir al bucket profile-user
+
       const { error: uploadError } = await supabase.storage
-      .from("profile-user")
-      .upload(filePath, avatarFile, {
-        upsert: true,
-      });
-    
+        .from("profile-user")
+        .upload(filePath, avatarFile, {
+          upsert: true,
+        });
+
       if (uploadError) {
         console.error("Error uploading image:", uploadError.message);
       } else {
@@ -181,17 +139,13 @@ const EditProfile = ({ onSave, onCancel }) => {
           .storage
           .from("profile-user")
           .getPublicUrl(filePath);
-    
+
         uploadedImageUrl = publicUrlData.publicUrl;
-        
       }
     }
-  
-    try {
-        console.log("Form userId:", updatedData.userId);
 
-        const { data: authUser } = await supabase.auth.getUser();
-        console.log("Auth UID:", authUser?.user?.id);
+    try {
+      const { data: authUser } = await supabase.auth.getUser();
 
       const { error } = await supabase
         .from("User")
@@ -203,11 +157,10 @@ const EditProfile = ({ onSave, onCancel }) => {
           profile_pic: uploadedImageUrl,
         })
         .eq("user_id", updatedData.userId);
-  
+
       if (error) throw error;
-  
+
       setAvatarPreview(uploadedImageUrl);
-      console.log("User updated successfully.");
       navigate("/user");
     } catch (err) {
       console.error("Error saving user data:", err.message);
