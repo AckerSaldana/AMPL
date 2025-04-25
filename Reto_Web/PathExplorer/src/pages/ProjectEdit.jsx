@@ -15,6 +15,7 @@ import ProgressEdit from "../components/ProgressEdit";
 import TeammatesDisplay from "../components/TeammatesDisplay";
 import { supabase } from "../supabase/supabaseClient.js";
 
+
 const ProjectEdit = () => {
   const { id } = useParams();
   const projectId = id;
@@ -117,16 +118,69 @@ const ProjectEdit = () => {
     setOverviewData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleSave = () => {
-    console.log("Updated Project Data:", {
-      ...overviewData,
+  const handleSave = async () => {
+
+    let logoUrl = overviewData.logo;
+
+  if (overviewData.logo instanceof File) {
+    const fileExt = overviewData.logo.name.split('.').pop();
+    const fileName = `${projectId}_${Date.now()}.${fileExt}`;
+    const filePath = `${fileName}`;
+
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from("projectlogo")
+      .upload(filePath, overviewData.logo, {
+        cacheControl: "3600",
+        upsert: true,
+      });
+
+    if (uploadError) {
+      return setSnackbar({
+        open: true,
+        message: `Error uploading logo: ${uploadError.message}`,
+        severity: "error",
+      });
+    }
+
+    const {
+      data: { publicUrl },
+    } = supabase.storage.from("projectlogo").getPublicUrl(filePath);
+
+    logoUrl = publicUrl;
+  }
+
+
+    const updates = {
+      title: overviewData.title,
+      description: overviewData.description,
+      logo: logoUrl,
+      end_date: overviewData.dueDate,
+      priority: overviewData.priority,
+      status: overviewData.status,
       progress: progressValue,
-    });
-    setSnackbar({
-      open: true,
-      message: "Project details updated (mock save).",
-      severity: "success",
-    });
+    };
+
+    const { error } = await supabase
+    .from("Project")
+    .update(updates)
+    .eq("projectID", projectId);
+
+    if (error) {
+      setSnackbar({
+        open: true,
+        message: `Failed to save changes: ${error.message}`,
+        severity: "error",
+      });
+
+    } else {
+      setSnackbar({
+        open: true,
+        message: "Project updated successfully!",
+        severity: "success",
+      });
+
+    }
+
   };
 
   return (

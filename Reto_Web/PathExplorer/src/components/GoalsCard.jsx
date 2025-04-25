@@ -1,7 +1,37 @@
 import { Paper, Typography } from "@mui/material";
-import React from "react";
+import React, { useState, useEffect } from "react";
+import { supabase } from "../supabase/supabaseClient";
 
 export const GoalsCard = () => {
+
+  const [goals, setGoals] = useState(["", "", ""]);
+
+  useEffect(() => {
+    const fetchGoals = async () => {
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+
+      if (userError || !user) return;
+
+      const { data, error } = await supabase
+        .from("User")
+        .select("goals")
+        .eq("user_id", user.id)
+        .single();
+
+      if (!error && Array.isArray(data?.goals)) {
+        const [short = "", mid = "", long = ""] = data.goals;
+        setGoals([short, mid, long]);
+      }
+    };
+
+    fetchGoals();
+  }, []);
+
+  const [shortTerm, midTerm, longTerm] = goals;
+
   return (
     <Paper sx={{ p: 3, display: "flex", flexDirection: "column", gap: 1.5 }}>
       <Typography variant="body1" fontWeight={"bold"}>
@@ -12,30 +42,21 @@ export const GoalsCard = () => {
         Short-Term
       </Typography>
       <Typography variant="caption" color="text.primary">
-        Lorem ipsum dolor sit amet consectetur, adipisicing elit. Obcaecati,
-        fugiat harum? Natus nihil voluptatum harum nobis iusto vero sint,
-        suscipit voluptates? Libero repellendus dolorum ullam odio debitis quo
-        quaerat quas.
+        {shortTerm || "No short-term goal set."}
       </Typography>
 
       <Typography variant="body2" fontWeight={"bold"} color="text.secondary">
         Mid-Term
       </Typography>
       <Typography variant="caption" color="text.primary">
-        Lorem ipsum dolor sit amet consectetur, adipisicing elit. Obcaecati,
-        fugiat harum? Natus nihil voluptatum harum nobis iusto vero sint,
-        suscipit voluptates? Libero repellendus dolorum ullam odio debitis quo
-        quaerat quas.
+          {midTerm || "No mid-term goal set."}
       </Typography>
 
       <Typography variant="body2" fontWeight={"bold"} color="text.secondary">
         Long-Term
       </Typography>
       <Typography variant="caption" color="text.primary">
-        Lorem ipsum dolor sit amet consectetur, adipisicing elit. Obcaecati,
-        fugiat harum? Natus nihil voluptatum harum nobis iusto vero sint,
-        suscipit voluptates? Libero repellendus dolorum ullam odio debitis quo
-        quaerat quas.
+          {longTerm || "No long-term goal set."}
       </Typography>
     </Paper>
   );

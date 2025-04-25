@@ -165,23 +165,80 @@ export const AddSkillsCard = ({ userId, userRole }) => {
     setDialogOpen(false);
   };
 
-  const handleAddSkill = () => {
-    if (newSkill.trim() !== "") {
-      const newSkillObj = {
-        id: Date.now(),
-        name: newSkill.trim(),
-        category,
-        level: 3,
-      };
-      setSkills([...skills, newSkillObj]);
-      setNewSkill("");
-      handleCloseDialog();
+  const handleAddSkill = async () => {
+    const trimmedSkill = newSkill.trim();
+  
+    if (trimmedSkill !== "") {
+      
+      const skillToAdd = availableSkills.find(
+        (s) =>
+          s.name.toLowerCase() === trimmedSkill.toLowerCase() &&
+          s.category === category
+      );
+  
+      if (!skillToAdd) {
+        console.warn("Skill not found or already added.");
+        return;
+      }
+  
+      try {
+        const { error } = await supabase.from("UserSkill").insert({
+          user_ID: userId,
+          skill_ID: skillToAdd.id,
+          proficiency: "Low", // Nivel por defecto
+        });
+  
+        if (error) throw error;
+  
+        const newSkillObj = {
+          id: skillToAdd.id,
+          name: skillToAdd.name,
+          category: skillToAdd.category,
+          level: "Low",
+        };
+  
+        setSkills([...skills, newSkillObj]);
+  
+        setAvailableSkills(
+          availableSkills.filter((s) => s.id !== skillToAdd.id)
+        );
+  
+        setNewSkill("");
+        handleCloseDialog();
+      } catch (err) {
+        console.error("Error inserting skill:", err.message);
+      }
     }
   };
-
-  const handleRemoveSkill = (skillId) => {
-    setSkills(skills.filter((skill) => skill.id !== skillId));
-  };
+  
+  const handleRemoveSkill = async (skillId) => {
+    try {
+      const { error } = await supabase
+        .from("UserSkill")
+        .delete()
+        .eq("user_ID", userId)
+        .eq("skill_ID", skillId);
+  
+      if (error) throw error;
+  
+      const removedSkill = skills.find((s) => s.id === skillId);
+  
+      setSkills(skills.filter((skill) => skill.id !== skillId));
+  
+      if (removedSkill) {
+        setAvailableSkills([
+          ...availableSkills,
+          {
+            id: removedSkill.id,
+            name: removedSkill.name,
+            category: removedSkill.category,
+          },
+        ]);
+      }
+    } catch (err) {
+      console.error("Error deleting skill:", err.message);
+    }
+  };  
 
   const handleToggleCategory = (categoryType) => {
     setExpanded({
