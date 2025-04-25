@@ -1,7 +1,34 @@
 import { Paper, Typography, Box } from "@mui/material";
-import React from "react";
+import React, { useEffect, useState } from "react";
+import { supabase } from "../supabase/supabaseClient";
 
-export const About = ({ about }) => {
+export const About = () => {
+
+  const [aboutText, setAboutText] = useState("");
+
+  useEffect(() => {
+    const fetchAbout = async () => {
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+
+      if (userError || !user) return;
+
+      const { data, error } = await supabase
+        .from("User")
+        .select("about")
+        .eq("user_id", user.id)
+        .single();
+
+      if (!error && data?.about) {
+        setAboutText(data.about);
+      }
+    };
+
+    fetchAbout();
+  }, []);
+
   return (
     <Paper
       sx={{
@@ -24,7 +51,7 @@ export const About = ({ about }) => {
           overflowY: "auto",
         }}
       >
-        <Typography variant="body2">{about}</Typography>
+        <Typography variant="body2">{aboutText}</Typography>
       </Box>
     </Paper>
   );

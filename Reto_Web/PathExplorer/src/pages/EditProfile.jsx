@@ -1,4 +1,8 @@
 import React, { useState, useEffect } from "react";
+<<<<<<< HEAD
+import { useNavigate } from 'react-router-dom';
+=======
+>>>>>>> origin/sprint2-web
 import {
   Box,
   Grid,
@@ -27,8 +31,14 @@ import { AddSkillsCard } from "../components/AddSkillsCard";
 import { EditBannerProfile } from "../components/EditBannerProfile";
 import { supabase } from "../supabase/supabaseClient"; 
 
+<<<<<<< HEAD
+const EditProfile = () => {
+  const theme = useTheme();
+  const navigate = useNavigate();
+=======
 const EditProfile = ({ onSave, onCancel }) => {
   const theme = useTheme();
+>>>>>>> origin/sprint2-web
   
     const [formData, setFormData] = useState({
       fullName: "",
@@ -41,9 +51,17 @@ const EditProfile = ({ onSave, onCancel }) => {
 
   const [avatarFile, setAvatarFile] = useState(null);
   const [avatarPreview, setAvatarPreview] = useState(null);
+<<<<<<< HEAD
+  const [goals, setGoals] = useState(["", "", ""]);
 
 
   useEffect(() => {
+
+=======
+
+
+  useEffect(() => {
+>>>>>>> origin/sprint2-web
     const fetchUserData = async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
@@ -55,12 +73,21 @@ const EditProfile = ({ onSave, onCancel }) => {
   
         const { data: userInfo, error: userError } = await supabase
           .from("User")
+<<<<<<< HEAD
+          .select("user_id, name, last_name, mail, phone, about, goals, profile_pic")
+=======
           .select("user_id, name, last_name, mail, phone, about")
+>>>>>>> origin/sprint2-web
           .eq("user_id", user.id)
           .single();
   
         if (userError) throw error;
 
+<<<<<<< HEAD
+        console.log("Profile pic from DB:", userInfo.profile_pic);
+
+=======
+>>>>>>> origin/sprint2-web
         const { data: roleInfo, error: roleError } = await supabase
         .from("UserRole")
         .select("role_name")
@@ -68,6 +95,15 @@ const EditProfile = ({ onSave, onCancel }) => {
         .single();
         
         if (roleError) throw roleError;
+<<<<<<< HEAD
+
+        const [short = "", mid = "", long = ""] = Array.isArray(userInfo.goals)
+        ? userInfo.goals
+        : ["", "", ""];
+
+        setGoals([short, mid, long]);
+=======
+>>>>>>> origin/sprint2-web
   
         setFormData((prev) => ({
           ...prev,
@@ -76,17 +112,33 @@ const EditProfile = ({ onSave, onCancel }) => {
           email: userInfo.mail || "",
           about: userInfo.about || "",
           userId: userInfo.user_id,
+<<<<<<< HEAD
+          avatar: userInfo.profile_pic || null,
+          position: roleInfo?.role_name || "",
+        }));
+
+        setAvatarPreview(userInfo.profile_pic || "/default-avatar.jpg");
+        
+      } catch (err) {
+        console.error("Error loading user data:", err.message);
+        
+=======
           position: roleInfo?.role_name || "",
         }));
       } catch (err) {
         console.error("Error loading user data:", err.message);
+>>>>>>> origin/sprint2-web
       }
     };
   
     fetchUserData();
   }, []);
+<<<<<<< HEAD
+
+=======
   
   
+>>>>>>> origin/sprint2-web
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -97,7 +149,7 @@ const EditProfile = ({ onSave, onCancel }) => {
       const file = e.target.files[0];
       setAvatarFile(file);
 
-      // Create avatar preview
+      // Create temporal avatar preview
       const reader = new FileReader();
       reader.onloadend = () => {
         setAvatarPreview(reader.result);
@@ -106,20 +158,66 @@ const EditProfile = ({ onSave, onCancel }) => {
     }
   };
 
-  const handleSave = () => {
-    // Combine form data with all uploaded files
+  const handleSave = async () => {
     const updatedData = { ...formData };
-
-    // Add avatar if changed
+    let uploadedImageUrl = formData.avatar;
+  
     if (avatarFile) {
-      updatedData.avatarFile = avatarFile;
-      updatedData.avatar = avatarPreview;
+      const fileExt = avatarFile.name.split('.').pop();
+      const fileName = `${formData.userId}-${Date.now()}.${fileExt}`;
+      const filePath = `avatars/${fileName}`;
+    
+      //Subir al bucket profile-user
+      const { error: uploadError } = await supabase.storage
+      .from("profile-user")
+      .upload(filePath, avatarFile, {
+        upsert: true,
+      });
+    
+      if (uploadError) {
+        console.error("Error uploading image:", uploadError.message);
+      } else {
+        const { data: publicUrlData } = supabase
+          .storage
+          .from("profile-user")
+          .getPublicUrl(filePath);
+    
+        uploadedImageUrl = publicUrlData.publicUrl;
+        
+      }
     }
+  
+    try {
+        console.log("Form userId:", updatedData.userId);
 
-    // Banner is already in formData from the onBannerChange callback
-    onSave(updatedData);
+        const { data: authUser } = await supabase.auth.getUser();
+        console.log("Auth UID:", authUser?.user?.id);
+
+      const { error } = await supabase
+        .from("User")
+        .update({
+          mail: updatedData.email,
+          phone: updatedData.phone,
+          about: updatedData.about,
+          goals: goals,
+          profile_pic: uploadedImageUrl,
+        })
+        .eq("user_id", updatedData.userId);
+  
+      if (error) throw error;
+  
+      setAvatarPreview(uploadedImageUrl);
+      console.log("User updated successfully.");
+      navigate("/user");
+    } catch (err) {
+      console.error("Error saving user data:", err.message);
+    }
   };
 
+  const handleCancel = () => {
+    navigate("/user");
+  };
+  
   return (
     <Box
       sx={{
@@ -156,7 +254,7 @@ const EditProfile = ({ onSave, onCancel }) => {
           <Button
             variant="outlined"
             startIcon={<Cancel />}
-            onClick={onCancel}
+            onClick={handleCancel}
             fullWidth
             sx={{
               borderColor: theme.palette.grey[300],
@@ -256,7 +354,7 @@ const EditProfile = ({ onSave, onCancel }) => {
             >
               <Box sx={{ position: "relative" }}>
                 <Avatar
-                  src={avatarPreview}
+                  src={avatarPreview || "/default-avatar.jpg"}
                   sx={{
                     width: 90,
                     height: 90,
@@ -462,9 +560,12 @@ const EditProfile = ({ onSave, onCancel }) => {
                           ? "in 1-2 years"
                           : "in 3-5 years"
                       }?`}
-                      name={`goal${index + 1}`}
-                      value={formData[`goal${index + 1}`] || ""}
-                      onChange={handleChange}
+                      value={goals[index] || ""}
+                      onChange={(e) => {
+                        const updatedGoals = [...goals];
+                        updatedGoals[index] = e.target.value;
+                        setGoals(updatedGoals);
+                      }}
                       variant="outlined"
                     />
                   </Grid>

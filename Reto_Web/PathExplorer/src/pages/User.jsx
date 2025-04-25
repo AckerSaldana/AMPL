@@ -39,14 +39,14 @@ export const ProfilePage = () => {
 
           {/* Left Section */}
           <Grid item xs={12} md={4}>
-            <Information {...userData} />
+            <Information />
             <AssignmentPercentage />
             <GoalsCard />
           </Grid>
 
           {/* Right Section */}
           <Grid item xs={12} md={8}>
-            <About about={userData.about} />
+            <About />
             <SkillsCard />
             <PastProjectsCard />
           </Grid>
