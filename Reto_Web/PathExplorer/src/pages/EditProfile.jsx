@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from "react";
+<<<<<<< HEAD
 import { useNavigate } from 'react-router-dom';
+=======
+>>>>>>> origin/sprint2-web
 import {
   Box,
   Grid,
@@ -28,9 +31,14 @@ import { AddSkillsCard } from "../components/AddSkillsCard";
 import { EditBannerProfile } from "../components/EditBannerProfile";
 import { supabase } from "../supabase/supabaseClient"; 
 
+<<<<<<< HEAD
 const EditProfile = () => {
   const theme = useTheme();
   const navigate = useNavigate();
+=======
+const EditProfile = ({ onSave, onCancel }) => {
+  const theme = useTheme();
+>>>>>>> origin/sprint2-web
   
     const [formData, setFormData] = useState({
       fullName: "",
@@ -43,11 +51,17 @@ const EditProfile = () => {
 
   const [avatarFile, setAvatarFile] = useState(null);
   const [avatarPreview, setAvatarPreview] = useState(null);
+<<<<<<< HEAD
   const [goals, setGoals] = useState(["", "", ""]);
 
 
   useEffect(() => {
 
+=======
+
+
+  useEffect(() => {
+>>>>>>> origin/sprint2-web
     const fetchUserData = async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
@@ -59,14 +73,21 @@ const EditProfile = () => {
   
         const { data: userInfo, error: userError } = await supabase
           .from("User")
+<<<<<<< HEAD
           .select("user_id, name, last_name, mail, phone, about, goals, profile_pic")
+=======
+          .select("user_id, name, last_name, mail, phone, about")
+>>>>>>> origin/sprint2-web
           .eq("user_id", user.id)
           .single();
   
         if (userError) throw error;
 
+<<<<<<< HEAD
         console.log("Profile pic from DB:", userInfo.profile_pic);
 
+=======
+>>>>>>> origin/sprint2-web
         const { data: roleInfo, error: roleError } = await supabase
         .from("UserRole")
         .select("role_name")
@@ -74,12 +95,15 @@ const EditProfile = () => {
         .single();
         
         if (roleError) throw roleError;
+<<<<<<< HEAD
 
         const [short = "", mid = "", long = ""] = Array.isArray(userInfo.goals)
         ? userInfo.goals
         : ["", "", ""];
 
         setGoals([short, mid, long]);
+=======
+>>>>>>> origin/sprint2-web
   
         setFormData((prev) => ({
           ...prev,
@@ -88,6 +112,7 @@ const EditProfile = () => {
           email: userInfo.mail || "",
           about: userInfo.about || "",
           userId: userInfo.user_id,
+<<<<<<< HEAD
           avatar: userInfo.profile_pic || null,
           position: roleInfo?.role_name || "",
         }));
@@ -97,12 +122,23 @@ const EditProfile = () => {
       } catch (err) {
         console.error("Error loading user data:", err.message);
         
+=======
+          position: roleInfo?.role_name || "",
+        }));
+      } catch (err) {
+        console.error("Error loading user data:", err.message);
+>>>>>>> origin/sprint2-web
       }
     };
   
     fetchUserData();
   }, []);
+<<<<<<< HEAD
 
+=======
+  
+  
+>>>>>>> origin/sprint2-web
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });

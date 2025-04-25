@@ -37,7 +37,11 @@ function App() {
         {/* Rutas protegidas dentro del layout principal */}
         <Route path="/" element={<MainLayout />}>
           {/* Rutas accesibles para todos los roles (empleado, TFS, manager) */}
-          <Route element={<ProtectedRoute allowedRoles={["empleado", "TFS", "manager"]} />}>
+          <Route
+            element={
+              <ProtectedRoute allowedRoles={["empleado", "TFS", "manager"]} />
+            }
+          >
             <Route index element={<Dashboard />} />
             <Route path="projects" element={<ProjectDashboard />} />
             <Route path="project-detail/:id" element={<ProjectDetail />} />
@@ -45,7 +49,10 @@ function App() {
             <Route path="add-projects" element={<AddProject />} />
             <Route path="role-assign" element={<RoleAssign />} />
             <Route path="certifications" element={<Certifications />} />
-            <Route path="submit-certification" element={<SubmitCertification />} />
+            <Route
+              path="submit-certification"
+              element={<SubmitCertification />}
+            />
             <Route path="settings" element={<Settings />} />
             <Route path="user" element={<User />} />
             <Route path="edit-profile" element={<EditProfile />} />
