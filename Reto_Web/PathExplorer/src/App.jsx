@@ -22,6 +22,9 @@ import AddProject from "./pages/AddProject.jsx";
 import RoleAssign from "./pages/RoleAssign.jsx";
 import ProjectEdit from "./pages/ProjectEdit.jsx";
 
+// Nuevo componente de detalle de perfil
+import UserProfileDetail from "./pages/UserProfileDetail";
+
 // Protección de rutas
 import ProtectedRoute from "./components/ProtectedRoute";
 
@@ -55,7 +58,11 @@ function App() {
             />
             <Route path="settings" element={<Settings />} />
             <Route path="user" element={<User />} />
+            {/* Nueva ruta para ver detalle de usuario por ID */}
+            <Route path="user/:id" element={<UserProfileDetail />} />
             <Route path="edit-profile" element={<EditProfile />} />
+            {/* Nueva ruta para editar perfil de un usuario específico */}
+            <Route path="edit-profile/:id" element={<EditProfile />} />
           </Route>
 
           {/* Rutas accesibles solo para TFS y manager */}
