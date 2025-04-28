@@ -1,9 +1,70 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Box, Avatar, Typography, Paper, Button } from "@mui/material";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "../supabase/supabaseClient";
 
 export const BannerProfile = () => {
   const navigate = useNavigate();
+  const [userInfo, setUserInfo] = useState({
+    firstName: "",
+    lastName: "",
+    role: "",
+    profilePic: "",
+  });
+
+  useEffect(() => {
+    const fetchUserBanner = async () => {
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+
+      if (userError || !user) return;
+
+      // Fetch basic user info
+      const { data: userData, error: userDataError } = await supabase
+        .from("User")
+        .select("name, last_name, profile_pic")
+        .eq("user_id", user.id)
+        .single();
+
+      if (userDataError) {
+        console.error("User fetch error:", userDataError.message);
+        return;
+      }
+
+      // Fetch role
+      const { data: roleData, error: roleError } = await supabase
+        .from("UserRole")
+        .select("role_name")
+        .eq("user_id", user.id)
+      
+        const firstRole = Array.isArray(roleData) ? roleData[0]?.role_name : "";
+
+      if (roleError) {
+        console.error("Role fetch error:", roleError.message);
+        return;
+      }
+
+      const rawName = userData.name?.trim() || "";
+      const rawLastName = userData.last_name?.trim() || "";
+
+      const nameParts = rawName.split(" ");
+      const lastNameParts = rawLastName.split(" ");
+
+      const firstName = nameParts[0] || rawName || "User";
+      const lastName = lastNameParts[0] || "";
+
+      setUserInfo({
+        firstName,
+        lastName,
+        role: firstRole || "No role assigned",
+        profilePic: userData.profile_pic || "/default-profile.jpg",
+      });
+    };
+
+    fetchUserBanner();
+  }, []);
 
   return (
     <Paper
@@ -55,12 +116,14 @@ export const BannerProfile = () => {
         }}
       >
         <Avatar
-          src="/path-to-profile-image.jpg"
+          src={userInfo.profilePic}
           sx={{ width: 100, height: 100, border: "3px solid white" }}
         />
         <Box sx={{ ml: 2, color: "white", position: "relative", bottom: 15 }}>
-          <Typography variant="h5">Benito Martinez</Typography>
-          <Typography variant="subtitle1">Frontend Developer</Typography>
+          <Typography variant="h5">
+            {userInfo.firstName} {userInfo.lastName}
+          </Typography>
+          <Typography variant="subtitle1">{userInfo.role}</Typography>
         </Box>
       </Box>
 

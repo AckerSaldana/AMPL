@@ -1,9 +1,33 @@
 import { Paper, CircularProgress, Box, Typography } from "@mui/material";
 import React, { useEffect, useState } from "react";
+import { supabase } from "../supabase/supabaseClient";
 
 export const AssignmentPercentage = () => {
   const [progress, setProgress] = useState(0);
-  const finalValue = 86; // Temp target value
+  const [finalValue, setFinalValue] = useState(0);
+
+  useEffect(() => {
+    const fetchPercentage = async () => {
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+
+      if (userError || !user) return;
+
+      const { data, error } = await supabase
+        .from("User")
+        .select("percentage")
+        .eq("user_id", user.id)
+        .single();
+
+      if (!error && data) {
+        setFinalValue(data.percentage || 0);
+      }
+    };
+
+    fetchPercentage();
+  }, []);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -12,12 +36,12 @@ export const AssignmentPercentage = () => {
           clearInterval(interval);
           return finalValue;
         }
-        return prev + 2; // Adjust speed by changing this value
+        return prev + 2;
       });
-    }, 20); // Adjust interval duration for smoothness
+    }, 20);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [finalValue]);
 
   return (
     <Paper
