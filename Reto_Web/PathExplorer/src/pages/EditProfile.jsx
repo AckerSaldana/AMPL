@@ -16,7 +16,8 @@ import {
   CircularProgress,
   Snackbar,
   Alert,
-  Fade
+  Fade,
+  Tooltip
 } from "@mui/material";
 import {
   Person,
@@ -30,7 +31,6 @@ import {
   ArrowBack,
   EditOutlined
 } from "@mui/icons-material";
-import { EditBannerProfile } from "../components/EditBannerProfile";
 import { supabase } from "../supabase/supabaseClient";
 
 const EditProfile = () => {
@@ -50,13 +50,12 @@ const EditProfile = () => {
     about: "",
     position: "",
     userId: null,
-    avatar: null,
-    banner: null,
-    bannerFile: null,
+    avatar: null
   });
 
   const [avatarFile, setAvatarFile] = useState(null);
   const [avatarPreview, setAvatarPreview] = useState(null);
+  const [avatarHovered, setAvatarHovered] = useState(false);
   const [goals, setGoals] = useState(["", "", ""]);
   const [initialLoad, setInitialLoad] = useState(true);
 
@@ -171,31 +170,6 @@ const EditProfile = () => {
         }
       }
 
-      // Upload banner if changed
-      let uploadedBannerUrl = formData.banner;
-      if (formData.bannerFile) {
-        const fileExt = formData.bannerFile.name.split('.').pop();
-        const fileName = `banner-${formData.userId}-${Date.now()}.${fileExt}`;
-        const filePath = `banners/${fileName}`;
-
-        const { error: uploadError } = await supabase.storage
-          .from("profile-user")
-          .upload(filePath, formData.bannerFile, {
-            upsert: true,
-          });
-
-        if (uploadError) {
-          console.error("Error uploading banner:", uploadError.message);
-        } else {
-          const { data: publicUrlData } = supabase
-            .storage
-            .from("profile-user")
-            .getPublicUrl(filePath);
-
-          uploadedBannerUrl = publicUrlData.publicUrl;
-        }
-      }
-
       // Split full name into first and last name
       let firstName = "", lastName = "";
       if (formData.fullName) {
@@ -216,8 +190,7 @@ const EditProfile = () => {
           phone: updatedData.phone,
           about: updatedData.about,
           goals: goals,
-          profile_pic: uploadedImageUrl,
-          banner_pic: uploadedBannerUrl
+          profile_pic: uploadedImageUrl
         })
         .eq("user_id", updatedData.userId);
 
@@ -249,6 +222,19 @@ const EditProfile = () => {
     navigate("/user");
   };
   
+  // Get initials for avatar
+  const getInitials = () => {
+    if (formData.fullName) {
+      const names = formData.fullName.trim().split(' ');
+      if (names.length >= 2) {
+        return `${names[0].charAt(0)}${names[1].charAt(0)}`.toUpperCase();
+      } else if (names.length === 1) {
+        return names[0].charAt(0).toUpperCase();
+      }
+    }
+    return "U";
+  };
+  
   if (initialLoad) {
     return (
       <Box sx={{ 
@@ -261,6 +247,9 @@ const EditProfile = () => {
       </Box>
     );
   }
+  
+  // Purple gradient background for all employees
+  const bannerGradient = `linear-gradient(135deg, ${alpha('#a100ff', 0.9)} 0%, ${alpha('#460073', 1)} 100%)`;
   
   return (
     <Box
@@ -372,50 +361,18 @@ const EditProfile = () => {
             position: "relative",
             boxShadow: "0 2px 10px rgba(0,0,0,0.05)",
           }}>
-            {/* Banner */}
+            {/* Fixed gradient banner for all employees */}
             <Box
               sx={{
                 height: { xs: "140px", sm: "200px" },
                 width: "100%",
-                backgroundColor: alpha('#a100ff', 0.03),
-                boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+                background: bannerGradient,
                 position: "relative",
-                overflow: "hidden",
-                backgroundImage: 'linear-gradient(to bottom right, rgba(161, 0, 255, 0.15), rgba(255, 255, 255, 0))',
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center"
               }}
-            >
-              <EditBannerProfile
-                initialBanner={formData.banner}
-                onBannerChange={(preview, file) => {
-                  setFormData({
-                    ...formData,
-                    banner: preview,
-                    bannerFile: file,
-                  });
-                }}
-              />
-              
-              {/* Edit banner button */}
-              <Fade in={true}>
-                <IconButton
-                  sx={{
-                    position: 'absolute',
-                    top: 12,
-                    right: 12,
-                    backgroundColor: alpha('#ffffff', 0.9),
-                    backdropFilter: 'blur(4px)',
-                    color: '#7500c0',
-                    '&:hover': {
-                      backgroundColor: alpha('#ffffff', 1),
-                    },
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                    transition: 'all 0.2s ease-in-out',
-                  }}
-                >
-                  <EditOutlined fontSize="small" />
-                </IconButton>
-              </Fade>
-            </Box>
+            />
 
             {/* Profile content area */}
             <Box
@@ -474,7 +431,16 @@ const EditProfile = () => {
                 zIndex: 10,
               }}
             >
-              <Box sx={{ position: "relative" }}>
+              <Box 
+                sx={{ 
+                  position: "relative",
+                  "&:hover .avatar-overlay": {
+                    opacity: 1,
+                  }
+                }}
+                onMouseEnter={() => setAvatarHovered(true)}
+                onMouseLeave={() => setAvatarHovered(false)}
+              >
                 <Avatar
                   src={avatarPreview}
                   sx={{
@@ -492,19 +458,54 @@ const EditProfile = () => {
                     }
                   }}
                 >
-                  {formData.fullName ? formData.fullName.charAt(0).toUpperCase() : "U"}
+                  {getInitials()}
                 </Avatar>
-                <input
-                  accept="image/*"
-                  style={{ display: "none" }}
-                  id="avatar-upload"
-                  type="file"
-                  onChange={handleAvatarChange}
-                />
-                <label htmlFor="avatar-upload">
+                
+                {/* Overlay for editing avatar - similar to banner editing */}
+                <Box 
+                  className="avatar-overlay"
+                  sx={{
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    backgroundColor: "rgba(0,0,0,0.5)",
+                    borderRadius: "50%",
+                    display: "flex",
+                    flexDirection: "column",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    opacity: avatarHovered ? 0.8 : 0,
+                    transition: "opacity 0.3s ease",
+                    cursor: "pointer",
+                    border: "4px solid white",
+                  }}
+                  component="label"
+                  htmlFor="avatar-upload"
+                >
+                  <PhotoCamera sx={{ color: "white", fontSize: 24, mb: 0.5 }} />
+                  <Typography
+                    variant="caption"
+                    sx={{ color: "white", fontWeight: 500, fontSize: '0.65rem', textAlign: 'center' }}
+                  >
+                    Change Photo
+                  </Typography>
+                  <input
+                    accept="image/*"
+                    id="avatar-upload"
+                    type="file"
+                    onChange={handleAvatarChange}
+                    style={{ display: "none" }}
+                  />
+                </Box>
+                
+                {/* Small camera button for mobile/touch devices */}
+                <Tooltip title="Change profile photo">
                   <Fade in={true}>
                     <IconButton
-                      component="span"
+                      component="label"
+                      htmlFor="avatar-upload-mobile"
                       sx={{
                         position: "absolute",
                         bottom: 2,
@@ -521,9 +522,16 @@ const EditProfile = () => {
                       }}
                     >
                       <PhotoCamera sx={{ fontSize: { xs: 14, sm: 16 } }} />
+                      <input
+                        accept="image/*"
+                        id="avatar-upload-mobile"
+                        type="file"
+                        onChange={handleAvatarChange}
+                        style={{ display: "none" }}
+                      />
                     </IconButton>
                   </Fade>
-                </label>
+                </Tooltip>
               </Box>
             </Box>
           </Paper>
