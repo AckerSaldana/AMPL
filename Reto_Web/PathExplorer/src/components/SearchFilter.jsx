@@ -9,6 +9,10 @@ import {
   Tab,
   Typography,
   Divider,
+  useMediaQuery,
+  useTheme,
+  Tooltip,
+  Badge,
 } from "@mui/material";
 import {
   Search as SearchIcon,
@@ -45,6 +49,16 @@ const SearchFilter = ({
   availableCount,
   onAddEmployee
 }) => {
+  const theme = useTheme();
+  // Media queries más específicos para transiciones más suaves
+  const isSmallScreen = useMediaQuery('(max-width:599px)');
+  const isMediumScreen = useMediaQuery('(min-width:600px) and (max-width:959px)');
+  const isLargeScreen = useMediaQuery('(min-width:960px)');
+  
+  // Breakpoints aún más específicos para ciertos componentes
+  const isVerySmallScreen = useMediaQuery('(max-width:400px)');
+  const isExtraSmallScreen = useMediaQuery('(max-width:320px)');
+
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   
   // Calcula el índice de la pestaña activa para el componente Tabs
@@ -71,113 +85,158 @@ const SearchFilter = ({
     <Paper 
       elevation={0} 
       sx={{ 
-        mb: 3, 
+        mb: isSmallScreen ? 2 : 3, 
         borderRadius: 2,
         overflow: "hidden",
         border: "1px solid",
         borderColor: "rgba(0,0,0,0.08)",
+        width: "100%",
+        boxSizing: "border-box",
       }}
     >
       {/* Barra de búsqueda */}
       <Box sx={{ 
         display: "flex", 
-        alignItems: "center",
-        p: 2,
+        flexDirection: isSmallScreen ? "column" : "row",
+        alignItems: isSmallScreen ? "stretch" : "center",
+        p: isSmallScreen ? (isExtraSmallScreen ? 1 : 1.5) : 2,
         backgroundColor: "#ffffff",
+        gap: isSmallScreen ? 1.5 : 0,
+        width: "100%",
+        boxSizing: "border-box",
       }}>
         <Box
           sx={{ 
             display: "flex", 
             alignItems: "center",
-            px: 2,
+            px: isSmallScreen ? (isExtraSmallScreen ? 1 : 1.5) : 2,
             py: 1,
             flex: 1,
-            mr: 2,
+            mr: isSmallScreen ? 0 : 2,
+            mb: isSmallScreen ? 1 : 0,
             border: "1px solid",
             borderColor: isSearchFocused ? "#9c27b0" : "rgba(0,0,0,0.12)",
             borderRadius: 10,
             transition: "all 0.2s ease",
             backgroundColor: "#ffffff",
+            width: "100%",
+            boxSizing: "border-box",
+            minWidth: 0, // Importante para que se pueda comprimir
           }}
         >
           <SearchIcon 
             sx={{ 
               mr: 1, 
-              color: isSearchFocused ? "#9c27b0" : "action.active" 
+              color: isSearchFocused ? "#9c27b0" : "action.active",
+              flexShrink: 0
             }} 
           />
           <InputBase
-            placeholder="Search employees by name, role, or skill..."
+            placeholder={isSmallScreen ? "Search..." : "Search employees by name, role, or skill..."}
             fullWidth
             value={searchTerm}
             onChange={(e) => onSearchChange(e.target.value)}
             onFocus={() => setIsSearchFocused(true)}
             onBlur={() => setIsSearchFocused(false)}
+            sx={{
+              flex: 1,
+              minWidth: 0, // Importante para que se pueda comprimir
+            }}
           />
           {searchTerm && (
             <IconButton 
               size="small" 
               onClick={() => onSearchChange("")}
-              sx={{ color: "text.secondary" }}
+              sx={{ 
+                color: "text.secondary",
+                flexShrink: 0
+              }}
             >
               <ClearIcon fontSize="small" />
             </IconButton>
           )}
         </Box>
         
-        <Box sx={{ display: "flex", gap: 1 }}>
+        <Box sx={{ 
+          display: "flex", 
+          gap: 1,
+          justifyContent: isSmallScreen ? "space-between" : "flex-end",
+          width: isSmallScreen ? "100%" : "auto",
+          flexShrink: 0
+        }}>
           <Button
             variant="contained"
-            startIcon={<AddIcon />}
+            startIcon={isSmallScreen ? null : <AddIcon />}
             onClick={onAddEmployee}
             sx={{ 
               borderRadius: 6,
               textTransform: "none",
               fontWeight: 500,
               py: 1,
-              px: 2,
+              px: isSmallScreen ? 1.5 : 2,
+              minWidth: isSmallScreen ? (isExtraSmallScreen ? "40px" : "auto") : "140px",
               backgroundColor: "#9c27b0",
               "&:hover": {
                 backgroundColor: "#7b1fa2",
-              }
+              },
+              // Asegurar que no se comprimirá demasiado
+              whiteSpace: "nowrap",
+              flexShrink: 0
             }}
           >
-            Add Employee
+            {isSmallScreen ? <AddIcon /> : "Add Employee"}
           </Button>
           
-          <IconButton 
-            onClick={onFilterClick}
-            sx={{ 
-              backgroundColor: "rgba(0,0,0,0.04)", 
-              borderRadius: 1,
-              color: "#666"
-            }}
-          >
-            <FilterListIcon />
-          </IconButton>
+          <Tooltip title="Filter">
+            <IconButton 
+              onClick={onFilterClick}
+              sx={{ 
+                backgroundColor: "rgba(0,0,0,0.04)", 
+                borderRadius: 1,
+                color: "#666",
+                flexShrink: 0
+              }}
+            >
+              <FilterListIcon />
+            </IconButton>
+          </Tooltip>
           
-          <IconButton 
-            onClick={onSortClick}
-            sx={{ 
-              backgroundColor: "rgba(0,0,0,0.04)",
-              borderRadius: 1,
-              color: "#666"
-            }}
-          >
-            <SortIcon />
-          </IconButton>
+          <Tooltip title="Sort">
+            <IconButton 
+              onClick={onSortClick}
+              sx={{ 
+                backgroundColor: "rgba(0,0,0,0.04)",
+                borderRadius: 1,
+                color: "#666",
+                flexShrink: 0
+              }}
+            >
+              <SortIcon />
+            </IconButton>
+          </Tooltip>
         </Box>
       </Box>
 
       <Divider />
       
-      {/* Pestañas */}
-      <Box>
+      {/* Pestañas - Uso un enfoque más robusto para pantallas pequeñas */}
+      <Box sx={{
+        width: "100%",
+        overflowX: "auto", // Permitir scroll horizontal en caso extremo
+        "&::-webkit-scrollbar": { // Ocultar scrollbar pero mantener funcionalidad
+          height: "4px"
+        },
+        "&::-webkit-scrollbar-thumb": {
+          backgroundColor: "rgba(0,0,0,0.1)",
+          borderRadius: "4px"
+        }
+      }}>
         <Tabs 
           value={getTabIndex()}
           onChange={handleTabChange}
+          variant={isSmallScreen ? "fullWidth" : "standard"}
           sx={{ 
-            minHeight: "48px",
+            minHeight: isSmallScreen ? (isExtraSmallScreen ? "36px" : "40px") : "48px",
             '& .MuiTabs-indicator': {
               backgroundColor: '#9c27b0',
               height: 3,
@@ -185,59 +244,50 @@ const SearchFilter = ({
             '& .MuiTab-root': {
               textTransform: 'none',
               fontWeight: 500,
-              minHeight: 48,
-              fontSize: '0.875rem',
+              minHeight: isSmallScreen ? (isExtraSmallScreen ? 36 : 40) : 48,
+              fontSize: isSmallScreen ? '0.75rem' : '0.875rem',
+              padding: isSmallScreen ? (isExtraSmallScreen ? 0.5 : 1) : "auto",
+              minWidth: isSmallScreen ? (isExtraSmallScreen ? "70px" : "80px") : "120px",
               '&.Mui-selected': {
                 color: '#9c27b0',
                 fontWeight: 600,
               },
               '& .MuiTab-iconWrapper': {
-                marginRight: 1,
+                marginRight: isSmallScreen ? 0.5 : 1,
+                fontSize: isSmallScreen ? '0.875rem' : '1rem',
               },
             },
           }}
         >
           <Tab 
-            icon={<PeopleAltIcon fontSize="small" />} 
+            icon={<PeopleAltIcon fontSize={isSmallScreen ? "small" : "medium"} />} 
             iconPosition="start"
-            label="All Employees" 
+            label={isExtraSmallScreen ? "" : "All"} 
           />
           <Tab 
-            icon={<PersonOutlineOutlinedIcon fontSize="small" />} 
-            iconPosition="start"
-            label={
-              <Box sx={{ 
-                display: 'flex', 
-                alignItems: 'center',
-                position: 'relative'
-              }}>
-                Available
-                {availableCount > 0 && (
-                  <Box
-                    sx={{
-                      ml: 1,
-                      px: 1,
-                      py: 0.25,
-                      borderRadius: '10px',
-                      fontSize: '0.65rem',
-                      fontWeight: 'bold',
-                      backgroundColor: '#4caf50',
-                      color: 'white',
-                      minWidth: '18px',
-                      textAlign: 'center',
-                      display: 'inline-block'
-                    }}
-                  >
-                    {availableCount}
-                  </Box>
-                )}
-              </Box>
+            icon={
+              <Badge 
+                badgeContent={availableCount} 
+                color="success" 
+                max={99}
+                sx={{
+                  '& .MuiBadge-badge': {
+                    fontSize: isExtraSmallScreen ? '0.6rem' : '0.65rem',
+                    height: isExtraSmallScreen ? '16px' : '18px',
+                    minWidth: isExtraSmallScreen ? '16px' : '18px',
+                  }
+                }}
+              >
+                <PersonOutlineOutlinedIcon fontSize={isSmallScreen ? "small" : "medium"} />
+              </Badge>
             } 
+            iconPosition="start"
+            label={isExtraSmallScreen ? "" : (isVerySmallScreen ? "Avail" : "Available")}
           />
           <Tab 
-            icon={<DoneAllIcon fontSize="small" />} 
+            icon={<DoneAllIcon fontSize={isSmallScreen ? "small" : "medium"} />} 
             iconPosition="start"
-            label="Assigned" 
+            label={isExtraSmallScreen ? "" : (isVerySmallScreen ? "Assig" : "Assigned")} 
           />
         </Tabs>
       </Box>
@@ -245,15 +295,27 @@ const SearchFilter = ({
       {/* Filtros activos - aparecen solo cuando hay filtros */}
       {(activeTab !== "all" || searchTerm) && (
         <Box sx={{ 
-          px: 2, 
-          py: 1.5, 
+          px: isSmallScreen ? (isExtraSmallScreen ? 1 : 1.5) : 2, 
+          py: isSmallScreen ? 1 : 1.5, 
           backgroundColor: "rgba(0,0,0,0.02)",
           display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between" 
+          flexDirection: isSmallScreen ? "column" : "row",
+          alignItems: isSmallScreen ? "flex-start" : "center",
+          justifyContent: "space-between",
+          gap: isSmallScreen ? 1 : 0
         }}>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-            <Typography variant="body2" color="text.secondary">
+          <Box sx={{ 
+            display: "flex", 
+            alignItems: "center", 
+            flexWrap: "wrap",
+            gap: 1,
+            width: isSmallScreen ? "100%" : "auto"
+          }}>
+            <Typography 
+              variant="body2" 
+              color="text.secondary"
+              sx={{ flexShrink: 0 }}
+            >
               Active filters:
             </Typography>
             
@@ -263,7 +325,8 @@ const SearchFilter = ({
                 px: 1.5, 
                 borderRadius: 4, 
                 backgroundColor: "rgba(0,0,0,0.06)",
-                fontSize: "0.75rem"
+                fontSize: "0.75rem",
+                flexShrink: 0
               }}>
                 Status: {activeTab}
               </Box>
@@ -275,9 +338,13 @@ const SearchFilter = ({
                 px: 1.5, 
                 borderRadius: 4, 
                 backgroundColor: "rgba(0,0,0,0.06)",
-                fontSize: "0.75rem"
+                fontSize: "0.75rem",
+                maxWidth: isSmallScreen ? "calc(100% - 80px)" : "300px", // Dejar espacio para "Active filters:"
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap"
               }}>
-                Search: "{searchTerm}"
+                Search: "{searchTerm.length > 20 && isSmallScreen ? searchTerm.substring(0, 20) + "..." : searchTerm}"
               </Box>
             )}
           </Box>
@@ -290,7 +357,10 @@ const SearchFilter = ({
               color: "#f44336",
               textTransform: "none",
               fontWeight: 500,
-              fontSize: "0.75rem"
+              fontSize: "0.75rem",
+              alignSelf: isSmallScreen ? "flex-end" : "center",
+              flexShrink: 0,
+              minWidth: isExtraSmallScreen ? "60px" : "auto"
             }}
           >
             Clear All
