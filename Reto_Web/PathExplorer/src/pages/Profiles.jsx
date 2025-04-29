@@ -369,14 +369,20 @@ const Profiles = () => {
   };
 
   return (
-    <Box sx={{ p: 3, backgroundColor: "#f8f9fa" }}>
+    <Box sx={{ 
+      p: 2, 
+      backgroundColor: "#f8f9fa",
+      width: "100%",
+      boxSizing: "border-box",
+      maxWidth: "100vw"
+    }}>
       <Typography variant="h4" fontWeight={600} sx={{ mb: 3 }}>
         Employee Profiles
       </Typography>
       
       {/* Tarjetas de estadísticas */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} sm={6} md={4}>
+      <Grid container spacing={2} sx={{ mb: 4 }}>
+        <Grid item xs={12} sm={4}>
           <StatCard 
             icon={PersonOutlineIcon} 
             title="Total Employees" 
@@ -384,7 +390,7 @@ const Profiles = () => {
             bgColor={theme.palette.primary.main + "20"} 
           />
         </Grid>
-        <Grid item xs={12} sm={6} md={4}>
+        <Grid item xs={12} sm={4}>
           <StatCard 
             icon={GroupIcon} 
             title="Available Employees" 
@@ -392,7 +398,7 @@ const Profiles = () => {
             bgColor="#2196f320" 
           />
         </Grid>
-        <Grid item xs={12} sm={6} md={4}>
+        <Grid item xs={12} sm={4}>
           <StatCard 
             icon={WorkIcon} 
             title="Active Projects" 
@@ -422,18 +428,25 @@ const Profiles = () => {
         </Typography>
       </Box>
       
-      {/* Lista de empleados */}
+      {/* Lista de empleados - GRID OPTIMIZADO */}
       {loading ? (
         <Box sx={{ display: "flex", justifyContent: "center", p: 5 }}>
           <CircularProgress />
         </Box>
       ) : filteredEmployees.length > 0 ? (
-        <Grid container spacing={3}>
+        <Grid container spacing={2}>
           {filteredEmployees.map((employee) => (
-            <Grid item xs={12} sm={6} md={4} lg={3} key={employee.user_id}>
+            <Grid 
+              item 
+              xs={12}    // 1 tarjeta por fila en pantallas <600px
+              sm={6}     // 2 columnas en pantallas >=600px
+              md={4}     // 3 columnas en pantallas >=900px
+              lg={3}     // 4 columnas en pantallas >=1200px
+              key={employee.user_id}
+            >
               <EmployeeCard 
                 employee={employee} 
-                onViewDetails={handleViewDetails}
+                onViewDetails={() => handleViewDetails(employee.user_id)}
               />
             </Grid>
           ))}
