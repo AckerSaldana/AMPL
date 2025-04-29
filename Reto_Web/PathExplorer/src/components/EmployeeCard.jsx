@@ -6,15 +6,12 @@ import {
   Avatar,
   Chip,
   Button,
-  Menu,
-  MenuItem,
-  IconButton,
+  useMediaQuery,
+  useTheme,
 } from "@mui/material";
 import {
-  MoreVert as MoreVertIcon,
   ArrowForwardIos as ArrowForwardIosIcon,
   Work as WorkIcon,
-  Circle as CircleIcon
 } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
 import UserProfileModal from "./UserProfileModal";
@@ -27,20 +24,15 @@ import UserProfileModal from "./UserProfileModal";
  * @param {boolean} props.useModal - Whether to use a modal for viewing details
  */
 const EmployeeCard = ({ employee, onViewDetails, useModal = false }) => {
+  const theme = useTheme();
+  // Media queries más específicas para controlar cuándo cambiar el layout
+  const isSmallScreen = useMediaQuery('(max-width:599px)');
+  const isVerySmallScreen = useMediaQuery('(max-width:450px)');
+  const isExtraSmallScreen = useMediaQuery('(max-width:320px)');
+  
   const navigate = useNavigate();
-  const [menuAnchor, setMenuAnchor] = useState(null);
   const [isHovered, setIsHovered] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
-  
-  // Handlers for the menu
-  const handleMenuOpen = (event) => {
-    event.stopPropagation();
-    setMenuAnchor(event.currentTarget);
-  };
-  
-  const handleMenuClose = () => {
-    setMenuAnchor(null);
-  };
   
   // Handler for viewing details
   const handleViewDetails = (e) => {
@@ -65,6 +57,12 @@ const EmployeeCard = ({ employee, onViewDetails, useModal = false }) => {
     return isAssigned ? "Assigned" : "Available";
   };
   
+  // Determine how many skills to show based on screen size
+  const getMaxSkillsToShow = () => {
+    if (isSmallScreen) return 2;
+    return 3;
+  };
+
   return (
     <>
       <Paper 
@@ -87,128 +85,166 @@ const EmployeeCard = ({ employee, onViewDetails, useModal = false }) => {
           "&:hover": {
             borderColor: "#9c27b0",
           },
-          p: 3
+          p: isSmallScreen ? 2 : 3,
+          // Asegurar que tenga un ancho mínimo para prevenir compresión
+          minWidth: isSmallScreen ? "100%" : 240
         }}
       >
         {/* Header with image, name and status */}
         <Box sx={{ 
           display: "flex", 
-          alignItems: "flex-start", 
-          justifyContent: "space-between",
+          flexDirection: "column",
           width: "100%",
-          mb: 3
+          mb: isSmallScreen ? 2 : 3,
         }}>
-          <Box sx={{ display: "flex", alignItems: "center" }}>
-            <Box sx={{ position: "relative" }}>
-              <Avatar
-                src={employee.profile_pic}
-                sx={{ 
-                  width: 56, 
-                  height: 56,
-                  mr: 2,
-                  border: "4px solid #fff",
-                  boxShadow: "0 2px 8px rgba(0,0,0,0.08)"
-                }}
-              >
-                {employee.name ? employee.name[0].toUpperCase() : "?"}
-              </Avatar>
-              
-              {/* Status indicator as a small circle on the avatar */}
-              <Box 
-                sx={{ 
-                  position: "absolute", 
-                  bottom: 3, 
-                  left: 40, 
-                  width: 12, 
-                  height: 12, 
-                  borderRadius: "50%",
-                  bgcolor: getAssignmentColor(employee.isAssigned),
-                  border: "2px solid white",
-                  boxShadow: "0 0 4px rgba(0,0,0,0.1)"
-                }} 
-              />
-            </Box>
-            
-            <Box>
-              <Typography 
-                variant="h6" 
-                fontWeight={600}
-                sx={{ 
-                  lineHeight: 1.2,
-                  fontSize: "1.1rem",
-                  color: "#212121"
-                }}
-              >
-                {employee.name} {employee.last_name}
-              </Typography>
-              
+          {/* Primera fila: Avatar y Nombre */}
+          <Box sx={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            mb: 1.5,
+            width: "100%"
+          }}>
+            <Box sx={{
+              display: "flex", 
+              alignItems: "center",
+              flex: 1,
+              minWidth: 0, // Importante para que el contenido pueda contraerse
+            }}>
+              {/* Avatar con indicador de estado */}
               <Box sx={{ 
-                display: "flex", 
-                alignItems: "center", 
-                mt: 0.3
+                position: "relative",
+                flexShrink: 0 // Evita que el avatar se encoja
               }}>
-                <Box 
+                <Avatar
+                  src={employee.profile_pic}
                   sx={{ 
-                    display: "flex",
-                    alignItems: "center",
-                    backgroundColor: "rgba(156, 39, 176, 0.08)",
-                    color: "#9c27b0",
-                    px: 1,
-                    py: 0.3,
-                    borderRadius: 4,
-                    fontSize: "0.7rem",
-                    fontWeight: 500
+                    width: isSmallScreen ? 48 : 56, 
+                    height: isSmallScreen ? 48 : 56,
+                    mr: 2,
+                    border: "4px solid #fff",
+                    boxShadow: "0 2px 8px rgba(0,0,0,0.08)"
                   }}
                 >
-                  <WorkIcon sx={{ fontSize: 12, mr: 0.5, opacity: 0.8 }} />
-                  {employee.role}
+                  {employee.name ? employee.name[0].toUpperCase() : "?"}
+                </Avatar>
+                
+                {/* Status indicator as a small circle on the avatar */}
+                <Box 
+                  sx={{ 
+                    position: "absolute", 
+                    bottom: 3, 
+                    right: 3, 
+                    width: 10, 
+                    height: 10, 
+                    borderRadius: "50%",
+                    bgcolor: getAssignmentColor(employee.isAssigned),
+                    border: "2px solid white",
+                    boxShadow: "0 0 4px rgba(0,0,0,0.1)"
+                  }} 
+                />
+              </Box>
+              
+              {/* Nombre y puesto */}
+              <Box sx={{
+                flexGrow: 1,
+                minWidth: 0, // Importante para permitir ellipsis
+              }}>
+                <Typography 
+                  variant="subtitle1" 
+                  fontWeight={600}
+                  sx={{ 
+                    lineHeight: 1.2,
+                    fontSize: isSmallScreen ? "0.875rem" : "0.95rem", // Nombre más pequeño
+                    color: "#212121",
+                    // Añadir ellipsis para nombres muy largos
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap"
+                  }}
+                >
+                  {employee.name} {employee.last_name}
+                </Typography>
+                
+                <Box sx={{ 
+                  display: "flex", 
+                  alignItems: "center", 
+                  mt: 0.3
+                }}>
+                  <Box 
+                    sx={{ 
+                      display: "flex",
+                      alignItems: "center",
+                      backgroundColor: "rgba(156, 39, 176, 0.08)",
+                      color: "#9c27b0",
+                      px: 1,
+                      py: 0.3,
+                      borderRadius: 4,
+                      fontSize: "0.65rem", // Rol más pequeño
+                      fontWeight: 500,
+                      // Añadir ellipsis para roles muy largos
+                      maxWidth: "100%",
+                      overflow: "hidden"
+                    }}
+                  >
+                    <WorkIcon sx={{ fontSize: 10, mr: 0.5, opacity: 0.8, flexShrink: 0 }} />
+                    <Typography
+                      component="span"
+                      sx={{
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                        fontSize: "0.65rem" // Asegurar que el texto del rol sea pequeño
+                      }}
+                    >
+                      {employee.role}
+                    </Typography>
+                  </Box>
                 </Box>
               </Box>
             </Box>
-          </Box>
-
-          {/* Actions on the right */}
-          <Box sx={{ display: "flex", alignItems: "center" }}>
-            {/* Status badge */}
-            <Chip
-              label={getAssignmentStatus(employee.isAssigned)}
-              size="small"
-              sx={{
-                borderRadius: "12px",
-                fontSize: "0.75rem",
-                height: "28px",
-                fontWeight: 500,
-                bgcolor: employee.isAssigned 
-                  ? "rgba(244, 67, 54, 0.08)" 
-                  : "rgba(76, 175, 80, 0.08)",
-                color: employee.isAssigned 
-                  ? "#f44336" 
-                  : "#4caf50",
-                border: employee.isAssigned 
-                  ? "1px solid rgba(244, 67, 54, 0.2)" 
-                  : "1px solid rgba(76, 175, 80, 0.2)",
-                mr: 1,
-                '&:hover': {
-                  bgcolor: employee.isAssigned 
-                    ? "rgba(244, 67, 54, 0.12)" 
-                    : "rgba(76, 175, 80, 0.12)",
-                },
-                transition: "all 0.2s ease",
-              }}
-            />
             
-            <IconButton
-              onClick={handleMenuOpen}
-              size="small"
-              sx={{
-                color: "text.secondary",
-                '&:hover': {
-                  bgcolor: "rgba(0,0,0,0.04)"
-                }
-              }}
-            >
-              <MoreVertIcon fontSize="small" />
-            </IconButton>
+            {/* Badge de estado - reposicionado para que no se corte */}
+            <Box sx={{ 
+              display: "flex", 
+              alignItems: "flex-start",
+              ml: 1,
+              flexShrink: 0 // Asegura que no se comprima
+            }}>
+              <Chip
+                label={getAssignmentStatus(employee.isAssigned)}
+                size="small"
+                sx={{
+                  borderRadius: "12px",
+                  fontSize: "0.7rem",
+                  height: "24px",
+                  fontWeight: 500,
+                  bgcolor: employee.isAssigned 
+                    ? "rgba(244, 67, 54, 0.08)" 
+                    : "rgba(76, 175, 80, 0.08)",
+                  color: employee.isAssigned 
+                    ? "#f44336" 
+                    : "#4caf50",
+                  border: employee.isAssigned 
+                    ? "1px solid rgba(244, 67, 54, 0.2)" 
+                    : "1px solid rgba(76, 175, 80, 0.2)",
+                  '&:hover': {
+                    bgcolor: employee.isAssigned 
+                      ? "rgba(244, 67, 54, 0.12)" 
+                      : "rgba(76, 175, 80, 0.12)",
+                  },
+                  transition: "all 0.2s ease",
+                  // Garantizar que no se corte en pantallas pequeñas
+                  "& .MuiChip-label": {
+                    padding: "0 8px",
+                    overflow: "visible" // Evita que se recorte el texto
+                  },
+                  whiteSpace: "nowrap",
+                  minWidth: "fit-content",
+                  alignSelf: "flex-start"
+                }}
+              />
+            </Box>
           </Box>
         </Box>
 
@@ -217,39 +253,52 @@ const EmployeeCard = ({ employee, onViewDetails, useModal = false }) => {
           display: "flex",
           flexWrap: "wrap",
           gap: 0.7,
-          mb: 3,
+          mb: isSmallScreen ? 2 : 3,
+          justifyContent: "flex-start"
         }}>
-          {skillsToDisplay.slice(0, 3).map((skill, idx) => (
+          {skillsToDisplay.slice(0, getMaxSkillsToShow()).map((skill, idx) => (
             <Chip
               key={idx}
               label={skill.name}
               size="small"
               sx={{
-                height: 24,
-                fontSize: "0.75rem",
+                height: 22, // Altura más pequeña
+                fontSize: "0.7rem", // Texto más pequeño
                 borderRadius: "12px",
                 backgroundColor: "rgba(0,0,0,0.04)",
                 color: "rgba(0,0,0,0.7)",
                 fontWeight: 500,
                 '&:hover': {
                   backgroundColor: "rgba(0,0,0,0.08)",
+                },
+                // Asegurar que las skills largas se muestren correctamente
+                maxWidth: "100%",
+                "& .MuiChip-label": {
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                  display: "block",
+                  padding: "0 6px" // Padding más pequeño
                 }
               }}
             />
           ))}
-          {skillsToDisplay.length > 3 && (
+          {skillsToDisplay.length > getMaxSkillsToShow() && (
             <Chip
-              label={`+${skillsToDisplay.length - 3}`}
+              label={`+${skillsToDisplay.length - getMaxSkillsToShow()}`}
               size="small"
               sx={{
-                height: 24,
-                fontSize: "0.75rem",
+                height: 22, // Altura más pequeña
+                fontSize: "0.7rem", // Texto más pequeño
                 borderRadius: "12px",
                 backgroundColor: "rgba(0,0,0,0.02)",
                 color: "rgba(0,0,0,0.5)",
                 border: "1px dashed rgba(0,0,0,0.1)",
                 '&:hover': {
                   backgroundColor: "rgba(0,0,0,0.06)",
+                },
+                "& .MuiChip-label": {
+                  padding: "0 6px" // Padding más pequeño
                 }
               }}
             />
@@ -261,9 +310,10 @@ const EmployeeCard = ({ employee, onViewDetails, useModal = false }) => {
           sx={{ 
             color: "text.secondary",
             fontStyle: "italic",
-            fontSize: "0.875rem",
+            fontSize: "0.75rem", // Texto más pequeño
             mt: "auto",
-            mb: 2
+            mb: 2,
+            whiteSpace: "normal" // Permitir saltos de línea si es necesario
           }}
         >
           {employee.isAssigned 
@@ -281,10 +331,10 @@ const EmployeeCard = ({ employee, onViewDetails, useModal = false }) => {
             borderRadius: 8,
             textTransform: "none",
             fontWeight: 600,
-            py: 1,
+            py: 0.75, // Altura más pequeña
             borderColor: "#9c27b0",
             color: "#9c27b0",
-            fontSize: "0.875rem",
+            fontSize: "0.8rem", // Texto más pequeño
             transition: "all 0.2s ease",
             '&:hover': {
               borderColor: "#7b1fa2",
@@ -295,27 +345,6 @@ const EmployeeCard = ({ employee, onViewDetails, useModal = false }) => {
         >
           View Details
         </Button>
-        
-        {/* Actions menu */}
-        <Menu
-          anchorEl={menuAnchor}
-          open={Boolean(menuAnchor)}
-          onClose={handleMenuClose}
-          onClick={(e) => e.stopPropagation()}
-          PaperProps={{
-            elevation: 3,
-            sx: {
-              borderRadius: 2,
-              minWidth: 180,
-            }
-          }}
-        >
-          <MenuItem onClick={handleViewDetails}>
-            View Profile
-          </MenuItem>
-          <MenuItem onClick={handleMenuClose}>Assign to Project</MenuItem>
-          <MenuItem onClick={handleMenuClose}>Edit</MenuItem>
-        </Menu>
       </Paper>
       
       {/* Profile Modal - Only rendered when useModal is true */}
