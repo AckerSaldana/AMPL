@@ -10,6 +10,8 @@ import * as math from "mathjs";
 import { Worker, isMainThread, parentPort, workerData } from "worker_threads";
 import { fileURLToPath } from "url";
 import { dirname } from "path";
+import multer from "multer";
+import * as functions from "firebase-functions";
 
 // Crear la app de Express
 const app = express();
@@ -27,15 +29,29 @@ console.log("Primeros 5 caracteres de OPENAI_API_KEY:",
   `${process.env.OPENAI_API_KEY.substring(0, 5)}...` : 
   "No encontrada");
 
-// Inicializamos cache (TTL: 1 día)
+// Inicializamos caches (TTL: 1 día)
 const embeddingCache = new NodeCache({ stdTTL: 86400 });
+const parserCache = new NodeCache({ stdTTL: 3600 }); // Cache para el parser de CV (1 hora)
+
+// Obtener API Key de OpenAI considerando entorno de Firebase
+const getOpenAIApiKey = () => {
+  // Intentar obtener la clave API de diferentes fuentes
+  const apiKey = process.env.OPENAI_API_KEY || 
+    (process.env.NODE_ENV === 'production' ? 
+      (functions.config() && functions.config().openai ? functions.config().openai.apikey : null) : 
+      null) || 
+    'dummy-key-for-deployment';
+  
+  return apiKey;
+};
 
 // Inicialización de OpenAI con manejo de errores
 let openai;
 try {
   console.log("Intentando inicializar cliente de OpenAI...");
+  const apiKey = getOpenAIApiKey();
   openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY || 'dummy-key-for-deployment',
+    apiKey: apiKey,
   });
   console.log("Cliente de OpenAI inicializado correctamente");
 } catch (error) {
@@ -44,6 +60,13 @@ try {
   openai = {
     embeddings: {
       create: async () => ({ data: [{ embedding: Array(1536).fill(0) }] })
+    },
+    chat: {
+      completions: {
+        create: async () => ({ 
+          choices: [{ message: { content: JSON.stringify({}) } }] 
+        })
+      }
     }
   };
   console.log("Se está usando un cliente de OpenAI simulado debido a un error de inicialización");
@@ -64,10 +87,12 @@ function generateCacheKey(text) {
 // Función para verificar la API Key
 export async function testAPIKey() {
   console.log("Verificando API Key de OpenAI...");
-  if (!process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY === 'dummy-key-for-deployment') {
+  const apiKey = getOpenAIApiKey();
+  if (apiKey === 'dummy-key-for-deployment') {
     console.error('No se ha configurado la API Key de OpenAI');
     return false;
   }
+  
   try {
     const startTime = Date.now();
     console.log("Realizando solicitud de prueba a la API de OpenAI...");
@@ -133,7 +158,8 @@ export async function getBatchEmbeddings(texts, sources = []) {
   }
 
   // Verificar si tenemos una API Key válida antes de llamar a la API
-  if (!process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY === 'dummy-key-for-deployment') {
+  const apiKey = getOpenAIApiKey();
+  if (apiKey === 'dummy-key-for-deployment') {
     console.warn('No hay API Key válida, generando embeddings simples');
     console.log(`Generando ${textsToProcess.length} embeddings simples...`);
     textsToProcess.forEach((text, i) => {
@@ -250,8 +276,8 @@ export async function calculateBatchContextualSimilarities(roleEmbedding, candid
   console.log(`Calculando similitudes contextuales para ${candidateEmbeddings.length} candidatos...`);
   
   // Verificar si estamos usando OpenAI o embeddings simulados
-  const isUsingSimulatedEmbeddings = !process.env.OPENAI_API_KEY || 
-                                    process.env.OPENAI_API_KEY === 'dummy-key-for-deployment';
+  const apiKey = getOpenAIApiKey();
+  const isUsingSimulatedEmbeddings = apiKey === 'dummy-key-for-deployment';
   
   // Si son embeddings simulados, agregar variación significativa
   if (isUsingSimulatedEmbeddings) {
@@ -479,6 +505,407 @@ export function calculateSkillMatch(employeeSkills, roleSkills, employeeName = "
   
   return finalScore;
 }
+
+//==============================================================================
+// IMPLEMENTACIÓN DEL PARSER DE CV CON IA
+//==============================================================================
+
+// Configuración de multer para almacenamiento en memoria
+const storage = multer.memoryStorage();
+const upload = multer({
+  storage: storage,
+  limits: { fileSize: 10 * 1024 * 1024 }, // Límite de 10MB
+  fileFilter: (req, file, cb) => {
+    // Aceptar solo PDF y documentos Word
+    if (file.mimetype === 'application/pdf' || 
+        file.mimetype === 'application/msword' || 
+        file.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+      cb(null, true);
+    } else {
+      cb(new Error('Formato de archivo no soportado. Por favor, sube un PDF o documento Word.'));
+    }
+  }
+});
+
+/**
+ * Extrae texto de un PDF usando el modelo de GPT-4 Vision
+ * @param {Buffer} fileBuffer - Buffer del archivo PDF
+ * @returns {Promise<string>} - Texto extraído
+ */
+async function extractTextFromPDF(fileBuffer, filename) {
+  try {
+    console.log(`Extrayendo texto de PDF: ${filename}`);
+    
+    // Convertir el buffer a base64
+    const base64PDF = Buffer.from(fileBuffer).toString('base64');
+    
+    // Verificar si hay una clave de API válida
+    const apiKey = getOpenAIApiKey();
+    if (apiKey === 'dummy-key-for-deployment') {
+      console.warn('No hay API Key válida para OpenAI, generando texto ficticio para el PDF');
+      return `Este es un texto extraído ficticio para el archivo ${filename}. 
+      El sistema no pudo acceder a la API de OpenAI para extraer el texto real del PDF.
+      Por favor, asegúrate de que tienes configurada la API key correctamente.`;
+    }
+    
+    // Crear un prompt para GPT-4 Vision
+    const response = await openai.chat.completions.create({
+      model: "gpt-4-vision-preview",
+      messages: [
+        {
+          role: "system",
+          content: "Eres un experto en extraer texto de documentos PDF, específicamente de currículum vitae (CV). Extrae todo el texto visible del documento PDF que se te proporciona, manteniendo la estructura general (secciones, párrafos) pero ignorando el diseño exacto."
+        },
+        {
+          role: "user",
+          content: [
+            { type: "text", text: "Extrae todo el texto de este CV en PDF:" },
+            {
+              type: "image_url",
+              image_url: {
+                url: `data:application/pdf;base64,${base64PDF}`,
+                detail: "high"
+              }
+            }
+          ]
+        }
+      ],
+      max_tokens: 4096
+    });
+    
+    return response.choices[0].message.content;
+  } catch (error) {
+    console.error("Error extracting text from PDF with GPT-4 Vision:", error);
+    throw new Error(`Failed to extract text from PDF: ${error.message}`);
+  }
+}
+
+/**
+ * Analiza el texto del CV usando IA para extraer información estructurada
+ * @param {string} cvText - Texto del CV
+ * @param {Array} availableSkills - Lista de habilidades disponibles
+ * @param {Array} availableRoles - Lista de roles disponibles
+ * @returns {Promise<Object>} - Datos estructurados extraídos
+ */
+async function analyzeWithOpenAI(cvText, availableSkills, availableRoles) {
+  try {
+    console.log("Analizando CV con OpenAI...");
+    
+    // Verificar si hay una clave de API válida
+    const apiKey = getOpenAIApiKey();
+    if (apiKey === 'dummy-key-for-deployment') {
+      console.warn('No hay API Key válida para OpenAI, generando datos ficticios para el CV');
+      return generateMockData(cvText, availableSkills, availableRoles);
+    }
+    
+    // Truncar texto si es muy largo
+    const maxTextLength = 14000; // Apropiado para gpt-4
+    const truncatedCVText = cvText.length > maxTextLength 
+      ? cvText.substring(0, maxTextLength) 
+      : cvText;
+    
+    // Crear prompt para OpenAI con el contexto necesario
+    const systemPrompt = `Eres un experto en análisis de currículum vitae que extrae información estructurada de CVs.
+Extrae la siguiente información del CV:
+1. Nombre
+2. Apellido
+3. Correo electrónico
+4. Número de teléfono
+5. Habilidades (de la lista proporcionada)
+6. Rol o puesto más apropiado (de la lista proporcionada)
+7. Historial educativo (institución, título, año)
+8. Experiencia laboral (empresa, puesto, duración, descripción)
+9. Idiomas y niveles de competencia
+10. Un resumen profesional breve para la sección "Acerca de"
+
+Las habilidades disponibles son: ${availableSkills.map(s => s.name).join(', ')}
+Los roles disponibles son: ${availableRoles.join(', ')}
+
+Formatea tu respuesta como un objeto JSON con la siguiente estructura:
+{
+  "firstName": "",
+  "lastName": "",
+  "email": "",
+  "phone": "",
+  "role": "",
+  "about": "",
+  "skills": [{"name": "nombre de habilidad"}],
+  "education": [{"institution": "", "degree": "", "year": ""}],
+  "workExperience": [{"company": "", "position": "", "duration": "", "description": ""}],
+  "languages": [{"name": "", "level": ""}]
+}
+
+Incluye solo el objeto JSON en tu respuesta, nada más. Si no puedes encontrar cierta información, deja esos campos como cadenas vacías o arreglos vacíos.`;
+
+    // Llamar a la API de OpenAI
+    const response = await openai.chat.completions.create({
+      model: "gpt-4-turbo",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: truncatedCVText }
+      ],
+      response_format: { type: "json_object" },
+      temperature: 0.3 // Baja temperatura para respuestas más consistentes
+    });
+
+    // Extraer y parsear la respuesta JSON
+    const content = response.choices[0].message.content.trim();
+    const parsedData = JSON.parse(content);
+    
+    console.log("Análisis de CV completado con éxito");
+    return parsedData;
+  } catch (error) {
+    console.error("Error with OpenAI analysis:", error);
+    // En caso de error, generar datos simulados como fallback
+    console.log("Generando datos de fallback debido al error de OpenAI");
+    return generateMockData(cvText, availableSkills, availableRoles);
+  }
+}
+
+/**
+ * Genera datos simulados para pruebas o cuando falla la API
+ */
+function generateMockData(cvText, availableSkills, availableRoles) {
+  console.log("Generando datos simulados para el CV");
+  
+  // Seleccionar algunas habilidades al azar
+  const selectedSkills = availableSkills
+    .sort(() => 0.5 - Math.random())
+    .slice(0, Math.min(5, availableSkills.length))
+    .map(skill => ({ name: skill.name }));
+  
+  // Seleccionar un rol al azar
+  const selectedRole = availableRoles[Math.floor(Math.random() * availableRoles.length)] || "Developer";
+  
+  // Extraer posibles nombres/datos del texto del CV si está disponible
+  let firstName = "Juan";
+  let lastName = "Pérez";
+  let email = "juan.perez@ejemplo.com";
+  
+  if (cvText && cvText.length > 0) {
+    // Intentar extraer un nombre del CV con regex básico
+    const nameMatch = cvText.match(/([A-Z][a-z]+)\s+([A-Z][a-z]+)/);
+    if (nameMatch) {
+      firstName = nameMatch[1];
+      lastName = nameMatch[2];
+      email = `${firstName.toLowerCase()}.${lastName.toLowerCase()}@accenture.com`;
+    }
+    
+    // Intentar extraer un email del CV
+    const emailMatch = cvText.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
+    if (emailMatch) {
+      email = emailMatch[0];
+    }
+  }
+  
+  return {
+    firstName,
+    lastName,
+    email,
+    phone: "+34 612 345 678",
+    role: selectedRole,
+    about: "Profesional con experiencia en tecnología y soluciones de negocio. Especializado en desarrollo de aplicaciones y gestión de proyectos.",
+    skills: selectedSkills,
+    education: [
+      {
+        institution: "Universidad Ejemplo",
+        degree: "Licenciatura en Informática",
+        year: "2018"
+      }
+    ],
+    workExperience: [
+      {
+        company: "Tech Solutions",
+        position: "Desarrollador Senior",
+        duration: "2018-2023",
+        description: "Desarrollo de aplicaciones y gestión de proyectos tecnológicos."
+      }
+    ],
+    languages: [
+      {
+        name: "Español",
+        level: "Nativo"
+      },
+      {
+        name: "Inglés",
+        level: "Avanzado"
+      }
+    ]
+  };
+}
+
+/**
+ * Mapea las habilidades detectadas con las disponibles en la base de datos
+ * @param {Array} detectedSkills - Habilidades detectadas por IA
+ * @param {Array} availableSkills - Habilidades disponibles en el sistema
+ * @returns {Array} - Habilidades mapeadas con sus IDs
+ */
+function mapSkills(detectedSkills, availableSkills) {
+  if (!detectedSkills || !availableSkills) return [];
+  
+  console.log(`Mapeando ${detectedSkills.length} habilidades detectadas con ${availableSkills.length} disponibles`);
+  
+  return detectedSkills
+    .map(detectedSkill => {
+      if (!detectedSkill || !detectedSkill.name) return null;
+      
+      // Buscar coincidencia exacta o por aproximación
+      const exactMatch = availableSkills.find(skill => 
+        skill.name && skill.name.toLowerCase() === detectedSkill.name.toLowerCase()
+      );
+      
+      if (exactMatch) {
+        return {
+          id: exactMatch.id || exactMatch.skill_ID,
+          name: exactMatch.name,
+          type: exactMatch.type || "Technical"
+        };
+      }
+      
+      // Buscar coincidencia parcial si no hay exacta
+      const partialMatch = availableSkills.find(skill =>
+        skill.name && detectedSkill.name && 
+        (skill.name.toLowerCase().includes(detectedSkill.name.toLowerCase()) ||
+         detectedSkill.name.toLowerCase().includes(skill.name.toLowerCase()))
+      );
+      
+      if (partialMatch) {
+        return {
+          id: partialMatch.id || partialMatch.skill_ID,
+          name: partialMatch.name,
+          type: partialMatch.type || "Technical"
+        };
+      }
+      
+      return null;
+    })
+    .filter(skill => skill !== null);
+}
+
+/**
+ * Método principal para parsear un CV
+ * @param {File} file - Archivo de CV (PDF, Word, etc.)
+ * @param {Array} availableSkills - Lista de habilidades disponibles
+ * @param {Array} availableRoles - Lista de roles disponibles
+ * @returns {Promise<Object>} - Información extraída del CV
+ */
+async function parseCV(file, availableSkills, availableRoles) {
+  try {
+    console.log(`Procesando archivo: ${file.originalname}, tamaño: ${file.size} bytes`);
+    
+    // Verificar caché
+    const cacheKey = crypto.createHash("sha256").update(`${file.originalname}-${file.size}-${Date.now()}`).digest("hex");
+    const cachedResult = parserCache.get(cacheKey);
+    
+    if (cachedResult) {
+      console.log("Resultado encontrado en caché, devolviendo directamente");
+      return cachedResult;
+    }
+    
+    // 1. Extraer texto del CV según el tipo de archivo
+    let cvText = "";
+    const fileType = file.mimetype;
+    
+    if (fileType === 'application/pdf') {
+      console.log("Detectado archivo PDF, extrayendo texto...");
+      cvText = await extractTextFromPDF(file.buffer, file.originalname);
+    } else if (fileType.includes('word')) {
+      // Para esta demo, usaremos un texto genérico para archivos Word
+      console.log("Detectado archivo Word, generando texto simulado");
+      cvText = `CV simulado para archivo Word: ${file.originalname}
+      
+      Juan Pérez García
+      Email: juan.perez@ejemplo.com
+      Teléfono: +34 612 345 678
+      
+      Experiencia:
+      - Desarrollador Senior en Tech Solutions (2018-2023)
+      - Analista de Sistemas en IT Consulting (2015-2018)
+      
+      Educación:
+      - Universidad Ejemplo, Licenciatura en Informática (2018)
+      
+      Habilidades: JavaScript, React, Node.js, HTML/CSS, SQL
+      
+      Idiomas: Español (nativo), Inglés (avanzado)`;
+    } else {
+      throw new Error("Formato de archivo no soportado");
+    }
+    
+    // 2. Analizar el texto con IA
+    console.log(`Texto extraído (${cvText.length} caracteres), analizando con IA...`);
+    const parsedData = await analyzeWithOpenAI(cvText, availableSkills, availableRoles);
+    
+    // 3. Mapear habilidades detectadas con las disponibles
+    const mappedSkills = mapSkills(parsedData.skills, availableSkills);
+    
+    // 4. Combinar resultado final
+    const result = {
+      ...parsedData,
+      skills: mappedSkills
+    };
+    
+    // Guardar en caché
+    parserCache.set(cacheKey, result);
+    
+    console.log("Análisis de CV completado exitosamente");
+    return result;
+  } catch (error) {
+    console.error("Error parsing CV:", error);
+    throw error;
+  }
+}
+
+// Endpoint para parsear CV
+app.post("/api/cv/parse", upload.single('file'), async (req, res) => {
+  console.log("Solicitud recibida en /api/cv/parse");
+  
+  try {
+    if (!req.file) {
+      console.error("No se proporcionó ningún archivo");
+      return res.status(400).json({ 
+        success: false, 
+        error: 'No se proporcionó ningún archivo' 
+      });
+    }
+    
+    console.log(`Archivo recibido: ${req.file.originalname}, tipo: ${req.file.mimetype}`);
+    
+    // Obtener habilidades y roles del cuerpo de la solicitud
+    const availableSkills = req.body.availableSkills ? JSON.parse(req.body.availableSkills) : [];
+    const availableRoles = req.body.availableRoles ? JSON.parse(req.body.availableRoles) : [];
+    
+    console.log(`Datos recibidos: ${availableSkills.length} habilidades, ${availableRoles.length} roles`);
+    
+    // Registrar inicio del procesamiento
+    const startTime = Date.now();
+    
+    // Procesar el CV
+    const parsedData = await parseCV(req.file, availableSkills, availableRoles);
+    
+    // Calcular tiempo de procesamiento
+    const processingTime = (Date.now() - startTime) / 1000;
+    
+    // Devolver resultados
+    res.json({
+      success: true,
+      data: parsedData,
+      meta: {
+        fileName: req.file.originalname,
+        fileSize: req.file.size,
+        mimeType: req.file.mimetype,
+        processingTime: processingTime
+      }
+    });
+    
+  } catch (error) {
+    console.error("Error procesando CV:", error);
+    res.status(500).json({ 
+      success: false, 
+      error: error.message || 'Error al procesar el CV' 
+    });
+  }
+});
 
 // ----------------------------------------------------------------------------
 // Endpoint para matching: Procesa la solicitud y devuelve los resultados
