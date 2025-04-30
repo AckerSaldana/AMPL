@@ -242,36 +242,6 @@ const Profiles = () => {
           isAssigned: false,
           assignment: 0,
           activeProjects: 0
-        },
-        {
-          user_id: "6",
-          name: "James",
-          last_name: "Holloway Wright",
-          role: "Frontend Developer",
-          skills: [{ id: 1, name: "Adaptability" }, { id: 2, name: "Time Management" }, { id: 3, name: "Teamwork" }],
-          isAssigned: true,
-          assignment: 100,
-          activeProjects: 1
-        },
-        {
-          user_id: "7",
-          name: "Natalie",
-          last_name: "Simmons Smith",
-          role: "UX Researcher",
-          skills: [{ id: 1, name: "Empathy" }, { id: 2, name: "Public Speaking" }, { id: 3, name: "Emotional Intelligence" }],
-          isAssigned: false,
-          assignment: 0,
-          activeProjects: 0
-        },
-        {
-          user_id: "8",
-          name: "Paola",
-          last_name: "Castillo Jiménez",
-          role: "Data Privacy Officer",
-          skills: [{ id: 1, name: "GDPR" }, { id: 2, name: "Legal" }, { id: 3, name: "Risk Management" }],
-          isAssigned: true,
-          assignment: 100,
-          activeProjects: 1
         }
       ];
       
@@ -359,13 +329,31 @@ const Profiles = () => {
     setSortAnchorEl(null);
   };
   
-  const handleOpenRegisterDialog = () => {
-    // Esta función podría abrir un diálogo para registrar un nuevo empleado
+  // Handle employee addition refresh
+  const handleEmployeeAdded = async () => {
     setSnackbar({
       open: true,
-      message: "Esta funcionalidad será implementada próximamente",
-      severity: "info"
+      message: "Employee added successfully! Refreshing data...",
+      severity: "success"
     });
+    
+    // Refresh employee data
+    setLoading(true);
+    try {
+      // Here you would fetch the employee data again
+      // For demo purposes, we'll just wait a bit and show success
+      setTimeout(() => {
+        setLoading(false);
+      }, 1000);
+    } catch (error) {
+      console.error("Error refreshing data:", error);
+      setSnackbar({
+        open: true,
+        message: "Error refreshing data after adding employee",
+        severity: "error"
+      });
+      setLoading(false);
+    }
   };
 
   return (
@@ -408,7 +396,7 @@ const Profiles = () => {
         </Grid>
       </Grid>
       
-      {/* Barra de búsqueda con filtros */}
+      {/* Barra de búsqueda con filtros y funcionalidad para añadir empleados */}
       <SearchFilter 
         searchTerm={searchTerm}
         onSearchChange={setSearchTerm}
@@ -418,7 +406,7 @@ const Profiles = () => {
         onSortClick={handleSortClick}
         onClearFilters={handleClearFilters}
         availableCount={stats.availableEmployees}
-        onAddEmployee={handleOpenRegisterDialog}
+        onAddEmployee={handleEmployeeAdded}
       />
       
       {/* Resultado de la búsqueda */}
