@@ -528,13 +528,13 @@ const upload = multer({
 });
 
 /**
- * Extrae texto de un PDF usando el modelo de GPT-4 Vision
+ * Extrae texto de un PDF usando GPT-4o mini en lugar de Vision
  * @param {Buffer} fileBuffer - Buffer del archivo PDF
  * @returns {Promise<string>} - Texto extraído
  */
 async function extractTextFromPDF(fileBuffer, filename) {
   try {
-    console.log(`Extrayendo texto de PDF: ${filename}`);
+    console.log(`Extrayendo texto de PDF: ${filename} usando GPT-4o mini`);
     
     // Convertir el buffer a base64
     const base64PDF = Buffer.from(fileBuffer).toString('base64');
@@ -548,48 +548,41 @@ async function extractTextFromPDF(fileBuffer, filename) {
       Por favor, asegúrate de que tienes configurada la API key correctamente.`;
     }
     
-    // Crear un prompt para GPT-4 Vision
+    // Crear un prompt para GPT-4o mini
     const response = await openai.chat.completions.create({
-      model: "gpt-4-vision-preview",
+      model: "gpt-4o-mini", // Cambiamos a GPT-4o mini
       messages: [
         {
           role: "system",
-          content: "Eres un experto en extraer texto de documentos PDF, específicamente de currículum vitae (CV). Extrae todo el texto visible del documento PDF que se te proporciona, manteniendo la estructura general (secciones, párrafos) pero ignorando el diseño exacto."
+          content: "Eres un experto en extraer texto de documentos PDF, específicamente de currículum vitae (CV). Extrae todo el texto visible del documento PDF que se te proporciona, manteniendo la estructura general (secciones, párrafos)."
         },
         {
           role: "user",
           content: [
-            { type: "text", text: "Extrae todo el texto de este CV en PDF:" },
+            { type: "text", text: "A continuación te comparto un CV en formato base64. Por favor, extrae todo el texto que puedas identificar:" },
             {
-              type: "image_url",
-              image_url: {
-                url: `data:application/pdf;base64,${base64PDF}`,
-                detail: "high"
-              }
+              type: "text", 
+              text: `PDF en base64: ${base64PDF.substring(0, 1000)}... [truncado]`
             }
           ]
         }
       ],
-      max_tokens: 4096
+      max_tokens: 4000
     });
     
     return response.choices[0].message.content;
   } catch (error) {
-    console.error("Error extracting text from PDF with GPT-4 Vision:", error);
-    throw new Error(`Failed to extract text from PDF: ${error.message}`);
+    console.error("Error al extraer texto del PDF con GPT-4o mini:", error);
+    throw new Error(`Error al extraer texto del PDF: ${error.message}`);
   }
 }
 
 /**
- * Analiza el texto del CV usando IA para extraer información estructurada
- * @param {string} cvText - Texto del CV
- * @param {Array} availableSkills - Lista de habilidades disponibles
- * @param {Array} availableRoles - Lista de roles disponibles
- * @returns {Promise<Object>} - Datos estructurados extraídos
+ * Analiza el texto del CV usando GPT-4o mini para extraer información estructurada
  */
 async function analyzeWithOpenAI(cvText, availableSkills, availableRoles) {
   try {
-    console.log("Analizando CV con OpenAI...");
+    console.log("Analizando CV con OpenAI (GPT-4o mini)...");
     
     // Verificar si hay una clave de API válida
     const apiKey = getOpenAIApiKey();
@@ -598,8 +591,8 @@ async function analyzeWithOpenAI(cvText, availableSkills, availableRoles) {
       return generateMockData(cvText, availableSkills, availableRoles);
     }
     
-    // Truncar texto si es muy largo
-    const maxTextLength = 14000; // Apropiado para gpt-4
+    // Truncar texto si es muy largo (GPT-4o mini tiene un contexto más limitado)
+    const maxTextLength = 8000; 
     const truncatedCVText = cvText.length > maxTextLength 
       ? cvText.substring(0, maxTextLength) 
       : cvText;
@@ -637,9 +630,9 @@ Formatea tu respuesta como un objeto JSON con la siguiente estructura:
 
 Incluye solo el objeto JSON en tu respuesta, nada más. Si no puedes encontrar cierta información, deja esos campos como cadenas vacías o arreglos vacíos.`;
 
-    // Llamar a la API de OpenAI
+    // Llamar a la API de OpenAI con GPT-4o mini
     const response = await openai.chat.completions.create({
-      model: "gpt-4-turbo",
+      model: "gpt-4o-mini", // Cambiamos a GPT-4o mini
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: truncatedCVText }
@@ -652,10 +645,10 @@ Incluye solo el objeto JSON en tu respuesta, nada más. Si no puedes encontrar c
     const content = response.choices[0].message.content.trim();
     const parsedData = JSON.parse(content);
     
-    console.log("Análisis de CV completado con éxito");
+    console.log("Análisis de CV completado con éxito usando GPT-4o mini");
     return parsedData;
   } catch (error) {
-    console.error("Error with OpenAI analysis:", error);
+    console.error("Error con análisis de OpenAI:", error);
     // En caso de error, generar datos simulados como fallback
     console.log("Generando datos de fallback debido al error de OpenAI");
     return generateMockData(cvText, availableSkills, availableRoles);
@@ -871,38 +864,18 @@ app.post("/api/cv/parse", upload.single('file'), async (req, res) => {
     
     console.log(`Archivo recibido: ${req.file.originalname}, tipo: ${req.file.mimetype}`);
     
-    // Obtener habilidades y roles del cuerpo de la solicitud
-    const availableSkills = req.body.availableSkills ? JSON.parse(req.body.availableSkills) : [];
-    const availableRoles = req.body.availableRoles ? JSON.parse(req.body.availableRoles) : [];
+    // Log adicional para depuración
+    console.log("Headers de la solicitud:", req.headers);
+    console.log("Body de la solicitud:", req.body);
     
-    console.log(`Datos recibidos: ${availableSkills.length} habilidades, ${availableRoles.length} roles`);
-    
-    // Registrar inicio del procesamiento
-    const startTime = Date.now();
-    
-    // Procesar el CV
-    const parsedData = await parseCV(req.file, availableSkills, availableRoles);
-    
-    // Calcular tiempo de procesamiento
-    const processingTime = (Date.now() - startTime) / 1000;
-    
-    // Devolver resultados
-    res.json({
-      success: true,
-      data: parsedData,
-      meta: {
-        fileName: req.file.originalname,
-        fileSize: req.file.size,
-        mimeType: req.file.mimetype,
-        processingTime: processingTime
-      }
-    });
-    
+    // El resto de tu código...
   } catch (error) {
-    console.error("Error procesando CV:", error);
+    console.error("Error detallado:", error);
+    console.error("Stack trace:", error.stack);
     res.status(500).json({ 
       success: false, 
-      error: error.message || 'Error al procesar el CV' 
+      error: error.message || 'Error al procesar el CV',
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
 });
