@@ -56,8 +56,7 @@ import { supabase } from "../supabase/supabaseClient";
 const API_BASE_URL = import.meta.env.VITE_APP_API_URL || 
                    (import.meta.env.MODE === 'development' ? 
                    'http://localhost:3001' :
-                   'https://dev-ampl.web.app');
-
+                   'https://api-q5oxew72ca-uc.a.run.app');
 
 // Core Accenture Colors from the guidelines
 const ACCENTURE_COLORS = {
@@ -318,8 +317,40 @@ const AddEmployeeForm = ({ open, onClose }) => {
       formData.append('availableSkills', JSON.stringify(availableSkills));
       formData.append('availableRoles', JSON.stringify(availableRoles));
       
+      // Uncomment this for debugging
+      console.log("Enviando solicitud a:", `${API_BASE_URL}/api/cv/parse`);
+      console.log("Archivo:", file.name, file.type, file.size);
+      
+      // Para simular sin llamar a la API
+      const mockResult = {
+        success: true,
+        data: {
+          firstName: "John",
+          lastName: "Doe",
+          email: "john.doe@example.com",
+          phone: "+1234567890",
+          role: "Full Stack Developer",
+          about: "Desarrollador experimentado con más de 5 años de experiencia en desarrollo web...",
+          skills: [
+            {id: 2, name: "React", type: "Technical"},
+            {id: 3, name: "Node.js", type: "Technical"},
+            {id: 1, name: "JavaScript", type: "Technical"},
+          ],
+          education: [
+            {institution: "Universidad Ejemplo", degree: "Ingeniería Informática", year: "2018"}
+          ],
+          workExperience: [
+            {company: "Tech Company", position: "Desarrollador Senior", duration: "2019-2023", description: "Desarrollo de aplicaciones web"}
+          ],
+          languages: [
+            {name: "Español", level: "Nativo"},
+            {name: "Inglés", level: "Avanzado"}
+          ]
+        },
+        meta: {processingTime: 2.5}
+      };
+      
       // Call the backend AI parser service
-      const startTime = Date.now();
       const response = await fetch(`${API_BASE_URL}/api/cv/parse`, {
         method: 'POST',
         body: formData,
@@ -330,8 +361,7 @@ const AddEmployeeForm = ({ open, onClose }) => {
       }
       
       const result = await response.json();
-      const endTime = Date.now();
-      const processingTime = (endTime - startTime) / 1000; // in seconds
+      
       
       // Clear progress interval and set to 100%
       clearInterval(progressInterval);
@@ -342,7 +372,7 @@ const AddEmployeeForm = ({ open, onClose }) => {
       }
       
       const parsedData = result.data;
-      
+            
       // Update user data with parsed information
       setUserData(prev => ({
         ...prev,
@@ -366,13 +396,13 @@ const AddEmployeeForm = ({ open, onClose }) => {
           (typeof parsedData[key] === 'string' ? parsedData[key].trim() !== '' : 
            Array.isArray(parsedData[key]) ? parsedData[key].length > 0 : true)
         ),
-        processingTime: result.meta?.processingTime || processingTime,
+        processingTime: /* result.meta?.processingTime || */ processingTime,
         showDetails: true
       });
       
       setSnackbar({
         open: true,
-        message: "CV successfully analyzed with AI!",
+        message: "CV successfully analyzed with AI! (Modo simulado)",
         severity: "success"
       });
       
@@ -1462,41 +1492,316 @@ const AddEmployeeForm = ({ open, onClose }) => {
                         />
                       </Grid>
                       <Grid item xs={12} sm={6}>
-  <TextField
-    fullWidth
-    label="Degree/Certification"
-    value={edu.degree}
-    onChange={(e) => handleEducationChange(index, 'degree', e.target.value)}
-    sx={{
-      '& .MuiOutlinedInput-root': {
-        '&.Mui-focused fieldset': {
-          borderColor: ACCENTURE_COLORS.corePurple1,
-        },
-      },
-      '& .MuiInputLabel-root.Mui-focused': {
-        color: ACCENTURE_COLORS.corePurple1,
-      },
-    }}
-  />
-</Grid>
-<Grid item xs={12} sm={6}>
-  <TextField
-    fullWidth
-    label="Year"
-    value={edu.year}
-    onChange={(e) => handleEducationChange(index, 'year', e.target.value)}
-    sx={{
-      '& .MuiOutlinedInput-root': {
-        '&.Mui-focused fieldset': {
-          borderColor: ACCENTURE_COLORS.corePurple1,
-        },
-      },
-      '& .MuiInputLabel-root.Mui-focused': {
-        color: ACCENTURE_COLORS.corePurple1,
-      },
-    }}
-  />
-</Grid>
+                        <TextField
+                          fullWidth
+                          label="Degree/Certification"
+                          value={edu.degree}
+                          onChange={(e) => handleEducationChange(index, 'degree', e.target.value)}
+                          sx={{
+                            '& .MuiOutlinedInput-root': {
+                              '&.Mui-focused fieldset': {
+                                borderColor: ACCENTURE_COLORS.corePurple1,
+                              },
+                            },
+                            '& .MuiInputLabel-root.Mui-focused': {
+                              color: ACCENTURE_COLORS.corePurple1,
+                            },
+                          }}
+                        />
+                      </Grid>
+                      <Grid item xs={12} sm={6}>
+                        <TextField
+                          fullWidth
+                          label="Year"
+                          value={edu.year}
+                          onChange={(e) => handleEducationChange(index, 'year', e.target.value)}
+                          sx={{
+                            '& .MuiOutlinedInput-root': {
+                              '&.Mui-focused fieldset': {
+                                borderColor: ACCENTURE_COLORS.corePurple1,
+                              },
+                            },
+                            '& .MuiInputLabel-root.Mui-focused': {
+                              color: ACCENTURE_COLORS.corePurple1,
+                            },
+                          }}
+                        />
+                      </Grid>
+                    </Grid>
+                  </Paper>
+                ))}
+              </Box>
+            )}
+          </Paper>
+        </Grid>
+        
+        {/* Work Experience (Only show if there's work experience data or user might want to add it) */}
+        <Grid item xs={12}>
+          <Paper 
+            elevation={0}
+            sx={{ 
+              p: 3, 
+              borderRadius: 2,
+              border: `1px solid ${alpha(ACCENTURE_COLORS.corePurple1, 0.2)}`
+            }}
+          >
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+              <Typography 
+                variant="subtitle1" 
+                sx={{ 
+                  fontWeight: 600,
+                  color: ACCENTURE_COLORS.corePurple1,
+                  display: 'flex',
+                  alignItems: 'center'
+                }}
+              >
+                <WorkIcon sx={{ mr: 1, fontSize: 20 }} />
+                Work Experience
+              </Typography>
+              
+              <Button
+                variant="outlined"
+                size="small"
+                startIcon={<AddIcon />}
+                onClick={handleAddWorkExperience}
+                sx={{ 
+                  textTransform: 'none',
+                  borderColor: ACCENTURE_COLORS.corePurple1,
+                  color: ACCENTURE_COLORS.corePurple1,
+                  '&:hover': {
+                    borderColor: ACCENTURE_COLORS.corePurple2,
+                    bgcolor: alpha(ACCENTURE_COLORS.corePurple1, 0.05)
+                  }
+                }}
+              >
+                Add Experience
+              </Button>
+            </Box>
+            
+            {userData.workExperience.length === 0 ? (
+              <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 2 }}>
+                No work experience added yet.
+              </Typography>
+            ) : (
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                {userData.workExperience.map((work, index) => (
+                  <Paper 
+                    key={index}
+                    elevation={0}
+                    sx={{ 
+                      p: 2, 
+                      borderRadius: 2,
+                      border: `1px solid ${alpha(ACCENTURE_COLORS.lightGray, 0.5)}`,
+                      position: 'relative'
+                    }}
+                  >
+                    <IconButton 
+                      size="small" 
+                      color="error"
+                      onClick={() => handleRemoveWorkExperience(index)}
+                      sx={{ position: 'absolute', top: 8, right: 8 }}
+                    >
+                      <DeleteIcon fontSize="small" />
+                    </IconButton>
+                    
+                    <Grid container spacing={2}>
+                      <Grid item xs={12} sm={6}>
+                        <TextField
+                          fullWidth
+                          label="Company"
+                          value={work.company}
+                          onChange={(e) => handleWorkExperienceChange(index, 'company', e.target.value)}
+                          sx={{
+                            '& .MuiOutlinedInput-root': {
+                              '&.Mui-focused fieldset': {
+                                borderColor: ACCENTURE_COLORS.corePurple1,
+                              },
+                            },
+                            '& .MuiInputLabel-root.Mui-focused': {
+                              color: ACCENTURE_COLORS.corePurple1,
+                            },
+                          }}
+                        />
+                      </Grid>
+                      <Grid item xs={12} sm={6}>
+                        <TextField
+                          fullWidth
+                          label="Position"
+                          value={work.position}
+                          onChange={(e) => handleWorkExperienceChange(index, 'position', e.target.value)}
+                          sx={{
+                            '& .MuiOutlinedInput-root': {
+                              '&.Mui-focused fieldset': {
+                                borderColor: ACCENTURE_COLORS.corePurple1,
+                              },
+                            },
+                            '& .MuiInputLabel-root.Mui-focused': {
+                              color: ACCENTURE_COLORS.corePurple1,
+                            },
+                          }}
+                        />
+                      </Grid>
+                      <Grid item xs={12} sm={6}>
+                        <TextField
+                          fullWidth
+                          label="Duration"
+                          value={work.duration}
+                          onChange={(e) => handleWorkExperienceChange(index, 'duration', e.target.value)}
+                          placeholder="e.g. 2018-2020"
+                          sx={{
+                            '& .MuiOutlinedInput-root': {
+                              '&.Mui-focused fieldset': {
+                                borderColor: ACCENTURE_COLORS.corePurple1,
+                              },
+                            },
+                            '& .MuiInputLabel-root.Mui-focused': {
+                              color: ACCENTURE_COLORS.corePurple1,
+                            },
+                          }}
+                        />
+                      </Grid>
+                      <Grid item xs={12}>
+                        <TextField
+                          fullWidth
+                          label="Description"
+                          multiline
+                          rows={2}
+                          value={work.description}
+                          onChange={(e) => handleWorkExperienceChange(index, 'description', e.target.value)}
+                          sx={{
+                            '& .MuiOutlinedInput-root': {
+                              '&.Mui-focused fieldset': {
+                                borderColor: ACCENTURE_COLORS.corePurple1,
+                              },
+                            },
+                            '& .MuiInputLabel-root.Mui-focused': {
+                              color: ACCENTURE_COLORS.corePurple1,
+                            },
+                          }}
+                        />
+                      </Grid>
+                    </Grid>
+                  </Paper>
+                ))}
+              </Box>
+            )}
+          </Paper>
+        </Grid>
+        
+        {/* Languages (Only show if there's language data or user might want to add it) */}
+        <Grid item xs={12}>
+          <Paper 
+            elevation={0}
+            sx={{ 
+              p: 3, 
+              borderRadius: 2,
+              border: `1px solid ${alpha(ACCENTURE_COLORS.corePurple1, 0.2)}`
+            }}
+          >
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+              <Typography 
+                variant="subtitle1" 
+                sx={{ 
+                  fontWeight: 600,
+                  color: ACCENTURE_COLORS.corePurple1,
+                  display: 'flex',
+                  alignItems: 'center'
+                }}
+              >
+                <TranslateIcon sx={{ mr: 1, fontSize: 20 }} />
+                Languages
+              </Typography>
+              
+              <Button
+                variant="outlined"
+                size="small"
+                startIcon={<AddIcon />}
+                onClick={handleAddLanguage}
+                sx={{ 
+                  textTransform: 'none',
+                  borderColor: ACCENTURE_COLORS.corePurple1,
+                  color: ACCENTURE_COLORS.corePurple1,
+                  '&:hover': {
+                    borderColor: ACCENTURE_COLORS.corePurple2,
+                    bgcolor: alpha(ACCENTURE_COLORS.corePurple1, 0.05)
+                  }
+                }}
+              >
+                Add Language
+              </Button>
+            </Box>
+            
+            {userData.languages.length === 0 ? (
+              <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 2 }}>
+                No languages added yet.
+              </Typography>
+            ) : (
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                {userData.languages.map((lang, index) => (
+                  <Paper 
+                    key={index}
+                    elevation={0}
+                    sx={{ 
+                      p: 2, 
+                      borderRadius: 2,
+                      border: `1px solid ${alpha(ACCENTURE_COLORS.lightGray, 0.5)}`,
+                      position: 'relative'
+                    }}
+                  >
+                    <IconButton 
+                      size="small" 
+                      color="error"
+                      onClick={() => handleRemoveLanguage(index)}
+                      sx={{ position: 'absolute', top: 8, right: 8 }}
+                    >
+                      <DeleteIcon fontSize="small" />
+                    </IconButton>
+                    
+                    <Grid container spacing={2}>
+                      <Grid item xs={12} sm={6}>
+                        <TextField
+                          fullWidth
+                          label="Language"
+                          value={lang.name}
+                          onChange={(e) => handleLanguageChange(index, 'name', e.target.value)}
+                          sx={{
+                            '& .MuiOutlinedInput-root': {
+                              '&.Mui-focused fieldset': {
+                                borderColor: ACCENTURE_COLORS.corePurple1,
+                              },
+                            },
+                            '& .MuiInputLabel-root.Mui-focused': {
+                              color: ACCENTURE_COLORS.corePurple1,
+                            },
+                          }}
+                        />
+                      </Grid>
+                      <Grid item xs={12} sm={6}>
+                        <FormControl fullWidth>
+                          <InputLabel id={`language-level-label-${index}`} sx={{ '&.Mui-focused': { color: ACCENTURE_COLORS.corePurple1 } }}>
+                            Proficiency
+                          </InputLabel>
+                          <Select
+                            labelId={`language-level-label-${index}`}
+                            value={lang.level || "Basic"}
+                            label="Proficiency"
+                            onChange={(e) => handleLanguageChange(index, 'level', e.target.value)}
+                            sx={{
+                              '& .MuiOutlinedInput-root': {
+                                '&.Mui-focused fieldset': {
+                                  borderColor: ACCENTURE_COLORS.corePurple1,
+                                },
+                              },
+                            }}
+                          >
+                            <MenuItem value="Basic">Basic</MenuItem>
+                            <MenuItem value="Intermediate">Intermediate</MenuItem>
+                            <MenuItem value="Advanced">Advanced</MenuItem>
+                            <MenuItem value="Fluent">Fluent</MenuItem>
+                            <MenuItem value="Native">Native</MenuItem>
+                          </Select>
+                        </FormControl>
+                      </Grid>
                     </Grid>
                   </Paper>
                 ))}
