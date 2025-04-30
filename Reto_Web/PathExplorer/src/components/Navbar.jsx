@@ -26,7 +26,13 @@ import DashboardIcon from "@mui/icons-material/Dashboard";
 import FolderIcon from "@mui/icons-material/Folder";
 import PeopleIcon from "@mui/icons-material/People";
 import BarChartIcon from "@mui/icons-material/BarChart";
-import SettingsIcon from "@mui/icons-material/Settings";
+
+import SchoolIcon from "@mui/icons-material/School";
+import WorkspacePremiumIcon from "@mui/icons-material/WorkspacePremium";
+import MilitaryTechIcon from "@mui/icons-material/MilitaryTech";
+
+import ExploreIcon from "@mui/icons-material/Explore";
+
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import Brightness4Icon from "@mui/icons-material/Brightness4";
 import Brightness7Icon from "@mui/icons-material/Brightness7";
@@ -164,7 +170,12 @@ const Navbar = ({ children }) => {
     const baseItems = [
       { text: "Dashboard", icon: <DashboardIcon />, route: "/" },
       { text: "Projects", icon: <FolderIcon />, route: "/projects" },
-      { text: "Settings", icon: <SettingsIcon />, route: "/settings" },
+      { text: "My Path", icon: <ExploreIcon />, route: "/mypath" },
+      {
+        text: "Certifications",
+        icon: <SchoolIcon />,
+        route: "/certifications",
+      },
     ];
 
     // Elementos adicionales según el rol
