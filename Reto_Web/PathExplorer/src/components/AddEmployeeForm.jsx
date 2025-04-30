@@ -56,7 +56,7 @@ import { supabase } from "../supabase/supabaseClient";
 const API_BASE_URL = import.meta.env.VITE_APP_API_URL || 
                    (import.meta.env.MODE === 'development' ? 
                    'http://localhost:3001' : 
-                   'https://ampl-fdb59.web.app');
+                   'https://dev-ampl.web.app');
 
 // Core Accenture Colors from the guidelines
 const ACCENTURE_COLORS = {
