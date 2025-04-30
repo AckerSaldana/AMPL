@@ -9,7 +9,7 @@ import MainLayout from "./layout/MainLayout";
 import Dashboard from "./pages/Dashboard";
 import Profiles from "./pages/Profiles";
 import Analytics from "./pages/Analytics";
-import Settings from "./pages/Settings";
+import MyPath from "./pages/MyPath";
 import User from "./pages/User";
 import Certifications from "./pages/Certifications";
 import ProjectDashboard from "./pages/ProjectDashboard.jsx";
@@ -56,7 +56,7 @@ function App() {
               path="submit-certification"
               element={<SubmitCertification />}
             />
-            <Route path="settings" element={<Settings />} />
+            <Route path="mypath" element={<MyPath />} />
             <Route path="user" element={<User />} />
             {/* Nueva ruta para ver detalle de usuario por ID */}
             <Route path="user/:id" element={<UserProfileDetail />} />
