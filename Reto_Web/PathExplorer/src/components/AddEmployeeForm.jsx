@@ -1462,31 +1462,41 @@ const AddEmployeeForm = ({ open, onClose }) => {
                         />
                       </Grid>
                       <Grid item xs={12} sm={6}>
-                        <FormControl fullWidth>
-                          <InputLabel id={`language-level-label-${index}`} sx={{ '&.Mui-focused': { color: ACCENTURE_COLORS.corePurple1 } }}>
-                            Proficiency
-                          </InputLabel>
-                          <Select
-                            labelId={`language-level-label-${index}`}
-                            value={lang.level || "Basic"}
-                            label="Proficiency"
-                            onChange={(e) => handleLanguageChange(index, 'level', e.target.value)}
-                            sx={{
-                              '& .MuiOutlinedInput-root': {
-                                '&.Mui-focused fieldset': {
-                                  borderColor: ACCENTURE_COLORS.corePurple1,
-                                },
-                              },
-                            }}
-                          >
-                            <MenuItem value="Basic">Basic</MenuItem>
-                            <MenuItem value="Intermediate">Intermediate</MenuItem>
-                            <MenuItem value="Advanced">Advanced</MenuItem>
-                            <MenuItem value="Fluent">Fluent</MenuItem>
-                            <MenuItem value="Native">Native</MenuItem>
-                          </Select>
-                        </FormControl>
-                      </Grid>
+  <TextField
+    fullWidth
+    label="Degree/Certification"
+    value={edu.degree}
+    onChange={(e) => handleEducationChange(index, 'degree', e.target.value)}
+    sx={{
+      '& .MuiOutlinedInput-root': {
+        '&.Mui-focused fieldset': {
+          borderColor: ACCENTURE_COLORS.corePurple1,
+        },
+      },
+      '& .MuiInputLabel-root.Mui-focused': {
+        color: ACCENTURE_COLORS.corePurple1,
+      },
+    }}
+  />
+</Grid>
+<Grid item xs={12} sm={6}>
+  <TextField
+    fullWidth
+    label="Year"
+    value={edu.year}
+    onChange={(e) => handleEducationChange(index, 'year', e.target.value)}
+    sx={{
+      '& .MuiOutlinedInput-root': {
+        '&.Mui-focused fieldset': {
+          borderColor: ACCENTURE_COLORS.corePurple1,
+        },
+      },
+      '& .MuiInputLabel-root.Mui-focused': {
+        color: ACCENTURE_COLORS.corePurple1,
+      },
+    }}
+  />
+</Grid>
                     </Grid>
                   </Paper>
                 ))}
