@@ -18,6 +18,10 @@
     "mathjs": "^14.4.0",
     "multer": "^1.4.5-lts.2",
     "node-cache": "^5.1.2",
-    "openai": "^4.93.0"
+    "openai": "^4.93.0",
+    "pdf-parse": "^1.1.1",
+    "pdfjs-dist": "^5.2.133",
+    "pdfreader": "^3.0.7",
+    "textract": "^2.5.0"
   }
 }

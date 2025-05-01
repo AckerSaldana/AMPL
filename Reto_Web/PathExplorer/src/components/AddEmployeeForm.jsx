@@ -7,85 +7,38 @@ import {
   DialogContent,
   DialogActions,
   Typography,
-  TextField,
-  Grid,
   Stepper,
   Step,
   StepLabel,
-  Paper,
   IconButton,
-  Chip,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Divider,
-  Avatar,
   CircularProgress,
   Snackbar,
-  Alert,
-  Autocomplete,
-  LinearProgress
+  Alert
 } from "@mui/material";
-import { styled, alpha, useTheme } from "@mui/material/styles";
+import { alpha } from "@mui/material/styles";
 
 // Icons
-import CloudUploadIcon from "@mui/icons-material/CloudUpload";
-import CloseIcon from "@mui/icons-material/Close";
 import KeyboardArrowLeftIcon from "@mui/icons-material/KeyboardArrowLeft";
 import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";
-import PlayArrowIcon from "@mui/icons-material/PlayArrow";
-import PersonIcon from "@mui/icons-material/Person";
-import WorkIcon from "@mui/icons-material/Work";
-import StarIcon from "@mui/icons-material/Star";
-import DeleteIcon from "@mui/icons-material/Delete";
-import EditIcon from "@mui/icons-material/Edit";
-import SendIcon from "@mui/icons-material/Send";
 import PersonAddIcon from "@mui/icons-material/PersonAdd";
-import DescriptionIcon from "@mui/icons-material/Description";
-import InfoIcon from "@mui/icons-material/Info";
-import SchoolIcon from "@mui/icons-material/School";
-import TranslateIcon from "@mui/icons-material/Translate";
-import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
-import PsychologyIcon from "@mui/icons-material/Psychology";
-import AddIcon from "@mui/icons-material/Add";
+import CloseIcon from "@mui/icons-material/Close";
+import SendIcon from "@mui/icons-material/Send";
 
+// Supabase client
 import { supabase } from "../supabase/supabaseClient";
+import { createEmployeeWithoutSessionChange, uploadProfilePicture } from "../hooks/employeeService";
 
-// Base URL para API (ajustar según entorno)
-const API_BASE_URL = import.meta.env.VITE_APP_API_URL || 
-                   (import.meta.env.MODE === 'development' ? 
-                   'http://localhost:3001' :
-                   'https://api-q5oxew72ca-uc.a.run.app');
+// CV parser service
+import { parseCV, simulateParseCV } from "../hooks/cvParserService";
 
-// Core Accenture Colors from the guidelines
-const ACCENTURE_COLORS = {
-  corePurple1: "#a100ff", // Primary Purple
-  corePurple2: "#7500c0", // Secondary Purple
-  corePurple3: "#460073", // Dark Purple
-  accentPurple1: "#b455aa", // Accent Purple 1
-  accentPurple2: "#a055f5", // Accent Purple 2
-  accentPurple3: "#be82ff", // Accent Purple 3
-  accentPurple4: "#dcafff", // Accent Purple 4
-  accentPurple5: "#e6dcff", // Accent Purple 5
-  black: "#000000",
-  darkGray: "#96968c",
-  lightGray: "#e6e6dc",
-  white: "#ffffff"
-};
+// Step components
+import UploadStep from "./UploadStep";
+import ReviewStep from "./ReviewStep";
+import CredentialsStep from "./CredentialsStep";
+import ConfirmationStep from "./ConfirmationStep";
 
-// Styled file input component
-const VisuallyHiddenInput = styled('input')({
-  clip: 'rect(0 0 0 0)',
-  clipPath: 'inset(50%)',
-  height: 1,
-  overflow: 'hidden',
-  position: 'absolute',
-  bottom: 0,
-  left: 0,
-  whiteSpace: 'nowrap',
-  width: 1,
-});
+// Styles
+import { ACCENTURE_COLORS, primaryButtonStyles } from "../styles/styles";
 
 // Step titles for the registration process
 const steps = [
@@ -99,7 +52,6 @@ const steps = [
  * Main component for employee registration with CV parsing using AI
  */
 const AddEmployeeForm = ({ open, onClose }) => {
-  const theme = useTheme();
   const fileInputRef = useRef(null);
   
   // Active step state for the stepper
@@ -125,7 +77,6 @@ const AddEmployeeForm = ({ open, onClose }) => {
     lastName: "",
     email: "",
     phone: "",
-    role: "",
     about: "",
     profilePicture: null,
     profilePictureUrl: null,
@@ -133,7 +84,7 @@ const AddEmployeeForm = ({ open, onClose }) => {
     password: "",
     confirmPassword: "",
     permission: "Employee",
-    // Additional fields that may be extracted by AI
+    // Initialize empty arrays for optional sections
     education: [],
     workExperience: [],
     languages: []
@@ -150,7 +101,8 @@ const AddEmployeeForm = ({ open, onClose }) => {
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: "",
-    severity: "info"
+    severity: "info",
+    action: null
   });
   
   // Fetch available skills and roles on component mount
@@ -234,7 +186,6 @@ const AddEmployeeForm = ({ open, onClose }) => {
       lastName: "",
       email: "",
       phone: "",
-      role: "",
       about: "",
       profilePicture: null,
       profilePictureUrl: null,
@@ -284,220 +235,127 @@ const AddEmployeeForm = ({ open, onClose }) => {
       setFilePreviewUrl(null);
     }
   };
-  
-  // Parse CV file using the AI backend service
-  // Modifica la función parseCV en tu AddEmployeeForm.jsx:
 
-const parseCV = async () => {
-  if (!file) {
-    setSnackbar({
-      open: true,
-      message: "Please upload a file first.",
-      severity: "error"
-    });
-    return;
-  }
   
-  // Verificar el tamaño del archivo
-  if (file.size > 5 * 1024 * 1024) { // Limite de 5MB
-    setSnackbar({
-      open: true,
-      message: "File size exceeds 5MB limit. Please upload a smaller file.",
-      severity: "error"
-    });
-    return;
-  }
+  // Handle CV parsing with our service
+  const handleParseCV = async () => {
+    if (!file) {
+      setSnackbar({
+        open: true,
+        message: "Please upload a file first.",
+        severity: "error"
+      });
+      return;
+    }
+    
+    try {
+      setParsing(true);
+      setParseProgress(0);
+      
+      // Call our parser service with progress updates
+      const result = await parseCV(
+        file, 
+        availableSkills, 
+        availableRoles,
+        (progress) => setParseProgress(progress)
+      );
+      
+      // Update user data with parsed information
+      setUserData(prev => ({
+        ...prev,
+        ...result.parsedData
+      }));
+      
+      // Update AI analysis details
+      setAiAnalysisDetails({
+        confidence: result.meta.confidence,
+        detectedFields: result.meta.detectedFields,
+        processingTime: result.meta.processingTime,
+        showDetails: true
+      });
+      
+      setSnackbar({
+        open: true,
+        message: "CV successfully analyzed with AI!",
+        severity: "success"
+      });
+      
+      setTimeout(() => {
+        setParsing(false);
+        setActiveStep(1);
+      }, 500);
+      
+    } catch (error) {
+      console.error("Error parsing CV:", error);
+      setParsing(false);
+      setParseProgress(0);
+      
+      // If parsing fails, offer simulation mode
+      setSnackbar({
+        open: true,
+        message: `Error parsing CV: ${error.message}. Would you like to use simulation mode instead?`,
+        severity: "error",
+        action: (
+          <Button 
+            color="inherit" 
+            size="small" 
+            onClick={handleSimulateParseCV}
+          >
+            Use Simulation
+          </Button>
+        )
+      });
+    }
+  };
   
-  try {
+  // Handle simulation mode
+  const handleSimulateParseCV = async () => {
     setParsing(true);
     setParseProgress(0);
     
-    // Simulating progress updates
-    const progressInterval = setInterval(() => {
-      setParseProgress(prev => {
-        if (prev >= 90) {
-          clearInterval(progressInterval);
-          return 90;
-        }
-        return prev + 5;
+    try {
+      // Call our simulation function
+      const result = await simulateParseCV(
+        (progress) => setParseProgress(progress)
+      );
+      
+      // Update user data with simulated information
+      setUserData(prev => ({
+        ...prev,
+        ...result.parsedData
+      }));
+      
+      // Update AI analysis details
+      setAiAnalysisDetails({
+        confidence: result.meta.confidence,
+        detectedFields: result.meta.detectedFields,
+        processingTime: result.meta.processingTime,
+        showDetails: true
       });
-    }, 300);
-    
-    // Crear un nuevo FormData con solo lo esencial
-    const formData = new FormData();
-    
-    // Añadir el archivo con un nombre seguro (sin espacios o caracteres especiales)
-    const safeFileName = file.name.replace(/[^a-zA-Z0-9.]/g, '_');
-    const safeFile = new File([file], safeFileName, { type: file.type });
-    formData.append('file', safeFile);
-    
-    // Convertir los datos a JSON strings de manera segura
-    const skillsJson = JSON.stringify(availableSkills || []);
-    const rolesJson = JSON.stringify(availableRoles || []);
-    
-    // Añadir los datos como strings
-    formData.append('availableSkills', skillsJson);
-    formData.append('availableRoles', rolesJson);
-    
-    console.log("Sending request to:", `${API_BASE_URL}/api/cv/parse`);
-    console.log("File:", safeFileName, file.type, file.size);
-    
-    // Usar fetch con modo no-cors como último recurso para CORS
-    const response = await fetch(`${API_BASE_URL}/api/cv/parse`, {
-      method: 'POST',
-      body: formData,
-      // No establecer Content-Type, el navegador lo hará automáticamente con el boundary correcto
-    });
-    
-    if (!response.ok) {
-      throw new Error(`Error ${response.status}: ${response.statusText}`);
-    }
-    
-    const result = await response.json();
-    
-    // Actualizar la UI con los resultados...
-    clearInterval(progressInterval);
-    setParseProgress(100);
-    
-    if (!result.success) {
-      throw new Error(result.error || "Failed to parse CV");
-    }
-    
-    // El resto del código para procesar los datos sigue igual...
-    const parsedData = result.data;
-    const endTime = Date.now();
-    const processingTime = (endTime - startTime) / 1000;
-    
-    setUserData(prev => ({
-      ...prev,
-      firstName: parsedData.firstName || "",
-      lastName: parsedData.lastName || "",
-      email: parsedData.email || "",
-      phone: parsedData.phone || "",
-      role: parsedData.role || "",
-      about: parsedData.about || "Experienced professional with a background in technology and business solutions.",
-      skills: parsedData.skills || [],
-      education: parsedData.education || [],
-      workExperience: parsedData.workExperience || [],
-      languages: parsedData.languages || [],
-    }));
-    
-    setAiAnalysisDetails({
-      confidence: 0.92,
-      detectedFields: Object.keys(parsedData).filter(key => 
-        parsedData[key] && 
-        (typeof parsedData[key] === 'string' ? parsedData[key].trim() !== '' : 
-         Array.isArray(parsedData[key]) ? parsedData[key].length > 0 : true)
-      ),
-      processingTime: result.meta?.processingTime || processingTime,
-      showDetails: true
-    });
-    
-    setSnackbar({
-      open: true,
-      message: "CV successfully analyzed with AI!",
-      severity: "success"
-    });
-    
-    setTimeout(() => {
+      
+      setSnackbar({
+        open: true,
+        message: "CV successfully analyzed (Simulation Mode)",
+        severity: "success"
+      });
+      
+      setTimeout(() => {
+        setParsing(false);
+        setActiveStep(1);
+      }, 500);
+      
+    } catch (error) {
+      console.error("Error in simulation:", error);
       setParsing(false);
-      setActiveStep(1);
-    }, 500);
-    
-  } catch (error) {
-    console.error("Error parsing CV:", error);
-    setParsing(false);
-    setParseProgress(0);
-    
-    // Si sigue fallando, ofrecer el modo de simulación como alternativa
-    setSnackbar({
-      open: true,
-      message: `Error parsing CV: ${error.message}. Would you like to use simulation mode instead?`,
-      severity: "error",
-      action: (
-        <Button 
-          color="inherit" 
-          size="small" 
-          onClick={() => {
-            // Activar modo simulación
-            simulateParseCV();
-          }}
-        >
-          Use Simulation
-        </Button>
-      )
-    });
-  }
-};
-
-// Función de simulación para casos en que el API siga fallando
-const simulateParseCV = () => {
-  setParsing(true);
-  setParseProgress(0);
-  
-  const progressInterval = setInterval(() => {
-    setParseProgress(prev => {
-      if (prev >= 90) {
-        clearInterval(progressInterval);
-        return 90;
-      }
-      return prev + 5;
-    });
-  }, 300);
-
-  setTimeout(() => {
-    // Datos simulados
-    const mockParsedData = {
-      firstName: "John",
-      lastName: "Doe",
-      email: "john.doe@example.com",
-      phone: "+1234567890",
-      role: "Full Stack Developer",
-      about: "Desarrollador experimentado con más de 5 años de experiencia en desarrollo web...",
-      skills: [
-        {id: 2, name: "React", type: "Technical"},
-        {id: 3, name: "Node.js", type: "Technical"},
-        {id: 1, name: "JavaScript", type: "Technical"},
-      ],
-      education: [
-        {institution: "Universidad Ejemplo", degree: "Ingeniería Informática", year: "2018"}
-      ],
-      workExperience: [
-        {company: "Tech Company", position: "Desarrollador Senior", duration: "2019-2023", description: "Desarrollo de aplicaciones web"}
-      ],
-      languages: [
-        {name: "Español", level: "Nativo"},
-        {name: "Inglés", level: "Avanzado"}
-      ]
-    };
-    
-    setUserData(prev => ({
-      ...prev,
-      ...mockParsedData
-    }));
-    
-    setAiAnalysisDetails({
-      confidence: 0.92,
-      detectedFields: Object.keys(mockParsedData),
-      processingTime: 2.5,
-      showDetails: true
-    });
-    
-    clearInterval(progressInterval);
-    setParseProgress(100);
-    
-    setSnackbar({
-      open: true,
-      message: "CV successfully analyzed (Simulation Mode)",
-      severity: "success"
-    });
-    
-    setTimeout(() => {
-      setParsing(false);
-      setActiveStep(1);
-    }, 500);
-  }, 2000);
-};
+      setParseProgress(0);
+      
+      setSnackbar({
+        open: true,
+        message: "Error in simulation mode. Please try again.",
+        severity: "error"
+      });
+    }
+  };
   
   // Handle next button click in stepper
   const handleNext = () => {
@@ -572,32 +430,44 @@ const simulateParseCV = () => {
     setActiveStep((prevActiveStep) => prevActiveStep - 1);
   };
   
-  // Handle field changes in the form
-  const handleInputChange = (field, value) => {
-    setUserData(prev => ({
-      ...prev,
-      [field]: value
-    }));
+  // Handle field changes in the form with auto-email generation
+const handleInputChange = (field, value) => {
+  setUserData(prev => ({
+    ...prev,
+    [field]: value
+  }));
+  
+  // Si cambia el nombre o apellido, actualizar automáticamente el email
+  if (field === 'firstName' || field === 'lastName') {
+    const firstName = field === 'firstName' ? value : userData.firstName;
+    const lastName = field === 'lastName' ? value : userData.lastName;
     
-    // Special handling for first name and last name to update email
-    if (field === 'firstName' || field === 'lastName') {
-      const firstName = field === 'firstName' ? value : userData.firstName;
-      const lastName = field === 'lastName' ? value : userData.lastName;
+    if (firstName && lastName) {
+      // Normalizar nombres: eliminar espacios extra, convertir a minúsculas
+      let normalizedFirstName = firstName.trim().toLowerCase();
+      let normalizedLastName = lastName.trim().toLowerCase();
       
-      if (firstName && lastName) {
-        // Only update email if it follows the pattern or is empty
-        const currentEmail = userData.email;
-        const emailPattern = /^[^@]+@accenture\.com$/;
+      // Eliminar caracteres especiales y acentos
+      normalizedFirstName = normalizedFirstName
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "") // Eliminar acentos
+        .replace(/[^a-z0-9]/g, "");      // Solo permitir letras y números
         
-        if (!currentEmail || emailPattern.test(currentEmail)) {
-          setUserData(prev => ({
-            ...prev,
-            email: `${firstName.toLowerCase()}.${lastName.toLowerCase()}@accenture.com`
-          }));
-        }
-      }
+      normalizedLastName = normalizedLastName
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9]/g, "");
+      
+      // Generar y establecer el email sin importar su valor actual
+      const corporateEmail = `${normalizedFirstName}.${normalizedLastName}@accenture.com`;
+      
+      setUserData(prev => ({
+        ...prev,
+        email: corporateEmail
+      }));
     }
-  };
+  }
+};
   
   // Handle profile picture upload
   const handleProfilePictureChange = (event) => {
@@ -702,1567 +572,158 @@ const simulateParseCV = () => {
     });
   };
   
-  // Submit the form to create a new user
+
   const handleSubmit = async () => {
     try {
       setLoading(true);
       
-      // 1. Create auth user with Supabase auth
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: userData.email,
-        password: userData.password,
-      });
+      // 1. Validar datos obligatorios
+      if (!userData.firstName || !userData.lastName || !userData.email || !userData.password) {
+        setSnackbar({
+          open: true,
+          message: "Por favor completa todos los campos obligatorios",
+          severity: "warning"
+        });
+        setLoading(false);
+        return;
+      }
       
-      if (authError) throw new Error(`Auth error: ${authError.message}`);
-      if (!authData.user) throw new Error("Failed to create user account");
+      // 2. Validar contraseñas coincidentes
+      if (userData.password !== userData.confirmPassword) {
+        setSnackbar({
+          open: true,
+          message: "Las contraseñas no coinciden",
+          severity: "warning"
+        });
+        setLoading(false);
+        return;
+      }
       
-      const userId = authData.user.id;
-      
-      // 2. Upload profile picture if exists
+      // 3. Subir foto de perfil si existe
       let profilePicUrl = null;
       if (userData.profilePicture) {
-        const fileExt = userData.profilePicture.name.split('.').pop();
-        const fileName = `${userId}-${Date.now()}.${fileExt}`;
-        const filePath = `profile-pics/${fileName}`;
-        
-        const { error: uploadError } = await supabase.storage
-          .from("profile-user")
-          .upload(filePath, userData.profilePicture);
-          
-        if (uploadError) throw new Error(`Profile picture upload error: ${uploadError.message}`);
-        
-        const { data: urlData } = supabase.storage
-          .from("profile-user")
-          .getPublicUrl(filePath);
-          
-        profilePicUrl = urlData.publicUrl;
-      }
-      
-      // 3. Insert user data into User table
-      const { error: userError } = await supabase
-        .from("User")
-        .insert({
-          user_id: userId,
-          name: userData.firstName,
-          last_name: userData.lastName,
-          mail: userData.email,
-          phone: userData.phone,
-          about: userData.about,
-          profile_pic: profilePicUrl,
-          permission: userData.permission,
-          enter_date: new Date().toISOString(),
-          level: 1,
-          percentage: 0
-        });
-        
-      if (userError) throw new Error(`User data error: ${userError.message}`);
-      
-      // 4. Insert skills for the user
-      if (userData.skills.length > 0) {
-        const skillEntries = userData.skills.map(skill => ({
-          user_ID: userId,
-          skill_ID: skill.id,
-          proficiency: "Basic",
-          year_Exp: 1
-        }));
-        
-        const { error: skillsError } = await supabase
-          .from("UserSkill")
-          .insert(skillEntries);
-          
-        if (skillsError) throw new Error(`Skills error: ${skillsError.message}`);
-      }
-      
-      // 5. Set user role if specified
-      if (userData.role) {
-        const { error: roleError } = await supabase
-          .from("UserRole")
-          .insert({
-            user_id: userId,
-            role_name: userData.role
-          });
-          
-        if (roleError) throw new Error(`Role error: ${roleError.message}`);
-      }
-      
-      // 6. Insert education if available (create this table if it doesn't exist yet)
-      if (userData.education && userData.education.length > 0) {
         try {
-          const educationEntries = userData.education
-            .filter(edu => edu.institution || edu.degree) // Only include entries with some data
-            .map(edu => ({
-              user_id: userId,
-              institution: edu.institution,
-              degree: edu.degree,
-              year: edu.year
-            }));
-          
-          if (educationEntries.length > 0) {
-            const { error: eduError } = await supabase
-              .from("UserEducation")
-              .insert(educationEntries);
-              
-            if (eduError) console.warn("Could not add education:", eduError);
-          }
-        } catch (error) {
-          console.warn("Error adding education (table might not exist):", error);
+          profilePicUrl = await uploadProfilePicture(userData.profilePicture);
+          console.log("Foto de perfil subida:", profilePicUrl);
+        } catch (uploadError) {
+          console.warn("Error al subir foto de perfil:", uploadError);
+          // Continuamos sin la foto
         }
       }
       
-      // 7. Insert work experience if available (create this table if it doesn't exist yet)
-      if (userData.workExperience && userData.workExperience.length > 0) {
-        try {
-          const workEntries = userData.workExperience
-            .filter(work => work.company || work.position) // Only include entries with some data
-            .map(work => ({
-              user_id: userId,
-              company: work.company,
-              position: work.position,
-              duration: work.duration,
-              description: work.description
-            }));
-          
-          if (workEntries.length > 0) {
-            const { error: workError } = await supabase
-              .from("UserWorkExperience")
-              .insert(workEntries);
-              
-            if (workError) console.warn("Could not add work experience:", workError);
-          }
-        } catch (error) {
-          console.warn("Error adding work experience (table might not exist):", error);
-        }
-      }
+      // 4. Crear empleado usando el servicio que llama al endpoint
+      const result = await createEmployeeWithoutSessionChange({
+        ...userData,
+        profilePicUrl
+      });
       
-      // 8. Insert languages if available (create this table if it doesn't exist yet)
-      if (userData.languages && userData.languages.length > 0) {
-        try {
-          const langEntries = userData.languages
-            .filter(lang => lang.name) // Only include entries with a language name
-            .map(lang => ({
-              user_id: userId,
-              language: lang.name,
-              level: lang.level || "Basic"
-            }));
-          
-          if (langEntries.length > 0) {
-            const { error: langError } = await supabase
-              .from("UserLanguages")
-              .insert(langEntries);
-              
-            if (langError) console.warn("Could not add languages:", langError);
-          }
-        } catch (error) {
-          console.warn("Error adding languages (table might not exist):", error);
-        }
-      }
-      
-      // All operations successful
+      // 5. Mostrar mensaje de éxito
       setSuccess(true);
       setSnackbar({
         open: true,
-        message: "Employee added successfully!",
+        message: `Empleado añadido exitosamente: ${result.email || userData.email}`,
         severity: "success"
       });
       
-      // Close dialog after short delay
+      // 6. Cerrar el modal después de un tiempo
       setTimeout(() => {
         handleClose();
       }, 2000);
       
     } catch (error) {
-      console.error("Error creating user:", error);
-      setError(error.message);
+      console.error("Error al crear empleado:", error);
+      
+      // Error específico para Auth error: User not allowed
+      if (error.message && error.message.includes("Auth error: User not allowed")) {
+        setError("No tienes permisos suficientes para crear usuarios. Contacta al administrador del sistema.");
+      } else {
+        setError(error.message);
+      }
+      
       setSnackbar({
         open: true,
-        message: `Error creating user: ${error.message}`,
+        message: `Error: ${error.message}`,
         severity: "error"
       });
     } finally {
       setLoading(false);
     }
   };
+
+// Función auxiliar para limpiar datos
+const cleanupUser = async (userId) => {
+  try {
+    console.log("Limpiando datos de usuario:", userId);
+    
+    try {
+      await supabase.from("UserSkill").delete().eq("user_ID", userId);
+    } catch (e) {
+      console.warn("Error limpiando UserSkill:", e);
+    }
+    
+    try {
+      await supabase.from("User").delete().eq("user_id", userId);
+    } catch (e) {
+      console.warn("Error limpiando User:", e);
+    }
+    
+  } catch (cleanupError) {
+    console.error("Error al limpiar datos de usuario:", cleanupError);
+  }
+};
   
-  // Render CV Upload Step
-  const renderUploadStep = () => (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, alignItems: 'center', p: 2 }}>
-      <Typography variant="h6" align="center" sx={{ fontWeight: 500, mb: 1 }}>
-        Upload a Resume/CV to Extract Information
-      </Typography>
-      
-      <Typography variant="body2" align="center" color="text.secondary" sx={{ mb: 2 }}>
-        Upload a PDF or Word Document. Our AI will analyze it to extract contact information, skills, and experience.
-      </Typography>
-      
-      <Paper
-        elevation={0}
-        sx={{
-          width: '100%',
-          p: 3,
-          border: '2px dashed',
-          borderColor: file ? ACCENTURE_COLORS.corePurple2 : ACCENTURE_COLORS.lightGray,
-          borderRadius: 2,
-          textAlign: 'center',
-          backgroundColor: file ? alpha(ACCENTURE_COLORS.corePurple1, 0.03) : 'transparent',
-          transition: 'all 0.3s ease'
-        }}
-      >
-        {file ? (
-          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-            <DescriptionIcon sx={{ fontSize: 48, color: ACCENTURE_COLORS.corePurple1 }} />
-            <Typography variant="subtitle1" sx={{ fontWeight: 500 }}>{file.name}</Typography>
-            <Typography variant="body2" color="text.secondary">
-              {(file.size / 1024).toFixed(2)} KB • {file.type.split('/')[1].toUpperCase()}
-            </Typography>
-            
-            <Box sx={{ display: 'flex', gap: 2, mt: 1 }}>
-              <Button
-                variant="outlined"
-                color="error"
-                startIcon={<DeleteIcon />}
-                onClick={() => {
-                  setFile(null);
-                  setFilePreviewUrl(null);
-                  if (fileInputRef.current) {
-                    fileInputRef.current.value = "";
-                  }
-                }}
-                sx={{ textTransform: 'none' }}
-              >
-                Remove
-              </Button>
-              
-              <Button
-                component="label"
-                variant="outlined"
-                startIcon={<EditIcon />}
-                sx={{ textTransform: 'none' }}
-              >
-                Change File
-                <VisuallyHiddenInput 
-                  type="file" 
-                  onChange={handleFileChange} 
-                  ref={fileInputRef}
-                  accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                />
-              </Button>
-            </Box>
-          </Box>
-        ) : (
-          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-            <CloudUploadIcon sx={{ fontSize: 60, color: ACCENTURE_COLORS.corePurple1 }} />
-            <Typography variant="h6" sx={{ fontWeight: 500 }}>
-              Drag & Drop your CV here
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              or
-            </Typography>
-            <Button
-              component="label"
-              variant="contained"
-              startIcon={<CloudUploadIcon />}
-              sx={{ 
-                bgcolor: ACCENTURE_COLORS.corePurple1,
-                '&:hover': {
-                  bgcolor: ACCENTURE_COLORS.corePurple2
-                },
-                textTransform: 'none'
-              }}
-            >
-              Browse Files
-              <VisuallyHiddenInput 
-                type="file" 
-                onChange={handleFileChange} 
-                ref={fileInputRef}
-                accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-              />
-            </Button>
-            <Typography variant="caption" color="text.secondary">
-              Supported formats: PDF, DOC, DOCX
-            </Typography>
-          </Box>
-        )}
-      </Paper>
-      
-      {filePreviewUrl && file.type === 'application/pdf' && (
-        <Paper 
-          elevation={1} 
-          sx={{ 
-            width: '100%', 
-            mt: 2, 
-            height: '300px', 
-            overflow: 'hidden',
-            borderRadius: 1
-          }}
-        >
-          <iframe
-            src={filePreviewUrl}
-            width="100%"
-            height="100%"
-            style={{ border: 'none' }}
-            title="CV Preview"
-          ></iframe>
-        </Paper>
-      )}
-      
-      <Button 
-        variant="contained"
-        color="primary"
-        disabled={!file || parsing}
-        onClick={parseCV}
-        startIcon={parsing ? <CircularProgress size={20} color="inherit" /> : <PsychologyIcon />}
-        sx={{ 
-          mt: 2,
-          width: 200,
-          bgcolor: ACCENTURE_COLORS.corePurple1,
-          '&:hover': {
-            bgcolor: ACCENTURE_COLORS.corePurple2
-          },
-          '&.Mui-disabled': {
-            bgcolor: alpha(ACCENTURE_COLORS.corePurple1, 0.3)
-          },
-          textTransform: 'none'
-        }}
-      >
-        {parsing ? "Analyzing with AI..." : "Analyze with AI"}
-      </Button>
-      
-      {parsing && (
-        <Box sx={{ width: '100%', mt: 2 }}>
-          <LinearProgress 
-            variant="determinate" 
-            value={parseProgress} 
-            sx={{
-              height: 8,
-              borderRadius: 5,
-              backgroundColor: alpha(ACCENTURE_COLORS.corePurple1, 0.1),
-              '& .MuiLinearProgress-bar': {
-                backgroundColor: ACCENTURE_COLORS.corePurple1,
-              }
-            }}
-          />
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 0.5 }}>
-            <Typography variant="body2" color="text.secondary">
-              {parseProgress < 30 ? "Extracting text..." : 
-               parseProgress < 60 ? "Analyzing content..." : 
-               parseProgress < 90 ? "Identifying skills & experience..." : 
-               "Finalizing results..."}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              {parseProgress}%
-            </Typography>
-          </Box>
-        </Box>
-      )}
-      
-      {aiAnalysisDetails.showDetails && (
-        <Paper
-          elevation={0}
-          sx={{
-            width: '100%',
-            p: 2,
-            border: '1px solid',
-            borderColor: alpha(ACCENTURE_COLORS.corePurple1, 0.2),
-            borderRadius: 2,
-            mt: 2
-          }}
-        >
-          <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1, color: ACCENTURE_COLORS.corePurple1 }}>
-            AI Analysis Results
-          </Typography>
-          
-          <Grid container spacing={2}>
-            <Grid item xs={6}>
-              <Typography variant="caption" color="text.secondary">AI Confidence</Typography>
-              <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                <Box sx={{ width: '100%', mr: 1 }}>
-                  <LinearProgress 
-                    variant="determinate" 
-                    value={aiAnalysisDetails.confidence * 100} 
-                    sx={{
-                      height: 6,
-                      borderRadius: 3,
-                      backgroundColor: alpha(ACCENTURE_COLORS.corePurple1, 0.1),
-                      '& .MuiLinearProgress-bar': {
-                        backgroundColor: aiAnalysisDetails.confidence > 0.8 ? '#4caf50' : 
-                                        aiAnalysisDetails.confidence > 0.6 ? '#ff9800' : '#f44336',
-                      }
-                    }}
-                  />
-                </Box>
-                <Typography variant="body2" color="text.secondary">
-                  {Math.round(aiAnalysisDetails.confidence * 100)}%
-                </Typography>
-              </Box>
-            </Grid>
-            <Grid item xs={6}>
-              <Typography variant="caption" color="text.secondary">Processing Time</Typography>
-              <Typography variant="body2">
-                {aiAnalysisDetails.processingTime.toFixed(2)} seconds
-              </Typography>
-            </Grid>
-          </Grid>
-          
-          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1.5, mb: 0.5 }}>
-            Detected Fields
-          </Typography>
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-            {aiAnalysisDetails.detectedFields.map((field, index) => (
-              <Chip 
-                key={index} 
-                label={field.charAt(0).toUpperCase() + field.slice(1).replace(/([A-Z])/g, ' $1')} 
-                size="small" 
-                variant="outlined"
-                sx={{ 
-                  color: ACCENTURE_COLORS.corePurple1,
-                  borderColor: alpha(ACCENTURE_COLORS.corePurple1, 0.5),
-                  backgroundColor: alpha(ACCENTURE_COLORS.corePurple1, 0.05),
-                }}
-              />
-            ))}
-          </Box>
-        </Paper>
-      )}
-    </Box>
-  );
-  
-  // Render Review Information Step
-  const renderReviewStep = () => (
-    <Box sx={{ width: '100%', p: 2 }}>
-      <Typography variant="h6" sx={{ mb: 3, fontWeight: 500 }}>
-        Review & Edit Extracted Information
-      </Typography>
-      
-      <Grid container spacing={3}>
-        {/* Basic Information */}
-        <Grid item xs={12} md={6}>
-          <Paper 
-            elevation={0}
-            sx={{ 
-              p: 3, 
-              borderRadius: 2,
-              border: `1px solid ${alpha(ACCENTURE_COLORS.corePurple1, 0.2)}`,
-              height: '100%'
-            }}
-          >
-            <Typography 
-              variant="subtitle1" 
-              sx={{ 
-                mb: 2, 
-                fontWeight: 600,
-                color: ACCENTURE_COLORS.corePurple1,
-                display: 'flex',
-                alignItems: 'center'
-              }}
-            >
-              <PersonIcon sx={{ mr: 1, fontSize: 20 }} />
-              Personal Information
-            </Typography>
-            
-            <Grid container spacing={2}>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="First Name"
-                  required
-                  value={userData.firstName}
-                  onChange={(e) => handleInputChange('firstName', e.target.value)}
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
-                      '&.Mui-focused fieldset': {
-                        borderColor: ACCENTURE_COLORS.corePurple1,
-                      },
-                    },
-                    '& .MuiInputLabel-root.Mui-focused': {
-                      color: ACCENTURE_COLORS.corePurple1,
-                    },
-                  }}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Last Name"
-                  required
-                  value={userData.lastName}
-                  onChange={(e) => handleInputChange('lastName', e.target.value)}
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
-                      '&.Mui-focused fieldset': {
-                        borderColor: ACCENTURE_COLORS.corePurple1,
-                      },
-                    },
-                    '& .MuiInputLabel-root.Mui-focused': {
-                      color: ACCENTURE_COLORS.corePurple1,
-                    },
-                  }}
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label="Email"
-                  required
-                  type="email"
-                  value={userData.email}
-                  onChange={(e) => handleInputChange('email', e.target.value)}
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
-                      '&.Mui-focused fieldset': {
-                        borderColor: ACCENTURE_COLORS.corePurple1,
-                      },
-                    },
-                    '& .MuiInputLabel-root.Mui-focused': {
-                      color: ACCENTURE_COLORS.corePurple1,
-                    },
-                  }}
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label="Phone Number"
-                  value={userData.phone}
-                  onChange={(e) => handleInputChange('phone', e.target.value)}
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
-                      '&.Mui-focused fieldset': {
-                        borderColor: ACCENTURE_COLORS.corePurple1,
-                      },
-                    },
-                    '& .MuiInputLabel-root.Mui-focused': {
-                      color: ACCENTURE_COLORS.corePurple1,
-                    },
-                  }}
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <FormControl fullWidth>
-                  <InputLabel id="permission-label" sx={{ '&.Mui-focused': { color: ACCENTURE_COLORS.corePurple1 } }}>
-                    Permission Level
-                  </InputLabel>
-                  <Select
-                    labelId="permission-label"
-                    value={userData.permission}
-                    label="Permission Level"
-                    onChange={(e) => handleInputChange('permission', e.target.value)}
-                    sx={{
-                      '& .MuiOutlinedInput-root': {
-                        '&.Mui-focused fieldset': {
-                          borderColor: ACCENTURE_COLORS.corePurple1,
-                        },
-                      },
-                    }}
-                  >
-                    <MenuItem value="Employee">Employee</MenuItem>
-                    <MenuItem value="TFS">TFS</MenuItem>
-                    <MenuItem value="Manager">Manager</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-            </Grid>
-          </Paper>
-        </Grid>
-        
-        {/* Professional Information */}
-        <Grid item xs={12} md={6}>
-          <Paper 
-            elevation={0}
-            sx={{ 
-              p: 3, 
-              borderRadius: 2,
-              border: `1px solid ${alpha(ACCENTURE_COLORS.corePurple1, 0.2)}`,
-              height: '100%'
-            }}
-          >
-            <Typography 
-              variant="subtitle1" 
-              sx={{ 
-                mb: 2, 
-                fontWeight: 600,
-                color: ACCENTURE_COLORS.corePurple1,
-                display: 'flex',
-                alignItems: 'center'
-              }}
-            >
-              <WorkIcon sx={{ mr: 1, fontSize: 20 }} />
-              Professional Information
-            </Typography>
-            
-            <Grid container spacing={2}>
-              <Grid item xs={12}>
-                <Autocomplete
-                  value={userData.role ? {title: userData.role} : null}
-                  onChange={(event, newValue) => {
-                    handleInputChange('role', newValue?.title || "");
-                  }}
-                  options={availableRoles.map(role => ({ title: role }))}
-                  getOptionLabel={(option) => option.title || ""}
-                  renderInput={(params) => (
-                    <TextField 
-                      {...params} 
-                      label="Role/Position" 
-                      sx={{
-                        '& .MuiOutlinedInput-root': {
-                          '&.Mui-focused fieldset': {
-                            borderColor: ACCENTURE_COLORS.corePurple1,
-                          },
-                        },
-                        '& .MuiInputLabel-root.Mui-focused': {
-                          color: ACCENTURE_COLORS.corePurple1,
-                        },
-                      }}
-                    />
-                  )}
-                />
-              </Grid>
-              
-              <Grid item xs={12}>
-                <Autocomplete
-                  multiple
-                  value={userData.skills}
-                  onChange={(event, newValue) => {
-                    handleInputChange('skills', newValue);
-                  }}
-                  options={availableSkills}
-                  getOptionLabel={(option) => option.name || ""}
-                  renderInput={(params) => (
-                    <TextField 
-                      {...params} 
-                      label="Skills" 
-                      placeholder="Add skills"
-                      sx={{
-                        '& .MuiOutlinedInput-root': {
-                          '&.Mui-focused fieldset': {
-                            borderColor: ACCENTURE_COLORS.corePurple1,
-                          },
-                        },
-                        '& .MuiInputLabel-root.Mui-focused': {
-                          color: ACCENTURE_COLORS.corePurple1,
-                        },
-                      }}
-                    />
-                  )}
-                  renderTags={(value, getTagProps) =>
-                    value.map((option, index) => (
-                      <Chip
-                        variant="outlined"
-                        label={option.name}
-                        {...getTagProps({ index })}
-                        sx={{ 
-                          backgroundColor: option.type === "Soft" 
-                            ? alpha(ACCENTURE_COLORS.accentPurple1, 0.1)
-                            : alpha(ACCENTURE_COLORS.corePurple1, 0.1),
-                          borderColor: option.type === "Soft"
-                            ? ACCENTURE_COLORS.accentPurple1
-                            : ACCENTURE_COLORS.corePurple1,
-                          color: option.type === "Soft"
-                            ? ACCENTURE_COLORS.accentPurple1
-                            : ACCENTURE_COLORS.corePurple1
-                        }}
-                      />
-                    ))
-                  }
-                />
-              </Grid>
-              
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label="About"
-                  multiline
-                  rows={4}
-                  value={userData.about}
-                  onChange={(e) => handleInputChange('about', e.target.value)}
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
-                      '&.Mui-focused fieldset': {
-                        borderColor: ACCENTURE_COLORS.corePurple1,
-                      },
-                    },
-                    '& .MuiInputLabel-root.Mui-focused': {
-                      color: ACCENTURE_COLORS.corePurple1,
-                    },
-                  }}
-                />
-              </Grid>
-            </Grid>
-          </Paper>
-        </Grid>
-        
-        {/* Profile Picture */}
-        <Grid item xs={12}>
-          <Paper 
-            elevation={0}
-            sx={{ 
-              p: 3, 
-              borderRadius: 2,
-              border: `1px solid ${alpha(ACCENTURE_COLORS.corePurple1, 0.2)}`
-            }}
-          >
-            <Typography 
-              variant="subtitle1" 
-              sx={{ 
-                mb: 3, 
-                fontWeight: 600,
-                color: ACCENTURE_COLORS.corePurple1,
-                display: 'flex',
-                alignItems: 'center'
-              }}
-            >
-              <PersonIcon sx={{ mr: 1, fontSize: 20 }} />
-              Profile Picture
-            </Typography>
-            
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-              <Avatar
-                src={userData.profilePictureUrl}
-                sx={{ 
-                  width: 80, 
-                  height: 80,
-                  bgcolor: ACCENTURE_COLORS.corePurple2,
-                  border: `2px solid ${ACCENTURE_COLORS.white}`,
-                  boxShadow: `0 0 0 2px ${alpha(ACCENTURE_COLORS.corePurple1, 0.3)}`
-                }}
-              >
-                {userData.firstName && userData.lastName
-                  ? `${userData.firstName[0]}${userData.lastName[0]}`
-                  : <PersonIcon fontSize="large" />
-                }
-              </Avatar>
-              
-              <Box>
-                <Button
-                  component="label"
-                  variant="outlined"
-                  startIcon={<CloudUploadIcon />}
-                  sx={{ 
-                    textTransform: 'none',
-                    borderColor: ACCENTURE_COLORS.corePurple1,
-                    color: ACCENTURE_COLORS.corePurple1,
-                    '&:hover': {
-                      borderColor: ACCENTURE_COLORS.corePurple2,
-                      bgcolor: alpha(ACCENTURE_COLORS.corePurple1, 0.05)
-                    }
-                  }}
-                >
-                  Upload Photo
-                  <VisuallyHiddenInput 
-                    type="file" 
-                    onChange={handleProfilePictureChange} 
-                    accept="image/*"
-                  />
-                </Button>
-                
-                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
-                  Recommended: 300x300px. Max 2MB.
-                </Typography>
-              </Box>
-              
-              {userData.profilePictureUrl && (
-                <IconButton 
-                  color="error" 
-                  onClick={() => {
-                    setUserData(prev => ({
-                      ...prev,
-                      profilePicture: null,
-                      profilePictureUrl: null
-                    }));
-                  }}
-                >
-                  <DeleteIcon />
-                </IconButton>
-              )}
-            </Box>
-          </Paper>
-        </Grid>
-        
-        {/* Education (Only show if there's education data or user might want to add it) */}
-        <Grid item xs={12}>
-          <Paper 
-            elevation={0}
-            sx={{ 
-              p: 3, 
-              borderRadius: 2,
-              border: `1px solid ${alpha(ACCENTURE_COLORS.corePurple1, 0.2)}`
-            }}
-          >
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-              <Typography 
-                variant="subtitle1" 
-                sx={{ 
-                  fontWeight: 600,
-                  color: ACCENTURE_COLORS.corePurple1,
-                  display: 'flex',
-                  alignItems: 'center'
-                }}
-              >
-                <SchoolIcon sx={{ mr: 1, fontSize: 20 }} />
-                Education
-              </Typography>
-              
-              <Button
-                variant="outlined"
-                size="small"
-                startIcon={<AddIcon />}
-                onClick={handleAddEducation}
-                sx={{ 
-                  textTransform: 'none',
-                  borderColor: ACCENTURE_COLORS.corePurple1,
-                  color: ACCENTURE_COLORS.corePurple1,
-                  '&:hover': {
-                    borderColor: ACCENTURE_COLORS.corePurple2,
-                    bgcolor: alpha(ACCENTURE_COLORS.corePurple1, 0.05)
-                  }
-                }}
-              >
-                Add Education
-              </Button>
-            </Box>
-            
-            {userData.education.length === 0 ? (
-              <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 2 }}>
-                No education information added yet.
-              </Typography>
-            ) : (
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                {userData.education.map((edu, index) => (
-                  <Paper 
-                    key={index}
-                    elevation={0}
-                    sx={{ 
-                      p: 2, 
-                      borderRadius: 2,
-                      border: `1px solid ${alpha(ACCENTURE_COLORS.lightGray, 0.5)}`,
-                      position: 'relative'
-                    }}
-                  >
-                    <IconButton 
-                      size="small" 
-                      color="error"
-                      onClick={() => handleRemoveEducation(index)}
-                      sx={{ position: 'absolute', top: 8, right: 8 }}
-                    >
-                      <DeleteIcon fontSize="small" />
-                    </IconButton>
-                    
-                    <Grid container spacing={2}>
-                      <Grid item xs={12} sm={6}>
-                        <TextField
-                          fullWidth
-                          label="Institution"
-                          value={edu.institution}
-                          onChange={(e) => handleEducationChange(index, 'institution', e.target.value)}
-                          sx={{
-                            '& .MuiOutlinedInput-root': {
-                              '&.Mui-focused fieldset': {
-                                borderColor: ACCENTURE_COLORS.corePurple1,
-                              },
-                            },
-                            '& .MuiInputLabel-root.Mui-focused': {
-                              color: ACCENTURE_COLORS.corePurple1,
-                            },
-                          }}
-                        />
-                      </Grid>
-                      <Grid item xs={12} sm={6}>
-                        <TextField
-                          fullWidth
-                          label="Degree/Certification"
-                          value={edu.degree}
-                          onChange={(e) => handleEducationChange(index, 'degree', e.target.value)}
-                          sx={{
-                            '& .MuiOutlinedInput-root': {
-                              '&.Mui-focused fieldset': {
-                                borderColor: ACCENTURE_COLORS.corePurple1,
-                              },
-                            },
-                            '& .MuiInputLabel-root.Mui-focused': {
-                              color: ACCENTURE_COLORS.corePurple1,
-                            },
-                          }}
-                        />
-                      </Grid>
-                      <Grid item xs={12} sm={6}>
-                        <TextField
-                          fullWidth
-                          label="Year"
-                          value={edu.year}
-                          onChange={(e) => handleEducationChange(index, 'year', e.target.value)}
-                          sx={{
-                            '& .MuiOutlinedInput-root': {
-                              '&.Mui-focused fieldset': {
-                                borderColor: ACCENTURE_COLORS.corePurple1,
-                              },
-                            },
-                            '& .MuiInputLabel-root.Mui-focused': {
-                              color: ACCENTURE_COLORS.corePurple1,
-                            },
-                          }}
-                        />
-                      </Grid>
-                    </Grid>
-                  </Paper>
-                ))}
-              </Box>
-            )}
-          </Paper>
-        </Grid>
-        
-        {/* Work Experience (Only show if there's work experience data or user might want to add it) */}
-        <Grid item xs={12}>
-          <Paper 
-            elevation={0}
-            sx={{ 
-              p: 3, 
-              borderRadius: 2,
-              border: `1px solid ${alpha(ACCENTURE_COLORS.corePurple1, 0.2)}`
-            }}
-          >
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-              <Typography 
-                variant="subtitle1" 
-                sx={{ 
-                  fontWeight: 600,
-                  color: ACCENTURE_COLORS.corePurple1,
-                  display: 'flex',
-                  alignItems: 'center'
-                }}
-              >
-                <WorkIcon sx={{ mr: 1, fontSize: 20 }} />
-                Work Experience
-              </Typography>
-              
-              <Button
-                variant="outlined"
-                size="small"
-                startIcon={<AddIcon />}
-                onClick={handleAddWorkExperience}
-                sx={{ 
-                  textTransform: 'none',
-                  borderColor: ACCENTURE_COLORS.corePurple1,
-                  color: ACCENTURE_COLORS.corePurple1,
-                  '&:hover': {
-                    borderColor: ACCENTURE_COLORS.corePurple2,
-                    bgcolor: alpha(ACCENTURE_COLORS.corePurple1, 0.05)
-                  }
-                }}
-              >
-                Add Experience
-              </Button>
-            </Box>
-            
-            {userData.workExperience.length === 0 ? (
-              <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 2 }}>
-                No work experience added yet.
-              </Typography>
-            ) : (
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                {userData.workExperience.map((work, index) => (
-                  <Paper 
-                    key={index}
-                    elevation={0}
-                    sx={{ 
-                      p: 2, 
-                      borderRadius: 2,
-                      border: `1px solid ${alpha(ACCENTURE_COLORS.lightGray, 0.5)}`,
-                      position: 'relative'
-                    }}
-                  >
-                    <IconButton 
-                      size="small" 
-                      color="error"
-                      onClick={() => handleRemoveWorkExperience(index)}
-                      sx={{ position: 'absolute', top: 8, right: 8 }}
-                    >
-                      <DeleteIcon fontSize="small" />
-                    </IconButton>
-                    
-                    <Grid container spacing={2}>
-                      <Grid item xs={12} sm={6}>
-                        <TextField
-                          fullWidth
-                          label="Company"
-                          value={work.company}
-                          onChange={(e) => handleWorkExperienceChange(index, 'company', e.target.value)}
-                          sx={{
-                            '& .MuiOutlinedInput-root': {
-                              '&.Mui-focused fieldset': {
-                                borderColor: ACCENTURE_COLORS.corePurple1,
-                              },
-                            },
-                            '& .MuiInputLabel-root.Mui-focused': {
-                              color: ACCENTURE_COLORS.corePurple1,
-                            },
-                          }}
-                        />
-                      </Grid>
-                      <Grid item xs={12} sm={6}>
-                        <TextField
-                          fullWidth
-                          label="Position"
-                          value={work.position}
-                          onChange={(e) => handleWorkExperienceChange(index, 'position', e.target.value)}
-                          sx={{
-                            '& .MuiOutlinedInput-root': {
-                              '&.Mui-focused fieldset': {
-                                borderColor: ACCENTURE_COLORS.corePurple1,
-                              },
-                            },
-                            '& .MuiInputLabel-root.Mui-focused': {
-                              color: ACCENTURE_COLORS.corePurple1,
-                            },
-                          }}
-                        />
-                      </Grid>
-                      <Grid item xs={12} sm={6}>
-                        <TextField
-                          fullWidth
-                          label="Duration"
-                          value={work.duration}
-                          onChange={(e) => handleWorkExperienceChange(index, 'duration', e.target.value)}
-                          placeholder="e.g. 2018-2020"
-                          sx={{
-                            '& .MuiOutlinedInput-root': {
-                              '&.Mui-focused fieldset': {
-                                borderColor: ACCENTURE_COLORS.corePurple1,
-                              },
-                            },
-                            '& .MuiInputLabel-root.Mui-focused': {
-                              color: ACCENTURE_COLORS.corePurple1,
-                            },
-                          }}
-                        />
-                      </Grid>
-                      <Grid item xs={12}>
-                        <TextField
-                          fullWidth
-                          label="Description"
-                          multiline
-                          rows={2}
-                          value={work.description}
-                          onChange={(e) => handleWorkExperienceChange(index, 'description', e.target.value)}
-                          sx={{
-                            '& .MuiOutlinedInput-root': {
-                              '&.Mui-focused fieldset': {
-                                borderColor: ACCENTURE_COLORS.corePurple1,
-                              },
-                            },
-                            '& .MuiInputLabel-root.Mui-focused': {
-                              color: ACCENTURE_COLORS.corePurple1,
-                            },
-                          }}
-                        />
-                      </Grid>
-                    </Grid>
-                  </Paper>
-                ))}
-              </Box>
-            )}
-          </Paper>
-        </Grid>
-        
-        {/* Languages (Only show if there's language data or user might want to add it) */}
-        <Grid item xs={12}>
-          <Paper 
-            elevation={0}
-            sx={{ 
-              p: 3, 
-              borderRadius: 2,
-              border: `1px solid ${alpha(ACCENTURE_COLORS.corePurple1, 0.2)}`
-            }}
-          >
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-              <Typography 
-                variant="subtitle1" 
-                sx={{ 
-                  fontWeight: 600,
-                  color: ACCENTURE_COLORS.corePurple1,
-                  display: 'flex',
-                  alignItems: 'center'
-                }}
-              >
-                <TranslateIcon sx={{ mr: 1, fontSize: 20 }} />
-                Languages
-              </Typography>
-              
-              <Button
-                variant="outlined"
-                size="small"
-                startIcon={<AddIcon />}
-                onClick={handleAddLanguage}
-                sx={{ 
-                  textTransform: 'none',
-                  borderColor: ACCENTURE_COLORS.corePurple1,
-                  color: ACCENTURE_COLORS.corePurple1,
-                  '&:hover': {
-                    borderColor: ACCENTURE_COLORS.corePurple2,
-                    bgcolor: alpha(ACCENTURE_COLORS.corePurple1, 0.05)
-                  }
-                }}
-              >
-                Add Language
-              </Button>
-            </Box>
-            
-            {userData.languages.length === 0 ? (
-              <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 2 }}>
-                No languages added yet.
-              </Typography>
-            ) : (
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                {userData.languages.map((lang, index) => (
-                  <Paper 
-                    key={index}
-                    elevation={0}
-                    sx={{ 
-                      p: 2, 
-                      borderRadius: 2,
-                      border: `1px solid ${alpha(ACCENTURE_COLORS.lightGray, 0.5)}`,
-                      position: 'relative'
-                    }}
-                  >
-                    <IconButton 
-                      size="small" 
-                      color="error"
-                      onClick={() => handleRemoveLanguage(index)}
-                      sx={{ position: 'absolute', top: 8, right: 8 }}
-                    >
-                      <DeleteIcon fontSize="small" />
-                    </IconButton>
-                    
-                    <Grid container spacing={2}>
-                      <Grid item xs={12} sm={6}>
-                        <TextField
-                          fullWidth
-                          label="Language"
-                          value={lang.name}
-                          onChange={(e) => handleLanguageChange(index, 'name', e.target.value)}
-                          sx={{
-                            '& .MuiOutlinedInput-root': {
-                              '&.Mui-focused fieldset': {
-                                borderColor: ACCENTURE_COLORS.corePurple1,
-                              },
-                            },
-                            '& .MuiInputLabel-root.Mui-focused': {
-                              color: ACCENTURE_COLORS.corePurple1,
-                            },
-                          }}
-                        />
-                      </Grid>
-                      <Grid item xs={12} sm={6}>
-                        <FormControl fullWidth>
-                          <InputLabel id={`language-level-label-${index}`} sx={{ '&.Mui-focused': { color: ACCENTURE_COLORS.corePurple1 } }}>
-                            Proficiency
-                          </InputLabel>
-                          <Select
-                            labelId={`language-level-label-${index}`}
-                            value={lang.level || "Basic"}
-                            label="Proficiency"
-                            onChange={(e) => handleLanguageChange(index, 'level', e.target.value)}
-                            sx={{
-                              '& .MuiOutlinedInput-root': {
-                                '&.Mui-focused fieldset': {
-                                  borderColor: ACCENTURE_COLORS.corePurple1,
-                                },
-                              },
-                            }}
-                          >
-                            <MenuItem value="Basic">Basic</MenuItem>
-                            <MenuItem value="Intermediate">Intermediate</MenuItem>
-                            <MenuItem value="Advanced">Advanced</MenuItem>
-                            <MenuItem value="Fluent">Fluent</MenuItem>
-                            <MenuItem value="Native">Native</MenuItem>
-                          </Select>
-                        </FormControl>
-                      </Grid>
-                    </Grid>
-                  </Paper>
-                ))}
-              </Box>
-            )}
-          </Paper>
-        </Grid>
-      </Grid>
-    </Box>
-  );
-  
-  // Render Credentials Step
-  const renderCredentialsStep = () => (
-    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', p: 2, width: '100%' }}>
-      <Typography variant="h6" align="center" sx={{ mb: 3, fontWeight: 500 }}>
-        Set Account Credentials
-      </Typography>
-      
-      <Paper
-        elevation={0}
-        sx={{
-          p: 4,
-          borderRadius: 2,
-          border: `1px solid ${alpha(ACCENTURE_COLORS.corePurple1, 0.2)}`,
-          maxWidth: 500,
-          width: '100%',
-          mx: 'auto'
-        }}
-      >
-        <Box sx={{ mb: 3 }}>
-          <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 500 }}>
-            Email Address
-          </Typography>
-          <TextField
-            fullWidth
-            variant="outlined"
-            disabled
-            value={userData.email}
-            InputProps={{
-              readOnly: true,
-              sx: { bgcolor: alpha(ACCENTURE_COLORS.lightGray, 0.2) }
-            }}
-          />
-        </Box>
-        
-        <Box sx={{ mb: 3 }}>
-          <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 500 }}>
-            Password
-          </Typography>
-          <TextField
-            fullWidth
-            type="password"
-            variant="outlined"
-            required
-            placeholder="Create password"
-            value={userData.password}
-            onChange={(e) => handleInputChange('password', e.target.value)}
-            sx={{
-              '& .MuiOutlinedInput-root': {
-                '&.Mui-focused fieldset': {
-                  borderColor: ACCENTURE_COLORS.corePurple1,
-                },
-              },
-              '& .MuiInputLabel-root.Mui-focused': {
-                color: ACCENTURE_COLORS.corePurple1,
-              },
-            }}
-            helperText="Password must be at least 8 characters"
-          />
-        </Box>
-        
-        <Box>
-          <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 500 }}>
-            Confirm Password
-          </Typography>
-          <TextField
-            fullWidth
-            type="password"
-            variant="outlined"
-            required
-            placeholder="Confirm password"
-            value={userData.confirmPassword}
-            onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
-            sx={{
-              '& .MuiOutlinedInput-root': {
-                '&.Mui-focused fieldset': {
-                  borderColor: ACCENTURE_COLORS.corePurple1,
-                },
-              },
-              '& .MuiInputLabel-root.Mui-focused': {
-                color: ACCENTURE_COLORS.corePurple1,
-              },
-            }}
-          />
-        </Box>
-      </Paper>
-    </Box>
-  );
-  
-  // Render Confirmation Step
-  const renderConfirmationStep = () => (
-    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', p: 2, width: '100%' }}>
-      <Typography variant="h6" align="center" sx={{ mb: 3, fontWeight: 500 }}>
-        Review & Confirm
-      </Typography>
-      
-      <Paper
-        elevation={0}
-        sx={{
-          p: 3,
-          borderRadius: 2,
-          border: `1px solid ${alpha(ACCENTURE_COLORS.corePurple1, 0.2)}`,
-          maxWidth: 600,
-          width: '100%',
-          mx: 'auto'
-        }}
-      >
-        {/* User summary with avatar */}
-        <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-          <Avatar
-            src={userData.profilePictureUrl}
-            sx={{ 
-              width: 80, 
-              height: 80,
-              bgcolor: ACCENTURE_COLORS.corePurple2,
-              border: `2px solid ${ACCENTURE_COLORS.white}`,
-              boxShadow: `0 0 0 2px ${alpha(ACCENTURE_COLORS.corePurple1, 0.3)}`,
-              mr: 3
-            }}
-          >
-            {userData.firstName && userData.lastName
-              ? `${userData.firstName[0]}${userData.lastName[0]}`
-              : <PersonIcon fontSize="large" />
-            }
-          </Avatar>
-          
-          <Box>
-            <Typography variant="h6" sx={{ fontWeight: 500 }}>
-              {userData.firstName} {userData.lastName}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              {userData.role || "Employee"}
-            </Typography>
-            <Chip 
-              label={userData.permission} 
-              size="small" 
-              sx={{ 
-                mt: 1,
-                bgcolor: alpha(ACCENTURE_COLORS.corePurple1, 0.1),
-                color: ACCENTURE_COLORS.corePurple1,
-                fontWeight: 500
-              }}
-            />
-          </Box>
-        </Box>
-        
-        <Divider sx={{ mb: 3 }} />
-        
-        {/* Contact information */}
-        <Box sx={{ mb: 3 }}>
-          <Typography 
-            variant="subtitle1" 
-            sx={{ 
-              mb: 1.5, 
-              fontWeight: 600,
-              color: ACCENTURE_COLORS.corePurple1,
-              display: 'flex',
-              alignItems: 'center'
-            }}
-          >
-            <PersonIcon sx={{ mr: 1, fontSize: 20 }} />
-            Contact Information
-          </Typography>
-          
-          <Grid container spacing={2}>
-            <Grid item xs={12} sm={6}>
-              <Typography variant="caption" color="text.secondary">
-                Email
-              </Typography>
-              <Typography variant="body2" fontWeight={500}>
-                {userData.email}
-              </Typography>
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <Typography variant="caption" color="text.secondary">
-                Phone
-              </Typography>
-              <Typography variant="body2" fontWeight={500}>
-                {userData.phone || "Not provided"}
-              </Typography>
-            </Grid>
-          </Grid>
-        </Box>
-        
-        {/* Skills */}
-        <Box sx={{ mb: 3 }}>
-          <Typography 
-            variant="subtitle1" 
-            sx={{ 
-              mb: 1.5, 
-              fontWeight: 600,
-              color: ACCENTURE_COLORS.corePurple1,
-              display: 'flex',
-              alignItems: 'center'
-            }}
-          >
-            <StarIcon sx={{ mr: 1, fontSize: 20 }} />
-            Skills
-          </Typography>
-          
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-            {userData.skills.length > 0 ? (
-              userData.skills.map((skill, index) => (
-                <Chip
-                  key={index}
-                  label={skill.name}
-                  size="small"
-                  sx={{ 
-                    backgroundColor: skill.type === "Soft" 
-                      ? alpha(ACCENTURE_COLORS.accentPurple1, 0.1)
-                      : alpha(ACCENTURE_COLORS.corePurple1, 0.1),
-                    borderColor: skill.type === "Soft"
-                      ? ACCENTURE_COLORS.accentPurple1
-                      : ACCENTURE_COLORS.corePurple1,
-                    color: skill.type === "Soft"
-                      ? ACCENTURE_COLORS.accentPurple1
-                      : ACCENTURE_COLORS.corePurple1
-                  }}
-                />
-              ))
-            ) : (
-              <Typography variant="body2" color="text.secondary">
-                No skills specified
-              </Typography>
-            )}
-          </Box>
-        </Box>
-        
-        {/* Education */}
-        {userData.education.length > 0 && (
-          <Box sx={{ mb: 3 }}>
-            <Typography 
-              variant="subtitle1" 
-              sx={{ 
-                mb: 1.5, 
-                fontWeight: 600,
-                color: ACCENTURE_COLORS.corePurple1,
-                display: 'flex',
-                alignItems: 'center'
-              }}
-            >
-              <SchoolIcon sx={{ mr: 1, fontSize: 20 }} />
-              Education
-            </Typography>
-            
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-              {userData.education.map((edu, index) => (
-                <Box key={index} sx={{ mb: 1 }}>
-                  <Typography variant="body2" fontWeight={500}>
-                    {edu.degree}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    {edu.institution} {edu.year ? `• ${edu.year}` : ''}
-                  </Typography>
-                </Box>
-              ))}
-            </Box>
-          </Box>
-        )}
-        
-        {/* Work Experience */}
-        {userData.workExperience.length > 0 && (
-          <Box sx={{ mb: 3 }}>
-            <Typography 
-              variant="subtitle1" 
-              sx={{ 
-                mb: 1.5, 
-                fontWeight: 600,
-                color: ACCENTURE_COLORS.corePurple1,
-                display: 'flex',
-                alignItems: 'center'
-              }}
-            >
-              <WorkIcon sx={{ mr: 1, fontSize: 20 }} />
-              Work Experience
-            </Typography>
-            
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-              {userData.workExperience.map((work, index) => (
-                <Box key={index} sx={{ mb: 1 }}>
-                  <Typography variant="body2" fontWeight={500}>
-                    {work.position}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    {work.company} {work.duration ? `• ${work.duration}` : ''}
-                  </Typography>
-                  {work.description && (
-                    <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                      {work.description}
-                    </Typography>
-                  )}
-                </Box>
-              ))}
-            </Box>
-          </Box>
-        )}
-        
-        {/* Languages */}
-        {userData.languages.length > 0 && (
-          <Box sx={{ mb: 3 }}>
-            <Typography 
-              variant="subtitle1" 
-              sx={{ 
-                mb: 1.5, 
-                fontWeight: 600,
-                color: ACCENTURE_COLORS.corePurple1,
-                display: 'flex',
-                alignItems: 'center'
-              }}
-            >
-              <TranslateIcon sx={{ mr: 1, fontSize: 20 }} />
-              Languages
-            </Typography>
-            
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-              {userData.languages.map((lang, index) => (
-                <Chip
-                  key={index}
-                  label={`${lang.name} - ${lang.level || "Basic"}`}
-                  size="small"
-                  sx={{ 
-                    backgroundColor: alpha(ACCENTURE_COLORS.corePurple2, 0.1),
-                    color: ACCENTURE_COLORS.corePurple2
-                  }}
-                />
-              ))}
-            </Box>
-          </Box>
-        )}
-        
-        {/* About */}
-        <Box>
-          <Typography 
-            variant="subtitle1" 
-            sx={{ 
-              mb: 1.5, 
-              fontWeight: 600,
-              color: ACCENTURE_COLORS.corePurple1,
-              display: 'flex',
-              alignItems: 'center'
-            }}
-          >
-            <InfoIcon sx={{ mr: 1, fontSize: 20 }} />
-            About
-          </Typography>
-          
-          <Typography variant="body2" color="text.secondary" paragraph>
-            {userData.about || "No information provided."}
-          </Typography>
-        </Box>
-        
-        {error && (
-          <Alert severity="error" sx={{ mt: 3 }}>
-            {error}
-          </Alert>
-        )}
-        
-        {success && (
-          <Alert severity="success" sx={{ mt: 3 }}>
-            Employee added successfully!
-          </Alert>
-        )}
-      </Paper>
-    </Box>
-  );
-  
-  // Render the current step content
+  // Render the appropriate step component based on active step
   const renderStepContent = (step) => {
     switch (step) {
       case 0:
-        return renderUploadStep();
+        return (
+          <UploadStep
+            file={file}
+            filePreviewUrl={filePreviewUrl}
+            fileInputRef={fileInputRef}
+            parsing={parsing}
+            parseProgress={parseProgress}
+            aiAnalysisDetails={aiAnalysisDetails}
+            handleFileChange={handleFileChange}
+            handleParseCV={handleParseCV}
+            setFile={setFile}
+            setFilePreviewUrl={setFilePreviewUrl}
+          />
+        );
       case 1:
-        return renderReviewStep();
+        return (
+          <ReviewStep
+            userData={userData}
+            availableSkills={availableSkills}
+            availableRoles={availableRoles}
+            handleInputChange={handleInputChange}
+            handleProfilePictureChange={handleProfilePictureChange}
+            handleAddEducation={handleAddEducation}
+            handleEducationChange={handleEducationChange}
+            handleRemoveEducation={handleRemoveEducation}
+            handleAddWorkExperience={handleAddWorkExperience}
+            handleWorkExperienceChange={handleWorkExperienceChange}
+            handleRemoveWorkExperience={handleRemoveWorkExperience}
+            handleAddLanguage={handleAddLanguage}
+            handleLanguageChange={handleLanguageChange}
+            handleRemoveLanguage={handleRemoveLanguage}
+          />
+        );
       case 2:
-        return renderCredentialsStep();
+        return (
+          <CredentialsStep
+            userData={userData}
+            handleInputChange={handleInputChange}
+          />
+        );
       case 3:
-        return renderConfirmationStep();
+        return (
+          <ConfirmationStep
+            userData={userData}
+            error={error}
+            success={success}
+          />
+        );
       default:
         return "Unknown step";
     }
@@ -2365,10 +826,7 @@ const simulateParseCV = () => {
             variant="contained"
             onClick={handleNext}
             sx={{ 
-              bgcolor: ACCENTURE_COLORS.corePurple1,
-              '&:hover': {
-                bgcolor: ACCENTURE_COLORS.corePurple2
-              },
+              ...primaryButtonStyles,
               textTransform: 'none'
             }}
             endIcon={<KeyboardArrowRightIcon />}
@@ -2381,10 +839,7 @@ const simulateParseCV = () => {
             onClick={handleSubmit}
             disabled={loading || success}
             sx={{ 
-              bgcolor: ACCENTURE_COLORS.corePurple1,
-              '&:hover': {
-                bgcolor: ACCENTURE_COLORS.corePurple2
-              },
+              ...primaryButtonStyles,
               textTransform: 'none'
             }}
             startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <SendIcon />}
@@ -2404,6 +859,7 @@ const simulateParseCV = () => {
           onClose={() => setSnackbar(prev => ({ ...prev, open: false }))} 
           severity={snackbar.severity}
           sx={{ width: '100%' }}
+          action={snackbar.action}
         >
           {snackbar.message}
         </Alert>
