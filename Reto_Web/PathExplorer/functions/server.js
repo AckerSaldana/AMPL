@@ -594,7 +594,10 @@ export function calculateSkillMatch(employeeSkills, roleSkills, employeeName = "
 const storage = multer.memoryStorage();
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 10 * 1024 * 1024 },  // 10 MB
+  limits: { 
+    fileSize: 10 * 1024 * 1024,  // Aumentar esto si es necesario (ej: a 20MB)
+    fieldSize: 20 * 1024 * 1024  // Añadir esta línea
+  },
   fileFilter: (req, file, cb) => {
     const m = file.mimetype;
     if (
@@ -1383,7 +1386,9 @@ app.post("/api/cv/parse", upload.single("file"), async (req, res) => {
         error: "No se proporcionó ningún archivo"
       });
     }
-    console.log(`Archivo recibido: ${req.file.originalname} (${req.file.mimetype}, ${req.file.size} bytes)`);
+    console.log(`Archivo recibido: ${req.file.originalname}`);
+    console.log(`Tipo MIME: ${req.file.mimetype}`);
+    console.log(`Tamaño: ${req.file.size} bytes`);
     req.file.receivedAt = Date.now();
 
     // 2) Parsear skills y roles desde el body
@@ -1469,10 +1474,12 @@ Habilidades: JavaScript, React, Node.js, HTML, CSS`;
 
   } catch (error) {
     console.error("❌ Error en /api/cv/parse:", error);
+    // Proporcionar un error más detallado en la respuesta
     return res.status(500).json({
       success: false,
       error: error.message,
-      stack: process.env.NODE_ENV === "development" ? error.stack : undefined
+      stack: process.env.NODE_ENV === "development" ? error.stack : undefined,
+      details: "Error procesando archivo multipart"
     });
   }
 });
