@@ -1,5 +1,5 @@
+import dotenv from "dotenv";
 import { config } from "dotenv";
-
 import express from "express";
 import cors from "cors";
 import OpenAI from "openai";
@@ -14,6 +14,14 @@ import * as functions from "firebase-functions";
 import * as fs from "fs";
 import { createClient } from '@supabase/supabase-js';
 import pdfParse from 'pdf-parse';
+
+// Get the directory name
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+// Configurar el ambiente con dotenv
+dotenv.config();
+config({ path: join(__dirname, ".env") });
 
 // Función para obtener variables de entorno (desde .env o desde Firebase Functions)
 function getEnvVariable(name, defaultValue = null) {
@@ -54,12 +62,6 @@ function getEnvVariable(name, defaultValue = null) {
   return defaultValue;
 }
 
-// Get the directory name
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-config({ path: join(__dirname, ".env") });
-
 // Create test directory for pdf-parse (in case you want to use it later)
 const testDir = join(__dirname, 'test', 'data');
 if (!fs.existsSync(testDir)) {
@@ -80,27 +82,9 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
-// Antes de crear supabaseAdmin, añadir este código para diagnóstico
-console.log("Intentando inicializar Supabase...");
-try {
-  console.log("VITE_SUPABASE_URL:", process.env.VITE_SUPABASE_URL ? "Configurado" : "No configurado");
-  console.log("Intentando acceder a functions.config():", 
-              functions.config && typeof functions.config === 'function' ? "Disponible" : "No disponible");
-  if (functions.config && typeof functions.config === 'function') {
-    console.log("functions.config().supabase:", functions.config().supabase ? "Configurado" : "No configurado");
-  }
-} catch (error) {
-  console.log("Error al verificar configuración:", error.message);
-}
-
 // Obtener variables de Supabase
 const supabaseUrl = getEnvVariable('VITE_SUPABASE_URL') || getEnvVariable('SUPABASE_URL');
 const supabaseServiceRoleKey = getEnvVariable('VITE_SUPABASE_SERVICE_ROLE_KEY') || getEnvVariable('SUPABASE_SERVICE_ROLE_KEY');
-
-export const supabaseAdmin = createClient(
-  supabaseUrl,
-  supabaseServiceRoleKey
-);
 
 // Logs sobre la carga del .env
 console.log("Directorio actual:", __dirname);
@@ -109,6 +93,12 @@ console.log("Primeros 5 caracteres de OPENAI_API_KEY:",
   process.env.OPENAI_API_KEY ? 
   `${process.env.OPENAI_API_KEY.substring(0, 5)}...` : 
   "No encontrada");
+
+// Inicializar cliente de Supabase
+export const supabaseAdmin = createClient(
+  supabaseUrl,
+  supabaseServiceRoleKey
+);
 
 // Inicializamos caches (TTL: 1 día)
 const embeddingCache = new NodeCache({ stdTTL: 86400 });
@@ -1063,209 +1053,92 @@ Responde EXCLUSIVAMENTE con un objeto JSON con esta estructura:
 }
 
 /**
- * Método principal para parsear un CV
- * @param {Object} file - Objeto de archivo de multer
+ * Genera datos ficticios cuando falla el análisis del CV
+ * @param {string} cvText - Texto del CV
  * @param {Array} availableSkills - Lista de habilidades disponibles
  * @param {Array} availableRoles - Lista de roles disponibles
- * @returns {Promise<Object>} - Objeto con los datos extraídos del CV
+ * @returns {Object} - Datos ficticios del CV
  */
-async function parseCV(file, availableSkills, availableRoles) {
-  try {
-    console.log(`Procesando archivo: ${file.originalname}, tamaño: ${file.size} bytes, tipo: ${file.mimetype}`);
-    
-    // Verificar caché
-    const cacheKey = crypto.createHash("sha256").update(`${file.originalname}-${file.size}`).digest("hex");
-    const cachedResult = parserCache.get(cacheKey);
-    
-    if (cachedResult) {
-      console.log("Resultado encontrado en caché, devolviendo directamente");
-      return cachedResult;
-    }
-    
-    // 1. Extraer texto del CV según el tipo de archivo
-    let cvText = "";
-    
-    if (file.mimetype === 'application/pdf') {
-      console.log("Detectado archivo PDF, extrayendo texto...");
-      cvText = await extractTextFromPDF(file.buffer, file.originalname);
-    } else if (file.mimetype.includes('word')) {
-      console.log("Detectado archivo Word, generando texto simulado...");
-      cvText = `CV simulado para archivo Word: ${file.originalname}
-      
-      Juan García López
-      Email: juan.garcia@ejemplo.com
-      Teléfono: +34 612 345 678
-      
-      Habilidades: JavaScript, React, Node.js`;
-    } else {
-      throw new Error(`Formato de archivo no soportado: ${file.mimetype}`);
-    }
-    
-    // Verificar que tenemos suficiente texto para analizar
-    if (!cvText || cvText.trim().length < 50) {
-      console.warn("Texto extraído insuficiente, generando texto complementario");
-      cvText += `\n\nEste documento parece estar protegido o en formato que dificulta la extracción.
-      
-      Posibles habilidades: JavaScript, React, HTML, CSS, Node.js
-      Posible rol: Desarrollador Frontend, Desarrollador Backend
-      Resumen: Profesional con experiencia en tecnología.`;
-    }
-    
-    // 2. Analizar el texto con IA
-    console.log(`Texto extraído (${cvText.length} caracteres), analizando con IA...`);
-    const parsedData = await analyzeWithOpenAI(cvText, availableSkills, availableRoles);
-    
-    // 3. Mapear habilidades detectadas con las disponibles
-    console.log("Mapeando habilidades detectadas...");
-    const mappedSkills = mapSkills(parsedData.skills || [], availableSkills || []);
-    
-    // 4. Combinar resultado final
-    const result = {
-      firstName: parsedData.firstName || "",
-      lastName: parsedData.lastName || "",
-      email: parsedData.email || "",
-      phone: parsedData.phone || "",
-      role: parsedData.role || "",
-      about: parsedData.about || "Profesional con experiencia en tecnología y soluciones de negocio.",
-      skills: mappedSkills || [],
-      // Arrays vacíos para los campos que no queremos incluir
-      education: [],
-      workExperience: [],
-      languages: []
-    };
-    
-    console.log("Resultado final del parseCV:", JSON.stringify(result, null, 2));
-    
-    // Guardar en caché
-    parserCache.set(cacheKey, result);
-    
-    console.log("CV procesado exitosamente en " + ((Date.now() - (file.receivedAt || Date.now())) / 1000).toFixed(2) + " segundos");
-    return result;
-  } catch (error) {
-    console.error("Error parsing CV:", error);
-    console.error("Stack trace:", error.stack);
-    
-    // En caso de error, devolver un resultado básico
-    return {
-      firstName: "",
-      lastName: "",
-      email: "",
-      phone: "",
-      role: "",
-      about: "Profesional con experiencia en tecnología y soluciones de negocio.",
-      skills: [],
-      education: [],
-      workExperience: [],
-      languages: []
-    };
+function generateMockData(cvText, availableSkills, availableRoles) {
+  console.log("Generando datos ficticios para el CV");
+  
+  // Intentar extraer nombres y emails del texto
+  let firstName = "John";
+  let lastName = "Doe";
+  let email = "john.doe@example.com";
+  let phone = "+1 (234) 567-8901";
+  
+  // Extraer patrones de email
+  const emailRegex = /[\w._%+-]+@[\w.-]+\.[a-zA-Z]{2,}/g;
+  const emails = cvText.match(emailRegex);
+  if (emails && emails.length > 0) {
+    email = emails[0];
   }
+  
+  // Extraer patrones de teléfono
+  const phoneRegex = /(?:[\+]?\d{1,3}[-\s\.]?)?\(?\d{3}\)?[-\s\.]?\d{3}[-\s\.]?\d{4}/g;
+  const phones = cvText.match(phoneRegex);
+  if (phones && phones.length > 0) {
+    phone = phones[0];
+  }
+  
+  // Intentar extraer nombre del CV basado en patrones comunes
+  const nameParts = cvText
+    .split('\n')
+    .slice(0, 5) // Primeras líneas suelen tener el nombre
+    .filter(line => 
+      line.trim().length > 0 && 
+      line.trim().length < 50 && 
+      !line.includes('@') && 
+      !line.includes('CV') && 
+      !/^\d+/.test(line) // No comienza con número
+    );
+  
+  if (nameParts.length > 0) {
+    const possibleName = nameParts[0].trim().split(/\s+/);
+    if (possibleName.length >= 2) {
+      firstName = possibleName[0];
+      lastName = possibleName[possibleName.length - 1];
+    }
+  }
+  
+  // Seleccionar habilidades aleatorias de las disponibles
+  let skills = [];
+  if (availableSkills && availableSkills.length > 0) {
+    // Seleccionar hasta 8 habilidades aleatorias
+    const numSkills = Math.min(8, availableSkills.length);
+    const shuffled = [...availableSkills].sort(() => 0.5 - Math.random());
+    skills = shuffled.slice(0, numSkills).map(skill => ({
+      name: skill.name || skill
+    }));
+  } else {
+    // Habilidades genéricas si no hay disponibles
+    skills = [
+      { name: "JavaScript" },
+      { name: "HTML" },
+      { name: "CSS" },
+      { name: "React" },
+      { name: "Node.js" }
+    ];
+  }
+  
+  // Seleccionar rol
+  let role = "Developer";
+  if (availableRoles && availableRoles.length > 0) {
+    role = availableRoles[Math.floor(Math.random() * availableRoles.length)];
+  }
+  
+  return {
+    firstName,
+    lastName,
+    email,
+    phone,
+    role,
+    about: "Profesional con experiencia en desarrollo de software y soluciones tecnológicas.",
+    skills
+  };
 }
 
-// Actualiza el endpoint para usar la nueva función
-app.post("/api/cv/parse", upload.single("file"), async (req, res) => {
-  console.log("========== NUEVA SOLICITUD RECIBIDA EN /api/cv/parse ==========");
-  try {
-    // 1) Validación de archivo
-    if (!req.file) {
-      console.error("No se proporcionó ningún archivo");
-      return res.status(400).json({
-        success: false,
-        error: "No se proporcionó ningún archivo"
-      });
-    }
-    console.log(`Archivo recibido: ${req.file.originalname} (${req.file.mimetype}, ${req.file.size} bytes)`);
-    req.file.receivedAt = Date.now();
-
-    // 2) Parsear skills y roles desde el body
-    let availableSkills = [], availableRoles = [];
-    try {
-      if (req.body.availableSkills) {
-        availableSkills = JSON.parse(req.body.availableSkills);
-        console.log(`● ${availableSkills.length} skills disponibles recibidas`);
-      }
-      if (req.body.availableRoles) {
-        availableRoles = JSON.parse(req.body.availableRoles);
-        console.log(`● ${availableRoles.length} roles disponibles recibidos`);
-      }
-    } catch (err) {
-      console.warn("Error al parsear availableSkills/availableRoles:", err);
-    }
-
-    // 3) Extraer texto del CV con manejo avanzado de errores
-    console.log("Iniciando extracción de texto del CV…");
-    let cvText = "";
-    if (req.file.mimetype === "application/pdf") {
-      try {
-        // Usar la nueva función robusta de extracción
-        cvText = await extractTextFromPDF(req.file.buffer, req.file.originalname);
-        console.log(`→ Texto extraído: ${cvText.length} caracteres`);
-      } catch (extractError) {
-        console.error("Error en la extracción de texto:", extractError);
-        cvText = `Contenido del CV no pudo ser extraído completamente. Filename: ${req.file.originalname}`;
-      }
-    } else if (req.file.mimetype.includes("word")) {
-      console.log("Detectado archivo Word, usando texto simulado");
-      cvText = `CV simulado para archivo Word: ${req.file.originalname}
-
-Profesional con experiencia en desarrollo de software
-Email: ejemplo@dominio.com
-Teléfono: +34 600000000
-
-Habilidades: JavaScript, React, Node.js, HTML, CSS`;
-    } else {
-      return res.status(400).json({
-        success: false,
-        error: `Formato de archivo no soportado: ${req.file.mimetype}. Por favor, suba un PDF o documento Word.`
-      });
-    }
-
-    // 4) Analizar con IA
-    console.log("Iniciando análisis del texto con IA...");
-    const startTime = Date.now();
-    const parsedData = await analyzeWithOpenAI(cvText, availableSkills, availableRoles);
-
-    // 5) Mapear habilidades
-    const mappedSkills = mapSkills(parsedData.skills || [], availableSkills);
-
-    // 6) Construir resultado final
-    const finalResult = {
-      firstName: parsedData.firstName || "",
-      lastName: parsedData.lastName || "",
-      email: parsedData.email || "",
-      phone: parsedData.phone || "",
-      role: parsedData.role || "",
-      about: parsedData.about || "Profesional con experiencia en tecnología y soluciones de negocio.",
-      skills: mappedSkills,
-      education: [], 
-      workExperience: [],
-      languages: []
-    };
-
-    const processingTime = ((Date.now() - startTime) / 1000).toFixed(2);
-    console.log(`✅ CV procesado en ${processingTime}s`);
-
-    // 7) Responder al cliente
-    return res.json({
-      success: true,
-      data: finalResult,
-      meta: {
-        processingTime: Number(processingTime),
-        fileName: req.file.originalname,
-        fileSize: req.file.size,
-        textLength: cvText.length,
-        aiModel: "gpt-4o-mini"
-      }
-    });
-
-  } catch (error) {
-    console.error("❌ Error en /api/cv/parse:", error);
-    return res.status(500).json({
-      success: false,
-      error: error.message,
-      stack: process.env.NODE_ENV === "development" ? error.stack : undefined
-    });
-  }
-});
 /**
  * Mapea las habilidades detectadas con las disponibles en la base de datos
  * @param {Array} detectedSkills - Habilidades detectadas por IA
@@ -1498,6 +1371,112 @@ app.get('/test-openai', async (req, res) => {
   });
 });
 
+// Endpoint para el parseo de CV 
+app.post("/api/cv/parse", upload.single("file"), async (req, res) => {
+  console.log("========== NUEVA SOLICITUD RECIBIDA EN /api/cv/parse ==========");
+  try {
+    // 1) Validación de archivo
+    if (!req.file) {
+      console.error("No se proporcionó ningún archivo");
+      return res.status(400).json({
+        success: false,
+        error: "No se proporcionó ningún archivo"
+      });
+    }
+    console.log(`Archivo recibido: ${req.file.originalname} (${req.file.mimetype}, ${req.file.size} bytes)`);
+    req.file.receivedAt = Date.now();
+
+    // 2) Parsear skills y roles desde el body
+    let availableSkills = [], availableRoles = [];
+    try {
+      if (req.body.availableSkills) {
+        availableSkills = JSON.parse(req.body.availableSkills);
+        console.log(`● ${availableSkills.length} skills disponibles recibidas`);
+      }
+      if (req.body.availableRoles) {
+        availableRoles = JSON.parse(req.body.availableRoles);
+        console.log(`● ${availableRoles.length} roles disponibles recibidos`);
+      }
+    } catch (err) {
+      console.warn("Error al parsear availableSkills/availableRoles:", err);
+    }
+
+    // 3) Extraer texto del CV con manejo avanzado de errores
+    console.log("Iniciando extracción de texto del CV…");
+    let cvText = "";
+    if (req.file.mimetype === "application/pdf") {
+      try {
+        // Usar la nueva función robusta de extracción
+        cvText = await extractTextFromPDF(req.file.buffer, req.file.originalname);
+        console.log(`→ Texto extraído: ${cvText.length} caracteres`);
+      } catch (extractError) {
+        console.error("Error en la extracción de texto:", extractError);
+        cvText = `Contenido del CV no pudo ser extraído completamente. Filename: ${req.file.originalname}`;
+      }
+    } else if (req.file.mimetype.includes("word")) {
+      console.log("Detectado archivo Word, usando texto simulado");
+      cvText = `CV simulado para archivo Word: ${req.file.originalname}
+
+Profesional con experiencia en desarrollo de software
+Email: ejemplo@dominio.com
+Teléfono: +34 600000000
+
+Habilidades: JavaScript, React, Node.js, HTML, CSS`;
+    } else {
+      return res.status(400).json({
+        success: false,
+        error: `Formato de archivo no soportado: ${req.file.mimetype}. Por favor, suba un PDF o documento Word.`
+      });
+    }
+
+    // 4) Analizar con IA
+    console.log("Iniciando análisis del texto con IA...");
+    const startTime = Date.now();
+    const parsedData = await analyzeWithOpenAI(cvText, availableSkills, availableRoles);
+
+    // 5) Mapear habilidades
+    const mappedSkills = mapSkills(parsedData.skills || [], availableSkills);
+
+    // 6) Construir resultado final
+    const finalResult = {
+      firstName: parsedData.firstName || "",
+      lastName: parsedData.lastName || "",
+      email: parsedData.email || "",
+      phone: parsedData.phone || "",
+      role: parsedData.role || "",
+      about: parsedData.about || "Profesional con experiencia en tecnología y soluciones de negocio.",
+      skills: mappedSkills,
+      education: [], 
+      workExperience: [],
+      languages: []
+    };
+
+    const processingTime = ((Date.now() - startTime) / 1000).toFixed(2);
+    console.log(`✅ CV procesado en ${processingTime}s`);
+
+    // 7) Responder al cliente
+    return res.json({
+      success: true,
+      data: finalResult,
+      meta: {
+        processingTime: Number(processingTime),
+        fileName: req.file.originalname,
+        fileSize: req.file.size,
+        textLength: cvText.length,
+        aiModel: "gpt-4o-mini"
+      }
+    });
+
+  } catch (error) {
+    console.error("❌ Error en /api/cv/parse:", error);
+    return res.status(500).json({
+      success: false,
+      error: error.message,
+      stack: process.env.NODE_ENV === "development" ? error.stack : undefined
+    });
+  }
+});
+
 /**
  * Endpoint para crear usuarios sin afectar la sesión actual
  * POST /api/admin/create-employee
@@ -1662,10 +1641,24 @@ app.post("/api/admin/create-employee", async (req, res) => {
   }
 });
 
-const port = process.env.PORT || process.env.CUSTOM_PORT || 3001;
-app.listen(port, () => {
-  console.log(`Servidor escuchando en puerto ${port}`);
-});
-
+// Iniciar el servidor localmente solo si se ejecuta directamente
+if (process.env.NODE_ENV === "development" || !process.env.FUNCTION_TARGET) {
+  const port = process.env.PORT || 3001;
+  app.listen(port, () => {
+    console.log(`Servidor corriendo en el puerto ${port}`);
+    // Verificar la API Key al inicio, solo en desarrollo
+    testAPIKey()
+      .then(valid => {
+        if (valid) {
+          console.log("✅ API Key de OpenAI verificada y funcionando correctamente");
+        } else {
+          console.log("⚠️ No se pudo verificar la API Key de OpenAI, se usarán embeddings simples");
+        }
+      })
+      .catch(err => {
+        console.error("Error verificando API Key:", err);
+      });
+  });
+}
 
 export default app;
