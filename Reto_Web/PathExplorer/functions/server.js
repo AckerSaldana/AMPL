@@ -22,6 +22,41 @@ const { getDocument, GlobalWorkerOptions } = pdfjsLib;
 // Disable worker for Cloud Functions environment
 GlobalWorkerOptions.disableWorker = true;
 
+// Función para obtener variables de entorno (desde .env o desde Firebase Functions)
+function getEnvVariable(name, defaultValue = null) {
+  // 1. Intentar obtener desde process.env (archivo .env)
+  if (process.env[name]) {
+    return process.env[name];
+  }
+  
+  // 2. Intentar obtener desde Firebase Functions config
+  if (process.env.NODE_ENV === 'production' && functions.config) {
+    try {
+      // Convertir VITE_SUPABASE_URL a supabase.url (para compatibilidad)
+      const parts = name.toLowerCase().split('_');
+      if (parts.length >= 3) {
+        // Si es una variable con prefijo VITE_, ignorarlo para la configuración de Firebase
+        const configSection = parts[1].toLowerCase(); // supabase
+        let configKey = parts.slice(2).join('_').toLowerCase(); // url, service_role_key, etc.
+        
+        // Manejar casos especiales
+        if (configKey === 'service_role_key') configKey = 'servicerolekey';
+        if (configKey === 'anon_key') configKey = 'anonkey';
+        if (name === 'OPENAI_API_KEY') {
+          return functions.config().openai?.apikey;
+        }
+        
+        return functions.config()[configSection]?.[configKey];
+      }
+    } catch (error) {
+      console.error(`Error al obtener ${name} desde Firebase config:`, error);
+    }
+  }
+  
+  // 3. Devolver valor por defecto si no se encontró
+  return defaultValue;
+}
+
 // Get the directory name
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -33,11 +68,6 @@ const testDir = join(__dirname, 'test', 'data');
 if (!fs.existsSync(testDir)) {
   fs.mkdirSync(testDir, { recursive: true });
   console.log(`Created test directory: ${testDir}`);
-}
-
-if (!process.env.VITE_SUPABASE_URL || !process.env.VITE_SUPABASE_SERVICE_ROLE_KEY) {
-  console.error("Error: Variables de entorno de Supabase no configuradas. Revisa tu archivo .env");
-  process.exit(1); // Salir con error
 }
 
 // Create a simple test PDF file if it doesn't exist
@@ -54,8 +84,8 @@ app.use(express.json());
 app.use(cors());
 
 export const supabaseAdmin = createClient(
-  process.env.VITE_SUPABASE_URL,
-  process.env.VITE_SUPABASE_SERVICE_ROLE_KEY
+  getEnvVariable('VITE_SUPABASE_URL') || getEnvVariable('SUPABASE_URL'),
+  getEnvVariable('VITE_SUPABASE_SERVICE_ROLE_KEY') || getEnvVariable('SUPABASE_SERVICE_ROLE_KEY')
 );
 
 // Logs sobre la carga del .env
@@ -81,6 +111,27 @@ const getOpenAIApiKey = () => {
   
   return apiKey;
 };
+
+
+
+// Obtener variables de Supabase
+const supabaseUrl = getEnvVariable('VITE_SUPABASE_URL') || getEnvVariable('SUPABASE_URL');
+const supabaseServiceRoleKey = getEnvVariable('VITE_SUPABASE_SERVICE_ROLE_KEY') || getEnvVariable('SUPABASE_SERVICE_ROLE_KEY');
+
+// Verificar que tenemos las variables necesarias
+if (!supabaseUrl || !supabaseServiceRoleKey) {
+  console.error("Error: Variables de entorno de Supabase no configuradas.");
+  console.error("URL:", supabaseUrl ? "Configurada" : "No configurada");
+  console.error("Service Role Key:", supabaseServiceRoleKey ? "Configurada" : "No configurada");
+  
+  // En producción, intentar buscar en la config de Firebase
+  if (process.env.NODE_ENV === 'production') {
+    console.log("Entorno de producción detectado, verificando config de Firebase...");
+    console.log("Firebase config:", JSON.stringify(functions.config()));
+  } else {
+    process.exit(1); // Salir con error solo en desarrollo
+  }
+}
 
 // Inicialización de OpenAI con manejo de errores
 let openai;
@@ -1461,7 +1512,7 @@ app.post("/api/admin/create-employee", async (req, res) => {
 
 // Iniciar el servidor localmente solo si se ejecuta directamente
 if (process.env.NODE_ENV === "development" || !process.env.FUNCTION_TARGET) {
-  const port = process.env.PORT || 3001;
+  const port = process.env.CUSTOM_PORT || 3001;
   app.listen(port, () => {
     console.log(`Servidor corriendo en el puerto ${port}`);
     // Verificar la API Key al inicio, solo en desarrollo
