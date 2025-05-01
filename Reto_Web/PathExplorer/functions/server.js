@@ -83,9 +83,29 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
+// Antes de crear supabaseAdmin, añadir este código para diagnóstico
+console.log("Intentando inicializar Supabase...");
+try {
+  console.log("VITE_SUPABASE_URL:", process.env.VITE_SUPABASE_URL ? "Configurado" : "No configurado");
+  console.log("Intentando acceder a functions.config():", 
+              functions.config && typeof functions.config === 'function' ? "Disponible" : "No disponible");
+  if (functions.config && typeof functions.config === 'function') {
+    console.log("functions.config().supabase:", functions.config().supabase ? "Configurado" : "No configurado");
+  }
+} catch (error) {
+  console.log("Error al verificar configuración:", error.message);
+}
+
 export const supabaseAdmin = createClient(
-  getEnvVariable('VITE_SUPABASE_URL') || getEnvVariable('SUPABASE_URL'),
-  getEnvVariable('VITE_SUPABASE_SERVICE_ROLE_KEY') || getEnvVariable('SUPABASE_SERVICE_ROLE_KEY')
+  // URL de Supabase con fallbacks
+  process.env.VITE_SUPABASE_URL || 
+  (functions.config && functions.config().supabase ? functions.config().supabase.url : null) ||
+  'https://juppmkcgqaobqcilvatw.supabase.co', // Valor por defecto como último recurso
+  
+  // Service Role Key con fallbacks
+  process.env.VITE_SUPABASE_SERVICE_ROLE_KEY || 
+  (functions.config && functions.config().supabase ? functions.config().supabase.servicerolekey : null) ||
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1cHBta2NncWFvYnFjaWx2YXR3Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0MTEzMjYyMSwiZXhwIjoyMDU2NzA4NjIxfQ.O2lFN4Y7-Ef-Q3B854vYAniGFeVO_e1b1IYDdv0z3L4' // Valor por defecto como último recurso
 );
 
 // Logs sobre la carga del .env
