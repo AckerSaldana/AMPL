@@ -128,9 +128,7 @@ if (!supabaseUrl || !supabaseServiceRoleKey) {
   if (process.env.NODE_ENV === 'production') {
     console.log("Entorno de producción detectado, verificando config de Firebase...");
     console.log("Firebase config:", JSON.stringify(functions.config()));
-  } else {
-    process.exit(1); // Salir con error solo en desarrollo
-  }
+  } 
 }
 
 // Inicialización de OpenAI con manejo de errores
@@ -1510,12 +1508,13 @@ app.post("/api/admin/create-employee", async (req, res) => {
   }
 });
 
-// Iniciar el servidor localmente solo si se ejecuta directamente
+// Iniciar el servidor localmente solo si se ejecuta directamente (desarrollo)
 if (process.env.NODE_ENV === "development" || !process.env.FUNCTION_TARGET) {
-  const port = process.env.CUSTOM_PORT || 3001;
-  app.listen(port, () => {
-    console.log(`Servidor corriendo en el puerto ${port}`);
-    // Verificar la API Key al inicio, solo en desarrollo
+  // Solo para desarrollo local: usar puerto personalizado
+  const localPort = process.env.CUSTOM_PORT || 3001;
+  app.listen(localPort, () => {
+    console.log(`Servidor de desarrollo corriendo en el puerto ${localPort}`);
+    // Verificaciones solo para desarrollo
     testAPIKey()
       .then(valid => {
         if (valid) {
@@ -1528,6 +1527,10 @@ if (process.env.NODE_ENV === "development" || !process.env.FUNCTION_TARGET) {
         console.error("Error verificando API Key:", err);
       });
   });
+} else {
+  // En entorno de producción/Firebase, NO iniciar el servidor explícitamente
+  console.log("Ejecutando en entorno de producción (Firebase Functions)");
+  console.log("Firebase Functions administrará la escucha del puerto automáticamente");
 }
 
 export default app;
