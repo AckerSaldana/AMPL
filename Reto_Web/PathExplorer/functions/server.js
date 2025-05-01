@@ -1,5 +1,6 @@
-import dotenv from "dotenv";
-dotenv.config();
+import { config } from "dotenv";
+import { join, dirname } from "path";
+import { fileURLToPath } from "url";
 
 import express from "express";
 import cors from "cors";
@@ -58,6 +59,8 @@ function getEnvVariable(name, defaultValue = null) {
 // Get the directory name
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+
+config({ path: join(__dirname, ".env") });
 
 // Create test directory for pdf-parse (in case you want to use it later)
 const testDir = join(__dirname, 'test', 'data');
