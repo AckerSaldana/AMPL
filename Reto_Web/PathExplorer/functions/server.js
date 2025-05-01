@@ -79,8 +79,9 @@ if (!fs.existsSync(testPdfPath)) {
 
 // Crear la app de Express
 const app = express();
-app.use(express.json());
+
 app.use(cors());
+
 
 // Obtener variables de Supabase
 const supabaseUrl = getEnvVariable('VITE_SUPABASE_URL') || getEnvVariable('SUPABASE_URL');
@@ -1197,6 +1198,119 @@ function mapSkills(detectedSkills, availableSkills) {
     .filter(skill => skill !== null);
 }
 
+// Endpoint para el parseo de CV 
+app.post("/api/cv/parse", upload.single("file"), async (req, res) => {
+  console.log("========== NUEVA SOLICITUD RECIBIDA EN /api/cv/parse ==========");
+  try {
+    // 1) Validación de archivo
+    if (!req.file) {
+      console.error("No se proporcionó ningún archivo");
+      return res.status(400).json({
+        success: false,
+        error: "No se proporcionó ningún archivo"
+      });
+    }
+    console.log(`Archivo recibido: ${req.file.originalname}`);
+    console.log(`Tipo MIME: ${req.file.mimetype}`);
+    console.log(`Tamaño: ${req.file.size} bytes`);
+    req.file.receivedAt = Date.now();
+
+    // 2) Parsear skills y roles desde el body
+    let availableSkills = [], availableRoles = [];
+    try {
+      if (req.body.availableSkills) {
+        availableSkills = JSON.parse(req.body.availableSkills);
+        console.log(`● ${availableSkills.length} skills disponibles recibidas`);
+      }
+      if (req.body.availableRoles) {
+        availableRoles = JSON.parse(req.body.availableRoles);
+        console.log(`● ${availableRoles.length} roles disponibles recibidos`);
+      }
+    } catch (err) {
+      console.warn("Error al parsear availableSkills/availableRoles:", err);
+    }
+
+    // 3) Extraer texto del CV con manejo avanzado de errores
+    console.log("Iniciando extracción de texto del CV…");
+    let cvText = "";
+    if (req.file.mimetype === "application/pdf") {
+      try {
+        // Usar la nueva función robusta de extracción
+        cvText = await extractTextFromPDF(req.file.buffer, req.file.originalname);
+        console.log(`→ Texto extraído: ${cvText.length} caracteres`);
+      } catch (extractError) {
+        console.error("Error en la extracción de texto:", extractError);
+        cvText = `Contenido del CV no pudo ser extraído completamente. Filename: ${req.file.originalname}`;
+      }
+    } else if (req.file.mimetype.includes("word")) {
+      console.log("Detectado archivo Word, usando texto simulado");
+      cvText = `CV simulado para archivo Word: ${req.file.originalname}
+
+Profesional con experiencia en desarrollo de software
+Email: ejemplo@dominio.com
+Teléfono: +34 600000000
+
+Habilidades: JavaScript, React, Node.js, HTML, CSS`;
+    } else {
+      return res.status(400).json({
+        success: false,
+        error: `Formato de archivo no soportado: ${req.file.mimetype}. Por favor, suba un PDF o documento Word.`
+      });
+    }
+
+    // 4) Analizar con IA
+    console.log("Iniciando análisis del texto con IA...");
+    const startTime = Date.now();
+    const parsedData = await analyzeWithOpenAI(cvText, availableSkills, availableRoles);
+
+    // 5) Mapear habilidades
+    const mappedSkills = mapSkills(parsedData.skills || [], availableSkills);
+
+    // 6) Construir resultado final
+    const finalResult = {
+      firstName: parsedData.firstName || "",
+      lastName: parsedData.lastName || "",
+      email: parsedData.email || "",
+      phone: parsedData.phone || "",
+      role: parsedData.role || "",
+      about: parsedData.about || "Profesional con experiencia en tecnología y soluciones de negocio.",
+      skills: mappedSkills,
+      education: [], 
+      workExperience: [],
+      languages: []
+    };
+
+    const processingTime = ((Date.now() - startTime) / 1000).toFixed(2);
+    console.log(`✅ CV procesado en ${processingTime}s`);
+
+    // 7) Responder al cliente
+    return res.json({
+      success: true,
+      data: finalResult,
+      meta: {
+        processingTime: Number(processingTime),
+        fileName: req.file.originalname,
+        fileSize: req.file.size,
+        textLength: cvText.length,
+        aiModel: "gpt-4o-mini"
+      }
+    });
+
+  } catch (error) {
+    console.error("❌ Error en /api/cv/parse:", error);
+    // Proporcionar un error más detallado en la respuesta
+    return res.status(500).json({
+      success: false,
+      error: error.message,
+      stack: process.env.NODE_ENV === "development" ? error.stack : undefined,
+      details: "Error procesando archivo multipart"
+    });
+  }
+});
+
+app.use(express.json());
+
+
 // ----------------------------------------------------------------------------
 // Endpoint para matching: Procesa la solicitud y devuelve los resultados
 app.post("/getMatches", async (req, res) => {
@@ -1374,115 +1488,6 @@ app.get('/test-openai', async (req, res) => {
   });
 });
 
-// Endpoint para el parseo de CV 
-app.post("/api/cv/parse", upload.single("file"), async (req, res) => {
-  console.log("========== NUEVA SOLICITUD RECIBIDA EN /api/cv/parse ==========");
-  try {
-    // 1) Validación de archivo
-    if (!req.file) {
-      console.error("No se proporcionó ningún archivo");
-      return res.status(400).json({
-        success: false,
-        error: "No se proporcionó ningún archivo"
-      });
-    }
-    console.log(`Archivo recibido: ${req.file.originalname}`);
-    console.log(`Tipo MIME: ${req.file.mimetype}`);
-    console.log(`Tamaño: ${req.file.size} bytes`);
-    req.file.receivedAt = Date.now();
-
-    // 2) Parsear skills y roles desde el body
-    let availableSkills = [], availableRoles = [];
-    try {
-      if (req.body.availableSkills) {
-        availableSkills = JSON.parse(req.body.availableSkills);
-        console.log(`● ${availableSkills.length} skills disponibles recibidas`);
-      }
-      if (req.body.availableRoles) {
-        availableRoles = JSON.parse(req.body.availableRoles);
-        console.log(`● ${availableRoles.length} roles disponibles recibidos`);
-      }
-    } catch (err) {
-      console.warn("Error al parsear availableSkills/availableRoles:", err);
-    }
-
-    // 3) Extraer texto del CV con manejo avanzado de errores
-    console.log("Iniciando extracción de texto del CV…");
-    let cvText = "";
-    if (req.file.mimetype === "application/pdf") {
-      try {
-        // Usar la nueva función robusta de extracción
-        cvText = await extractTextFromPDF(req.file.buffer, req.file.originalname);
-        console.log(`→ Texto extraído: ${cvText.length} caracteres`);
-      } catch (extractError) {
-        console.error("Error en la extracción de texto:", extractError);
-        cvText = `Contenido del CV no pudo ser extraído completamente. Filename: ${req.file.originalname}`;
-      }
-    } else if (req.file.mimetype.includes("word")) {
-      console.log("Detectado archivo Word, usando texto simulado");
-      cvText = `CV simulado para archivo Word: ${req.file.originalname}
-
-Profesional con experiencia en desarrollo de software
-Email: ejemplo@dominio.com
-Teléfono: +34 600000000
-
-Habilidades: JavaScript, React, Node.js, HTML, CSS`;
-    } else {
-      return res.status(400).json({
-        success: false,
-        error: `Formato de archivo no soportado: ${req.file.mimetype}. Por favor, suba un PDF o documento Word.`
-      });
-    }
-
-    // 4) Analizar con IA
-    console.log("Iniciando análisis del texto con IA...");
-    const startTime = Date.now();
-    const parsedData = await analyzeWithOpenAI(cvText, availableSkills, availableRoles);
-
-    // 5) Mapear habilidades
-    const mappedSkills = mapSkills(parsedData.skills || [], availableSkills);
-
-    // 6) Construir resultado final
-    const finalResult = {
-      firstName: parsedData.firstName || "",
-      lastName: parsedData.lastName || "",
-      email: parsedData.email || "",
-      phone: parsedData.phone || "",
-      role: parsedData.role || "",
-      about: parsedData.about || "Profesional con experiencia en tecnología y soluciones de negocio.",
-      skills: mappedSkills,
-      education: [], 
-      workExperience: [],
-      languages: []
-    };
-
-    const processingTime = ((Date.now() - startTime) / 1000).toFixed(2);
-    console.log(`✅ CV procesado en ${processingTime}s`);
-
-    // 7) Responder al cliente
-    return res.json({
-      success: true,
-      data: finalResult,
-      meta: {
-        processingTime: Number(processingTime),
-        fileName: req.file.originalname,
-        fileSize: req.file.size,
-        textLength: cvText.length,
-        aiModel: "gpt-4o-mini"
-      }
-    });
-
-  } catch (error) {
-    console.error("❌ Error en /api/cv/parse:", error);
-    // Proporcionar un error más detallado en la respuesta
-    return res.status(500).json({
-      success: false,
-      error: error.message,
-      stack: process.env.NODE_ENV === "development" ? error.stack : undefined,
-      details: "Error procesando archivo multipart"
-    });
-  }
-});
 
 /**
  * Endpoint para crear usuarios sin afectar la sesión actual
