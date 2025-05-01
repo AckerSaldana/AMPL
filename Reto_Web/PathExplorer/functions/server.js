@@ -26,34 +26,55 @@ GlobalWorkerOptions.disableWorker = true;
 function getEnvVariable(name, defaultValue = null) {
   // 1. Intentar obtener desde process.env (archivo .env)
   if (process.env[name]) {
+    console.log(`Variable ${name} obtenida de process.env`);
     return process.env[name];
   }
   
-  // 2. Intentar obtener desde Firebase Functions config
-  if (process.env.NODE_ENV === 'production' && functions.config) {
-    try {
-      // Convertir VITE_SUPABASE_URL a supabase.url (para compatibilidad)
+  // 2. Intentar obtener desde Firebase Functions config de manera más directa
+  try {
+    // Para OPENAI_API_KEY, comprobar directamente
+    if (name === 'OPENAI_API_KEY' && functions.config && functions.config().openai && functions.config().openai.apikey) {
+      console.log(`Variable OPENAI_API_KEY obtenida de Firebase config`);
+      return functions.config().openai.apikey;
+    }
+    
+    // Para VITE_SUPABASE_URL, verificar supabase.url
+    if ((name === 'VITE_SUPABASE_URL' || name === 'SUPABASE_URL') && 
+        functions.config && functions.config().supabase && functions.config().supabase.url) {
+      console.log(`Variable Supabase URL obtenida de Firebase config`);
+      return functions.config().supabase.url;
+    }
+    
+    // Para VITE_SUPABASE_SERVICE_ROLE_KEY, verificar supabase.servicerolekey
+    if ((name === 'VITE_SUPABASE_SERVICE_ROLE_KEY' || name === 'SUPABASE_SERVICE_ROLE_KEY') && 
+        functions.config && functions.config().supabase && functions.config().supabase.servicerolekey) {
+      console.log(`Variable Supabase Service Role Key obtenida de Firebase config`);
+      return functions.config().supabase.servicerolekey;
+    }
+    
+    // Enfoque más general usando la conversión nombre→sección.clave
+    if (functions.config) {
       const parts = name.toLowerCase().split('_');
       if (parts.length >= 3) {
-        // Si es una variable con prefijo VITE_, ignorarlo para la configuración de Firebase
         const configSection = parts[1].toLowerCase(); // supabase
         let configKey = parts.slice(2).join('_').toLowerCase(); // url, service_role_key, etc.
         
         // Manejar casos especiales
         if (configKey === 'service_role_key') configKey = 'servicerolekey';
         if (configKey === 'anon_key') configKey = 'anonkey';
-        if (name === 'OPENAI_API_KEY') {
-          return functions.config().openai?.apikey;
-        }
         
-        return functions.config()[configSection]?.[configKey];
+        if (functions.config()[configSection] && functions.config()[configSection][configKey]) {
+          console.log(`Variable ${name} obtenida de Firebase config como ${configSection}.${configKey}`);
+          return functions.config()[configSection][configKey];
+        }
       }
-    } catch (error) {
-      console.error(`Error al obtener ${name} desde Firebase config:`, error);
     }
+  } catch (error) {
+    console.error(`Error al obtener ${name} desde Firebase config:`, error);
   }
   
-  // 3. Devolver valor por defecto si no se encontró
+  // 3. Devolver valor por defecto y registrar
+  console.log(`Variable ${name} no encontrada, usando valor por defecto: ${defaultValue}`);
   return defaultValue;
 }
 
@@ -96,16 +117,13 @@ try {
   console.log("Error al verificar configuración:", error.message);
 }
 
+// Obtener variables de Supabase
+const supabaseUrl = getEnvVariable('VITE_SUPABASE_URL') || getEnvVariable('SUPABASE_URL');
+const supabaseServiceRoleKey = getEnvVariable('VITE_SUPABASE_SERVICE_ROLE_KEY') || getEnvVariable('SUPABASE_SERVICE_ROLE_KEY');
+
 export const supabaseAdmin = createClient(
-  // URL de Supabase con fallbacks
-  process.env.VITE_SUPABASE_URL || 
-  (functions.config && functions.config().supabase ? functions.config().supabase.url : null) ||
-  'https://juppmkcgqaobqcilvatw.supabase.co', // Valor por defecto como último recurso
-  
-  // Service Role Key con fallbacks
-  process.env.VITE_SUPABASE_SERVICE_ROLE_KEY || 
-  (functions.config && functions.config().supabase ? functions.config().supabase.servicerolekey : null) ||
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1cHBta2NncWFvYnFjaWx2YXR3Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0MTEzMjYyMSwiZXhwIjoyMDU2NzA4NjIxfQ.O2lFN4Y7-Ef-Q3B854vYAniGFeVO_e1b1IYDdv0z3L4' // Valor por defecto como último recurso
+  supabaseUrl,
+  supabaseServiceRoleKey
 );
 
 // Logs sobre la carga del .env
@@ -134,21 +152,15 @@ const getOpenAIApiKey = () => {
 
 
 
-// Obtener variables de Supabase
-const supabaseUrl = getEnvVariable('VITE_SUPABASE_URL') || getEnvVariable('SUPABASE_URL');
-const supabaseServiceRoleKey = getEnvVariable('VITE_SUPABASE_SERVICE_ROLE_KEY') || getEnvVariable('SUPABASE_SERVICE_ROLE_KEY');
 
-// Verificar que tenemos las variables necesarias
+
 if (!supabaseUrl || !supabaseServiceRoleKey) {
-  console.error("Error: Variables de entorno de Supabase no configuradas.");
-  console.error("URL:", supabaseUrl ? "Configurada" : "No configurada");
-  console.error("Service Role Key:", supabaseServiceRoleKey ? "Configurada" : "No configurada");
+  console.warn("Advertencia: Variables de entorno de Supabase no configuradas en las fuentes primarias");
+  console.warn("URL:", supabaseUrl ? "Configurada" : "No configurada");
+  console.warn("Service Role Key:", supabaseServiceRoleKey ? "Configurada" : "No configurada");
   
-  // En producción, intentar buscar en la config de Firebase
-  if (process.env.NODE_ENV === 'production') {
-    console.log("Entorno de producción detectado, verificando config de Firebase...");
-    console.log("Firebase config:", JSON.stringify(functions.config()));
-  } 
+  // Usar valores por defecto como fallback
+  console.log("Usando valores por defecto para Supabase como fallback");
 }
 
 // Inicialización de OpenAI con manejo de errores
@@ -1528,29 +1540,10 @@ app.post("/api/admin/create-employee", async (req, res) => {
   }
 });
 
-// Iniciar el servidor localmente solo si se ejecuta directamente (desarrollo)
-if (process.env.NODE_ENV === "development" || !process.env.FUNCTION_TARGET) {
-  // Solo para desarrollo local: usar puerto personalizado
-  const localPort = process.env.CUSTOM_PORT || 3001;
-  app.listen(localPort, () => {
-    console.log(`Servidor de desarrollo corriendo en el puerto ${localPort}`);
-    // Verificaciones solo para desarrollo
-    testAPIKey()
-      .then(valid => {
-        if (valid) {
-          console.log("✅ API Key de OpenAI verificada y funcionando correctamente");
-        } else {
-          console.log("⚠️ No se pudo verificar la API Key de OpenAI, se usarán embeddings simples");
-        }
-      })
-      .catch(err => {
-        console.error("Error verificando API Key:", err);
-      });
-  });
-} else {
-  // En entorno de producción/Firebase, NO iniciar el servidor explícitamente
-  console.log("Ejecutando en entorno de producción (Firebase Functions)");
-  console.log("Firebase Functions administrará la escucha del puerto automáticamente");
-}
+const port = process.env.PORT || process.env.CUSTOM_PORT || 3001;
+app.listen(port, () => {
+  console.log(`Servidor escuchando en puerto ${port}`);
+});
+
 
 export default app;
