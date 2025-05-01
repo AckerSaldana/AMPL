@@ -51,13 +51,16 @@ jobs:
       # 6) Cargar secrets en functions.config()
       - name: Configure Firebase Function Settings
         working-directory: ./Reto_Web/PathExplorer
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
         run: |
           firebase functions:config:set \
             openai.apikey="${{ secrets.OPENAI_API_KEY }}" \
             supabase.url="${{ secrets.SUPABASE_URL }}" \
             supabase.service_role_key="${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
             supabase.anonkey="${{ secrets.SUPABASE_ANON_KEY }}" \
-            --project ampl-fdb59
+            --project ampl-fdb59 \
+            --token "$FIREBASE_TOKEN"
 
       # 7) Deploy (hereda las vars como process.env)
       - name: Deploy Hosting and Functions
