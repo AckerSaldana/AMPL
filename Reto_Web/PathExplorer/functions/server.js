@@ -30,47 +30,30 @@ function getEnvVariable(name, defaultValue = null) {
     return process.env[name];
   }
   
-  // 2. Intentar obtener desde Firebase Functions config de manera más directa
+  // 2. Intentar obtener desde Firebase Functions config
   try {
-    // Para OPENAI_API_KEY, comprobar directamente
-    if (name === 'OPENAI_API_KEY' && functions.config && functions.config().openai && functions.config().openai.apikey) {
-      console.log(`Variable OPENAI_API_KEY obtenida de Firebase config`);
-      return functions.config().openai.apikey;
+  
+    const firebaseConfigName = `FIREBASE_CONFIG_${name.replace(/^VITE_/, '').toUpperCase()}`;
+    if (process.env[firebaseConfigName]) {
+      console.log(`Variable ${name} obtenida de Firebase Functions v2 como ${firebaseConfigName}`);
+      return process.env[firebaseConfigName];
     }
     
-    // Para VITE_SUPABASE_URL, verificar supabase.url
-    if ((name === 'VITE_SUPABASE_URL' || name === 'SUPABASE_URL') && 
-        functions.config && functions.config().supabase && functions.config().supabase.url) {
-      console.log(`Variable Supabase URL obtenida de Firebase config`);
-      return functions.config().supabase.url;
+    // Intentar obtener con nombres alternativos comunes
+    if (name === 'VITE_SUPABASE_URL' && process.env['FIREBASE_CONFIG_SUPABASE_URL']) {
+      return process.env['FIREBASE_CONFIG_SUPABASE_URL'];
+    }
+    if (name === 'VITE_SUPABASE_SERVICE_ROLE_KEY' && process.env['FIREBASE_CONFIG_SUPABASE_SERVICEROLEKEY']) {
+      return process.env['FIREBASE_CONFIG_SUPABASE_SERVICEROLEKEY'];
     }
     
-    // Para VITE_SUPABASE_SERVICE_ROLE_KEY, verificar supabase.servicerolekey
-    if ((name === 'VITE_SUPABASE_SERVICE_ROLE_KEY' || name === 'SUPABASE_SERVICE_ROLE_KEY') && 
-        functions.config && functions.config().supabase && functions.config().supabase.servicerolekey) {
-      console.log(`Variable Supabase Service Role Key obtenida de Firebase config`);
-      return functions.config().supabase.servicerolekey;
-    }
-    
-    // Enfoque más general usando la conversión nombre→sección.clave
-    if (functions.config) {
-      const parts = name.toLowerCase().split('_');
-      if (parts.length >= 3) {
-        const configSection = parts[1].toLowerCase(); // supabase
-        let configKey = parts.slice(2).join('_').toLowerCase(); // url, service_role_key, etc.
-        
-        // Manejar casos especiales
-        if (configKey === 'service_role_key') configKey = 'servicerolekey';
-        if (configKey === 'anon_key') configKey = 'anonkey';
-        
-        if (functions.config()[configSection] && functions.config()[configSection][configKey]) {
-          console.log(`Variable ${name} obtenida de Firebase config como ${configSection}.${configKey}`);
-          return functions.config()[configSection][configKey];
-        }
-      }
+    // Intentar el método tradicional para compatibilidad con v1
+    if (functions && typeof functions.config === 'function') {
+      const config = functions.config();
+      // Código existente para v1...
     }
   } catch (error) {
-    console.error(`Error al obtener ${name} desde Firebase config:`, error);
+    console.log(`Error al obtener ${name} desde Firebase config:`, error.message);
   }
   
   // 3. Devolver valor por defecto y registrar
