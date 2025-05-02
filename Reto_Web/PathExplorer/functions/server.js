@@ -626,7 +626,7 @@ function sanitizeBuffer(buffer) {
 
 /**
  * Extrae texto de un PDF con estrategias múltiples para manejar PDFs problemáticos
- * @param {Buffer} buffer - Buffer del archivo PDF
+ * @param {Buffer|Blob} buffer - Buffer o Blob del archivo PDF
  * @param {string} filename - Nombre del archivo (solo para logs)
  * @returns {Promise<string>} - Texto extraído del PDF
  */
@@ -635,16 +635,32 @@ async function extractTextFromPDF(buffer, filename) {
   
   let extractedText = "";
   
-  // Verificar que el buffer sea válido
-  if (!buffer || !(buffer instanceof Uint8Array)) {
-    console.log("Buffer inválido, convirtiendo datos");
-    // Si no es un buffer válido, intentar convertirlo
-    if (typeof buffer === 'object' && buffer !== null) {
-      buffer = Buffer.from(buffer);
+  // Convertir Blob a ArrayBuffer si es necesario
+  let dataBuffer;
+  try {
+    if (buffer instanceof Blob) {
+      console.log("Detectado objeto Blob, convirtiendo a ArrayBuffer");
+      const arrayBuffer = await buffer.arrayBuffer();
+      dataBuffer = Buffer.from(arrayBuffer);
+    } else if (buffer instanceof Uint8Array || buffer instanceof ArrayBuffer) {
+      dataBuffer = Buffer.from(buffer);
+    } else if (typeof buffer === 'object' && buffer !== null) {
+      if (buffer.type === 'Buffer' && Array.isArray(buffer.data)) {
+        // Manejar el caso donde buffer es un objeto JSON {type: 'Buffer', data: [...]}
+        dataBuffer = Buffer.from(buffer.data);
+      } else {
+        console.log("Tipo de buffer desconocido, intentando conversión genérica");
+        dataBuffer = Buffer.from(buffer);
+      }
     } else {
-      console.error("Datos de PDF inválidos");
+      console.error("Datos de PDF inválidos o no reconocidos");
       return generarTextoDesdeArchivo(filename, 0);
     }
+    
+    console.log("Buffer convertido correctamente");
+  } catch (error) {
+    console.error(`Error al convertir el buffer: ${error.message}`);
+    return generarTextoDesdeArchivo(filename, buffer.size || 0);
   }
   
   // Estrategia 1: Intento básico
@@ -655,9 +671,6 @@ async function extractTextFromPDF(buffer, filename) {
       verbosity: 0 // Mensajes de error mínimos
     };
     
-    // Asegurar que estamos pasando un buffer adecuado
-    const dataBuffer = buffer instanceof Buffer ? buffer : Buffer.from(buffer);
-    
     const result = await pdfParse(dataBuffer, basicOptions);
     if (result.text && result.text.length > 100) {
       console.log(`✅ Extracción básica exitosa: ${result.text.length} caracteres`);
@@ -667,135 +680,44 @@ async function extractTextFromPDF(buffer, filename) {
       console.log(`⚠️ Extracción básica produjo texto insuficiente: ${extractedText.length} caracteres`);
     }
   } catch (error) {
-    // Si recibimos el error específico "Invalid parameter object"
-    if (error.message && error.message.includes("Invalid parameter object")) {
-      console.log(`Detectado error específico '${error.message}'`);
-      // Continuamos con otras estrategias
-    } else {
-      console.log(`Error en estrategia básica: ${error.message}`);
-    }
+    console.log(`Error en estrategia básica: ${error.message}`);
   }
   
-  // Estrategia 2: Extracción por páginas
+  // Si falla la estrategia básica con el buffer convertido, intentar guardar y leer el archivo
   try {
-    console.log("Estrategia 2: Extracción página por página");
-    const pageTexts = [];
+    console.log("Estrategia alternativa: Guardando archivo temporalmente");
     
-    // Convertir buffer a formato adecuado si es necesario
-    const pdfBuffer = buffer instanceof Buffer ? buffer : Buffer.from(buffer);
+    // Importar módulos necesarios
+    const fs = await import('fs');
+    const os = await import('os');
+    const path = await import('path');
     
-    // Intentar extraer las primeras páginas individualmente
-    for (let i = 1; i <= 5; i++) {
-      try {
-        const pageOptions = {
-          max: i,
-          min: i,
-          verbosity: 0
-        };
-        
-        const pageResult = await pdfParse(pdfBuffer, pageOptions);
-        if (pageResult.text && pageResult.text.trim()) {
-          console.log(`✅ Página ${i} extraída: ${pageResult.text.length} caracteres`);
-          pageTexts.push(pageResult.text);
-        }
-      } catch (pageError) {
-        console.log(`Error en página ${i}: ${pageError.message}`);
-        // Continuar con la siguiente página
-      }
+    // Crear archivo temporal
+    const tempFilePath = path.join(os.tmpdir(), `temp_${Date.now()}.pdf`);
+    fs.writeFileSync(tempFilePath, dataBuffer);
+    
+    // Leer archivo con pdf-parse
+    const tempBuffer = fs.readFileSync(tempFilePath);
+    const result = await pdfParse(tempBuffer);
+    
+    // Limpiar archivo temporal
+    try {
+      fs.unlinkSync(tempFilePath);
+    } catch (e) {
+      console.warn("No se pudo eliminar el archivo temporal", e);
     }
     
-    if (pageTexts.length > 0) {
-      const combinedText = pageTexts.join("\n\n");
-      console.log(`✅ Combinación de ${pageTexts.length} páginas: ${combinedText.length} caracteres`);
-      
-      if (combinedText.length > extractedText.length) {
-        extractedText = combinedText;
-        
-        if (extractedText.length > 100) {
-          return extractedText; // Si tenemos suficiente texto, retornamos
-        }
-      }
+    if (result.text && result.text.length > 100) {
+      console.log(`✅ Extracción exitosa mediante archivo temporal: ${result.text.length} caracteres`);
+      return result.text;
     }
   } catch (error) {
-    console.log(`Error en estrategia por páginas: ${error.message}`);
+    console.log(`Error en estrategia de archivo temporal: ${error.message}`);
   }
   
-  // Estrategia 3: Intento con buffer sanitizado para el error específico
-  try {
-    console.log("Estrategia 3: Usando buffer sanitizado");
-    // Sanitizar el buffer puede ayudar con algunos errores
-    const sanitizedBuffer = Buffer.from(buffer); // Crear una copia fresca
-    
-    const safeOptions = {
-      max: 3, // Solo primeras páginas
-      verbosity: -1, // Sin logs de error
-      pagerender: null // Sin renderizado personalizado
-    };
-    
-    const safeResult = await pdfParse(sanitizedBuffer, safeOptions);
-    if (safeResult.text && safeResult.text.length > 0) {
-      console.log(`✅ Extracción con buffer sanitizado: ${safeResult.text.length} caracteres`);
-      
-      if (safeResult.text.length > extractedText.length) {
-        extractedText = safeResult.text;
-        
-        if (extractedText.length > 100) {
-          return extractedText;
-        }
-      }
-    }
-  } catch (error) {
-    console.log(`Error en estrategia sanitizada: ${error.message}`);
-  }
-  
-  // Estrategia 4: Último recurso - usar una configuración mínima
-  try {
-    console.log("Estrategia 4: Configuración mínima de último recurso");
-    
-    // Convertir explícitamente a ArrayBuffer y luego a Buffer
-    let lastResortBuffer;
-    if (buffer instanceof ArrayBuffer) {
-      lastResortBuffer = Buffer.from(buffer);
-    } else if (buffer instanceof Uint8Array) {
-      lastResortBuffer = Buffer.from(buffer.buffer);
-    } else {
-      lastResortBuffer = Buffer.from(buffer);
-    }
-    
-    const lastResortOptions = {
-      max: 1, // Solo primera página
-      verbosity: -1, // Sin mensajes
-      pagerender: null // Sin renderizado personalizado
-    };
-    
-    const lastResortResult = await pdfParse(lastResortBuffer, lastResortOptions);
-    if (lastResortResult.text && lastResortResult.text.length > 0) {
-      console.log(`✅ Extracción de último recurso: ${lastResortResult.text.length} caracteres`);
-      
-      if (lastResortResult.text.length > extractedText.length) {
-        extractedText = lastResortResult.text;
-      }
-    }
-  } catch (error) {
-    console.log(`Error en estrategia de último recurso: ${error.message}`);
-  }
-  
-  // Evaluar resultados finales
-  if (extractedText && extractedText.length > 0) {
-    console.log(`📄 Texto extraído final: ${extractedText.length} caracteres`);
-    
-    // Si el texto es muy corto, complementar con texto generado
-    if (extractedText.length < 100) {
-      console.log("⚠️ Texto extraído insuficiente, complementando con información generada");
-      return extractedText + "\n\n" + generarTextoDesdeArchivo(filename, buffer.length || 0);
-    }
-    
-    return extractedText;
-  }
-  
-  // Si todas las estrategias fallaron, generar texto completo
+  // Si llegamos aquí, todas las estrategias fallaron
   console.log("❌ Todas las estrategias de extracción fallaron, generando texto alternativo");
-  return generarTextoDesdeArchivo(filename, buffer.length || 0);
+  return generarTextoDesdeArchivo(filename, dataBuffer.length || buffer.size || 0);
 }
 
 /**
