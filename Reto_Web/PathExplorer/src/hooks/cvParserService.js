@@ -1,7 +1,10 @@
 /**
  * CV Parser Service
- * Handles the logic for parsing CVs using AI service
+ * Handles the logic for parsing CVs using AI service with Supabase Storage
  */
+
+// Imports necesarios
+import { supabase } from "../supabase/supabaseClient";
 
 // Base URL for API (adjust based on environment)
 const API_BASE_URL = import.meta.env.VITE_APP_API_URL || 
@@ -37,7 +40,7 @@ const generateCorporateEmail = (firstName, lastName) => {
 };
 
 /**
- * Parse CV using the AI backend service
+ * Parse CV using the AI backend service via Supabase Storage
  * @param {File} file - The CV file to parse
  * @param {Array} availableSkills - List of available skills
  * @param {Array} availableRoles - List of available roles
@@ -55,50 +58,88 @@ export const parseCV = async (file, availableSkills = [], availableRoles = [], o
   }
   
   const startTime = Date.now();
+  onProgress(10);
   
   try {
-    // Create a new FormData with only the essentials
-    const formData = new FormData();
+    // 1. Crear nombre de archivo seguro y único para evitar colisiones
+    const fileExtension = file.name.split('.').pop();
+    const timestamp = new Date().getTime();
+    const fileName = `cv_${timestamp}_${Math.floor(Math.random() * 1000)}.${fileExtension}`;
+    const filePath = `temp/${fileName}`;
     
-    // Add the file with a safe name (no spaces or special characters)
-    const safeFileName = file.name.replace(/[^a-zA-Z0-9.]/g, '_');
-    const safeFile = new File([file], safeFileName, { type: file.type });
-    formData.append('file', safeFile);
+    // 2. Subir archivo a Supabase Storage
+    onProgress(20);
+    console.log("Subiendo archivo a Supabase Storage:", filePath);
     
-    // Convert data to JSON strings safely
-    const skillsJson = JSON.stringify(availableSkills || []);
-    const rolesJson = JSON.stringify(availableRoles || []);
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from('cvs') // Asegúrate que este bucket exista en tu proyecto Supabase
+      .upload(filePath, file, {
+        cacheControl: '3600',
+        upsert: false
+      });
     
-    // Add the data as strings
-    formData.append('availableSkills', skillsJson);
-    formData.append('availableRoles', rolesJson);
+    if (uploadError) {
+      console.error("Error al subir archivo a Supabase:", uploadError);
+      throw new Error(`Error al subir archivo: ${uploadError.message}`);
+    }
     
-    console.log("Sending request to:", `${API_BASE_URL}/api/cv/parse`);
-    console.log("File:", safeFileName, file.type, file.size);
+    onProgress(50);
+    console.log("Archivo subido exitosamente:", uploadData.path);
     
-    // Use fetch with no-cors as a last resort for CORS
+    // 3. Enviar solo la ruta y metadatos a la API
+    const requestData = {
+      filePath: uploadData.path,
+      fileName: file.name,
+      fileSize: file.size,
+      fileType: file.type,
+      availableSkills,
+      availableRoles
+    };
+    
+    console.log("Enviando solicitud de parseo:", `${API_BASE_URL}/api/cv/parse`);
+    
     const response = await fetch(`${API_BASE_URL}/api/cv/parse`, {
       method: 'POST',
-      body: formData,
-      // Don't set Content-Type, the browser will do it automatically with the correct boundary
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(requestData)
     });
     
+    onProgress(80);
+    
     if (!response.ok) {
-      throw new Error(`Error ${response.status}: ${response.statusText}`);
+      let errorMessage;
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.error || `Error ${response.status}: ${response.statusText}`;
+      } catch (e) {
+        errorMessage = `Error ${response.status}: ${response.statusText}`;
+      }
+      throw new Error(errorMessage);
     }
     
     const result = await response.json();
-    onProgress(100);
     
     if (!result.success) {
       throw new Error(result.error || "Failed to parse CV");
     }
     
-    const parsedData = result.data;
-    const endTime = Date.now();
-    const processingTime = (endTime - startTime) / 1000;
+    // Limpiar archivo temporal de Storage cuando haya terminado
+    try {
+      await supabase.storage.from('cvs').remove([filePath]);
+      console.log("Archivo temporal eliminado de Supabase Storage");
+    } catch (cleanupError) {
+      console.warn("No se pudo eliminar el archivo temporal:", cleanupError);
+      // No interrumpimos el flujo por esto
+    }
     
-    // MODIFICACIÓN: Generar el email corporativo basado en nombre y apellido
+    onProgress(100);
+    
+    const parsedData = result.data;
+    const processingTime = result.meta?.processingTime || ((Date.now() - startTime) / 1000);
+    
+    // Generar el email corporativo basado en nombre y apellido
     const corporateEmail = generateCorporateEmail(parsedData.firstName, parsedData.lastName);
     
     return {
@@ -111,15 +152,19 @@ export const parseCV = async (file, availableSkills = [], availableRoles = [], o
         role: parsedData.role || "",
         about: parsedData.about || "Experienced professional with a background in technology and business solutions.",
         skills: parsedData.skills || [],
+        // Preservar estructuras adicionales si existen
+        education: parsedData.education || [],
+        workExperience: parsedData.workExperience || [],
+        languages: parsedData.languages || []
       },
       meta: {
-        confidence: 0.92,
-        detectedFields: Object.keys(parsedData).filter(key => 
+        confidence: result.meta?.confidence || 0.92,
+        detectedFields: result.meta?.detectedFields || Object.keys(parsedData).filter(key => 
           parsedData[key] && 
           (typeof parsedData[key] === 'string' ? parsedData[key].trim() !== '' : 
            Array.isArray(parsedData[key]) ? parsedData[key].length > 0 : true)
         ),
-        processingTime: result.meta?.processingTime || processingTime,
+        processingTime,
       }
     };
     

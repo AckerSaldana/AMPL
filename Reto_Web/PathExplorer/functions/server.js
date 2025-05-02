@@ -1198,53 +1198,61 @@ function mapSkills(detectedSkills, availableSkills) {
     .filter(skill => skill !== null);
 }
 
-// Endpoint para el parseo de CV 
-app.post("/api/cv/parse", upload.single("file"), async (req, res) => {
+// Endpoint para el parseo de CV utilizando Supabase Storage
+app.post("/api/cv/parse", express.json(), async (req, res) => {
   console.log("========== NUEVA SOLICITUD RECIBIDA EN /api/cv/parse ==========");
   try {
-    // 1) Validación de archivo
-    if (!req.file) {
-      console.error("No se proporcionó ningún archivo");
+    // 1) Validación de datos de entrada
+    const { filePath, fileName, fileSize, fileType, availableSkills = [], availableRoles = [] } = req.body;
+    
+    if (!filePath) {
+      console.error("No se proporcionó la ruta del archivo");
       return res.status(400).json({
         success: false,
-        error: "No se proporcionó ningún archivo"
+        error: "No se proporcionó la ruta del archivo"
       });
     }
-    console.log(`Archivo recibido: ${req.file.originalname}`);
-    console.log(`Tipo MIME: ${req.file.mimetype}`);
-    console.log(`Tamaño: ${req.file.size} bytes`);
-    req.file.receivedAt = Date.now();
-
-    // 2) Parsear skills y roles desde el body
-    let availableSkills = [], availableRoles = [];
+    
+    console.log(`Archivo recibido: ${fileName || filePath}`);
+    console.log(`Tipo: ${fileType}, Tamaño: ${fileSize} bytes`);
+    
+    // 2) Descargar el archivo desde Supabase Storage
+    console.log(`Descargando archivo desde Supabase Storage: ${filePath}`);
+    const { data: fileData, error: downloadError } = await supabaseAdmin.storage
+      .from('cvs')
+      .download(filePath);
+    
+    if (downloadError || !fileData) {
+      console.error("Error al descargar archivo:", downloadError);
+      return res.status(500).json({
+        success: false,
+        error: `Error al acceder al archivo: ${downloadError?.message || 'Archivo no encontrado'}`
+      });
+    }
+    
+    // 3) Parsear skills y roles
     try {
-      if (req.body.availableSkills) {
-        availableSkills = JSON.parse(req.body.availableSkills);
-        console.log(`● ${availableSkills.length} skills disponibles recibidas`);
-      }
-      if (req.body.availableRoles) {
-        availableRoles = JSON.parse(req.body.availableRoles);
-        console.log(`● ${availableRoles.length} roles disponibles recibidos`);
-      }
+      console.log(`● ${availableSkills.length} skills disponibles recibidas`);
+      console.log(`● ${availableRoles.length} roles disponibles recibidos`);
     } catch (err) {
-      console.warn("Error al parsear availableSkills/availableRoles:", err);
+      console.warn("Error al leer availableSkills/availableRoles:", err);
     }
 
-    // 3) Extraer texto del CV con manejo avanzado de errores
+    // 4) Extraer texto del CV con manejo avanzado de errores
     console.log("Iniciando extracción de texto del CV…");
     let cvText = "";
-    if (req.file.mimetype === "application/pdf") {
+    if (fileType === "application/pdf" || filePath.toLowerCase().endsWith('.pdf')) {
       try {
-        // Usar la nueva función robusta de extracción
-        cvText = await extractTextFromPDF(req.file.buffer, req.file.originalname);
+        // Usar la función robusta de extracción existente
+        cvText = await extractTextFromPDF(fileData, fileName || filePath);
         console.log(`→ Texto extraído: ${cvText.length} caracteres`);
       } catch (extractError) {
         console.error("Error en la extracción de texto:", extractError);
-        cvText = `Contenido del CV no pudo ser extraído completamente. Filename: ${req.file.originalname}`;
+        cvText = `Contenido del CV no pudo ser extraído completamente. Filename: ${fileName || filePath}`;
       }
-    } else if (req.file.mimetype.includes("word")) {
+    } else if (fileType.includes("word") || /\.(doc|docx)$/i.test(filePath)) {
       console.log("Detectado archivo Word, usando texto simulado");
-      cvText = `CV simulado para archivo Word: ${req.file.originalname}
+      cvText = `CV simulado para archivo Word: ${fileName || filePath}
 
 Profesional con experiencia en desarrollo de software
 Email: ejemplo@dominio.com
@@ -1254,19 +1262,19 @@ Habilidades: JavaScript, React, Node.js, HTML, CSS`;
     } else {
       return res.status(400).json({
         success: false,
-        error: `Formato de archivo no soportado: ${req.file.mimetype}. Por favor, suba un PDF o documento Word.`
+        error: `Formato de archivo no soportado: ${fileType}. Por favor, suba un PDF o documento Word.`
       });
     }
 
-    // 4) Analizar con IA
+    // 5) Analizar con IA
     console.log("Iniciando análisis del texto con IA...");
     const startTime = Date.now();
     const parsedData = await analyzeWithOpenAI(cvText, availableSkills, availableRoles);
 
-    // 5) Mapear habilidades
+    // 6) Mapear habilidades
     const mappedSkills = mapSkills(parsedData.skills || [], availableSkills);
 
-    // 6) Construir resultado final
+    // 7) Construir resultado final
     const finalResult = {
       firstName: parsedData.firstName || "",
       lastName: parsedData.lastName || "",
@@ -1283,14 +1291,14 @@ Habilidades: JavaScript, React, Node.js, HTML, CSS`;
     const processingTime = ((Date.now() - startTime) / 1000).toFixed(2);
     console.log(`✅ CV procesado en ${processingTime}s`);
 
-    // 7) Responder al cliente
+    // 8) Responder al cliente
     return res.json({
       success: true,
       data: finalResult,
       meta: {
         processingTime: Number(processingTime),
-        fileName: req.file.originalname,
-        fileSize: req.file.size,
+        fileName: fileName || filePath,
+        fileSize: fileSize,
         textLength: cvText.length,
         aiModel: "gpt-4o-mini"
       }
@@ -1303,7 +1311,7 @@ Habilidades: JavaScript, React, Node.js, HTML, CSS`;
       success: false,
       error: error.message,
       stack: process.env.NODE_ENV === "development" ? error.stack : undefined,
-      details: "Error procesando archivo multipart"
+      details: "Error procesando archivo desde Supabase Storage"
     });
   }
 });
@@ -1651,6 +1659,11 @@ app.post("/api/admin/create-employee", async (req, res) => {
       error: `Error interno del servidor: ${error.message}` 
     });
   }
+});
+
+app.use((err, req, res, next) => {
+  console.error("Unhandled error:", err);
+  res.status(500).json({ success: false, error: err.message });
 });
 
 // Iniciar el servidor localmente solo si se ejecuta directamente
