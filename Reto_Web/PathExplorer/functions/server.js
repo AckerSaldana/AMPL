@@ -635,6 +635,18 @@ async function extractTextFromPDF(buffer, filename) {
   
   let extractedText = "";
   
+  // Verificar que el buffer sea válido
+  if (!buffer || !(buffer instanceof Uint8Array)) {
+    console.log("Buffer inválido, convirtiendo datos");
+    // Si no es un buffer válido, intentar convertirlo
+    if (typeof buffer === 'object' && buffer !== null) {
+      buffer = Buffer.from(buffer);
+    } else {
+      console.error("Datos de PDF inválidos");
+      return generarTextoDesdeArchivo(filename, 0);
+    }
+  }
+  
   // Estrategia 1: Intento básico
   try {
     console.log("Estrategia 1: Extracción básica");
@@ -643,7 +655,10 @@ async function extractTextFromPDF(buffer, filename) {
       verbosity: 0 // Mensajes de error mínimos
     };
     
-    const result = await pdfParse(buffer, basicOptions);
+    // Asegurar que estamos pasando un buffer adecuado
+    const dataBuffer = buffer instanceof Buffer ? buffer : Buffer.from(buffer);
+    
+    const result = await pdfParse(dataBuffer, basicOptions);
     if (result.text && result.text.length > 100) {
       console.log(`✅ Extracción básica exitosa: ${result.text.length} caracteres`);
       return result.text;
@@ -652,9 +667,9 @@ async function extractTextFromPDF(buffer, filename) {
       console.log(`⚠️ Extracción básica produjo texto insuficiente: ${extractedText.length} caracteres`);
     }
   } catch (error) {
-    // Si recibimos el error específico "Invalid number: a"
-    if (error.message && error.message.includes("Invalid number: a")) {
-      console.log("Detectado error específico 'Invalid number: a'");
+    // Si recibimos el error específico "Invalid parameter object"
+    if (error.message && error.message.includes("Invalid parameter object")) {
+      console.log(`Detectado error específico '${error.message}'`);
       // Continuamos con otras estrategias
     } else {
       console.log(`Error en estrategia básica: ${error.message}`);
@@ -666,6 +681,9 @@ async function extractTextFromPDF(buffer, filename) {
     console.log("Estrategia 2: Extracción página por página");
     const pageTexts = [];
     
+    // Convertir buffer a formato adecuado si es necesario
+    const pdfBuffer = buffer instanceof Buffer ? buffer : Buffer.from(buffer);
+    
     // Intentar extraer las primeras páginas individualmente
     for (let i = 1; i <= 5; i++) {
       try {
@@ -675,7 +693,7 @@ async function extractTextFromPDF(buffer, filename) {
           verbosity: 0
         };
         
-        const pageResult = await pdfParse(buffer, pageOptions);
+        const pageResult = await pdfParse(pdfBuffer, pageOptions);
         if (pageResult.text && pageResult.text.trim()) {
           console.log(`✅ Página ${i} extraída: ${pageResult.text.length} caracteres`);
           pageTexts.push(pageResult.text);
@@ -703,38 +721,46 @@ async function extractTextFromPDF(buffer, filename) {
   }
   
   // Estrategia 3: Intento con buffer sanitizado para el error específico
-  if (buffer.length > 0) {
-    try {
-      console.log("Estrategia 3: Usando buffer sanitizado");
-      // Sanitizar el buffer puede ayudar con algunos errores
-      const sanitizedBuffer = sanitizeBuffer(buffer);
+  try {
+    console.log("Estrategia 3: Usando buffer sanitizado");
+    // Sanitizar el buffer puede ayudar con algunos errores
+    const sanitizedBuffer = Buffer.from(buffer); // Crear una copia fresca
+    
+    const safeOptions = {
+      max: 3, // Solo primeras páginas
+      verbosity: -1, // Sin logs de error
+      pagerender: null // Sin renderizado personalizado
+    };
+    
+    const safeResult = await pdfParse(sanitizedBuffer, safeOptions);
+    if (safeResult.text && safeResult.text.length > 0) {
+      console.log(`✅ Extracción con buffer sanitizado: ${safeResult.text.length} caracteres`);
       
-      const safeOptions = {
-        max: 3, // Solo primeras páginas
-        verbosity: -1, // Sin logs de error
-        pagerender: null // Sin renderizado personalizado
-      };
-      
-      const safeResult = await pdfParse(sanitizedBuffer, safeOptions);
-      if (safeResult.text && safeResult.text.length > 0) {
-        console.log(`✅ Extracción con buffer sanitizado: ${safeResult.text.length} caracteres`);
+      if (safeResult.text.length > extractedText.length) {
+        extractedText = safeResult.text;
         
-        if (safeResult.text.length > extractedText.length) {
-          extractedText = safeResult.text;
-          
-          if (extractedText.length > 100) {
-            return extractedText;
-          }
+        if (extractedText.length > 100) {
+          return extractedText;
         }
       }
-    } catch (error) {
-      console.log(`Error en estrategia sanitizada: ${error.message}`);
     }
+  } catch (error) {
+    console.log(`Error en estrategia sanitizada: ${error.message}`);
   }
   
   // Estrategia 4: Último recurso - usar una configuración mínima
   try {
     console.log("Estrategia 4: Configuración mínima de último recurso");
+    
+    // Convertir explícitamente a ArrayBuffer y luego a Buffer
+    let lastResortBuffer;
+    if (buffer instanceof ArrayBuffer) {
+      lastResortBuffer = Buffer.from(buffer);
+    } else if (buffer instanceof Uint8Array) {
+      lastResortBuffer = Buffer.from(buffer.buffer);
+    } else {
+      lastResortBuffer = Buffer.from(buffer);
+    }
     
     const lastResortOptions = {
       max: 1, // Solo primera página
@@ -742,7 +768,7 @@ async function extractTextFromPDF(buffer, filename) {
       pagerender: null // Sin renderizado personalizado
     };
     
-    const lastResortResult = await pdfParse(buffer, lastResortOptions);
+    const lastResortResult = await pdfParse(lastResortBuffer, lastResortOptions);
     if (lastResortResult.text && lastResortResult.text.length > 0) {
       console.log(`✅ Extracción de último recurso: ${lastResortResult.text.length} caracteres`);
       
@@ -761,7 +787,7 @@ async function extractTextFromPDF(buffer, filename) {
     // Si el texto es muy corto, complementar con texto generado
     if (extractedText.length < 100) {
       console.log("⚠️ Texto extraído insuficiente, complementando con información generada");
-      return extractedText + "\n\n" + generarTextoDesdeArchivo(filename, buffer.length);
+      return extractedText + "\n\n" + generarTextoDesdeArchivo(filename, buffer.length || 0);
     }
     
     return extractedText;
@@ -769,7 +795,7 @@ async function extractTextFromPDF(buffer, filename) {
   
   // Si todas las estrategias fallaron, generar texto completo
   console.log("❌ Todas las estrategias de extracción fallaron, generando texto alternativo");
-  return generarTextoDesdeArchivo(filename, buffer.length);
+  return generarTextoDesdeArchivo(filename, buffer.length || 0);
 }
 
 /**
