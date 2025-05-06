@@ -61,20 +61,21 @@ const Dashboard = () => {
         
         // Fetch user path items
         const { data: pathData, error: pathError } = await supabase
-          .from('UserCertifications')
-          .select('*')
-          .eq('user_ID', user.id)
-          .order('completion_Status', 'TRUE');
+  .from('UserCertifications')
+  .select('*')
+  .eq('user_ID', user.id)
+  .order('status', { ascending: false });
 
         if (pathError) throw pathError;
         setPathItems(pathData || []);
 
         // Fetch calendar events
         const { data: eventsData, error: eventsError } = await supabase
-          .from('UserCertifications')
-          .select('*')
-          .eq('user_ID', user.id)
-          .order('completion_Status', 'FALSE');
+  .from('UserCertifications')
+  .select('*')
+  .eq('user_ID', user.id)
+  .eq('status', 'pending')  // Only get pending certifications
+  .order('valid_Until', { ascending: true });  // Order by expiration date
 
         if (eventsError) throw eventsError;
         setCalendarEvents(eventsData || []);
@@ -129,17 +130,17 @@ setTopCertifications(topCertifications);
           .from('Certifications')
           .select('*', { count: 'exact' });
 
-        const { count: completedCount } = await supabase
+          const { count: completedCount } = await supabase
           .from('UserCertifications')
           .select('*', { count: 'exact' })
           .eq('user_ID', user.id)
-          .eq('completed_Date', { ascending: false });
+          .eq('status', 'approved');
 
-        const { count: inProgressCount } = await supabase
+          const { count: inProgressCount } = await supabase
           .from('UserCertifications')
           .select('*', { count: 'exact' })
           .eq('user_ID', user.id)
-          .eq('completed_Date', { ascending: false });
+          .eq('status', 'pending');
 
         setStats({
           available: availableCount || 0,

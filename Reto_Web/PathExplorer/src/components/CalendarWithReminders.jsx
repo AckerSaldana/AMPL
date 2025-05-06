@@ -59,11 +59,12 @@ useEffect(() => {
       }));
 
       // Obtener certificaciones pendientes del usuario
+      // 👇 UPDATED: Changed from completion_Status to status
       const { data: userCerts, error: certError } = await supabase
       .from('UserCertifications')
       .select('certification_ID')
       .eq('user_ID', userId)
-      .eq('completion_Status', false);
+      .eq('status', 'pending');
 
       if (certError) throw certError;
 
