@@ -1,5 +1,5 @@
 import React from "react";
-import { Box, Typography, Paper } from "@mui/material";
+import { Box, Typography, Paper, useMediaQuery, useTheme } from "@mui/material";
 
 /**
  * Componente para mostrar estadísticas generales con el diseño de la imagen de referencia
@@ -9,33 +9,125 @@ import { Box, Typography, Paper } from "@mui/material";
  * @param {number|string} props.value - Valor de la estadística
  * @param {string} props.bgColor - Color de fondo del icono (formato rgba o hex)
  */
-const StatCard = ({ icon: Icon, title, value, bgColor }) => (
-  <Paper elevation={0} sx={{ p: 3, borderRadius: 2 }}>
-    <Box sx={{ display: "flex", alignItems: "center" }}>
-      <Box
-        sx={{
-          width: 42,
-          height: 42,
-          borderRadius: "50%",
-          bgcolor: bgColor,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          mr: 2
-        }}
-      >
-        <Icon sx={{ color: "white" }} />
+const StatCard = ({ icon: Icon, title, value, bgColor }) => {
+  const theme = useTheme();
+  
+  // Media queries más específicos para un comportamiento responsivo más preciso
+  const isSmallScreen = useMediaQuery('(max-width:599px)');
+  const isMediumScreen = useMediaQuery('(min-width:600px) and (max-width:959px)');
+  const isLargeScreen = useMediaQuery('(min-width:960px)');
+  const isExtraSmallScreen = useMediaQuery('(max-width:320px)');
+  
+  // Calculamos los tamaños dependiendo del breakpoint para evitar compresión
+  const getIconSize = () => {
+    if (isExtraSmallScreen) return 32;
+    if (isSmallScreen) return 36;
+    return 42;
+  };
+  
+  const getFontSize = () => {
+    if (isExtraSmallScreen) return "1.25rem";
+    if (isSmallScreen) return "1.5rem";
+    return "2rem";
+  };
+  
+  const getLayout = () => {
+    // En pantallas extra pequeñas o cuando hay poco espacio horizontal, usamos layout horizontal
+    if (isExtraSmallScreen) return "row";
+    
+    // En pantallas pequeñas a medianas, adaptamos según sea necesario
+    if (isSmallScreen) return "row";
+    
+    // En tablets y dispositivos medianos, podría ser mejor un layout vertical
+    if (isMediumScreen) return "row";
+    
+    // En pantallas grandes, volvemos al layout horizontal
+    return "row";
+  };
+  
+  const iconSize = getIconSize();
+  const fontSize = getFontSize();
+  const layout = getLayout();
+  
+  return (
+    <Paper 
+      elevation={0} 
+      sx={{ 
+        p: isExtraSmallScreen ? 1.5 : (isSmallScreen ? 2 : 3), 
+        borderRadius: 2,
+        height: "100%",
+        display: "flex",
+        alignItems: "center",
+        width: "100%",
+        boxSizing: "border-box",
+        // Ensure the card doesn't get squished too much
+        minWidth: isExtraSmallScreen ? "100%" : 180
+      }}
+    >
+      <Box sx={{ 
+        display: "flex", 
+        alignItems: "center",
+        flexDirection: layout,
+        width: "100%",
+        justifyContent: "flex-start", // Align content to start for better spacing
+        textAlign: layout === "column" ? "center" : "left"
+      }}>
+        <Box
+          sx={{
+            width: iconSize,
+            height: iconSize,
+            borderRadius: "50%",
+            bgcolor: bgColor,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            mr: layout === "row" ? 2 : 0,
+            mb: layout === "column" ? 1.5 : 0,
+            flexShrink: 0 // Prevent the icon from shrinking
+          }}
+        >
+          <Icon sx={{ 
+            color: "white",
+            fontSize: iconSize * 0.55 // Scale icon with container
+          }} />
+        </Box>
+        <Box sx={{
+          flex: 1,
+          minWidth: 0 // Allow the box to shrink below its content size
+        }}>
+          <Typography 
+            variant={isSmallScreen ? "h5" : "h4"} 
+            fontWeight={500} 
+            color={bgColor.replace("20", "")}
+            sx={{
+              mb: 0.5,
+              fontSize,
+              lineHeight: 1.2,
+              // Ensure very long numbers don't break layout
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap"
+            }}
+          >
+            {value}
+          </Typography>
+          <Typography 
+            variant="body2" 
+            color="text.secondary"
+            sx={{ 
+              fontSize: isSmallScreen ? "0.75rem" : "0.875rem",
+              // Handle long titles
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap"
+            }}
+          >
+            {title}
+          </Typography>
+        </Box>
       </Box>
-      <Box>
-        <Typography variant="h4" fontWeight={500} color={bgColor.replace("20", "")}>
-          {value}
-        </Typography>
-        <Typography variant="body2" color="text.secondary">
-          {title}
-        </Typography>
-      </Box>
-    </Box>
-  </Paper>
-);
+    </Paper>
+  );
+};
 
 export default StatCard;

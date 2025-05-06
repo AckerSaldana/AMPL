@@ -1245,10 +1245,22 @@ const PastProjectsCard = () => {
             sx={{ 
               tableLayout: "fixed", 
               width: "100%",
+              border: `1px solid ${alpha(theme.palette.primary.main, 0.1)}`,
+              borderRadius: 1,
+              borderCollapse: 'separate',
+              borderSpacing: 0,
+              overflow: 'hidden',
               '& .MuiTableCell-root': {
-                borderColor: alpha(theme.palette.primary.main, 0.1),
+                borderBottom: `1px solid ${alpha(theme.palette.primary.main, 0.1)}`,
+                borderRight: `1px solid ${alpha(theme.palette.primary.main, 0.1)}`,
                 py: 1.5,
-                px: 2
+                px: 2,
+                '&:last-child': {
+                  borderRight: 'none'
+                }
+              },
+              '& tr:last-child .MuiTableCell-root': {
+                borderBottom: 'none'
               },
               '& .MuiTableCell-head': {
                 fontWeight: 600,
@@ -1277,41 +1289,42 @@ const PastProjectsCard = () => {
                   sx={{
                     '&:hover': {
                       backgroundColor: alpha(theme.palette.primary.main, 0.02)
+                    },
+                    '&:last-child td': {
+                      borderBottom: 0
                     }
                   }}
                 >
                   <TableCell>
                     {project.title}
                   </TableCell>
-                  <TableCell sx={{ display: 'flex', alignItems: 'center' }}>
-                    <AvatarGroup
-                      max={3}
-                      sx={{
-                        display: "flex",
-                        alignItems: "center",
-                        mr: 2, // Añade margen a la derecha para separarlo del texto
-                        "& .MuiAvatar-root": {
-                          width: 24,
-                          height: 24,
-                          fontSize: "0.75rem",
-                          bgcolor: theme.palette.primary.main,
-                          border: '1px solid white'
-                        },
-                      }}
-                    >
-                      {project.team.map((member, i) => (
-                        <Avatar
-                          key={i}
-                          src={member.avatar}
-                          alt={member.name}
-                          sx={{
+                  <TableCell>
+                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                      <AvatarGroup
+                        max={3}
+                        sx={{
+                          "& .MuiAvatar-root": {
                             width: 24,
-                            height: 24
-                          }}
-                        />
-                      ))}
-                    </AvatarGroup>
-                    <Box component="span" sx={{ flexGrow: 1 }}></Box>
+                            height: 24,
+                            fontSize: "0.75rem",
+                            bgcolor: theme.palette.primary.main,
+                            border: '1px solid white'
+                          },
+                        }}
+                      >
+                        {project.team.map((member, i) => (
+                          <Avatar
+                            key={i}
+                            src={member.avatar}
+                            alt={member.name}
+                            sx={{
+                              width: 24,
+                              height: 24
+                            }}
+                          />
+                        ))}
+                      </AvatarGroup>
+                    </Box>
                   </TableCell>
                   <TableCell>
                     <Typography variant="body2">

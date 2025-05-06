@@ -14,8 +14,15 @@ import {
   IconButton,
   Divider,
   CircularProgress,
+  Table,
+  TableHead,
+  TableRow,
+  TableCell,
+  TableBody,
   useTheme,
   alpha,
+  Skeleton,
+  AvatarGroup
 } from "@mui/material";
 import {
   Person,
@@ -33,7 +40,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "../supabase/supabaseClient";
 import useAuth from "../hooks/useAuth";
 
-// Import the new UserSkillsDisplay component
+// Import the UserSkillsDisplay component
 import UserSkillsDisplay from "../components/UserSkillsDisplay";
 
 const UserProfileDetail = ({ userId, isModal = false, onClose }) => {
@@ -50,6 +57,8 @@ const UserProfileDetail = ({ userId, isModal = false, onClose }) => {
   const [error, setError] = useState(null);
   const [projects, setProjects] = useState([]);
   const [certifications, setCertifications] = useState([]);
+  const [skills, setSkills] = useState([]);
+  const [teamMembers, setTeamMembers] = useState({});
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -81,20 +90,56 @@ const UserProfileDetail = ({ userId, isModal = false, onClose }) => {
           
         if (certsError) throw certsError;
         
+        // Fetch user skills
+        const { data: userSkills, error: skillsError } = await supabase
+          .from("UserSkill")
+          .select("skill_ID(skill_ID, name)")
+          .eq("user_ID", profileUserId);
+        
+        if (skillsError) throw skillsError;
+        
+        // Extract project IDs to fetch team members
+        const projectIds = userRoles.map(role => role.project_id).filter(Boolean);
+        
+        // Fetch team members for each project
+        if (projectIds.length > 0) {
+          const { data: allTeamMembers, error: teamError } = await supabase
+            .from("UserRole")
+            .select("project_id, User:user_id(user_id, name, profile_pic)")
+            .in("project_id", projectIds);
+            
+          if (!teamError && allTeamMembers) {
+            // Group team members by project
+            const teamByProject = {};
+            allTeamMembers.forEach(({ project_id, User }) => {
+              if (!teamByProject[project_id]) teamByProject[project_id] = [];
+              if (User) {
+                teamByProject[project_id].push({
+                  name: User.name || "User",
+                  avatar: User.profile_pic || "",
+                });
+              }
+            });
+            setTeamMembers(teamByProject);
+          }
+        }
+        
         // Process and set data
         setUserData({
           id: user.user_id,
           fullName: `${user.name || ''} ${user.last_name || ''}`.trim(),
+          firstName: user.name || '',
+          lastName: user.last_name || '',
           phone: user.phone || "Not provided",
           email: user.mail || "Not provided",
           level: user.level || 1,
-          joinDate: formatDate(user.join_date) || "Not provided",
+          joinDate: formatDate(user.enter_date) || "Not provided",
           lastProjectDate: formatDate(user.last_project_date) || "Not provided",
           about: user.about || "No information provided.",
           profilePic: user.profile_pic,
           position: user.position || "Employee",
           availability: user.availability || "Available",
-          assignment: calculateAssignment(userRoles) || 0
+          assignment: user.percentage || calculateAssignment(userRoles) || 0
         });
         
         // Process projects
@@ -103,7 +148,8 @@ const UserProfileDetail = ({ userId, isModal = false, onClose }) => {
           title: role.Project?.title || "Unknown Project",
           status: role.Project?.status || "Unknown",
           startDate: formatDate(role.Project?.start_date),
-          endDate: formatDate(role.Project?.end_date)
+          endDate: formatDate(role.Project?.end_date),
+          project_id: role.project_id
         })));
         
         // Process certifications
@@ -116,12 +162,17 @@ const UserProfileDetail = ({ userId, isModal = false, onClose }) => {
           type: cert.Certifications?.type || "General"
         })));
         
+        // Process skills
+        setSkills(userSkills.map(item => item.skill_ID?.name).filter(Boolean));
+        
       } catch (error) {
         console.error("Error fetching user data:", error);
         setError("Failed to load user profile. Please try again later.");
         // Set some fallback data
         setUserData({
           fullName: "User Not Found",
+          firstName: "",
+          lastName: "",
           phone: "-",
           email: "-",
           level: 1,
@@ -178,9 +229,7 @@ const UserProfileDetail = ({ userId, isModal = false, onClose }) => {
     }
   };
   
-  const handleEditProfile = () => {
-    navigate(`/edit-profile/${profileUserId}`);
-  };
+  // Removing the edit profile functionality since this component is for viewing other profiles
   
   if (loading) {
     return (
@@ -201,359 +250,50 @@ const UserProfileDetail = ({ userId, isModal = false, onClose }) => {
     );
   }
   
-  // Render the profile content
+  // Get initials for avatar
+  const getInitials = () => {
+    if (userData?.firstName && userData?.lastName) {
+      return `${userData.firstName.charAt(0)}${userData.lastName.charAt(0)}`.toUpperCase();
+    } else if (userData?.firstName) {
+      return userData.firstName.charAt(0).toUpperCase();
+    }
+    return "U";
+  };
+  
+  // Render the profile content in ProfilePage style
   const renderProfileContent = () => (
-    <Box sx={{ p: isModal ? 0 : 2 }}>
-      {/* Banner and Avatar */}
-      <Paper
+    <UserDataContext.Provider value={{ userData, loading, projects, certifications, skills, teamMembers, formatDate }}>
+      <Box
         sx={{
-          position: "relative",
-          height: 220,
+          p: isModal ? 1 : { xs: 2, md: 3 },
+          minHeight: isModal ? "auto" : "calc(100vh - 60px)",
           width: "100%",
-          mb: 3,
-          borderRadius: 2,
-          overflow: "hidden"
+          backgroundColor: "#f8f9fa", // Light background from Accenture guidelines
         }}
       >
-        {/* Purple Banner Background */}
-        <Box 
-          sx={{ 
-            height: 180, 
-            width: "100%",
-            background: "linear-gradient(135deg, #973EBC 0%, #7500c0 100%)",
-            backgroundSize: "cover",
-            backgroundPosition: "center",
-            position: "relative",
-            overflow: "hidden",
-          }}
-        >
-          {/* Optional: Background pattern for the banner */}
-          <Box
-            sx={{
-              position: "absolute",
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              opacity: 0.1,
-              backgroundImage: "url('https://www.transparenttextures.com/patterns/cubes.png')",
-              backgroundSize: "300px",
-              zIndex: 1,
-            }}
-          />
-        </Box>
-
-        {/* White Bottom Section */}
-        <Box
-          sx={{
-            height: "50px",
-            bgcolor: "#ffffff",
-            position: "absolute",
-            bottom: 0,
-            width: "100%",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "flex-end",
-            px: 3,
-          }}
-        >
-          {/* Availability Chip */}
-          <Chip 
-            label={userData?.availability || "Available"} 
-            size="small"
-            sx={{ 
-              borderRadius: "16px",
-              bgcolor: userData?.availability === "Available" ? "#4caf50" : "#ff9800",
-              color: "white",
-              fontWeight: 500,
-              height: "24px",
-              fontSize: "0.75rem"
-            }} 
-          />
-        </Box>
-        
-        {/* Avatar - Positioned to overlap between banner and white section */}
-        <Avatar
-          src={userData?.profilePic}
-          alt={userData?.fullName}
-          sx={{
-            position: "absolute",
-            bottom: 20,
-            left: 40,
-            width: 100,
-            height: 100,
-            border: "4px solid #ffffff",
-            boxShadow: "0 2px 10px rgba(0,0,0,0.1)",
-            zIndex: 10,
-          }}
-        >
-          {!userData?.profilePic && userData?.fullName?.charAt(0)}
-        </Avatar>
-        
-        {/* Name and Title - Positioned beside the avatar */}
-        <Box
-          sx={{
-            position: "absolute",
-            left: 160,
-            bottom: 50,
-            color: "#ffffff",
-            zIndex: 5,
-          }}
-        >
-          <Typography variant="h5" fontWeight="bold">
-            {userData?.fullName}
-          </Typography>
-          <Typography variant="subtitle1">
-            {userData?.position}
-          </Typography>
-        </Box>
-      </Paper>
-
-      <Grid container spacing={3}>
-        {/* Left column: Basic info */}
-        <Grid item xs={12} md={4}>
-          <Paper sx={{ p: 3, borderRadius: 2, mb: 3 }}>
-            <Typography variant="h6" fontWeight="bold" mb={2}>
-              Information
-            </Typography>
-            
-            <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-              <Box sx={{ display: "flex", alignItems: "center" }}>
-                <Person sx={{ color: "primary.main", mr: 2 }} />
-                <Box>
-                  <Typography variant="body2" color="text.secondary">Full Name</Typography>
-                  <Typography variant="body1">{userData?.fullName}</Typography>
-                </Box>
-              </Box>
-              
-              <Box sx={{ display: "flex", alignItems: "center" }}>
-                <Phone sx={{ color: "primary.main", mr: 2 }} />
-                <Box>
-                  <Typography variant="body2" color="text.secondary">Phone</Typography>
-                  <Typography variant="body1">{userData?.phone}</Typography>
-                </Box>
-              </Box>
-              
-              <Box sx={{ display: "flex", alignItems: "center" }}>
-                <Email sx={{ color: "primary.main", mr: 2 }} />
-                <Box>
-                  <Typography variant="body2" color="text.secondary">Email</Typography>
-                  <Typography variant="body1">{userData?.email}</Typography>
-                </Box>
-              </Box>
-              
-              <Box sx={{ display: "flex", alignItems: "center" }}>
-                <Star sx={{ color: "primary.main", mr: 2 }} />
-                <Box>
-                  <Typography variant="body2" color="text.secondary">Level</Typography>
-                  <Typography variant="body1">Level {userData?.level}/12</Typography>
-                </Box>
-              </Box>
-              
-              <Box sx={{ display: "flex", alignItems: "center" }}>
-                <CalendarToday sx={{ color: "primary.main", mr: 2 }} />
-                <Box>
-                  <Typography variant="body2" color="text.secondary">Joined</Typography>
-                  <Typography variant="body1">{userData?.joinDate}</Typography>
-                </Box>
-              </Box>
-              
-              <Box sx={{ display: "flex", alignItems: "center" }}>
-                <Work sx={{ color: "primary.main", mr: 2 }} />
-                <Box>
-                  <Typography variant="body2" color="text.secondary">Last Project</Typography>
-                  <Typography variant="body1">{userData?.lastProjectDate}</Typography>
-                </Box>
-              </Box>
-            </Box>
-          </Paper>
-          
-          {/* Assignment percentage */}
-          <Paper sx={{ p: 3, borderRadius: 2, mb: 3 }}>
-            <Typography variant="h6" fontWeight="bold" mb={2}>
-              Assignment
-            </Typography>
-            
-            <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", p: 2 }}>
-              <Box sx={{ position: "relative", display: "inline-flex" }}>
-                <CircularProgress
-                  variant="determinate"
-                  value={userData?.assignment || 0}
-                  size={100}
-                  thickness={5}
-                  sx={{
-                    color: userData?.assignment > 0 ? "warning.main" : "success.main",
-                    '& .MuiCircularProgress-circle': {
-                      strokeLinecap: 'round',
-                    },
-                  }}
-                />
-                <Box
-                  sx={{
-                    top: 0,
-                    left: 0,
-                    bottom: 0,
-                    right: 0,
-                    position: 'absolute',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  <Typography variant="h6" component="div" fontWeight="bold">
-                    {`${userData?.assignment}%`}
-                  </Typography>
-                </Box>
-              </Box>
-            </Box>
-            
-            <Typography align="center" variant="body2" color="text.secondary" mt={2}>
-              {userData?.assignment > 0 
-                ? "Currently assigned to projects" 
-                : "Available for new projects"}
-            </Typography>
-          </Paper>
-        </Grid>
-        
-        {/* Right column: Extended info */}
-        <Grid item xs={12} md={8}>
-          {/* About section */}
-          <Paper sx={{ p: 3, borderRadius: 2, mb: 3 }}>
-            <Typography variant="h6" fontWeight="bold" mb={2}>
-              About
-            </Typography>
-            <Typography variant="body1" sx={{ whiteSpace: "pre-line" }}>
-              {userData?.about}
-            </Typography>
-          </Paper>
-          
-          {/* Skills section - Now using the new UserSkillsDisplay component */}
-          <Box sx={{ mb: 3 }}>
-            <UserSkillsDisplay userId={profileUserId} />
-          </Box>
-          
-          {/* Certifications & Projects */}
-          <Grid container spacing={3}>
-            <Grid item xs={12} md={6}>
-              <Paper 
-                sx={{ 
-                  p: 3, 
-                  borderRadius: 2, 
-                  mb: 3, 
-                  height: '100%',
-                  boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
-                }}
-              >
-                <Typography variant="h6" fontWeight="bold" mb={2} display="flex" alignItems="center">
-                  <School sx={{ mr: 1 }} /> Certifications
-                </Typography>
-                
-                {certifications.length > 0 ? (
-                  <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                    {certifications.map((cert, index) => (
-                      <Box 
-                        key={index} 
-                        sx={{ 
-                          p: 2, 
-                          borderRadius: 1, 
-                          bgcolor: '#f9f9f9'
-                        }}
-                      >
-                        <Typography variant="subtitle2" fontWeight="bold">
-                          {cert.title}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          Issuer: {cert.issuer}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          Completed: {cert.completedDate}
-                        </Typography>
-                        <Chip 
-                          label={`Score: ${cert.score}%`} 
-                          size="small"
-                          sx={{ 
-                            mt: 1, 
-                            bgcolor: alpha('#973EBC', 0.1),
-                            color: '#333333',
-                            fontWeight: 500
-                          }}
-                        />
-                      </Box>
-                    ))}
-                  </Box>
-                ) : (
-                  <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
-                    No certifications listed
-                  </Typography>
-                )}
-              </Paper>
+        <Box sx={{ width: "100%" }}>
+          <Grid container spacing={2}>
+            <Grid item xs={12}>
+              <BannerProfile />
             </Grid>
-            
-            <Grid item xs={12} md={6}>
-              <Paper 
-                sx={{ 
-                  p: 3, 
-                  borderRadius: 2, 
-                  mb: 3, 
-                  height: '100%',
-                  boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
-                }}
-              >
-                <Typography variant="h6" fontWeight="bold" mb={2} display="flex" alignItems="center">
-                  <Work sx={{ mr: 1 }} /> Projects
-                </Typography>
-                
-                {projects.length > 0 ? (
-                  <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                    {projects.map((project, index) => (
-                      <Box 
-                        key={index} 
-                        sx={{ 
-                          p: 2, 
-                          borderRadius: 1, 
-                          bgcolor: alpha('#007ACC', 0.04),
-                          border: '1px solid',
-                          borderColor: alpha('#007ACC', 0.12),
-                          transition: 'all 0.2s ease'
-                        }}
-                      >
-                        <Typography variant="subtitle2" fontWeight="bold">
-                          {project.title}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          Role: {project.role}
-                        </Typography>
-                        <Box sx={{ display: "flex", justifyContent: "space-between", mt: 1 }}>
-                          <Typography variant="caption" color="text.secondary">
-                            Started: {project.startDate}
-                          </Typography>
-                          <Chip 
-                            label={project.status} 
-                            size="small"
-                            sx={{ 
-                              height: 20, 
-                              fontSize: '0.6rem',
-                              bgcolor: project.status === "Completed" ? alpha('#4caf50', 0.15) : alpha('#007ACC', 0.15),
-                              color: project.status === "Completed" ? '#2e7d32' : '#005a9c',
-                              border: '1px solid',
-                              borderColor: project.status === "Completed" ? alpha('#4caf50', 0.3) : alpha('#007ACC', 0.3),
-                            }}
-                          />
-                        </Box>
-                      </Box>
-                    ))}
-                  </Box>
-                ) : (
-                  <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
-                    No projects listed
-                  </Typography>
-                )}
-              </Paper>
+
+            {/* Left Section */}
+            <Grid item xs={12} md={4} lg={3}>
+              <Information />
+              <AssignmentPercentage />
+            </Grid>
+
+            {/* Right Section */}
+            <Grid item xs={12} md={8} lg={9}>
+              <About />
+              <SkillsCard />
+              <CertificationsCard />
+              <PastProjectsCard />
             </Grid>
           </Grid>
-        </Grid>
-      </Grid>
-    </Box>
+        </Box>
+      </Box>
+    </UserDataContext.Provider>
   );
   
   // If rendering as a modal
@@ -577,7 +317,7 @@ const UserProfileDetail = ({ userId, isModal = false, onClose }) => {
             <Close />
           </IconButton>
         </DialogTitle>
-        <DialogContent dividers sx={{ p: 3 }}>
+        <DialogContent dividers sx={{ p: 0 }}>
           {renderProfileContent()}
         </DialogContent>
         <DialogActions sx={{ p: 2 }}>
@@ -589,8 +329,8 @@ const UserProfileDetail = ({ userId, isModal = false, onClose }) => {
   
   // If rendering as a standalone page
   return (
-    <Box sx={{ p: { xs: 2, md: 4 }, maxWidth: "100%" }}>
-      <Box sx={{ display: "flex", justifyContent: "flex-start", alignItems: "center", mb: 3 }}>
+    <Box sx={{ maxWidth: "100%" }}>
+      <Box sx={{ display: "flex", justifyContent: "flex-start", alignItems: "center", p: 2 }}>
         <Button
           variant="text"
           startIcon={<ArrowBack />}
@@ -604,6 +344,907 @@ const UserProfileDetail = ({ userId, isModal = false, onClose }) => {
       {renderProfileContent()}
     </Box>
   );
+};
+
+// Context for sharing user data
+const UserDataContext = React.createContext();
+const useUserData = () => React.useContext(UserDataContext);
+
+// Banner component styled like ProfilePage
+const BannerProfile = ({ onEdit }) => {
+  const theme = useTheme();
+  const { userData, loading } = useUserData();
+
+  if (loading) {
+    return (
+      <Paper 
+        elevation={0}
+        sx={{ 
+          position: "relative", 
+          height: { xs: 180, sm: 220 }, 
+          width: "100%",
+          borderRadius: 2,
+          overflow: "hidden",
+          bgcolor: "#FFF",
+          boxShadow: "0 1px 2px rgba(0,0,0,0.04)"
+        }}
+      >
+        <Skeleton variant="rectangular" width="100%" height="100%" />
+      </Paper>
+    );
+  }
+
+  // Soft banner gradient background with Accenture's purple influence
+  const bannerGradient = `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.8)} 0%, ${alpha("#7500c0", 0.9)} 100%)`;
+
+  return (
+    <Paper
+      elevation={0}
+      sx={{
+        position: "relative",
+        height: { xs: 180, sm: 220 },
+        width: "100%",
+        background: bannerGradient,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "flex-start",
+        p: 3,
+        overflow: "hidden",
+        borderRadius: 2,
+        boxShadow: "0 4px 12px rgba(0,0,0,0.05)",
+      }}
+    >
+      {/* Profile Info */}
+      <Box
+        sx={{
+          position: "absolute",
+          bottom: 24,
+          left: 24,
+          display: "flex",
+          alignItems: "center",
+          zIndex: 3,
+        }}
+      >
+        <Avatar
+          src={userData?.profilePic}
+          sx={{ 
+            width: { xs: 72, sm: 84 }, 
+            height: { xs: 72, sm: 84 }, 
+            border: "3px solid white",
+            boxShadow: "0 2px 10px rgba(0,0,0,0.1)",
+            bgcolor: "#460073", // Core Purple 3 from Accenture guidelines
+            fontSize: { xs: '1.5rem', sm: '1.75rem' },
+            fontWeight: 500,
+          }}
+        >
+          {getInitials()}
+        </Avatar>
+        <Box sx={{ ml: 2, color: "white" }}>
+          <Typography 
+            variant="h5" 
+            sx={{ 
+              fontWeight: 500,
+              fontSize: { xs: '1.25rem', sm: '1.4rem' }
+            }}
+          >
+            {userData?.fullName}
+          </Typography>
+          <Typography 
+            variant="body1"
+            sx={{
+              opacity: 0.9,
+              fontSize: { xs: '0.875rem', sm: '1rem' }
+            }}
+          >
+            {userData?.position}
+          </Typography>
+        </Box>
+      </Box>
+
+      {/* Availability Badge */}
+      <Box
+        sx={{
+          position: "absolute",
+          top: 20,
+          left: 20,
+          zIndex: 3,
+          backgroundColor: userData?.availability === "Available" ? "#4caf50" : "#ff9800",
+          color: "white",
+          px: 1.5,
+          py: 0.5,
+          borderRadius: "16px",
+          fontSize: "0.75rem",
+          fontWeight: 500,
+          letterSpacing: "0.2px",
+          border: `1px solid ${userData?.availability === "Available" ? "#4caf50" : "#ff9800"}`,
+        }}
+      >
+        {userData?.availability}
+      </Box>
+
+      {/* Removed Edit Profile Button since this is for viewing other profiles */}
+    </Paper>
+  );
+};
+
+// Information component styled like ProfilePage
+const Information = () => {
+  const theme = useTheme();
+  const { userData, loading } = useUserData();
+
+  if (loading) {
+    return (
+      <Paper 
+        elevation={0}
+        sx={{ 
+          p: 2.5, 
+          mb: 2, 
+          display: "flex", 
+          flexDirection: "column", 
+          gap: 1.5,
+          borderRadius: 2,
+          boxShadow: "0 2px 10px rgba(0,0,0,0.04)",
+          bgcolor: "#FFF",
+          width: "100%"
+        }}
+      >
+        <Skeleton variant="text" width="40%" height={24} />
+        <Skeleton variant="text" width="80%" />
+        <Skeleton variant="text" width="60%" />
+        <Skeleton variant="text" width="70%" />
+        <Skeleton variant="text" width="50%" />
+        <Skeleton variant="text" width="65%" />
+      </Paper>
+    );
+  }
+
+  return (
+    <Paper
+      elevation={0}
+      sx={{ 
+        p: 2.5, 
+        mb: 2, 
+        display: "flex", 
+        flexDirection: "column", 
+        gap: 1.5,
+        borderRadius: 2,
+        boxShadow: "0 2px 10px rgba(0,0,0,0.04)",
+        bgcolor: "#FFF",
+        width: "100%"
+      }}
+    >
+      <Typography 
+        variant="h6" 
+        sx={{ 
+          fontSize: "1rem", 
+          fontWeight: 600, 
+          mb: 0.5, 
+          color: theme.palette.primary.main // Accenture's purple for headings
+        }}
+      >
+        Information
+      </Typography>
+
+      <Divider sx={{ my: 0.5 }} />
+
+      {/* Full Name */}
+      <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+        <Person 
+          sx={{ 
+            color: alpha(theme.palette.primary.main, 0.7),
+            fontSize: "1.1rem"
+          }} 
+        />
+        <Typography variant="body2">{userData?.fullName}</Typography>
+      </Box>
+
+      {/* Phone */}
+      <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+        <Phone 
+          sx={{ 
+            color: alpha(theme.palette.primary.main, 0.7),
+            fontSize: "1.1rem"
+          }} 
+        />
+        <Typography variant="body2">{userData?.phone}</Typography>
+      </Box>
+
+      {/* Email */}
+      <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+        <Email 
+          sx={{ 
+            color: alpha(theme.palette.primary.main, 0.7),
+            fontSize: "1.1rem"
+          }} 
+        />
+        <Typography variant="body2">{userData?.email}</Typography>
+      </Box>
+
+      {/* Level */}
+      <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+        <Star 
+          sx={{ 
+            color: alpha(theme.palette.primary.main, 0.7),
+            fontSize: "1.1rem"
+          }} 
+        />
+        <Typography variant="body2">
+          Level: {userData?.level}/12
+        </Typography>
+      </Box>
+
+      {/* Join Date */}
+      <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+        <CalendarToday 
+          sx={{ 
+            color: alpha(theme.palette.primary.main, 0.7),
+            fontSize: "1.1rem"
+          }} 
+        />
+        <Typography variant="body2">
+          Joined: {userData?.joinDate}
+        </Typography>
+      </Box>
+
+      {/* Last Project Date */}
+      <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+        <Work 
+          sx={{ 
+            color: alpha(theme.palette.primary.main, 0.7),
+            fontSize: "1.1rem"
+          }} 
+        />
+        <Typography variant="body2">
+          Last Project: {userData?.lastProjectDate}
+        </Typography>
+      </Box>
+    </Paper>
+  );
+};
+
+// Assignment percentage component styled like ProfilePage
+const AssignmentPercentage = () => {
+  const theme = useTheme();
+  const { userData, loading } = useUserData();
+  const [progress, setProgress] = useState(0);
+
+  React.useEffect(() => {
+    if (!loading) {
+      const interval = setInterval(() => {
+        setProgress((prev) => {
+          if (prev >= (userData?.assignment || 0)) {
+            clearInterval(interval);
+            return (userData?.assignment || 0);
+          }
+          return prev + 2;
+        });
+      }, 20);
+
+      return () => clearInterval(interval);
+    }
+  }, [userData?.assignment, loading]);
+
+  if (loading) {
+    return (
+      <Paper 
+        elevation={0}
+        sx={{ 
+          p: 2.5, 
+          mb: 2, 
+          display: "flex", 
+          flexDirection: "column", 
+          gap: 1.5,
+          borderRadius: 2,
+          boxShadow: "0 2px 10px rgba(0,0,0,0.04)",
+          bgcolor: "#FFF",
+          width: "100%"
+        }}
+      >
+        <Skeleton variant="text" width="60%" height={24} />
+        <Box sx={{ display: "flex", justifyContent: "center", mt: 2 }}>
+          <Skeleton variant="circular" width={80} height={80} />
+        </Box>
+      </Paper>
+    );
+  }
+
+  // Core Accenture purple color
+  const progressColor = theme.palette.primary.main;
+
+  return (
+    <Paper
+      elevation={0}
+      sx={{ 
+        p: 2.5, 
+        mb: 2, 
+        display: "flex", 
+        flexDirection: "column", 
+        gap: 1.5,
+        borderRadius: 2,
+        boxShadow: "0 2px 10px rgba(0,0,0,0.04)",
+        bgcolor: "#FFF",
+        width: "100%"
+      }}
+    >
+      <Typography 
+        variant="h6" 
+        sx={{ 
+          fontSize: "1rem", 
+          fontWeight: 600, 
+          mb: 0.5,
+          color: theme.palette.primary.main
+        }}
+      >
+        Assignment Percentage
+      </Typography>
+
+      <Divider sx={{ my: 0.5 }} />
+
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          my: 1.5
+        }}
+      >
+        <Box
+          sx={{
+            position: "relative",
+            display: "inline-flex",
+            justifyContent: "center",
+          }}
+        >
+          {/* Outer Ring */}
+          <CircularProgress
+            variant="determinate"
+            value={100}
+            size={90}
+            sx={{ 
+              color: alpha(theme.palette.primary.main, 0.1),
+              position: "absolute"
+            }}
+          />
+
+          {/* Animated Progress */}
+          <CircularProgress 
+            variant="determinate" 
+            value={progress} 
+            size={90} 
+            sx={{ 
+              color: progressColor
+            }}
+          />
+
+          {/* Percentage Text */}
+          <Box
+            sx={{
+              top: 0,
+              left: 0,
+              bottom: 0,
+              right: 0,
+              position: "absolute",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Typography 
+              variant="h5" 
+              fontWeight="500"
+              sx={{ color: progressColor }}
+            >
+              {`${progress}%`}
+            </Typography>
+          </Box>
+        </Box>
+      </Box>
+    </Paper>
+  );
+};
+
+// About component styled like ProfilePage
+const About = () => {
+  const theme = useTheme();
+  const { userData, loading } = useUserData();
+
+  if (loading) {
+    return (
+      <Paper 
+        elevation={0}
+        sx={{ 
+          p: 2.5, 
+          mb: 2,
+          display: "flex", 
+          flexDirection: "column", 
+          gap: 1.5,
+          borderRadius: 2,
+          boxShadow: "0 2px 10px rgba(0,0,0,0.04)",
+          bgcolor: "#FFF",
+          width: "100%"
+        }}
+      >
+        <Skeleton variant="text" width="30%" height={24} />
+        <Skeleton variant="text" width="100%" />
+        <Skeleton variant="text" width="100%" />
+        <Skeleton variant="text" width="100%" />
+        <Skeleton variant="text" width="80%" />
+      </Paper>
+    );
+  }
+
+  return (
+    <Paper
+      elevation={0}
+      sx={{ 
+        p: 2.5, 
+        mb: 2, 
+        display: "flex", 
+        flexDirection: "column", 
+        gap: 1.5, 
+        borderRadius: 2,
+        boxShadow: "0 2px 10px rgba(0,0,0,0.04)",
+        bgcolor: "#FFF",
+        width: "100%"
+      }}
+    >
+      <Typography 
+        variant="h6" 
+        sx={{ 
+          fontSize: "1rem", 
+          fontWeight: 600, 
+          mb: 0.5,
+          color: theme.palette.primary.main
+        }}
+      >
+        About
+      </Typography>
+
+      <Divider sx={{ my: 0.5 }} />
+
+      <Box
+        sx={{
+          maxHeight: "250px",
+          overflowY: "auto",
+          pr: 1,
+          pt: 0.5,
+          '&::-webkit-scrollbar': { 
+            width: '4px',
+            borderRadius: '2px'
+          },
+          '&::-webkit-scrollbar-track': { 
+            background: '#F5F5F5',
+            borderRadius: '2px'
+          },
+          '&::-webkit-scrollbar-thumb': { 
+            background: alpha(theme.palette.primary.main, 0.3),
+            borderRadius: '2px',
+          },
+        }}
+      >
+        <Typography 
+          variant="body2" 
+          color="text.secondary"
+          sx={{ 
+            lineHeight: 1.6
+          }}
+        >
+          {userData?.about || "No information available."}
+        </Typography>
+      </Box>
+    </Paper>
+  );
+};
+
+// Skills component styled like ProfilePage
+const SkillsCard = () => {
+  const theme = useTheme();
+  const { skills, loading } = useUserData();
+
+  if (loading) {
+    return (
+      <Paper 
+        elevation={0}
+        sx={{ 
+          p: 2.5, 
+          mb: 2, 
+          display: "flex", 
+          flexDirection: "column", 
+          gap: 1.5,
+          borderRadius: 2,
+          boxShadow: "0 2px 10px rgba(0,0,0,0.04)",
+          bgcolor: "#FFF",
+          width: "100%"
+        }}
+      >
+        <Skeleton variant="text" width="40%" height={24} />
+        <Box sx={{ display: "flex", gap: 1, mt: 1 }}>
+          <Skeleton variant="rounded" width={80} height={28} />
+          <Skeleton variant="rounded" width={100} height={28} />
+          <Skeleton variant="rounded" width={60} height={28} />
+        </Box>
+      </Paper>
+    );
+  }
+
+  return (
+    <Paper
+      elevation={0}
+      sx={{ 
+        p: 2.5, 
+        mb: 2, 
+        display: "flex", 
+        flexDirection: "column", 
+        gap: 1.5,
+        borderRadius: 2,
+        boxShadow: "0 2px 10px rgba(0,0,0,0.04)",
+        bgcolor: "#FFF",
+        width: "100%"
+      }}
+    >
+      <Typography 
+        variant="h6" 
+        sx={{ 
+          fontSize: "1rem", 
+          fontWeight: 600, 
+          mb: 0.5,
+          color: theme.palette.primary.main // Accenture's purple
+        }}
+      >
+        Skills
+      </Typography>
+
+      <Divider sx={{ my: 0.5 }} />
+
+      <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, pt: 0.5 }}>
+        {skills.length > 0 ? (
+          skills.map((skill, index) => (
+            <Chip
+              key={index}
+              label={skill}
+              size="small"
+              sx={{
+                backgroundColor: alpha(theme.palette.primary.light, 0.15),
+                color: theme.palette.primary.main,
+                borderRadius: 10,
+                height: 28,
+                fontWeight: 500,
+                border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`
+              }}
+            />
+          ))
+        ) : (
+          <Typography variant="body2" color="text.secondary">No skills added yet</Typography>
+        )}
+      </Box>
+    </Paper>
+  );
+};
+
+// Certifications Card component styled like ProfilePage
+const CertificationsCard = () => {
+  const theme = useTheme();
+  const { certifications, loading, formatDate } = useUserData();
+
+  if (loading) {
+    return (
+      <Paper 
+        elevation={0}
+        sx={{ 
+          p: 2.5, 
+          mb: 2, 
+          display: "flex", 
+          flexDirection: "column", 
+          gap: 1.5,
+          borderRadius: 2,
+          boxShadow: "0 2px 10px rgba(0,0,0,0.04)",
+          bgcolor: "#FFF",
+          width: "100%"
+        }}
+      >
+        <Skeleton variant="text" width="40%" height={24} />
+        <Box sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 1 }}>
+          <Skeleton variant="rounded" width="100%" height={80} />
+          <Skeleton variant="rounded" width="100%" height={80} />
+        </Box>
+      </Paper>
+    );
+  }
+
+  return (
+    <Paper 
+      elevation={0}
+      sx={{ 
+        p: 2.5, 
+        mb: 2, 
+        display: "flex", 
+        flexDirection: "column", 
+        gap: 1.5,
+        borderRadius: 2,
+        boxShadow: "0 2px 10px rgba(0,0,0,0.04)",
+        bgcolor: "#FFF",
+        width: "100%"
+      }}
+    >
+      <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
+        <School sx={{ color: theme.palette.primary.main, mr: 1.5 }} />
+        <Typography 
+          variant="h6" 
+          sx={{ 
+            fontSize: "1rem", 
+            fontWeight: 600,
+            color: theme.palette.primary.main
+          }}
+        >
+          Certifications
+        </Typography>
+      </Box>
+      
+      <Divider sx={{ mb: 2 }} />
+      
+      {certifications.length > 0 ? (
+        <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+          {certifications.slice(0, 3).map((cert, index) => (
+            <Box 
+              key={index} 
+              sx={{ 
+                p: 2, 
+                borderRadius: 1.5, 
+                bgcolor: alpha(theme.palette.primary.main, 0.04),
+                border: '1px solid',
+                borderColor: alpha(theme.palette.primary.main, 0.1)
+              }}
+            >
+              <Typography variant="subtitle2" fontWeight={600} sx={{ color: theme.palette.text.primary }}>
+                {cert.title}
+              </Typography>
+              
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                Issuer: {cert.issuer}
+              </Typography>
+              
+              <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 1 }}>
+                <Box>
+                  <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
+                    Completed: {cert.completedDate}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
+                    Valid Until: {cert.validUntil}
+                  </Typography>
+                </Box>
+                
+                <Chip 
+                  label={`Score: ${cert.score}%`} 
+                  size="small"
+                  sx={{ 
+                    bgcolor: alpha(theme.palette.primary.main, 0.1),
+                    color: theme.palette.primary.main,
+                    fontWeight: 500,
+                    fontSize: "0.7rem",
+                    height: "24px"
+                  }}
+                />
+              </Box>
+            </Box>
+          ))}
+        </Box>
+      ) : (
+        <Box sx={{ py: 3, textAlign: "center" }}>
+          <Typography variant="body2" color="text.secondary">
+            You don't have any certifications yet
+          </Typography>
+        </Box>
+      )}
+    </Paper>
+  );
+};
+
+// Past projects component styled like ProfilePage
+const PastProjectsCard = () => {
+  const theme = useTheme();
+  const { projects, loading, teamMembers } = useUserData();
+
+  if (loading) {
+    return (
+      <Paper 
+        elevation={0}
+        sx={{ 
+          p: 2.5, 
+          width: "100%",
+          borderRadius: 2,
+          boxShadow: "0 2px 10px rgba(0,0,0,0.04)",
+          bgcolor: "#FFF"
+        }}
+      >
+        <Skeleton variant="text" width="40%" height={24} />
+        <Skeleton variant="rectangular" width="100%" height={150} sx={{ mt: 2, borderRadius: 1 }} />
+      </Paper>
+    );
+  }
+
+  return (
+    <Paper
+      elevation={0}
+      sx={{ 
+        p: 2.5, 
+        overflow: "auto", 
+        width: "100%",
+        borderRadius: 2,
+        boxShadow: "0 2px 10px rgba(0,0,0,0.04)",
+        bgcolor: "#FFF"
+      }}
+    >
+      <Typography 
+        variant="h6" 
+        sx={{ 
+          fontSize: "1rem", 
+          fontWeight: 600, 
+          mb: 1,
+          color: theme.palette.primary.main
+        }}
+      >
+        Past Projects
+      </Typography>
+
+      <Divider sx={{ mb: 2 }} />
+
+      {projects.length > 0 ? (
+        <Box 
+          sx={{ 
+            overflowX: "auto",
+            width: "100%",
+            '&::-webkit-scrollbar': { 
+              height: '4px',
+              borderRadius: '2px'
+            },
+            '&::-webkit-scrollbar-track': { 
+              background: '#F5F5F5',
+              borderRadius: '2px'
+            },
+            '&::-webkit-scrollbar-thumb': { 
+              background: alpha(theme.palette.primary.main, 0.3),
+              borderRadius: '2px',
+            },
+          }}
+        >
+          <Table
+            sx={{ 
+              tableLayout: "fixed", 
+              width: "100%",
+              border: `1px solid ${alpha(theme.palette.primary.main, 0.1)}`,
+              borderRadius: 1,
+              borderCollapse: 'separate',
+              borderSpacing: 0,
+              overflow: 'hidden',
+              '& .MuiTableCell-root': {
+                borderBottom: `1px solid ${alpha(theme.palette.primary.main, 0.1)}`,
+                borderRight: `1px solid ${alpha(theme.palette.primary.main, 0.1)}`,
+                py: 1.5,
+                px: 2,
+                '&:last-child': {
+                  borderRight: 'none'
+                }
+              },
+              '& tr:last-child .MuiTableCell-root': {
+                borderBottom: 'none'
+              },
+              '& .MuiTableCell-head': {
+                fontWeight: 600,
+                color: theme.palette.primary.main,
+                backgroundColor: alpha(theme.palette.primary.main, 0.05)
+              }
+            }}
+            size="small"
+          >
+            <TableHead>
+              <TableRow>
+                {["Title", "Team", "Role", "Status"].map(
+                  (header, index) => (
+                    <TableCell key={index}>
+                      {header}
+                    </TableCell>
+                  )
+                )}
+              </TableRow>
+            </TableHead>
+
+            <TableBody>
+              {projects.map((project, index) => (
+                <TableRow 
+                  key={index}
+                  sx={{
+                    '&:hover': {
+                      backgroundColor: alpha(theme.palette.primary.main, 0.02)
+                    },
+                    '&:last-child td': {
+                      borderBottom: 0
+                    }
+                  }}
+                >
+                  <TableCell>
+                    {project.title}
+                  </TableCell>
+                  <TableCell>
+                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                      <AvatarGroup
+                        max={3}
+                        sx={{
+                          "& .MuiAvatar-root": {
+                            width: 24,
+                            height: 24,
+                            fontSize: "0.75rem",
+                            bgcolor: theme.palette.primary.main,
+                            border: '1px solid white'
+                          },
+                        }}
+                      >
+                        {(teamMembers[project.project_id] || []).map((member, i) => (
+                          <Avatar
+                            key={i}
+                            src={member.avatar}
+                            alt={member.name}
+                            sx={{
+                              width: 24,
+                              height: 24
+                            }}
+                          />
+                        ))}
+                      </AvatarGroup>
+                    </Box>
+                  </TableCell>
+                  <TableCell>
+                    <Typography variant="body2">
+                      {project.role}
+                    </Typography>
+                  </TableCell>
+                  <TableCell>
+                    <Chip
+                      label={project.status}
+                      size="small"
+                      sx={{
+                        backgroundColor: 
+                          project.status === "In Progress" ? alpha("#ff9800", 0.15) :
+                          project.status === "Completed" ? alpha("#4caf50", 0.15) : 
+                          alpha(theme.palette.primary.light, 0.15),
+                        color: 
+                          project.status === "In Progress" ? "#e65100" :
+                          project.status === "Completed" ? "#2e7d32" : 
+                          theme.palette.primary.main,
+                        height: 24,
+                        fontSize: "0.7rem",
+                        fontWeight: 500
+                      }}
+                    />
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </Box>
+      ) : (
+        <Box sx={{ p: 3, textAlign: "center" }}>
+          <Typography variant="body2" color="text.secondary">
+            No past projects found.
+          </Typography>
+        </Box>
+      )}
+    </Paper>
+  );
+};
+
+// Helper function to get initials
+const getInitials = () => {
+  const { userData } = useUserData();
+  if (userData?.firstName && userData?.lastName) {
+    return `${userData.firstName.charAt(0)}${userData.lastName.charAt(0)}`.toUpperCase();
+  } else if (userData?.firstName) {
+    return userData.firstName.charAt(0).toUpperCase();
+  }
+  return "U";
 };
 
 export default UserProfileDetail;

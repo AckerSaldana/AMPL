@@ -242,36 +242,6 @@ const Profiles = () => {
           isAssigned: false,
           assignment: 0,
           activeProjects: 0
-        },
-        {
-          user_id: "6",
-          name: "James",
-          last_name: "Holloway Wright",
-          role: "Frontend Developer",
-          skills: [{ id: 1, name: "Adaptability" }, { id: 2, name: "Time Management" }, { id: 3, name: "Teamwork" }],
-          isAssigned: true,
-          assignment: 100,
-          activeProjects: 1
-        },
-        {
-          user_id: "7",
-          name: "Natalie",
-          last_name: "Simmons Smith",
-          role: "UX Researcher",
-          skills: [{ id: 1, name: "Empathy" }, { id: 2, name: "Public Speaking" }, { id: 3, name: "Emotional Intelligence" }],
-          isAssigned: false,
-          assignment: 0,
-          activeProjects: 0
-        },
-        {
-          user_id: "8",
-          name: "Paola",
-          last_name: "Castillo Jiménez",
-          role: "Data Privacy Officer",
-          skills: [{ id: 1, name: "GDPR" }, { id: 2, name: "Legal" }, { id: 3, name: "Risk Management" }],
-          isAssigned: true,
-          assignment: 100,
-          activeProjects: 1
         }
       ];
       
@@ -359,24 +329,48 @@ const Profiles = () => {
     setSortAnchorEl(null);
   };
   
-  const handleOpenRegisterDialog = () => {
-    // Esta función podría abrir un diálogo para registrar un nuevo empleado
+  // Handle employee addition refresh
+  const handleEmployeeAdded = async () => {
     setSnackbar({
       open: true,
-      message: "Esta funcionalidad será implementada próximamente",
-      severity: "info"
+      message: "Employee added successfully! Refreshing data...",
+      severity: "success"
     });
+    
+    // Refresh employee data
+    setLoading(true);
+    try {
+      // Here you would fetch the employee data again
+      // For demo purposes, we'll just wait a bit and show success
+      setTimeout(() => {
+        setLoading(false);
+      }, 1000);
+    } catch (error) {
+      console.error("Error refreshing data:", error);
+      setSnackbar({
+        open: true,
+        message: "Error refreshing data after adding employee",
+        severity: "error"
+      });
+      setLoading(false);
+    }
   };
 
   return (
-    <Box sx={{ p: 3, backgroundColor: "#f8f9fa" }}>
+    <Box sx={{ 
+      p: 2, 
+      backgroundColor: "#f8f9fa",
+      width: "100%",
+      boxSizing: "border-box",
+      maxWidth: "100vw"
+    }}>
       <Typography variant="h4" fontWeight={600} sx={{ mb: 3 }}>
         Employee Profiles
       </Typography>
       
       {/* Tarjetas de estadísticas */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} sm={6} md={4}>
+      <Grid container spacing={2} sx={{ mb: 4 }}>
+        <Grid item xs={12} sm={4}>
           <StatCard 
             icon={PersonOutlineIcon} 
             title="Total Employees" 
@@ -384,7 +378,7 @@ const Profiles = () => {
             bgColor={theme.palette.primary.main + "20"} 
           />
         </Grid>
-        <Grid item xs={12} sm={6} md={4}>
+        <Grid item xs={12} sm={4}>
           <StatCard 
             icon={GroupIcon} 
             title="Available Employees" 
@@ -392,7 +386,7 @@ const Profiles = () => {
             bgColor="#2196f320" 
           />
         </Grid>
-        <Grid item xs={12} sm={6} md={4}>
+        <Grid item xs={12} sm={4}>
           <StatCard 
             icon={WorkIcon} 
             title="Active Projects" 
@@ -402,7 +396,7 @@ const Profiles = () => {
         </Grid>
       </Grid>
       
-      {/* Barra de búsqueda con filtros */}
+      {/* Barra de búsqueda con filtros y funcionalidad para añadir empleados */}
       <SearchFilter 
         searchTerm={searchTerm}
         onSearchChange={setSearchTerm}
@@ -412,7 +406,7 @@ const Profiles = () => {
         onSortClick={handleSortClick}
         onClearFilters={handleClearFilters}
         availableCount={stats.availableEmployees}
-        onAddEmployee={handleOpenRegisterDialog}
+        onAddEmployee={handleEmployeeAdded}
       />
       
       {/* Resultado de la búsqueda */}
@@ -422,18 +416,25 @@ const Profiles = () => {
         </Typography>
       </Box>
       
-      {/* Lista de empleados */}
+      {/* Lista de empleados - GRID OPTIMIZADO */}
       {loading ? (
         <Box sx={{ display: "flex", justifyContent: "center", p: 5 }}>
           <CircularProgress />
         </Box>
       ) : filteredEmployees.length > 0 ? (
-        <Grid container spacing={3}>
+        <Grid container spacing={2}>
           {filteredEmployees.map((employee) => (
-            <Grid item xs={12} sm={6} md={4} lg={3} key={employee.user_id}>
+            <Grid 
+              item 
+              xs={12}    // 1 tarjeta por fila en pantallas <600px
+              sm={6}     // 2 columnas en pantallas >=600px
+              md={4}     // 3 columnas en pantallas >=900px
+              lg={3}     // 4 columnas en pantallas >=1200px
+              key={employee.user_id}
+            >
               <EmployeeCard 
                 employee={employee} 
-                onViewDetails={handleViewDetails}
+                onViewDetails={() => handleViewDetails(employee.user_id)}
               />
             </Grid>
           ))}
