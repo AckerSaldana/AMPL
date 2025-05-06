@@ -119,46 +119,82 @@ const SubmitCertification = ({ onClose }) => {
     return true;
   };
 
-  const handleSubmit = async () => {
-    if (!validateForm()) return;
+  // Replace the handleSubmit function in your SubmitCertification.jsx file with this updated version
 
-    try {
-      setIsSubmitting(true);
+// Función handleSubmit actualizada para eliminar certificaciones duplicadas
+// y crear nuevas solicitudes con estado "pending"
+
+const handleSubmit = async () => {
+  if (!validateForm()) return;
+
+  try {
+    setIsSubmitting(true);
+    
+    const publicUrl = await uploadEvidenceToSupabase(file);
+    const user = await supabase.auth.getUser();
+    const userId = user.data.user.id;
+
+    // Primero, verificar si esta certificación ya existe para este usuario
+    const { data: existingCert, error: checkError } = await supabase
+      .from('UserCertifications')
+      .select('*')
+      .eq('user_ID', userId)
+      .eq('certification_ID', selectedCertificationId);
+
+    if (checkError) {
+      throw new Error(`Error al verificar certificaciones existentes: ${checkError.message}`);
+    }
+
+    // Si la certificación ya existe, eliminarla primero
+    if (existingCert && existingCert.length > 0) {
+      const { error: deleteError } = await supabase
+        .from('UserCertifications')
+        .delete()
+        .eq('user_ID', userId)
+        .eq('certification_ID', selectedCertificationId);
       
-      const publicUrl = await uploadEvidenceToSupabase(file);
-      const user = await supabase.auth.getUser();
+      if (deleteError) {
+        throw new Error(`Error al eliminar certificación existente: ${deleteError.message}`);
+      }
+    }
 
-      const { error } = await supabase.from('UserCertifications').insert({
-        user_ID: user.data.user.id,
+    // Insertar la nueva certificación con estado "pending"
+    const { error: insertError } = await supabase
+      .from('UserCertifications')
+      .insert({
+        user_ID: userId,
         certification_ID: selectedCertificationId,
         completed_Date: completedDate,
         valid_Until: validUntil,
         score: parseInt(score),
         evidence: publicUrl,
+        status: "pending" // Establecer el estado como pendiente para la nueva solicitud
       });
-
-      if (error) throw new Error(`Insert error: ${error.message}`);
-
-      // Resetear el formulario
-      setFile(null);
-      setPdfPreviewUrl(null);
-      setCompletedDate('');
-      setValidUntil('');
-      setScore('');
-      setSelectedCertificationId('');
-      if (fileInputRef.current) fileInputRef.current.value = null;
-      
-      // Cerrar modal con un pequeño retardo para permitir la animación
-      setTimeout(() => {
-        onClose();
-      }, 500);
-      
-    } catch (err) {
-      setFormError(`Error: ${err.message}`);
-    } finally {
-      setIsSubmitting(false);
+    
+    if (insertError) {
+      throw new Error(`Error al insertar nueva certificación: ${insertError.message}`);
     }
-  };
+
+    // Resetear el formulario
+    setFile(null);
+    setPdfPreviewUrl(null);
+    setCompletedDate('');
+    setValidUntil('');
+    setScore('');
+    setSelectedCertificationId('');
+    if (fileInputRef.current) fileInputRef.current.value = null;
+    
+    // Cerrar modal con un pequeño retardo para permitir la animación
+    setTimeout(() => {
+      onClose();
+    }, 500);
+    
+  } catch (err) {
+    setFormError(`Error: ${err.message}`);
+  } finally {
+    setIsSubmitting(false);
+  }
+}
 
   return (
     <Box sx={{ width: '100%', height: '100%', bgcolor: '#fff' }}>

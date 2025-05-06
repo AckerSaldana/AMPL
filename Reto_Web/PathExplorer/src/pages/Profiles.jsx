@@ -10,11 +10,14 @@ import {
   Alert,
   Paper,
   useTheme,
+  Button,
+  useMediaQuery
 } from "@mui/material";
 import {
   PersonOutline as PersonOutlineIcon,
   Group as GroupIcon,
   Work as WorkIcon,
+  Assessment as AssessmentIcon,
 } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../supabase/supabaseClient";
@@ -23,6 +26,7 @@ import { supabase } from "../supabase/supabaseClient";
 import StatCard from "../components/StatCard";
 import EmployeeCard from "../components/EmployeeCard";
 import SearchFilter from "../components/SearchFilter";
+import ReviewCertifications from "../components/ReviewCertifications"; // Import new component
 
 // Función para extraer conteos de manera segura
 const extractCount = (response) => {
@@ -59,6 +63,17 @@ const Profiles = () => {
   const theme = useTheme();
   const navigate = useNavigate();
   
+  // Media query hooks para responsividad
+  const isSmallScreen = useMediaQuery('(max-width:599px)');
+  const isExtraSmallScreen = useMediaQuery('(max-width:320px)');
+  
+  // Colores de Accenture definidos según las guías de marca
+  const accentureColors = {
+    corePurple1: "#a100ff", // RGB: 161/0/255, CMYK: 52/82/0/0
+    corePurple2: "#7500c0", // RGB: 117/0/192, CMYK: 74/100/0/0
+    corePurple3: "#460073"  // RGB: 70/0/115, CMYK: 85/100/0/0
+  };
+  
   // Estados
   const [employees, setEmployees] = useState([]);
   const [filteredEmployees, setFilteredEmployees] = useState([]);
@@ -77,12 +92,34 @@ const Profiles = () => {
     message: "",
     severity: "success"
   });
+  // Estado para el modal de revisión de certificaciones
+  const [reviewCertificationsOpen, setReviewCertificationsOpen] = useState(false);
+  // Estado para saber si el usuario es TFS o Manager
+  const [isReviewer, setIsReviewer] = useState(false);
   
   // Cargar datos de empleados
   useEffect(() => {
     const fetchEmployeeData = async () => {
       try {
         setLoading(true);
+        
+        // Verificar si el usuario actual es TFS o Manager
+        const { data: userSession, error: sessionError } = await supabase.auth.getUser();
+        
+        if (sessionError) throw sessionError;
+        
+        if (userSession && userSession.user) {
+          const { data: userData, error: userError } = await supabase
+            .from("User")
+            .select("permission")
+            .eq("user_id", userSession.user.id)
+            .single();
+          
+          if (userError) throw userError;
+          
+          // Verificar si es TFS o Manager
+          setIsReviewer(userData.permission === "TFS" || userData.permission === "Manager");
+        }
         
         // Consulta optimizada: obtener usuarios con sus roles y habilidades en una sola consulta
         const { data: userData, error: userError } = await supabase
@@ -185,6 +222,9 @@ const Profiles = () => {
         
         // Datos de ejemplo
         generateMockData();
+        
+        // Para propósitos de demostración, establecer como revisor
+        setIsReviewer(true);
       } finally {
         setLoading(false);
       }
@@ -355,6 +395,18 @@ const Profiles = () => {
       setLoading(false);
     }
   };
+  
+  // Manejar apertura del modal de revisión de certificaciones
+  const handleOpenReviewCertifications = () => {
+    setReviewCertificationsOpen(true);
+  };
+  
+  // Manejar cierre del modal de revisión de certificaciones
+  const handleCloseReviewCertifications = () => {
+    setReviewCertificationsOpen(false);
+    // Opcionalmente, refrescar los datos después de revisar certificaciones
+    // fetchEmployeeData();
+  };
 
   return (
     <Box sx={{ 
@@ -364,9 +416,45 @@ const Profiles = () => {
       boxSizing: "border-box",
       maxWidth: "100vw"
     }}>
-      <Typography variant="h4" fontWeight={600} sx={{ mb: 3 }}>
-        Employee Profiles
-      </Typography>
+      <Box sx={{ 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center',
+        mb: 3 
+      }}>
+        <Typography variant="h4" fontWeight={600}>
+          Employee Profiles
+        </Typography>
+        
+        {/* Accenture-Branded Review Certifications Button */}
+        {isReviewer && (
+          <Button
+            variant="contained"
+            startIcon={isSmallScreen ? null : <AssessmentIcon />}
+            onClick={handleOpenReviewCertifications}
+            sx={{ 
+              borderRadius: 6,
+              textTransform: "none",
+              fontWeight: 500,
+              py: 1,
+              px: isSmallScreen ? 1.5 : 2,
+              minWidth: isSmallScreen ? (isExtraSmallScreen ? "40px" : "auto") : "160px",
+              backgroundColor: accentureColors.corePurple1,
+              "&:hover": {
+                backgroundColor: accentureColors.corePurple2,
+              },
+              "&:active": {
+                backgroundColor: accentureColors.corePurple3,
+              },
+              whiteSpace: "nowrap",
+              flexShrink: 0,
+              boxShadow: "0 2px 4px rgba(0,0,0,0.1)"
+            }}
+          >
+            {isSmallScreen ? <AssessmentIcon /> : "Review Certifications"}
+          </Button>
+        )}
+      </Box>
       
       {/* Tarjetas de estadísticas */}
       <Grid container spacing={2} sx={{ mb: 4 }}>
@@ -375,7 +463,7 @@ const Profiles = () => {
             icon={PersonOutlineIcon} 
             title="Total Employees" 
             value={stats.totalEmployees || 0} 
-            bgColor={theme.palette.primary.main + "20"} 
+            bgColor={accentureColors.corePurple1 + "20"} 
           />
         </Grid>
         <Grid item xs={12} sm={4}>
@@ -497,6 +585,12 @@ const Profiles = () => {
           {snackbar.message}
         </Alert>
       </Snackbar>
+      
+      {/* Modal de Revisión de Certificaciones */}
+      <ReviewCertifications 
+        open={reviewCertificationsOpen} 
+        onClose={handleCloseReviewCertifications} 
+      />
     </Box>
   );
 };
