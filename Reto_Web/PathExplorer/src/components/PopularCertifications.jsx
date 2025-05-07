@@ -31,10 +31,8 @@ export const PopularCertifications = ({ certifications }) => {
   const theme = useTheme();
   const navigate = useNavigate();
   
-  // Accenture colors
-  const accenturePurple = '#a100ff'; // Core Purple 1
-  const accenturePurpleDark = '#7500c0'; // Core Purple 2
-  const accenturePurpleLight = '#be82ff'; // Accent Purple 3
+  // Updated to match Dashboard profile color
+  const profilePurple = '#9c27b0';
   
   // Get icon based on certification type
   const getIconByType = (iconType) => {
@@ -56,7 +54,7 @@ export const PopularCertifications = ({ certifications }) => {
       sx={{
         height: '100%',
         borderRadius: 2,
-        border: `1px solid ${alpha(accenturePurple, 0.1)}`,
+        border: `1px solid ${alpha(profilePurple, 0.1)}`,
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden'
@@ -69,14 +67,14 @@ export const PopularCertifications = ({ certifications }) => {
           display: 'flex', 
           alignItems: 'center',
           justifyContent: 'space-between',
-          borderBottom: `1px solid ${alpha(accenturePurple, 0.1)}`
+          borderBottom: `1px solid ${alpha(profilePurple, 0.1)}`
         }}
       >
         <Box sx={{ display: 'flex', alignItems: 'center' }}>
           <Avatar 
             sx={{ 
-              bgcolor: alpha(accenturePurple, 0.1), 
-              color: accenturePurple,
+              bgcolor: alpha(profilePurple, 0.1), 
+              color: profilePurple,
               width: 34,
               height: 34,
               mr: 1.5
@@ -97,9 +95,9 @@ export const PopularCertifications = ({ certifications }) => {
           sx={{ 
             textTransform: 'none',
             fontSize: '0.8rem',
-            color: accenturePurple,
+            color: profilePurple,
             '&:hover': {
-              bgcolor: alpha(accenturePurple, 0.05)
+              bgcolor: alpha(profilePurple, 0.05)
             }
           }}
         >
@@ -125,12 +123,12 @@ export const PopularCertifications = ({ certifications }) => {
               elevation={0}
               sx={{
                 borderRadius: 2,
-                border: `1px solid ${alpha(accenturePurple, 0.1)}`,
+                border: `1px solid ${alpha(profilePurple, 0.1)}`,
                 transition: 'all 0.2s',
                 overflow: 'hidden',
                 '&:hover': {
-                  borderColor: alpha(accenturePurple, 0.3),
-                  bgcolor: alpha(accenturePurple, 0.03)
+                  borderColor: alpha(profilePurple, 0.3),
+                  bgcolor: alpha(profilePurple, 0.03)
                 }
               }}
             >
@@ -138,8 +136,8 @@ export const PopularCertifications = ({ certifications }) => {
                 <Box sx={{ display: 'flex', alignItems: 'flex-start' }}>
                   <Avatar 
                     sx={{ 
-                      bgcolor: alpha(accenturePurple, 0.1),
-                      color: accenturePurple,
+                      bgcolor: alpha(profilePurple, 0.1),
+                      color: profilePurple,
                       mr: 1.5,
                       width: 38,
                       height: 38
@@ -160,8 +158,8 @@ export const PopularCertifications = ({ certifications }) => {
                         sx={{ 
                           height: 20,
                           fontSize: '0.7rem',
-                          bgcolor: alpha(accenturePurple, 0.1),
-                          color: accenturePurple,
+                          bgcolor: alpha(profilePurple, 0.1),
+                          color: profilePurple,
                           fontWeight: 500
                         }}
                       />
@@ -186,9 +184,9 @@ export const PopularCertifications = ({ certifications }) => {
                         sx={{ 
                           height: 4, 
                           borderRadius: 2,
-                          bgcolor: alpha(accenturePurple, 0.1),
+                          bgcolor: alpha(profilePurple, 0.1),
                           '& .MuiLinearProgress-bar': {
-                            bgcolor: accenturePurple
+                            bgcolor: profilePurple
                           }
                         }}
                       />

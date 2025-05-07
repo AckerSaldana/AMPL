@@ -11,6 +11,7 @@ import {
   Tooltip,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
+import { alpha } from "@mui/material/styles";
 
 const ProjectCard = ({ project }) => {
   const navigate = useNavigate();
@@ -43,15 +44,16 @@ const ProjectCard = ({ project }) => {
         height: "100%",
         display: "flex",
         flexDirection: "column",
-        borderRadius: 1,
-        overflow: "visible",
+        borderRadius: "8px",
+        overflow: "hidden",
         boxShadow: "none",
         border: "1px solid rgba(0,0,0,0.12)",
         transition: "all 0.2s ease-in-out",
         cursor: "pointer",
         "&:hover": {
-          transform: "translateY(-4px)",
-          boxShadow: "0 4px 20px rgba(0, 0, 0, 0.1)",
+          transform: "translateY(-1px)",
+          boxShadow: "0 2px 8px rgba(0, 0, 0, 0.05)",
+          borderColor: alpha('#a100ff', 0.3),
         },
       }}
     >
@@ -63,6 +65,7 @@ const ProjectCard = ({ project }) => {
           backgroundColor: "#ffffff",
           display: "flex",
           flexDirection: "column",
+          borderRadius: "8px",
         }}
       >
         {/* Status Chip */}

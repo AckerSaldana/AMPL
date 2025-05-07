@@ -437,7 +437,7 @@ function startSimilarityWorker(roleEmbedding, candidateEmbeddings) {
 
 // Función de pesos dinámicos basada en la descripción y skills del rol
 export function calculateDynamicWeights(roleDescription = "", roleSkills = [], skillMap = {}) {
-  let alpha = 0.6, beta = 0.4;
+  let alpha = 0.7, beta = 0.3; // Default weights favoring technical (70-30 split)
   console.log("Calculando pesos dinámicos basados en skills y descripción del rol");
   let technicalSkills = [];
   let softSkills = [];
@@ -487,27 +487,33 @@ export function calculateDynamicWeights(roleDescription = "", roleSkills = [], s
   if (totalImportance > 0) {
     alpha = technicalImportance / totalImportance;
     beta = softImportance / totalImportance;
-    if (alpha < 0.3) alpha = 0.3;
-    if (alpha > 0.8) alpha = 0.8;
-    if (beta < 0.2) beta = 0.2;
-    if (beta > 0.7) beta = 0.7;
+    
+    // Enforce minimum technical weight of 70%
+    if (alpha < 0.7) alpha = 0.7;
+    
+    // Cap contextual weight at 30%
+    if (beta > 0.3) beta = 0.3;
+    
+    // Normalize to ensure weights sum to 1
     const sum = alpha + beta;
     alpha = alpha / sum;
     beta = beta / sum;
   }
+  
   if (roleDescription) {
     const descLower = roleDescription.toLowerCase();
     if (descLower.includes("altamente técnico") || descLower.includes("highly technical")) {
-      alpha = 0.75;
-      beta = 0.25;
+      alpha = 0.9; // Increased from 0.75 to 0.9
+      beta = 0.1;  // Decreased from 0.25 to 0.1
       console.log("Ajuste especial: Rol altamente técnico");
     } else if (descLower.includes("cultural fit") || descLower.includes("soft skills") ||
                descLower.includes("trabajo en equipo") || descLower.includes("liderazgo")) {
-      alpha = 0.4;
-      beta = 0.6;
+      alpha = 0.7;  // Changed from 0.4 to 0.7
+      beta = 0.3;   // Changed from 0.6 to 0.3
       console.log("Ajuste especial: Rol enfocado en habilidades blandas/cultura");
     }
   }
+  
   console.log(`Pesos calculados - Técnico: ${Math.round(alpha * 100)}%, Contextual: ${Math.round(beta * 100)}%`);
   return { alpha, beta };
 }

@@ -45,10 +45,10 @@ export const CalendarCompact = ({ userId }) => {
           throw new Error("User ID is required");
         }
 
-        // Obtener proyectos del usuario actual
+        // Obtener roles del usuario actual
         const { data: userRoles, error: rolesError } = await supabase
           .from('UserRole')
-          .select('project_id')
+          .select('project_id, role_name')
           .eq('user_id', userId);
 
         if (rolesError) throw rolesError;
@@ -61,29 +61,40 @@ export const CalendarCompact = ({ userId }) => {
               title: "Wellness platform for employees",
               endDate: dayjs().add(14, 'day').format('YYYY-MM-DD'),
               formattedDate: dayjs().add(14, 'day').format('MMM DD, YYYY'),
-              priority: "High"
+              priority: "High",
+              role: "Behavioral Health Expert",
+              status: "In Progress"
             },
             {
               id: 2,
               title: "Mobile App Development",
               endDate: dayjs().add(30, 'day').format('YYYY-MM-DD'),
               formattedDate: dayjs().add(30, 'day').format('MMM DD, YYYY'),
-              priority: "Medium"
+              priority: "Medium",
+              role: "UI Designer",
+              status: "Planning"
             }
           ]);
+          setIsLoading(false);
           return;
         }
 
-        // Obtener detalles de los proyectos incluyendo fechas de finalización
+        // Obtener detalles de todos los proyectos del usuario que NO estén completados
         const projectIds = userRoles.map(role => role.project_id);
         
         const { data: projects, error: projectsError } = await supabase
           .from('Project')
-          .select('projectID, title, end_date, priority, status')
+          .select('projectID, title, end_date, priority, status, progress')
           .in('projectID', projectIds)
-          .eq('status', 'Active'); // Solo proyectos activos
+          .neq('status', 'Completed'); // Cambio: filtra todos excepto "Completed"
 
         if (projectsError) throw projectsError;
+
+        // Crear un mapa de roles por ID de proyecto para facilitar la búsqueda
+        const rolesByProject = {};
+        userRoles.forEach(role => {
+          rolesByProject[role.project_id] = role.role_name;
+        });
 
         // Transformar los datos para mostrarlos
         const reminders = projects?.map(project => ({
@@ -93,7 +104,10 @@ export const CalendarCompact = ({ userId }) => {
           formattedDate: project.end_date 
             ? dayjs(project.end_date).format('MMM DD, YYYY') 
             : 'No deadline set',
-          priority: project.priority || 'Normal'
+          priority: project.priority || 'Normal',
+          role: rolesByProject[project.projectID] || 'Team Member',
+          status: project.status,
+          progress: project.progress || 0
         })) || [];
 
         // Ordenar por fecha de finalización (más cercana primero)
@@ -115,14 +129,18 @@ export const CalendarCompact = ({ userId }) => {
             title: "Wellness platform for employees",
             endDate: dayjs().add(14, 'day').format('YYYY-MM-DD'),
             formattedDate: dayjs().add(14, 'day').format('MMM DD, YYYY'),
-            priority: "High"
+            priority: "High",
+            role: "Behavioral Health Expert",
+            status: "In Progress"
           },
           {
             id: 2,
             title: "Mobile App Development",
             endDate: dayjs().add(30, 'day').format('YYYY-MM-DD'),
             formattedDate: dayjs().add(30, 'day').format('MMM DD, YYYY'),
-            priority: "Medium"
+            priority: "Medium",
+            role: "UI Designer",
+            status: "Planning"
           }
         ]);
       } finally {
@@ -201,7 +219,7 @@ export const CalendarCompact = ({ userId }) => {
 
   if (isLoading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 200 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 300 }}>
         <CircularProgress size={24} sx={{ color: profilePurple }} />
       </Box>
     );
@@ -216,29 +234,29 @@ export const CalendarCompact = ({ userId }) => {
   }
   
   return (
-    <Box>
+    <Box sx={{ pt: 2, pb: 3 }}>
       {/* Month Navigation */}
       <Box sx={{ 
         display: 'flex', 
         justifyContent: 'space-between', 
         alignItems: 'center',
-        mb: 2
+        mb: 3
       }}>
-        <Typography variant="subtitle1" fontWeight={500}>
+        <Typography variant="subtitle1" fontWeight={500} sx={{ fontSize: '1.1rem' }}>
           {currentMonth.format('MMMM YYYY')}
         </Typography>
         <Box>
           <IconButton 
             size="small" 
             onClick={() => handleMonthChange('prev')}
-            sx={{ color: profilePurple }}
+            sx={{ color: profilePurple, mx: 0.5 }}
           >
             <ArrowBackIosNewIcon sx={{ fontSize: '0.8rem' }} />
           </IconButton>
           <IconButton 
             size="small" 
             onClick={() => handleMonthChange('next')}
-            sx={{ color: profilePurple }}
+            sx={{ color: profilePurple, mx: 0.5 }}
           >
             <ArrowForwardIosIcon sx={{ fontSize: '0.8rem' }} />
           </IconButton>
@@ -246,13 +264,14 @@ export const CalendarCompact = ({ userId }) => {
       </Box>
       
       {/* Weekday Headers */}
-      <Grid container spacing={0}>
+      <Grid container spacing={0} sx={{ mb: 2 }}>
         {weekDays.map((day, index) => (
           <Grid item xs key={index} sx={{ textAlign: 'center' }}>
             <Typography 
               variant="caption" 
               sx={{ 
                 fontWeight: 500,
+                fontSize: '0.85rem',
                 color: (index === 0 || index === 6) ? profilePurple : 'text.secondary'
               }}
             >
@@ -262,76 +281,84 @@ export const CalendarCompact = ({ userId }) => {
         ))}
       </Grid>
       
-      {/* Calendar Days */}
-      <Grid container spacing={0} sx={{ mt: 1 }}>
-        {calendarDays.map((day, index) => (
-          <Grid item xs key={index}>
-            <Box 
-              onClick={() => handleDateSelect(day)}
-              sx={{
-                width: 30,
-                height: 30,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                mx: 'auto',
-                position: 'relative',
-                borderRadius: '50%',
-                cursor: 'pointer',
-                bgcolor: day.isSelected 
-                  ? profilePurple 
-                  : day.isToday 
-                  ? alpha(profilePurple, 0.1)
-                  : 'transparent',
-                color: day.isSelected 
-                  ? '#fff' 
-                  : day.isToday 
-                  ? profilePurple 
-                  : day.isCurrentMonth 
-                  ? 'text.primary' 
-                  : 'text.disabled',
-                fontWeight: day.isToday || day.isSelected ? 500 : 400,
-                opacity: day.isCurrentMonth ? 1 : 0.5,
-                // Indicador visual para días con vencimientos
-                '&::after': day.hasDeadline ? {
-                  content: '""',
-                  position: 'absolute',
-                  bottom: '2px',
-                  left: '50%',
-                  transform: 'translateX(-50%)',
-                  width: '4px',
-                  height: '4px',
-                  borderRadius: '50%',
-                  bgcolor: day.isSelected ? '#fff' : profilePurple
-                } : {},
-                '&:hover': {
-                  bgcolor: day.isSelected 
-                    ? profilePurple 
-                    : alpha(profilePurple, 0.1)
-                }
-              }}
-            >
-              <Typography variant="caption">
-                {day.date}
-              </Typography>
-            </Box>
+      {/* Calendar Days - Organizados en semanas para mejor estructura */}
+      <Box sx={{ mb: 4 }}>
+        {/* Dividir calendarDays en semanas */}
+        {Array(6).fill(null).map((_, weekIndex) => (
+          <Grid container spacing={0} key={weekIndex} sx={{ mb: 1.5 }}>
+            {calendarDays.slice(weekIndex * 7, (weekIndex + 1) * 7).map((day, dayIndex) => (
+              <Grid item xs key={dayIndex}>
+                <Box 
+                  onClick={() => handleDateSelect(day)}
+                  sx={{
+                    width: 36,
+                    height: 36,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    mx: 'auto',
+                    my: 1,
+                    position: 'relative',
+                    borderRadius: '50%',
+                    cursor: 'pointer',
+                    bgcolor: day.isSelected 
+                      ? profilePurple 
+                      : day.isToday 
+                      ? alpha(profilePurple, 0.1)
+                      : 'transparent',
+                    color: day.isSelected 
+                      ? '#fff' 
+                      : day.isToday 
+                      ? profilePurple 
+                      : day.isCurrentMonth 
+                      ? 'text.primary' 
+                      : 'text.disabled',
+                    fontWeight: day.isToday || day.isSelected ? 600 : 400,
+                    fontSize: '0.9rem',
+                    opacity: day.isCurrentMonth ? 1 : 0.5,
+                    // Indicador visual para días con vencimientos
+                    '&::after': day.hasDeadline ? {
+                      content: '""',
+                      position: 'absolute',
+                      bottom: '3px',
+                      left: '50%',
+                      transform: 'translateX(-50%)',
+                      width: '5px',
+                      height: '5px',
+                      borderRadius: '50%',
+                      bgcolor: day.isSelected ? '#fff' : profilePurple
+                    } : {},
+                    '&:hover': {
+                      bgcolor: day.isSelected 
+                        ? profilePurple 
+                        : alpha(profilePurple, 0.1)
+                    }
+                  }}
+                >
+                  <Typography variant="body2" sx={{ lineHeight: 1 }}>
+                    {day.date}
+                  </Typography>
+                </Box>
+              </Grid>
+            ))}
           </Grid>
         ))}
-      </Grid>
+      </Box>
       
       {/* Project Deadline Reminders */}
-      <Box sx={{ mt: 3 }}>
+      <Box sx={{ mt: 4 }}>
         <Typography 
           variant="subtitle2" 
           sx={{ 
             fontWeight: 500, 
             color: 'text.primary',
-            mb: 1.5,
+            mb: 2.5,
             display: 'flex',
-            alignItems: 'center'
+            alignItems: 'center',
+            fontSize: '1rem'
           }}
         >
-          <EventIcon sx={{ fontSize: 16, mr: 1, color: profilePurple }} /> 
+          <EventIcon sx={{ fontSize: 18, mr: 1, color: profilePurple }} /> 
           Project Deadlines
         </Typography>
         
@@ -340,30 +367,30 @@ export const CalendarCompact = ({ userId }) => {
             <Box 
               key={project.id}
               sx={{ 
-                p: 1.5, 
+                p: 2,
                 borderRadius: 1,
                 border: '1px solid',
                 borderColor: alpha(profilePurple, 0.2),
-                mb: 2,
+                mb: 2.5,
                 '&:last-child': {
                   mb: 0
                 }
               }}
             >
-              <Typography variant="body2" fontWeight={500}>
+              <Typography variant="body1" fontWeight={500}>
                 {project.title}
               </Typography>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Typography variant="caption" color="text.secondary">
-                  <CalendarTodayIcon sx={{ fontSize: 12, mr: 0.5, verticalAlign: 'middle' }} />
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 1.5 }}>
+                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
+                  <CalendarTodayIcon sx={{ fontSize: 14, mr: 0.5, verticalAlign: 'middle' }} />
                   Due: {project.formattedDate}
                 </Typography>
                 <Box
                   sx={{
-                    px: 1,
-                    py: 0.25,
+                    px: 1.5,
+                    py: 0.5,
                     borderRadius: 5,
-                    fontSize: '0.7rem',
+                    fontSize: '0.75rem',
                     fontWeight: 'medium',
                     bgcolor: alpha(profilePurple, 0.1),
                     color: profilePurple
@@ -372,10 +399,66 @@ export const CalendarCompact = ({ userId }) => {
                   {project.priority}
                 </Box>
               </Box>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 1 }}>
+                <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary', fontSize: '0.8rem' }}>
+                  Role: {project.role}
+                </Typography>
+                <Typography 
+                  variant="caption" 
+                  sx={{ 
+                    display: 'block', 
+                    color: project.status === 'In Progress' ? 'info.main' : 
+                           project.status === 'Planning' ? 'warning.main' : 'success.main',
+                    fontSize: '0.8rem', 
+                    fontWeight: 500
+                  }}
+                >
+                  Status: {project.status}
+                </Typography>
+              </Box>
+              {/* Añadir barra de progreso si está disponible */}
+              {project.progress !== undefined && (
+                <Box sx={{ mt: 1.5 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+                    <Typography variant="caption" sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>
+                      Progress
+                    </Typography>
+                    <Typography variant="caption" sx={{ fontSize: '0.75rem', fontWeight: 500 }}>
+                      {project.progress}%
+                    </Typography>
+                  </Box>
+                  <Box
+                    sx={{
+                      width: '100%',
+                      height: 6,
+                      bgcolor: alpha(profilePurple, 0.1),
+                      borderRadius: 3,
+                      overflow: 'hidden'
+                    }}
+                  >
+                    <Box
+                      sx={{
+                        width: `${project.progress}%`,
+                        height: '100%',
+                        bgcolor: profilePurple,
+                        borderRadius: 3
+                      }}
+                    />
+                  </Box>
+                </Box>
+              )}
             </Box>
           ))
         ) : (
-          <Box sx={{ textAlign: 'center', p: 2, color: 'text.secondary' }}>
+          <Box sx={{ 
+            textAlign: 'center', 
+            py: 4,
+            px: 2,
+            color: 'text.secondary', 
+            border: '1px solid', 
+            borderColor: '#f0f0f0', 
+            borderRadius: 1 
+          }}>
             <Typography variant="body2">No upcoming project deadlines</Typography>
           </Box>
         )}
