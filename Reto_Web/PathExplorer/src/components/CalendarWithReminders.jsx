@@ -1,11 +1,15 @@
-// src/components/dashboard/CalendarWithReminders.jsx
+// src/components/CalendarWithReminders.jsx
 import React, { useState, useEffect } from "react";
 import { 
   Box, 
   Typography, 
-  Paper, 
+  IconButton,
   useTheme,
-  IconButton
+  Divider,
+  Chip,
+  Avatar,
+  Button,
+  alpha
 } from "@mui/material";
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -14,10 +18,10 @@ import dayjs from 'dayjs';
 import { supabase } from "../supabase/supabaseClient";
 
 // Iconos
-import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import EventNoteIcon from "@mui/icons-material/EventNote";
 import ArrowBackIosNewIcon from "@mui/icons-material/ArrowBackIosNew";
 import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
+import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 
 export const CalendarWithReminders = ({ userId }) => {
   const theme = useTheme();
@@ -25,82 +29,72 @@ export const CalendarWithReminders = ({ userId }) => {
   const [currentMonth, setCurrentMonth] = useState(dayjs());
   const [events, setEvents] = useState([]);
 
-useEffect(() => {
-  const fetchReminders = async () => {
-    try {
-      //Obtener los proyectos conectados al usuario
-      const { data: userRoles, error: roleError } = await supabase
-        .from('UserRole')
-        .select('project_id')
-        .eq('user_id', userId); 
+  // Accenture colors
+  const accenturePurple = '#a100ff'; // Core Purple 1
+  const accenturePurpleDark = '#7500c0'; // Core Purple 2
+  const accenturePurpleLight = '#be82ff'; // Accent Purple 3
 
-      if (roleError) throw roleError;
+  useEffect(() => {
+    const fetchReminders = async () => {
+      try {
+        // Get the user's projects
+        const { data: userRoles, error: roleError } = await supabase
+          .from('UserRole')
+          .select('project_id')
+          .eq('user_id', userId); 
 
-      const projectIds = userRoles.map(r => r.project_id);
-      console.log("Project IDs for user:", projectIds);
+        if (roleError) throw roleError;
 
-      if (projectIds.length === 0) {
-        return;
+        const projectIds = userRoles.map(r => r.project_id);
+        console.log("Project IDs for user:", projectIds);
+
+        if (projectIds.length === 0) {
+          return;
+        }
+
+        // Get project details
+        const { data: projects, error: projectError } = await supabase
+          .from('Project')
+          .select('projectID, title, status, priority')
+          .in('projectID', projectIds);
+
+        if (projectError) throw projectError;
+
+        // Map to component format
+        const reminders = projects.map(proj => ({
+          id: proj.projectID,
+          title: proj.title,
+          date: `${proj.status} • ${proj.priority}`
+        }));
+
+        setEvents(reminders);
+      } catch (err) {
+        console.error('Error loading reminders:', err.message);
+        // Fallback data
+        setEvents([
+          {
+            id: 1,
+            title: "Accenture Website Redesign",
+            date: "Active • High"
+          },
+          {
+            id: 2,
+            title: "Cloud Migration Project",
+            date: "Planning • Medium"
+          },
+          {
+            id: 3,
+            title: "AI Implementation",
+            date: "Active • High"
+          }
+        ]);
       }
+    };
 
-      // Obtener los detalles de esos proyectos
-      const { data: projects, error: projectError } = await supabase
-        .from('Project')
-        .select('projectID, title, status, priority')
-        .in('projectID', projectIds);
+    if (userId) fetchReminders();
+  }, [userId]);
 
-      if (projectError) throw projectError;
-
-      // Mapear al formato que espera el componente
-      const reminders = projects.map(proj => ({
-        id: proj.projectID,
-        title: proj.title,
-        date: `${proj.status} • ${proj.priority}`
-      }));
-
-      // Obtener certificaciones pendientes del usuario
-      // 👇 UPDATED: Changed from completion_Status to status
-      const { data: userCerts, error: certError } = await supabase
-      .from('UserCertifications')
-      .select('certification_ID')
-      .eq('user_ID', userId)
-      .eq('status', 'pending');
-
-      if (certError) throw certError;
-
-      const certIds = userCerts.map(c => c.certification_ID);
-      console.log("Certificaciones pendientes:", certIds);
-
-      if (certIds.length > 0) {
-      const { data: certDetails, error: detailsError } = await supabase
-        .from('Certifications')
-        .select('certification_id, title, type')
-        .in('certification_id', certIds);
-
-      if (detailsError) throw detailsError;
-
-      const certReminders = certDetails.map(cert => ({
-        id: cert.certification_id,
-        title: cert.title,
-        date: `Pending • ${cert.type}`
-      }));
-
-      reminders.push(...certReminders);
-}
-
-      setEvents(reminders);
-    } catch (err) {
-      console.error('Error loading reminders:', err.message);
-    }
-  };
-
-  if (userId) fetchReminders();
-}, [userId]);
-
-  
-
-  
-  // Función para manejar el cambio de mes
+  // Handle month change
   const handleMonthChange = (direction) => {
     if (direction === 'prev') {
       const newMonth = currentMonth.subtract(1, 'month');
@@ -113,187 +107,196 @@ useEffect(() => {
     }
   };
   
-  // Componente para un recordatorio individual
+  // Individual reminder component
   const ReminderItem = ({ date, title }) => {
-    const color = '#9c27b0'; // Morado para la barra lateral
-    
     return (
       <Box sx={{ 
-        mb: 3, 
-        display: 'flex', 
-        alignItems: 'flex-start' 
+        mb: 2.5, 
+        display: 'flex',
+        alignItems: 'flex-start',
+        borderRadius: 1,
+        p: 1.5,
+        transition: 'all 0.2s',
+        border: `1px solid ${alpha(accenturePurple, 0.1)}`,
+        '&:hover': {
+          borderColor: alpha(accenturePurple, 0.3),
+          bgcolor: alpha(accenturePurple, 0.03)
+        }
       }}>
-        {/* Barra lateral morada */}
-        <Box sx={{ 
-          width: 4, 
-          bgcolor: color, 
-          borderRadius: '4px 0 0 4px',
-          alignSelf: 'stretch',
-          mr: 2
-        }} />
+        <Avatar 
+          sx={{ 
+            bgcolor: alpha(accenturePurple, 0.1), 
+            color: accenturePurple,
+            width: 34,
+            height: 34,
+            mr: 2,
+            fontSize: '0.8rem',
+            fontWeight: 'bold'
+          }}
+        >
+          {title.substring(0, 2).toUpperCase()}
+        </Avatar>
         
         <Box sx={{ flex: 1 }}>
-          {/* Fecha */}
-          <Typography 
-            variant="subtitle2" 
-            sx={{ 
-              color: color,
-              fontWeight: 600,
-              mb: 0.5
-            }}
-          >
-            {date}
-          </Typography>
-          
-          {/* Título */}
           <Typography 
             variant="body1"
             sx={{
               fontWeight: 500,
               fontSize: '0.9rem',
-              mb: 1.5
+              mb: 1
             }}
           >
             {title}
           </Typography>
           
-          {/* Botón View */}
-          <Box
-            sx={{
-              display: 'inline-block',
-              bgcolor: '#e0e0e0',
-              color: '#666',
-              px: 2.5,
-              py: 0.5,
-              borderRadius: 1,
-              fontSize: '0.8rem',
-              fontWeight: 500,
-              cursor: 'pointer',
-              '&:hover': {
-                bgcolor: '#d5d5d5'
-              }
+          <Chip 
+            label={date} 
+            size="small"
+            sx={{ 
+              height: 20, 
+              fontSize: '0.7rem',
+              bgcolor: alpha(accenturePurple, 0.1),
+              color: accenturePurple
             }}
-          >
-            View
-          </Box>
+          />
         </Box>
       </Box>
     );
   };
   
   return (
-    <Paper
+    <Box
       sx={{
-        p: 2,
-        borderRadius: 1,
         height: '100%',
-        boxShadow: '0 1px 3px rgba(0,0,0,0.12)',
         display: 'flex',
         flexDirection: 'column'
       }}
     >
-      <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-        <CalendarMonthIcon sx={{ color: '#9c27b0', mr: 1.5 }} />
-        <Typography variant="h6" fontWeight={500}>
-          Calendar
-        </Typography>
-      </Box>
-      
-      {/* Calendario */}
+      {/* Calendar */}
       <Box sx={{ 
-        borderRadius: 1, 
-        mb: 1, 
-        overflow: 'hidden',
+        p: 2,
         backgroundColor: '#fff' 
       }}>
-        {/* Control del mes */}
+        {/* Month navigation */}
         <Box sx={{ 
           display: 'flex', 
           alignItems: 'center', 
           justifyContent: 'space-between',
-          p: 1.5,
-          borderBottom: '1px solid #f5f5f5'
+          mb: 2
         }}>
           <Typography variant="subtitle1" fontWeight={500}>
             {currentMonth.format('MMMM YYYY')}
           </Typography>
           
           <Box>
-            <IconButton size="small" onClick={() => handleMonthChange('prev')}>
+            <IconButton 
+              size="small" 
+              onClick={() => handleMonthChange('prev')}
+              sx={{ color: accenturePurple }}
+            >
               <ArrowBackIosNewIcon sx={{ fontSize: '0.9rem' }} />
             </IconButton>
-            <IconButton size="small" onClick={() => handleMonthChange('next')}>
+            <IconButton 
+              size="small" 
+              onClick={() => handleMonthChange('next')}
+              sx={{ color: accenturePurple }}
+            >
               <ArrowForwardIosIcon sx={{ fontSize: '0.9rem' }} />
             </IconButton>
           </Box>
         </Box>
         
-        {/* Días de la semana y calendario */}
-        <Box sx={{ pb: -1 }}>
-          <Box sx={{ 
-            display: 'grid', 
-            gridTemplateColumns: 'repeat(7, 1fr)',
-            textAlign: 'center',
-            py: 1
-          }}>
-            <Typography variant="caption" color="text.secondary">S</Typography>
-            <Typography variant="caption" color="text.secondary">M</Typography>
-            <Typography variant="caption" color="#9c27b0">T</Typography>
-            <Typography variant="caption" color="text.secondary">W</Typography>
-            <Typography variant="caption" color="text.secondary">T</Typography>
-            <Typography variant="caption" color="#ff5252">F</Typography>
-            <Typography variant="caption" color="text.secondary">S</Typography>
-          </Box>
-          
-          <LocalizationProvider dateAdapter={AdapterDayjs}>
-            <DateCalendar
-              value={selectedDate}
-              onChange={(newDate) => setSelectedDate(newDate)}
-              showDaysOutsideCurrentMonth
-              disableHighlightToday={false}
-              onMonthChange={(date) => setCurrentMonth(date)}
-              sx={{ 
-                '& .MuiPickersCalendarHeader-root': { display: 'none' },
-                '& .MuiDayCalendar-header': { display: 'none' },
-                '& .MuiPickersDay-root': { 
-                  margin: '6px',
-                  height: '32px',
-                  width: '32px',
-                  fontSize: '0.8rem'
-                },
-                '& .MuiPickersDay-root.Mui-selected': {
-                  bgcolor: '#9c27b0',
-                  color: '#fff',
-                  fontWeight: 'bold'
+        {/* Calendar days */}
+        <LocalizationProvider dateAdapter={AdapterDayjs}>
+          <DateCalendar
+            value={selectedDate}
+            onChange={(newDate) => setSelectedDate(newDate)}
+            showDaysOutsideCurrentMonth
+            disableHighlightToday={false}
+            onMonthChange={(date) => setCurrentMonth(date)}
+            sx={{ 
+              '& .MuiPickersCalendarHeader-root': { display: 'none' },
+              '& .MuiDayCalendar-header': { 
+                '& .MuiTypography-root': {
+                  color: accenturePurple,
+                  fontWeight: 500
                 }
-              }}
-            />
-          </LocalizationProvider>
+              },
+              '& .MuiPickersDay-root': { 
+                margin: '3px',
+                height: '32px',
+                width: '32px',
+                fontSize: '0.8rem'
+              },
+              '& .MuiPickersDay-root.Mui-selected': {
+                bgcolor: accenturePurple,
+                color: '#fff',
+                fontWeight: 'bold',
+                '&:hover': {
+                  bgcolor: accenturePurpleDark
+                }
+              },
+              '& .MuiPickersDay-root:not(.Mui-selected):hover': {
+                bgcolor: alpha(accenturePurple, 0.1)
+              },
+              px: 0,
+              py: 0,
+              mx: 0,
+              my: 0
+            }}
+          />
+        </LocalizationProvider>
+      </Box>
+      
+      <Divider sx={{ borderColor: alpha(accenturePurple, 0.1) }} />
+      
+      {/* Reminders section */}
+      <Box sx={{ p: 2, flex: 1, display: 'flex', flexDirection: 'column' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+          <EventNoteIcon sx={{ color: accenturePurple, mr: 1 }} />
+          <Typography variant="subtitle1" fontWeight={500}>
+            Active Projects
+          </Typography>
+        </Box>
+        
+        {/* List of reminders */}
+        <Box sx={{ 
+          overflowY: 'auto', 
+          flex: 1
+        }}>
+          {events.length > 0 ? (
+            events.map(event => (
+              <ReminderItem 
+                key={event.id}
+                date={event.date}
+                title={event.title}
+              />
+            ))
+          ) : (
+            <Box sx={{ textAlign: 'center', py: 3 }}>
+              <Typography variant="body2" color="text.secondary">
+                No active projects found
+              </Typography>
+              <Button 
+                variant="outlined" 
+                size="small"
+                sx={{ 
+                  mt: 2, 
+                  borderColor: accenturePurple, 
+                  color: accenturePurple,
+                  '&:hover': {
+                    borderColor: accenturePurpleDark,
+                    bgcolor: alpha(accenturePurple, 0.05)
+                  }
+                }}
+                endIcon={<OpenInNewIcon fontSize="small" />}
+              >
+                Browse Projects
+              </Button>
+            </Box>
+          )}
         </Box>
       </Box>
-      
-      {/* Recordatorios sección */}
-      <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-        <EventNoteIcon sx={{ color: theme.palette.text.secondary, mr: 1 }} />
-        <Typography variant="subtitle1" fontWeight={500}>
-          Reminders
-        </Typography>
-      </Box>
-      
-      {/* Lista de recordatorios */}
-      <Box sx={{ 
-        overflowY: 'auto', 
-        pr: 1,
-        flex: 1
-      }}>
-        {events.map(event => (
-          <ReminderItem 
-            key={event.id}
-            date={event.date}
-            title={event.title}
-          />
-        ))}
-      </Box>
-    </Paper>
+    </Box>
   );
 };

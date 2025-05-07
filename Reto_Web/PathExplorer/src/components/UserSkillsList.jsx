@@ -1,256 +1,340 @@
-// src/components/dashboard/UserSkillsList.jsx
+// src/components/UserSkillsList.jsx
 import React, { useState, useEffect } from "react";
-import { 
-  Box, 
-  Typography, 
-  Paper,  
-  Card, 
-  CardContent, 
-  Avatar,
+import {
+  Box,
+  Typography,
+  Chip,
+  LinearProgress,
+  Stack,
+  CircularProgress,
   Button,
-  CircularProgress
+  Avatar,
+  alpha
 } from "@mui/material";
-import { alpha, useTheme } from "@mui/material/styles";
 import { supabase } from "../supabase/supabaseClient";
+import { useNavigate } from "react-router-dom";
 
-// Iconos
+// Icons
 import CodeIcon from "@mui/icons-material/Code";
-import LaptopIcon from "@mui/icons-material/Laptop";
+import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
 import StorageOutlinedIcon from "@mui/icons-material/StorageOutlined";
 import DataObjectIcon from "@mui/icons-material/DataObject";
 import CloudIcon from "@mui/icons-material/Cloud";
-import SecurityIcon from "@mui/icons-material/Security";
-import AnalyticsIcon from "@mui/icons-material/Analytics";
 import JavascriptIcon from "@mui/icons-material/Javascript";
-import DesignServicesIcon from "@mui/icons-material/DesignServices";
-import PhoneIphoneIcon from "@mui/icons-material/PhoneIphone";
-import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
-import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
+import AnalyticsIcon from "@mui/icons-material/Analytics";
 
 export const UserSkillsList = ({ userRole, userId }) => {
-  const theme = useTheme();
   const [skills, setSkills] = useState([]);
-  const [roleName, setRoleName] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [role, setRole] = useState(userRole || "Behavioral Health Expert");
+  const navigate = useNavigate();
+  
+  // Theme color - match with profile purple color
+  const profilePurple = '#9c27b0';
 
   useEffect(() => {
-    const fetchSkills = async () => {
+    const fetchSkillsUsage = async () => {
       try {
         setIsLoading(true);
         
-        const { data: userSkills, error: queryError } = await supabase
-        .from('UserSkill')
-        .select('skill_ID, proficiency')
-        .eq('user_ID', userId)
-        .limit(5);
+        if (!userId) {
+          throw new Error("User ID is required");
+        }
 
-        if (queryError) throw queryError;       
+        // 1. Obtener los skill_ids usados en RoleSkill
+        const { data: roleSkillData, error: roleSkillError } = await supabase
+          .from('RoleSkill')
+          .select('skill_id');
 
-        // Obtener los nombres de las skills
-        const skillIds = userSkills.map(s => s.skill_ID);
-
+        if (roleSkillError) throw roleSkillError;
+        
+        // Extraer los IDs únicos de skills
+        const skillIds = [...new Set(roleSkillData.map(item => item.skill_id))];
+        
         if (skillIds.length === 0) {
-          setSkills([]);
+          // Datos de fallback si no hay skills
+          setSkills([
+            { name: "Frontend Dev", usagePercentage: 30, projectCount: 3 },
+            { name: "UX/UI Designer", usagePercentage: 20, projectCount: 2 },
+            { name: "Front End Developer", usagePercentage: 20, projectCount: 2 },
+            { name: "Back End Developer", usagePercentage: 20, projectCount: 2 },
+            { name: "Behavioral Health Expert", usagePercentage: 10, projectCount: 1 }
+          ]);
           return;
         }
 
-        const { data: skillNames, error: skillError } = await supabase
-        .from('Skill')
-        .select('skill_ID, name')
-        .in('skill_ID', skillIds);
+        // 2. Obtener el número total de roles para calcular porcentajes
+        const { data: roleCount, error: countError } = await supabase
+          .from('RoleSkill')
+          .select('role_name', { count: 'exact' });
 
-        if (skillError) throw skillError;
+        if (countError) throw countError;
+        
+        const totalRoles = roleCount.length;
 
-        const skillMap = Object.fromEntries(skillNames.map(s => [s.skill_ID, s.name]));
+        // 3. Obtener el uso de cada skill (cuántos roles la requieren)
+        const skillUsage = {};
+        
+        for (const skill_id of skillIds) {
+          const { data: rolesWithSkill, error: usageError } = await supabase
+            .from('RoleSkill')
+            .select('role_name')
+            .eq('skill_id', skill_id);
+            
+          if (usageError) throw usageError;
+          
+          // Contar cuántos roles usan esta skill
+          skillUsage[skill_id] = rolesWithSkill.length;
+        }
 
-        setSkills(userSkills.map(s => ({
-          name: skillMap[s.skill_ID] || 'Unknown',
-          proficiency: s.proficiency || 0
-        })));
-        } catch (error) {
-        console.error("Error fetching skills:", error);
-        setError(error.message);
-        setSkills(getFallbackSkills(userRole));
-  } finally {
-    setIsLoading(false);
-  }
-};
+        // 4. Obtener nombres de skills desde tabla Skill
+        const { data: skillNames, error: namesError } = await supabase
+          .from('Skill')
+          .select('skill_ID, name')
+          .in('skill_ID', skillIds);
 
-const fetchUserRole = async () => {
-  const { data, error } = await supabase
-    .from('UserRole')
-    .select('role_name')
-    .eq('user_id', userId)
-    .single();
+        if (namesError) throw namesError;
 
-  if (error) {
-    console.error("Error fetching user role:", error);
-  } else {
-    setRoleName(data?.role_name || 'Full Stack');
-  }
-};
+        // 5. Calcular proyectos disponibles para cada skill
+        const { data: projectsData, error: projectsError } = await supabase
+          .from('Project')
+          .select('projectID');
 
+        if (projectsError) throw projectsError;
+        
+        const totalProjects = projectsData?.length || 10;
+        
+        // 6. Calcular porcentajes y formatear resultados
+        const formattedSkills = skillIds.map(skillId => {
+          // Encontrar el nombre de la skill
+          const skillInfo = skillNames.find(s => s.skill_ID === skillId);
+          const skillName = skillInfo ? skillInfo.name : `Skill ${skillId}`;
+          
+          // Calcular el porcentaje de uso
+          const usageCount = skillUsage[skillId] || 0;
+          const usagePercentage = Math.round((usageCount / totalRoles) * 100);
+          
+          // Calcular proyectos disponibles (aquí usamos un valor aleatorio entre 1-5 como ejemplo)
+          // En un caso real, necesitarías una relación entre proyectos y skills
+          const projectCount = Math.max(1, Math.floor(usagePercentage / 10));
+          
+          return {
+            name: skillName,
+            usagePercentage: usagePercentage,
+            projectCount: projectCount
+          };
+        });
+        
+        // 7. Ordenar skills por porcentaje de uso y tomar los top 5
+        const topSkills = formattedSkills
+          .sort((a, b) => b.usagePercentage - a.usagePercentage)
+          .slice(0, 5);
+          
+        // Si no hay suficientes skills, usar datos de ejemplo
+        if (topSkills.length < 5) {
+          setSkills([
+            { name: "Frontend Dev", usagePercentage: 30, projectCount: 3 },
+            { name: "UX/UI Designer", usagePercentage: 20, projectCount: 2 },
+            { name: "Front End Developer", usagePercentage: 20, projectCount: 2 },
+            { name: "Back End Developer", usagePercentage: 20, projectCount: 2 },
+            { name: "Behavioral Health Expert", usagePercentage: 10, projectCount: 1 }
+          ]);
+        } else {
+          setSkills(topSkills);
+        }
 
-    if (userId) {
-      fetchSkills();
-      fetchUserRole();
-    }
-  }, [userRole, userId]);
+        // Fetch user role if not provided
+        if (!userRole) {
+          const { data: userRoleData, error: roleError } = await supabase
+            .from('UserRole')
+            .select('role_name')
+            .eq('user_id', userId)
+            .single();
 
-  // Fallback skills data
-  const getFallbackSkills = (role) => {
-    const commonSkills = [
-      { name: "JavaScript", projects: 32 },
-      { name: "React", projects: 28 },
-      { name: "Node.js", projects: 25 },
-      { name: "HTML/CSS", projects: 22 },
-      { name: "Git", projects: 18 }
-    ];
+          if (!roleError && userRoleData) {
+            setRole(userRoleData.role_name);
+          }
+        }
+      } catch (err) {
+        console.error("Error fetching skills usage:", err.message);
+        setError(err.message);
+        // Fallback data
+        setSkills([
+          { name: "Frontend Dev", usagePercentage: 30, projectCount: 3 },
+          { name: "UX/UI Designer", usagePercentage: 20, projectCount: 2 },
+          { name: "Front End Developer", usagePercentage: 20, projectCount: 2 },
+          { name: "Back End Developer", usagePercentage: 20, projectCount: 2 },
+          { name: "Behavioral Health Expert", usagePercentage: 10, projectCount: 1 }
+        ]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-    const frontendSkills = [
-      { name: "React", projects: 45 },
-      { name: "JavaScript", projects: 42 },
-      { name: "TypeScript", projects: 28 },
-      { name: "HTML/CSS", projects: 35 },
-      { name: "UI/UX", projects: 15 }
-    ];
+    fetchSkillsUsage();
+  }, [userId, userRole]);
 
-    const backendSkills = [
-      { name: "Node.js", projects: 36 },
-      { name: "Python", projects: 32 },
-      { name: "SQL", projects: 28 },
-      { name: "Docker", projects: 22 },
-      { name: "API Design", projects: 18 }
-    ];
-
-    switch(role) {
-      case "Frontend":
-        return frontendSkills;
-      case "Backend":
-        return backendSkills;
-      default:
-        return commonSkills;
-    }
-  };
-
-  const iconList = [
-    <CodeIcon fontSize="small" />,
-    <LaptopIcon fontSize="small" />,
-    <StorageOutlinedIcon fontSize="small" />,
-    <DataObjectIcon fontSize="small" />,
-    <CloudIcon fontSize="small" />,
-    <SecurityIcon fontSize="small" />,
-    <AnalyticsIcon fontSize="small" />,
-    <JavascriptIcon fontSize="small" />,
-    <DesignServicesIcon fontSize="small" />,
-    <PhoneIphoneIcon fontSize="small" />,
-    <AutoFixHighIcon fontSize="small" />
-  ];
-  
+  // Get the appropriate icon for a skill
   const getSkillIcon = (skillName) => {
-    const index = [...skillName].reduce((acc, char) => acc + char.charCodeAt(0), 0) % iconList.length;
-    return iconList[index];
+    const iconMap = {
+      "JavaScript": <JavascriptIcon fontSize="small" />,
+      "Python": <CodeIcon fontSize="small" />,
+      "Cloud": <CloudIcon fontSize="small" />,
+      "AWS": <CloudIcon fontSize="small" />,
+      "Data": <AnalyticsIcon fontSize="small" />,
+      "Analytics": <AnalyticsIcon fontSize="small" />,
+      "Storage": <StorageOutlinedIcon fontSize="small" />,
+      "Database": <StorageOutlinedIcon fontSize="small" />,
+      "API": <DataObjectIcon fontSize="small" />,
+      "Front": <CodeIcon fontSize="small" />,
+      "Back": <StorageOutlinedIcon fontSize="small" />,
+      "UX": <CodeIcon fontSize="small" />,
+      "UI": <CodeIcon fontSize="small" />,
+      "Designer": <CodeIcon fontSize="small" />,
+    };
+
+    // Check if skill name contains any of the keys
+    for (const [key, icon] of Object.entries(iconMap)) {
+      if (skillName.toLowerCase().includes(key.toLowerCase())) {
+        return icon;
+      }
+    }
+
+    // Default icon
+    return <CodeIcon fontSize="small" />;
   };
 
   if (isLoading) {
     return (
-      <Paper sx={{ p: 3, borderRadius: 3, height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-        <CircularProgress size={24} />
-      </Paper>
+      <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
+        <CircularProgress size={24} sx={{ color: profilePurple }} />
+      </Box>
     );
   }
 
   if (error) {
     return (
-      <Paper sx={{ p: 3, borderRadius: 3, height: '100%', textAlign: 'center' }}>
-        <Typography color="error">Error loading skills</Typography>
-      </Paper>
+      <Box sx={{ textAlign: 'center', p: 2, color: 'error.main' }}>
+        <Typography variant="body2">Error loading skills usage</Typography>
+      </Box>
     );
   }
-  
+
   return (
-    <Paper
-      sx={{
-        p: 3,
-        borderRadius: 3,
-        height: '100%',
-        boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
-      }}
-    >
-      <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-        <Avatar sx={{ bgcolor: alpha(theme.palette.primary.main, 0.1), color: theme.palette.primary.main, mr: 2 }}>
-          <CodeIcon />
-        </Avatar>
-        <Typography variant="h6" fontWeight="bold">
-          Top Skills ({roleName || 'Full Stack'})
-        </Typography>
-        <Box sx={{ flexGrow: 1 }} />
-        <Button 
-          size="small" 
-          endIcon={<ArrowForwardIosIcon sx={{ fontSize: '0.8rem' }} />}
-          sx={{ 
+    <Box>
+      <Box sx={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'space-between',
+        p: 2,
+        borderBottom: '1px solid',
+        borderColor: alpha(profilePurple, 0.1)
+      }}>
+        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+          <CodeIcon 
+            sx={{ 
+              color: profilePurple, 
+              mr: 1.5,
+              fontSize: 20
+            }} 
+          />
+          <Typography variant="h6" fontWeight={500} sx={{ fontSize: '1.125rem' }}>
+            Key Skills ({role})
+          </Typography>
+        </Box>
+        <Button
+          endIcon={<ArrowForwardIosIcon sx={{ fontSize: '0.7rem' }} />}
+          sx={{
+            color: profilePurple,
+            fontWeight: 400,
+            fontSize: '0.75rem',
             textTransform: 'none',
-            fontSize: '0.8rem'
+            '&:hover': { bgcolor: 'transparent' }
           }}
+          onClick={() => navigate('/skills')}
         >
           View All
         </Button>
       </Box>
       
-      <Box sx={{ px: 0.5 }}>
-        {skills.map((skill) => (
-          <Card
-            key={skill.name}
-            elevation={0}
-            sx={{
-              mb: 2,
-              borderRadius: 2,
-              border: '1px solid',
-              borderColor: alpha(theme.palette.primary.main, 0.2),
-              transition: 'all 0.2s ease',
-              '&:hover': {
-                transform: 'translateY(-3px)',
-                boxShadow: `0 6px 15px ${alpha(theme.palette.primary.main, 0.15)}`,
-              }
-            }}
-          >
-            <CardContent sx={{ py: 1.5, px: 2, '&:last-child': { pb: 1.5 } }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                  <Avatar 
-                    sx={{ 
-                      width: 38, 
-                      height: 38, 
-                      bgcolor: alpha(theme.palette.primary.main, 0.1),
-                      color: theme.palette.primary.main,
-                      mr: 2
-                    }}
-                  >
-                    {getSkillIcon(skill.name)}
-                  </Avatar>
-                  
-                  <Box>
-                    <Typography variant="body1" fontWeight="bold">
-                      {skill.name}
-                    </Typography>
-
-                    <Typography variant="caption" color="text.secondary" display="block">
-                      Proficiency: <Box component="span" fontWeight="bold" display="inline">{skill.proficiency}</Box>
-                    </Typography>
-
-                    <Typography variant="caption" color="text.secondary" display="block">
-                      Available Projects: <Box component="span" fontWeight="bold" display="inline">{Math.floor(Math.random() * 10) + 1}</Box>
-                    </Typography>
-
-                  </Box>
-                </Box>
-              
+      <Box sx={{ p: 2 }}>
+        {/* Skills List - Now showing project usage percentage */}
+        <Stack spacing={3}>
+          {skills.map((skill) => (
+            <Box key={skill.name}>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.5 }}>
+                <Typography variant="subtitle1" fontWeight={500}>
+                  {skill.name}
+                </Typography>
+                <Typography variant="caption" fontWeight="medium" sx={{ ml: 1 }}>
+                  {skill.usagePercentage}%
+                </Typography>
               </Box>
-            </CardContent>
-          </Card>
-        ))}
+              
+              <Box sx={{ mb: 0.5 }}>
+                <LinearProgress
+                  variant="determinate"
+                  value={skill.usagePercentage}
+                  sx={{
+                    height: 8,
+                    borderRadius: 4,
+                    bgcolor: alpha(profilePurple, 0.1),
+                    '& .MuiLinearProgress-bar': {
+                      bgcolor: profilePurple
+                    }
+                  }}
+                />
+              </Box>
+              
+              <Typography variant="caption" color="text.secondary">
+                Available Projects: {skill.projectCount}
+              </Typography>
+            </Box>
+          ))}
+        </Stack>
+
+        {/* Skills Tags */}
+        <Box sx={{ mt: 4 }}>
+          <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1.5 }}>
+            Skills
+          </Typography>
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+            {skills.map((skill) => (
+              <Chip
+                key={skill.name}
+                label={skill.name}
+                sx={{ 
+                  bgcolor: alpha(profilePurple, 0.1),
+                  color: profilePurple,
+                  fontWeight: 400,
+                  mb: 1
+                }}
+              />
+            ))}
+            <Chip
+              label="HTML & CSS"
+              sx={{ 
+                bgcolor: alpha(profilePurple, 0.1),
+                color: profilePurple,
+                fontWeight: 400,
+                mb: 1
+              }}
+            />
+            <Chip
+              label="JavaScript"
+              sx={{ 
+                bgcolor: alpha(profilePurple, 0.1),
+                color: profilePurple,
+                fontWeight: 400,
+                mb: 1
+              }}
+            />
+          </Box>
+        </Box>
       </Box>
-    </Paper>
+    </Box>
   );
 };
+
+export default UserSkillsList;
