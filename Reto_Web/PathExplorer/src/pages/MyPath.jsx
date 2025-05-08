@@ -134,6 +134,14 @@ const getTimelineItems = () => {
   });
 };
 
+// ======================= HU-14: TRAYECTORIA PROFESIONAL (ID: HU14) ===================
+// Como empleado quiero ver mis proyectos, certificados y cursos pasados
+// Objetivo: Mostrar historial profesional y sugerir certificaciones futuras.
+// Acciones:
+// - Crear perfil de usuario con historial de proyectos pasados y certificaciones.
+// - Implementar motor de recomendaciones de certificados base al perfil de usuario.
+// - Integrar IA básica para sugerencias personalizadas.
+
 const MyPath = () => {
   const theme = useTheme();
   const [activeTab, setActiveTab] = useState(0);
