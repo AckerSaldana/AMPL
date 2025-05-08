@@ -10,7 +10,11 @@ import {
   Avatar,
   Chip,
   LinearProgress,
-  Stack
+  Stack,
+  Divider,
+  IconButton,
+  Tooltip,
+  useTheme
 } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import { useNavigate } from "react-router-dom";
@@ -30,12 +34,46 @@ import SchoolIcon from "@mui/icons-material/School";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import TrendingUpIcon from "@mui/icons-material/TrendingUp";
 import GroupIcon from "@mui/icons-material/Group";
+import PieChartOutlineIcon from "@mui/icons-material/PieChartOutline";
+import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
+import SettingsIcon from "@mui/icons-material/Settings";
+import NotificationsNoneIcon from "@mui/icons-material/NotificationsNone";
+import AccountCircleIcon from "@mui/icons-material/AccountCircle";
+import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 
 // Datos de ejemplo garantizados para skills
 const DEFAULT_SKILLS = [
   { id: 1, name: "JavaScript", category: "Development", popularityPercentage: 85, userCount: 45, projectCount: 8 },
   { id: 2, name: "React", category: "Frontend", popularityPercentage: 70, userCount: 32, projectCount: 6 },
   { id: 3, name: "Python", category: "Backend", popularityPercentage: 65, userCount: 28, projectCount: 5 }
+];
+
+// Datos de ejemplo para certificaciones (como fallback)
+const DEFAULT_CERTIFICATIONS = [
+  {
+    id: 1,
+    name: "AWS Solutions Architect",
+    category: "Cloud",
+    completions: 842,
+    popularity: 85,
+    iconType: "Cloud"
+  },
+  {
+    id: 2,
+    name: "Full Stack React Development",
+    category: "Development",
+    completions: 734,
+    popularity: 78,
+    iconType: "Code"
+  },
+  {
+    id: 3,
+    name: "Data Science Professional",
+    category: "Analytics",
+    completions: 692,
+    popularity: 75,
+    iconType: "Analytics"
+  }
 ];
 
 const Dashboard = () => {
@@ -68,33 +106,8 @@ const Dashboard = () => {
     }
   ]);
   
-  // Datos para las certificaciones populares
-  const [popularCertifications, setPopularCertifications] = useState([
-    {
-      id: 1,
-      name: "AWS Solutions Architect",
-      category: "Cloud",
-      completions: 842,
-      popularity: 85,
-      iconType: "Cloud"
-    },
-    {
-      id: 2,
-      name: "Full Stack React Development",
-      category: "Development",
-      completions: 734,
-      popularity: 78,
-      iconType: "Code"
-    },
-    {
-      id: 3,
-      name: "Data Science Professional",
-      category: "Analytics",
-      completions: 692,
-      popularity: 75,
-      iconType: "Analytics"
-    }
-  ]);
+  // Estado para certificaciones populares
+  const [popularCertifications, setPopularCertifications] = useState(DEFAULT_CERTIFICATIONS);
   
   const today = new Date();
   const options = { day: "numeric", month: "long", year: "numeric" };
@@ -174,6 +187,166 @@ const Dashboard = () => {
           console.error("Error obteniendo skills:", e);
           // Mantenemos los datos de ejemplo por defecto
         }
+
+        // Obtener certificaciones populares usando la función RPC
+        try {
+          console.log("Obteniendo certificaciones populares con RPC");
+          
+          const { data: popularCerts, error } = await supabase
+            .rpc('get_popular_certifications', { limit_count: 3 });
+            
+          if (error) {
+            console.error("Error en RPC:", error);
+            throw error;
+          }
+            
+          console.log("Datos obtenidos de RPC:", popularCerts);
+            
+          if (popularCerts && popularCerts.length > 0) {
+            // Mapea los resultados al formato del componente
+            const formattedCerts = popularCerts.map(cert => {
+              // Función para obtener el tipo de icono según el tipo de certificación
+              const getIconType = (type) => {
+                const typeMap = {
+                  'Cloud Computing': 'Cloud',
+                  'Development': 'Code',
+                  'Project Management': 'Work',
+                  'Cybersecurity': 'Security',
+                  'Data': 'DataObject',
+                  'Analytics': 'Analytics',
+                  'Human Resources': 'PeopleAlt',
+                  'Leadership': 'Work'
+                };
+                
+                return typeMap[type] || 'EmojiEvents';
+              };
+              
+              return {
+                id: cert.cert_id,
+                name: cert.title,
+                category: cert.type || 'General',
+                completions: cert.completions,
+                popularity: cert.popularity_percentage,
+                iconType: getIconType(cert.type)
+              };
+            });
+            
+            console.log("Certificaciones formateadas:", formattedCerts);
+            setPopularCertifications(formattedCerts);
+          } else {
+            console.log("No se encontraron certificaciones populares, usando datos por defecto");
+          }
+        } catch (e) {
+          console.error("Error obteniendo certificaciones populares con RPC:", e);
+          console.log("Intentando enfoque alternativo sin RPC");
+          
+          // Método alternativo si la función RPC falla
+          try {
+            console.log("Comenzando a obtener certificaciones populares con método alternativo");
+            
+            // First, we'll count the number of users for each certification
+            const { data: userCertsData, error: userCertsError } = await supabase
+              .from('UserCertifications')
+              .select('certification_ID, status');
+              
+            if (userCertsError) throw userCertsError;
+            
+            console.log("Certificaciones de usuarios obtenidas:", userCertsData);
+            
+            // Filter approved certifications and count them
+            const certCounts = {};
+            userCertsData
+              .filter(cert => cert.status === 'approved')
+              .forEach(cert => {
+                const certId = cert.certification_ID;
+                certCounts[certId] = (certCounts[certId] || 0) + 1;
+              });
+            
+            // Convert to array and sort by count (descending)
+            const sortedCerts = Object.entries(certCounts)
+              .map(([id, count]) => ({ id, count }))
+              .sort((a, b) => b.count - a.count);
+            
+            console.log("Certificaciones ordenadas por popularidad:", sortedCerts);
+            
+            // Get top 3 certification IDs
+            const topCertIds = sortedCerts.slice(0, 3).map(item => item.id);
+            
+            if (topCertIds.length > 0) {
+              console.log("IDs de las certificaciones más populares:", topCertIds);
+              
+              // Get details for these certifications
+              const { data: certDetails, error: certDetailsError } = await supabase
+                .from('Certifications')
+                .select('certification_id, title, type, issuer');
+                
+              if (certDetailsError) throw certDetailsError;
+              
+              console.log("Detalles de certificaciones obtenidos:", certDetails);
+              
+              // Calculate total completions for percentage
+              const totalCompletions = sortedCerts.reduce((sum, cert) => sum + cert.count, 0);
+              
+              // Map certification IDs to their details and format for the component
+              const formattedCertifications = topCertIds
+                .map(id => {
+                  // Find count info
+                  const countInfo = sortedCerts.find(c => c.id === id);
+                  
+                  // Find matching certification details
+                  // Notice we're checking if certification_id matches the ID
+                  const detailInfo = certDetails.find(
+                    c => c.certification_id === id
+                  );
+                  
+                  if (!detailInfo) {
+                    console.log(`No se encontraron detalles para certificación con ID: ${id}`);
+                    return null;
+                  }
+                  
+                  // Map certification type to icon type
+                  const getIconType = (type) => {
+                    const typeMap = {
+                      'Cloud Computing': 'Cloud',
+                      'Development': 'Code',
+                      'Project Management': 'Work',
+                      'Cybersecurity': 'Security',
+                      'Data': 'DataObject',
+                      'Analytics': 'Analytics',
+                      'Human Resources': 'PeopleAlt',
+                      'Leadership': 'Work'
+                    };
+                    
+                    return typeMap[type] || 'EmojiEvents';
+                  };
+                  
+                  // Calculate popularity percentage
+                  const popularity = Math.round((countInfo.count / totalCompletions) * 100);
+                  
+                  return {
+                    id: id,
+                    name: detailInfo.title,
+                    category: detailInfo.type || 'General',
+                    completions: countInfo.count,
+                    popularity: popularity,
+                    iconType: getIconType(detailInfo.type)
+                  };
+                })
+                .filter(cert => cert !== null); // Remove any nulls
+              
+              if (formattedCertifications.length > 0) {
+                console.log("Certificaciones populares formateadas:", formattedCertifications);
+                setPopularCertifications(formattedCertifications);
+              } else {
+                console.log("No se pudieron formatear certificaciones, usando datos por defecto");
+              }
+            }
+          } catch (innerError) {
+            console.error("Error en método alternativo:", innerError);
+            // Mantener datos por defecto
+          }
+        }
+        
       } catch (error) {
         console.error("Error general:", error);
       } finally {
@@ -216,7 +389,8 @@ const Dashboard = () => {
       width: '100%',
       padding: { xs: 2, md: 3 }
     }}>
-      {/* Welcome banner que abarca todo el ancho */}
+
+      {/* Welcome banner con diseño minimalista */}
       <Paper
         elevation={0}
         sx={{
@@ -230,29 +404,35 @@ const Dashboard = () => {
           alignItems: "center",
           color: "#ffffff",
           boxShadow: `0 4px 12px ${alpha(profilePurple, 0.2)}`,
-          width: '100%'
+          width: '100%',
+          position: 'relative',
+          overflow: 'hidden'
         }}
       >
-        <Box>
+        <Box sx={{ position: 'relative', zIndex: 2 }}>
           <Typography variant="h4" fontWeight="bold" sx={{ mb: 1 }}>
             Welcome back!
           </Typography>
-          <Typography variant="body1">Today is {formattedDate}</Typography>
+          <Typography variant="body1" sx={{ opacity: 0.9 }}>
+            Today is {formattedDate}
+          </Typography>
         </Box>
-        <Box sx={{ mt: { xs: 2, md: 0 } }}>
+        <Box sx={{ mt: { xs: 2, md: 0 }, position: 'relative', zIndex: 2 }}>
           <Button
             variant="contained"
             onClick={() => navigate('/projects')}
             sx={{
-              borderRadius: 28,
+              borderRadius: '50px',
               px: 3,
               py: 1,
               textTransform: "none",
               fontWeight: 500,
               bgcolor: "#ffffff",
               color: profilePurple,
+              boxShadow: '0 4px 8px rgba(0,0,0,0.1)',
               "&:hover": {
                 bgcolor: "#f5f5f5",
+                boxShadow: '0 6px 12px rgba(0,0,0,0.15)',
               },
             }}
           >
@@ -261,438 +441,599 @@ const Dashboard = () => {
         </Box>
       </Paper>
 
-      {/* Grid contenedor principal con 12 columnas */}
-      <Grid container spacing={3}>
-        {/* Stats Cards - Primera fila, 2 columnas del mismo ancho */}
-        <Grid item xs={12} md={6}>
+      {/* Stats Cards - Diseño minimalista con gradientes sutiles */}
+      <Grid container spacing={3} sx={{ mb: 3 }}>
+        <Grid item xs={12} sm={6} md={3}>
           <Paper
             elevation={0}
             sx={{
-              p: 2,
+              p: 2.5,
               borderRadius: 2,
               display: "flex",
-              alignItems: "center",
+              flexDirection: 'column',
               bgcolor: '#ffffff',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
-              height: '100%'
+              boxShadow: '0 2px 8px rgba(0,0,0,0.03)',
+              height: '100%',
+              position: 'relative',
+              border: `1px solid ${alpha(profilePurple, 0.2)}`,
+              overflow: 'hidden',
+              '&::after': {
+                content: '""',
+                position: 'absolute',
+                bottom: 0,
+                left: 0,
+                right: 0,
+                height: 4,
+                background: profilePurple
+              }
             }}
           >
-            <Avatar
-              sx={{
-                bgcolor: alpha(profilePurple, 0.1),
-                color: profilePurple,
-                mr: 2,
-                width: 40,
-                height: 40
-              }}
-            >
-              <WorkOutlineIcon />
-            </Avatar>
-            <Box>
-              <Typography variant="h4" color={profilePurple} fontWeight="medium">
+            <Typography variant="caption" color="text.secondary" sx={{ mb: 1 }}>
+              Active Projects
+            </Typography>
+            
+            <Box sx={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
+              <Typography variant="h3" color="text.primary" fontWeight="medium" sx={{ lineHeight: 1 }}>
                 {stats.activeProjects}
               </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Active Projects
-              </Typography>
-            </Box>
-          </Paper>
-        </Grid>
-
-        <Grid item xs={12} md={6}>
-          <Paper
-            elevation={0}
-            sx={{
-              p: 2,
-              borderRadius: 2,
-              display: "flex",
-              alignItems: "center",
-              bgcolor: '#ffffff',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
-              height: '100%'
-            }}
-          >
-            <Avatar
-              sx={{
-                bgcolor: alpha(profilePurple, 0.1),
-                color: profilePurple,
-                mr: 2,
-                width: 40,
-                height: 40
-              }}
-            >
-              <PeopleOutlineIcon />
-            </Avatar>
-            <Box>
-              <Typography variant="h4" color={profilePurple} fontWeight="medium">
-                {stats.teamMembers}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Team Members
-              </Typography>
-            </Box>
-          </Paper>
-        </Grid>
-
-        {/* Segunda fila - MyPath */}
-        <Grid item xs={12} md={6}>
-          {/* MyPath Timeline */}
-          <Paper
-            elevation={0}
-            sx={{
-              borderRadius: 2,
-              bgcolor: '#ffffff',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
-              mb: 3,
-              width: '100%'
-            }}
-          >
-            <Box sx={{ p: 2 }}>
-              {/* Encabezado de MyPath */}
-              <Box sx={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'space-between',
-                mb: 2
-              }}>
-                <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                  <SchoolIcon 
-                    sx={{ 
-                      color: profilePurple, 
-                      mr: 1.5,
-                      fontSize: 20
-                    }} 
-                  />
-                  <Typography variant="h6" fontWeight={500} sx={{ fontSize: '1.125rem' }}>
-                    MyPath
-                  </Typography>
-                </Box>
-                <Button
-                  endIcon={<ArrowForwardIcon sx={{ fontSize: '0.9rem' }} />}
-                  sx={{
-                    color: profilePurple,
-                    fontWeight: 400,
-                    fontSize: '0.75rem',
-                    textTransform: 'none',
-                    '&:hover': { bgcolor: 'transparent' }
-                  }}
-                  onClick={() => navigate('/mypath')}
-                >
-                  View All
-                </Button>
-              </Box>
-
-              {/* Contenido de MyPath - Lista de elementos */}
-              <Box
+              
+              <Avatar
                 sx={{
-                  position: "relative",
-                  ml: 2,
-                  height: "280px",
-                  overflowY: "auto",
-                  // Timeline vertical line
-                  "&::before": {
-                    content: '""',
-                    position: "absolute",
-                    top: 0,
-                    bottom: 0,
-                    left: 8,
-                    width: 2,
-                    bgcolor: "#ccc",
-                  }
+                  bgcolor: alpha(profilePurple, 0.1),
+                  color: profilePurple,
+                  width: 36,
+                  height: 36
                 }}
               >
-                {pathItems.map((item, index) => {
-                  const isFirstItem = index === 0;
-                  const isProject = item.type === "Project";
-                  const color = isFirstItem
-                    ? profilePurple
-                    : isProject
-                    ? profilePurple
-                    : alpha(profilePurple, 0.7);
-                  
-                  // Determinar si debe mostrar "AI Suggested" para items sin fecha
-                  const showAISuggested = !item.date;
-                  
-                  // Formatear la fecha si existe, o mostrar "Soon"
-                  const formattedDate = !item.date 
-                    ? "Soon" 
-                    : (() => {
-                        const [year, month, day] = item.date.split("-");
-                        return `${month} | ${day} | ${year}`;
-                      })();
-                  
-                  return (
-                    <Box
-                      key={item.id}
-                      sx={{
-                        display: "flex",
-                        position: "relative",
-                        mb: 3,
-                        ml: 3,
-                        p: 1.5,
-                        backgroundColor: '#ffffff',
-                        borderRadius: 1,
-                        alignItems: "flex-start",
-                        justifyContent: "space-between",
-                        border: `1px solid ${alpha(profilePurple, 0.2)}`,
-                      }}
-                    >
-                      {/* Timeline dot */}
-                      <Box
-                        sx={{
-                          width: 14,
-                          height: 14,
-                          borderRadius: "50%",
-                          backgroundColor: color,
-                          position: "absolute",
-                          left: -22,
-                          top: "20%",
-                          transform: "translateY(-50%)",
-                        }}
-                      />
-                      {/* Left content */}
-                      <Box sx={{ flex: 1, pr: 2 }}>
-                        <Typography
-                          fontWeight={600}
-                          variant="subtitle2"
-                          sx={{
-                            color: "text.primary",
-                            fontSize: "0.9rem",
-                            wordBreak: "break-word",
-                          }}
-                        >
-                          {item.title}
-                        </Typography>
-                        <Typography
-                          variant="caption"
-                          sx={{ 
-                            color: showAISuggested 
-                              ? profilePurple
-                              : "text.secondary"
-                          }}
-                        >
-                          {showAISuggested ? "AI Suggested Certificate" : item.type}
-                        </Typography>
-                      </Box>
-                      {/* Right date */}
-                      <Typography
-                        variant="caption"
-                        sx={{
-                          whiteSpace: "nowrap",
-                          color: "text.disabled",
-                          fontSize: "0.75rem",
-                        }}
-                      >
-                        {formattedDate}
-                      </Typography>
-                    </Box>
-                  );
-                })}
-              </Box>
+                <WorkOutlineIcon fontSize="small" />
+              </Avatar>
+            </Box>
+            
+            <Box sx={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              mt: 1.5, 
+              color: '#4caf50', 
+              fontSize: '0.8rem' 
+            }}>
+              <ArrowUpwardIcon sx={{ fontSize: '0.9rem', mr: 0.5 }} />
+              <Typography variant="caption" fontWeight="medium">
+                +2 from last month
+              </Typography>
             </Box>
           </Paper>
+        </Grid>
 
-          {/* Popular Certifications - Debajo de MyPath */}
+        <Grid item xs={12} sm={6} md={3}>
           <Paper
             elevation={0}
             sx={{
+              p: 2.5,
               borderRadius: 2,
+              display: "flex",
+              flexDirection: 'column',
               bgcolor: '#ffffff',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
-              width: '100%'
+              boxShadow: '0 2px 8px rgba(0,0,0,0.03)',
+              height: '100%',
+              position: 'relative',
+              border: `1px solid ${alpha(profilePurple, 0.2)}`,
+              overflow: 'hidden',
+              '&::after': {
+                content: '""',
+                position: 'absolute',
+                bottom: 0,
+                left: 0,
+                right: 0,
+                height: 4,
+                background: profilePurple
+              }
             }}
           >
-            <PopularCertifications certifications={popularCertifications} />
+            <Typography variant="caption" color="text.secondary" sx={{ mb: 1 }}>
+              Team Members
+            </Typography>
+            
+            <Box sx={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
+              <Typography variant="h3" color="text.primary" fontWeight="medium" sx={{ lineHeight: 1 }}>
+                {stats.teamMembers}
+              </Typography>
+              
+              <Avatar
+                sx={{
+                  bgcolor: alpha(profilePurple, 0.1),
+                  color: profilePurple,
+                  width: 36,
+                  height: 36
+                }}
+              >
+                <PeopleOutlineIcon fontSize="small" />
+              </Avatar>
+            </Box>
+            
+            <Box sx={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              mt: 1.5, 
+              color: '#4caf50', 
+              fontSize: '0.8rem' 
+            }}>
+              <ArrowUpwardIcon sx={{ fontSize: '0.9rem', mr: 0.5 }} />
+              <Typography variant="caption" fontWeight="medium">
+                +3 new this week
+              </Typography>
+            </Box>
           </Paper>
         </Grid>
         
-        {/* Tercera columna - Calendario y Skills Populares */}
-        <Grid item xs={12} md={6}>
-          {/* Calendario y recordatorios */}
+        <Grid item xs={12} sm={6} md={3}>
           <Paper
             elevation={0}
             sx={{
+              p: 2.5,
               borderRadius: 2,
+              display: "flex",
+              flexDirection: 'column',
               bgcolor: '#ffffff',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
-              p: 2,
-              width: '100%',
-              mb: 3
+              boxShadow: '0 2px 8px rgba(0,0,0,0.03)',
+              height: '100%',
+              position: 'relative',
+              border: `1px solid ${alpha(profilePurple, 0.2)}`,
+              overflow: 'hidden',
+              '&::after': {
+                content: '""',
+                position: 'absolute',
+                bottom: 0,
+                left: 0,
+                right: 0,
+                height: 4,
+                background: profilePurple
+              }
             }}
           >
-            {/* Encabezado del calendario */}
-            <Box 
-              sx={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'space-between',
-                mb: 2
-              }}
-            >
-              <Typography variant="h6" fontWeight={500} sx={{ fontSize: '1.125rem' }}>
-                Schedule & Project Reminders
+            <Typography variant="caption" color="text.secondary" sx={{ mb: 1 }}>
+              My Certifications
+            </Typography>
+            
+            <Box sx={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
+              <Typography variant="h3" color="text.primary" fontWeight="medium" sx={{ lineHeight: 1 }}>
+                3
+              </Typography>
+              
+              <Avatar
+                sx={{
+                  bgcolor: alpha(profilePurple, 0.1),
+                  color: profilePurple,
+                  width: 36,
+                  height: 36
+                }}
+              >
+                <SchoolIcon fontSize="small" />
+              </Avatar>
+            </Box>
+            
+            <Box sx={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              mt: 1.5, 
+              color: '#ff9800', 
+              fontSize: '0.8rem' 
+            }}>
+              <Typography variant="caption" fontWeight="medium">
+                1 in progress
               </Typography>
             </Box>
-            
-            {/* Componente del calendario */}
-            <Box 
-              sx={{ 
-                // Estilos para hacer el calendario más compacto
-                '.MuiGrid-container': { 
-                  mb: 0.5 // reducimos margen entre filas
-                },
-                // Hacemos los días más compactos
-                '.MuiBox-root > .MuiGrid-container .MuiGrid-item > div': {
-                  width: 32, 
-                  height: 32,
-                  my: 0.5
-                }
-              }}
-            >
-              <CalendarCompact userId={user?.id} />
-            </Box>
           </Paper>
-          
-          {/* Popular Skills Section - Habilidades más populares en la empresa */}
+        </Grid>
+        
+        <Grid item xs={12} sm={6} md={3}>
           <Paper
             elevation={0}
             sx={{
+              p: 2.5,
               borderRadius: 2,
+              display: "flex",
+              flexDirection: 'column',
               bgcolor: '#ffffff',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
-              width: '100%'
+              boxShadow: '0 2px 8px rgba(0,0,0,0.03)',
+              height: '100%',
+              position: 'relative',
+              border: `1px solid ${alpha(profilePurple, 0.2)}`,
+              overflow: 'hidden',
+              '&::after': {
+                content: '""',
+                position: 'absolute',
+                bottom: 0,
+                left: 0,
+                right: 0,
+                height: 4,
+                background: profilePurple
+              }
             }}
           >
-            <Box 
-              sx={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'space-between',
-                p: 2,
-                borderBottom: '1px solid',
-                borderColor: alpha(profilePurple, 0.1)
-              }}
-            >
-              <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                <TrendingUpIcon 
-                  sx={{ 
-                    color: profilePurple, 
-                    mr: 1.5,
-                    fontSize: 20
-                  }} 
-                />
-                <Typography variant="h6" fontWeight={500} sx={{ fontSize: '1.125rem' }}>
-                  Most Popular Skills
-                </Typography>
-              </Box>
-              <Button
+            <Typography variant="caption" color="text.secondary" sx={{ mb: 1 }}>
+              Skills Mastered
+            </Typography>
+            
+            <Box sx={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
+              <Typography variant="h3" color="text.primary" fontWeight="medium" sx={{ lineHeight: 1 }}>
+                8
+              </Typography>
+              
+              <Avatar
                 sx={{
+                  bgcolor: alpha(profilePurple, 0.1),
                   color: profilePurple,
-                  fontWeight: 400,
-                  fontSize: '0.75rem',
-                  textTransform: 'none',
-                  '&:hover': { bgcolor: 'transparent' }
+                  width: 36,
+                  height: 36
                 }}
-                onClick={() => navigate('/skills')}
               >
-                View All
-              </Button>
+                <CodeIcon fontSize="small" />
+              </Avatar>
             </Box>
             
-            <Box sx={{ p: 2 }}>
-              {/* Lista de Skills más Populares en la empresa */}
-              <Stack spacing={3}>
-                {popularSkills.map((skill) => (
-                  <Box key={skill.id || skill.name}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.5 }}>
-                      <Typography variant="subtitle1" fontWeight={500}>
-                        {skill.name}
-                      </Typography>
-                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                        <GroupIcon sx={{ fontSize: 16, color: profilePurple, mr: 0.5 }} />
-                        <Typography variant="caption" fontWeight="medium">
-                          {skill.userCount} users
-                        </Typography>
-                      </Box>
-                    </Box>
-                    
-                    <Box sx={{ mb: 0.5 }}>
-                      <LinearProgress
-                        variant="determinate"
-                        value={skill.popularityPercentage}
-                        sx={{
-                          height: 6,
-                          borderRadius: 4,
-                          bgcolor: alpha(profilePurple, 0.1),
-                          '& .MuiLinearProgress-bar': {
-                            bgcolor: profilePurple
-                          }
-                        }}
-                      />
-                    </Box>
-                    
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <Typography variant="caption" color="text.secondary">
-                        Available Projects: {skill.projectCount}
-                      </Typography>
-                      <Typography 
-                        variant="caption" 
-                        sx={{ 
-                          color: profilePurple,
-                          fontWeight: 500
-                        }}
-                      >
-                        {skill.popularityPercentage}% adoption
-                      </Typography>
-                    </Box>
-                    
-                    {skill.category && (
-                      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
-                        Category: {skill.category}
-                      </Typography>
-                    )}
-                  </Box>
-                ))}
-              </Stack>
-
-              {/* Skills Tags */}
-              <Box sx={{ mt: 3 }}>
-                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                  {popularSkills.map((skill) => (
-                    <Chip
-                      key={skill.id || skill.name}
-                      label={skill.name}
-                      size="small"
-                      sx={{ 
-                        bgcolor: alpha(profilePurple, 0.1),
-                        color: profilePurple,
-                        fontWeight: 400,
-                        mb: 1
-                      }}
-                    />
-                  ))}
-                  {popularSkills
-                    .filter(s => s.category)
-                    .filter((s, i, arr) => arr.findIndex(t => t.category === s.category) === i)
-                    .map((skill) => (
-                      <Chip
-                        key={`cat-${skill.category}`}
-                        label={skill.category}
-                        size="small"
-                        variant="outlined"
-                        sx={{ 
-                          borderColor: alpha(profilePurple, 0.3),
-                          color: alpha(profilePurple, 0.8),
-                          fontWeight: 400,
-                          mb: 1
-                        }}
-                      />
-                    ))
-                  }
-                </Box>
-              </Box>
+            <Box sx={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              mt: 1.5, 
+              color: '#4caf50', 
+              fontSize: '0.8rem' 
+            }}>
+              <ArrowUpwardIcon sx={{ fontSize: '0.9rem', mr: 0.5 }} />
+              <Typography variant="caption" fontWeight="medium">
+                +2 this quarter
+              </Typography>
             </Box>
           </Paper>
+        </Grid>
+      </Grid>
+
+      {/* Main Content Grid */}
+      <Grid container spacing={3}>
+        {/* Column 1: Skills y Calendar */}
+        <Grid item xs={12} md={8}>
+          <Grid container spacing={3}>
+            {/* MyPath Timeline con diseño renovado */}
+            <Grid item xs={12}>
+              <Paper
+                elevation={0}
+                sx={{
+                  borderRadius: 2,
+                  bgcolor: '#ffffff',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.03)',
+                  overflow: 'hidden',
+                  mb: 3
+                }}
+              >
+                <Box sx={{ 
+                  p: 2, 
+                  borderBottom: '1px solid',
+                  borderColor: alpha(profilePurple, 0.1),
+                  display: 'flex', 
+                  justifyContent: 'space-between', 
+                  alignItems: 'center' 
+                }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <SchoolIcon 
+                      sx={{ 
+                        color: profilePurple, 
+                        mr: 1.5,
+                        fontSize: 20
+                      }} 
+                    />
+                    <Typography variant="h6" fontWeight={500} sx={{ fontSize: '1.125rem' }}>
+                      MyPath Timeline
+                    </Typography>
+                  </Box>
+                  
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <Button
+                      endIcon={<ArrowForwardIcon sx={{ fontSize: '0.9rem' }} />}
+                      sx={{
+                        color: profilePurple,
+                        fontWeight: 400,
+                        fontSize: '0.75rem',
+                        textTransform: 'none',
+                        '&:hover': { bgcolor: 'transparent' }
+                      }}
+                      onClick={() => navigate('/mypath')}
+                    >
+                      View All
+                    </Button>
+                    
+                    <IconButton size="small" sx={{ ml: 0.5, color: alpha(profilePurple, 0.6) }}>
+                      <MoreHorizIcon fontSize="small" />
+                    </IconButton>
+                  </Box>
+                </Box>
+                
+                {/* Contenido de MyPath - Lista de elementos (Diseño Original) */}
+                <Box
+                  sx={{
+                    position: "relative",
+                    ml: 2,
+                    p: 2,
+                    // Timeline vertical line - centrada
+                    "&::before": {
+                      content: '""',
+                      position: "absolute",
+                      top: 16,
+                      bottom: 38,
+                      left: 16,
+                      width: 2,
+                      bgcolor: alpha(profilePurple, 0.2),
+                    }
+                  }}
+                >
+                  {pathItems.map((item, index) => {
+                    const isFirstItem = index === 0;
+                    const isProject = item.type === "Project";
+                    const color = isFirstItem
+                      ? profilePurple
+                      : isProject
+                      ? profilePurple
+                      : alpha(profilePurple, 0.7);
+                    
+                    // Determinar si debe mostrar "AI Suggested" para items sin fecha
+                    const showAISuggested = !item.date;
+                    
+                    // Formatear la fecha si existe, o mostrar "Soon"
+                    const formattedDate = !item.date 
+                      ? "Soon" 
+                      : (() => {
+                          const [year, month, day] = item.date.split("-");
+                          return `${month} | ${day} | ${year}`;
+                        })();
+                    
+                    return (
+                      <Box
+                        key={item.id}
+                        sx={{
+                          display: "flex",
+                          position: "relative",
+                          mb: 3,
+                          ml: 3,
+                          p: 1.5,
+                          px: 2.5,
+                          backgroundColor: '#ffffff',
+                          borderRadius: 1,
+                          alignItems: "flex-start",
+                          justifyContent: "space-between",
+                          border: `1px solid ${alpha(profilePurple, 0.1)}`,
+                          boxShadow: '0 2px 8px rgba(0,0,0,0.03)',
+                          transition: 'all 0.2s',
+                          '&:hover': {
+                            boxShadow: '0 4px 10px rgba(0,0,0,0.06)',
+                            borderColor: alpha(profilePurple, 0.2)
+                          }
+                        }}
+                      >
+                        {/* Timeline dot - centrado verticalmente */}
+                        <Box
+                          sx={{
+                            width: 14,
+                            height: 14,
+                            borderRadius: "50%",
+                            backgroundColor: color,
+                            position: "absolute",
+                            left: -31,
+                            top: "50%",
+                            transform: "translateY(-50%)",
+                            border: `2px solid white`,
+                            boxShadow: '0 0 0 2px rgba(0,0,0,0.03)'
+                          }}
+                        />
+                        {/* Left content */}
+                        <Box sx={{ flex: 1, pr: 2 }}>
+                          <Typography
+                            fontWeight={600}
+                            variant="subtitle2"
+                            sx={{
+                              color: "text.primary",
+                              fontSize: "0.9rem",
+                              wordBreak: "break-word",
+                            }}
+                          >
+                            {item.title}
+                          </Typography>
+                          <Typography
+                            variant="caption"
+                            sx={{ 
+                              color: showAISuggested 
+                                ? profilePurple
+                                : "text.secondary",
+                              fontWeight: showAISuggested ? 500 : 400
+                            }}
+                          >
+                            {showAISuggested ? "AI Suggested Certificate" : item.type}
+                          </Typography>
+                        </Box>
+                        {/* Right date */}
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            whiteSpace: "nowrap",
+                            color: "text.secondary",
+                            fontSize: "0.75rem",
+                          }}
+                        >
+                          {formattedDate}
+                        </Typography>
+                      </Box>
+                    );
+                  })}
+                </Box>
+              </Paper>
+            </Grid>
+          
+            {/* Calendar Component */}
+            <Grid item xs={12}>
+              <Paper
+                elevation={0}
+                sx={{
+                  borderRadius: 2,
+                  bgcolor: '#ffffff',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.03)',
+                  overflow: 'hidden',
+                  border: `1px solid ${alpha(profilePurple, 0.15)}`
+                }}
+              >
+                <CalendarCompact userId={user?.id} />
+              </Paper>
+            </Grid>
+          </Grid>
+        </Grid>
+
+        {/* Column 2: Skills y Certifications */}
+        <Grid item xs={12} md={4}>
+          <Grid container spacing={3}>
+            {/* Popular Skills Section */}
+            <Grid item xs={12}>
+              <Paper
+                elevation={0}
+                sx={{
+                  borderRadius: 2,
+                  bgcolor: '#ffffff',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.03)',
+                  mb: 3,
+                  overflow: 'hidden'
+                }}
+              >
+                <Box 
+                  sx={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'space-between',
+                    p: 2,
+                    borderBottom: '1px solid',
+                    borderColor: alpha(profilePurple, 0.1)
+                  }}
+                >
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <TrendingUpIcon 
+                      sx={{ 
+                        color: profilePurple, 
+                        mr: 1.5,
+                        fontSize: 20
+                      }} 
+                    />
+                    <Typography variant="h6" fontWeight={500} sx={{ fontSize: '1.125rem' }}>
+                      Most Popular Skills
+                    </Typography>
+                  </Box>
+                  <Button
+                    sx={{
+                      color: profilePurple,
+                      fontWeight: 400,
+                      fontSize: '0.75rem',
+                      textTransform: 'none',
+                      '&:hover': { bgcolor: 'transparent' }
+                    }}
+                    onClick={() => navigate('/skills')}
+                  >
+                    View All
+                  </Button>
+                </Box>
+                
+                <Box sx={{ p: 2 }}>
+                  {/* Lista de Skills más Populares con barras de progreso pero diseño mejorado */}
+                  <Stack spacing={3}>
+                    {popularSkills.map((skill) => (
+                      <Box key={skill.id || skill.name}>
+                        <Box sx={{ 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          justifyContent: 'space-between', 
+                          mb: 1 
+                        }}>
+                          <Typography variant="subtitle1" fontWeight={600} sx={{ color: 'text.primary' }}>
+                            {skill.name}
+                          </Typography>
+                          <Tooltip title={`${skill.userCount} users have this skill`}>
+                            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                              <GroupIcon sx={{ fontSize: 16, color: profilePurple, mr: 0.5 }} />
+                              <Typography variant="caption" fontWeight="medium">
+                                {skill.userCount}
+                              </Typography>
+                            </Box>
+                          </Tooltip>
+                        </Box>
+                        
+                        <Box sx={{ mb: 0.5 }}>
+                          <LinearProgress
+                            variant="determinate"
+                            value={skill.popularityPercentage}
+                            sx={{
+                              height: 8,
+                              borderRadius: 4,
+                              bgcolor: alpha(profilePurple, 0.1),
+                              '& .MuiLinearProgress-bar': {
+                                bgcolor: `linear-gradient(90deg, ${profilePurple}, ${alpha(profilePurple, 0.7)})`,
+                                borderRadius: 4
+                              }
+                            }}
+                          />
+                        </Box>
+                        
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <Box sx={{ display: 'flex', gap: 1 }}>
+                            <Chip
+                              label={skill.category}
+                              size="small"
+                              sx={{ 
+                                height: 20,
+                                fontSize: '0.65rem',
+                                fontWeight: 500,
+                                bgcolor: alpha(profilePurple, 0.08),
+                                color: alpha(profilePurple, 0.8)
+                              }}
+                            />
+                            <Chip
+                              label={`${skill.projectCount} projects`}
+                              size="small"
+                              variant="outlined"
+                              sx={{ 
+                                height: 20,
+                                fontSize: '0.65rem',
+                                fontWeight: 500,
+                                borderColor: alpha(profilePurple, 0.2),
+                                color: 'text.secondary'
+                              }}
+                            />
+                          </Box>
+                          
+                          <Typography 
+                            variant="caption" 
+                            sx={{ 
+                              color: profilePurple,
+                              fontWeight: 600
+                            }}
+                          >
+                            {skill.popularityPercentage}%
+                          </Typography>
+                        </Box>
+                      </Box>
+                    ))}
+                  </Stack>
+                </Box>
+              </Paper>
+            </Grid>
+            
+            {/* Popular Certifications */}
+            <Grid item xs={12}>
+              <Paper
+                elevation={0}
+                sx={{
+                  borderRadius: 2,
+                  bgcolor: '#ffffff',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.03)',
+                  overflow: 'hidden',
+                  height: '100%'
+                }}
+              >
+                <PopularCertifications certifications={popularCertifications} />
+              </Paper>
+            </Grid>
+          </Grid>
         </Grid>
       </Grid>
     </Box>
