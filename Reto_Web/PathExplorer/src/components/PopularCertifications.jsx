@@ -4,15 +4,13 @@ import {
   Box, 
   Typography, 
   Card,
-  CardContent, 
   Avatar,
-  Chip,
   Button,
-  useTheme,
   alpha,
+  Stack,
+  Grid,
   Divider,
-  LinearProgress,
-  Stack
+  Tooltip
 } from "@mui/material";
 
 // Iconos
@@ -25,13 +23,14 @@ import CloudIcon from "@mui/icons-material/Cloud";
 import DataObjectIcon from "@mui/icons-material/DataObject";
 import SecurityIcon from "@mui/icons-material/Security";
 import AnalyticsIcon from "@mui/icons-material/Analytics";
+import StarIcon from "@mui/icons-material/Star";
+import PeopleAltOutlinedIcon from "@mui/icons-material/PeopleAltOutlined";
 import { useNavigate } from "react-router-dom";
 
 export const PopularCertifications = ({ certifications }) => {
-  const theme = useTheme();
   const navigate = useNavigate();
   
-  // Updated to match Dashboard profile color
+  // Match Dashboard profile color
   const profilePurple = '#9c27b0';
   
   // Get icon based on certification type
@@ -48,56 +47,46 @@ export const PopularCertifications = ({ certifications }) => {
     }
   };
   
+  // Calculate star rating based on popularity percentage
+  const calculateStars = (popularity) => {
+    // Transform popularity percentage to a 0-5 scale
+    return Math.round(popularity / 20);
+  };
+  
   return (
-    <Card
-      elevation={0}
-      sx={{
-        height: '100%',
-        borderRadius: 2,
-        border: `1px solid ${alpha(profilePurple, 0.1)}`,
-        display: 'flex',
-        flexDirection: 'column',
-        overflow: 'hidden'
-      }}
-    >
+    <Box sx={{ height: '100%', p: 2 }}>
       {/* Header */}
       <Box 
         sx={{ 
-          p: 2, 
           display: 'flex', 
           alignItems: 'center',
           justifyContent: 'space-between',
-          borderBottom: `1px solid ${alpha(profilePurple, 0.1)}`
+          mb: 3
         }}
       >
         <Box sx={{ display: 'flex', alignItems: 'center' }}>
-          <Avatar 
+          <EmojiEventsIcon 
             sx={{ 
-              bgcolor: alpha(profilePurple, 0.1), 
-              color: profilePurple,
-              width: 34,
-              height: 34,
-              mr: 1.5
-            }}
-          >
-            <EmojiEventsIcon fontSize="small" />
-          </Avatar>
-          <Typography variant="h6" fontWeight={500}>
+              color: profilePurple, 
+              mr: 1.5,
+              fontSize: 20
+            }} 
+          />
+          <Typography variant="h6" fontWeight={500} sx={{ fontSize: '1.125rem' }}>
             Popular Certifications
           </Typography>
         </Box>
         <Button 
           size="small"
-          variant="text"
-          color="primary"
           endIcon={<ArrowForwardIosIcon sx={{ fontSize: '0.7rem' }} />}
           onClick={() => navigate('/certifications')}
           sx={{ 
             textTransform: 'none',
-            fontSize: '0.8rem',
+            fontSize: '0.75rem',
             color: profilePurple,
+            fontWeight: 400,
             '&:hover': {
-              bgcolor: alpha(profilePurple, 0.05)
+              bgcolor: 'transparent'
             }
           }}
         >
@@ -105,105 +94,157 @@ export const PopularCertifications = ({ certifications }) => {
         </Button>
       </Box>
       
-      {/* Content */}
-      <Box 
-        sx={{ 
-          flex: 1,
-          p: 2,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 2,
-          overflowY: 'auto'
-        }}
-      >
+      {/* Content - Card Grid Layout */}
+      <Grid container spacing={2}>
         {certifications.length > 0 ? (
-          certifications.map((cert) => (
-            <Card 
-              key={cert.id}
-              elevation={0}
-              sx={{
-                borderRadius: 2,
-                border: `1px solid ${alpha(profilePurple, 0.1)}`,
-                transition: 'all 0.2s',
-                overflow: 'hidden',
-                '&:hover': {
-                  borderColor: alpha(profilePurple, 0.3),
-                  bgcolor: alpha(profilePurple, 0.03)
-                }
-              }}
-            >
-              <CardContent sx={{ p: 2 }}>  
-                <Box sx={{ display: 'flex', alignItems: 'flex-start' }}>
-                  <Avatar 
+          certifications.map((cert, index) => {
+            // Calculate star rating (0-5)
+            const starRating = calculateStars(cert.popularity);
+            
+            return (
+              <Grid item xs={12} key={cert.id}>
+                <Card 
+                  elevation={0}
+                  sx={{
+                    borderRadius: 2,
+                    border: `1px solid ${alpha(profilePurple, 0.1)}`,
+                    transition: 'all 0.2s',
+                    position: 'relative',
+                    overflow: 'hidden',
+                    '&:hover': {
+                      borderColor: alpha(profilePurple, 0.3),
+                      boxShadow: `0 4px 12px ${alpha(profilePurple, 0.08)}`,
+                      '& .cert-number': {
+                        opacity: 1
+                      }
+                    }
+                  }}
+                >
+                  {/* Position indicator */}
+                  <Box 
+                    className="cert-number"
                     sx={{ 
+                      position: 'absolute',
+                      right: 0,
+                      top: 0,
+                      width: 30,
+                      height: 30,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
                       bgcolor: alpha(profilePurple, 0.1),
                       color: profilePurple,
-                      mr: 1.5,
-                      width: 38,
-                      height: 38
+                      fontWeight: 700,
+                      fontSize: '0.875rem',
+                      opacity: 0.7,
+                      transition: 'opacity 0.2s'
                     }}
                   >
-                    {getIconByType(cert.iconType)}
-                  </Avatar>
-                  
-                  <Box sx={{ flex: 1 }}>
-                    <Typography variant="body1" fontWeight={600} gutterBottom>
-                      {cert.name}
-                    </Typography>
-                    
-                    <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
-                      <Chip 
-                        label={cert.category} 
-                        size="small"
+                    {index + 1}
+                  </Box>
+                
+                  <Box sx={{ p: 2 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.5 }}>
+                      <Avatar 
                         sx={{ 
-                          height: 20,
-                          fontSize: '0.7rem',
-                          bgcolor: alpha(profilePurple, 0.1),
+                          bgcolor: alpha(profilePurple, 0.08),
                           color: profilePurple,
-                          fontWeight: 500
+                          mr: 2,
+                          width: 42,
+                          height: 42
                         }}
-                      />
+                      >
+                        {getIconByType(cert.iconType)}
+                      </Avatar>
                       
-                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
-                        {cert.completions} completions
-                      </Typography>
-                    </Stack>
-                    
-                    <Box sx={{ mt: 1, mb: 0.5 }}>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
-                        <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
-                          Popularity
+                      <Box sx={{ flex: 1 }}>
+                        <Typography variant="subtitle1" fontWeight={600}>
+                          {cert.name}
                         </Typography>
-                        <Typography variant="caption" fontWeight="bold" sx={{ fontSize: '0.7rem' }}>
+                        
+                        <Typography variant="caption" sx={{ 
+                          color: alpha(profilePurple, 0.8),
+                          fontWeight: 500,
+                          fontSize: '0.7rem',
+                          textTransform: 'uppercase',
+                          letterSpacing: 0.5
+                        }}>
+                          {cert.category}
+                        </Typography>
+                      </Box>
+                    </Box>
+                    
+                    <Divider sx={{ my: 1.5, borderColor: alpha(profilePurple, 0.08) }} />
+                    
+                    <Box sx={{ 
+                      display: 'flex', 
+                      justifyContent: 'space-between',
+                      alignItems: 'center'
+                    }}>
+                      {/* Star Rating */}
+                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                        {[...Array(5)].map((_, i) => (
+                          <StarIcon 
+                            key={i} 
+                            sx={{ 
+                              fontSize: '0.95rem',
+                              color: i < starRating ? profilePurple : alpha(profilePurple, 0.2),
+                              mr: 0.3
+                            }} 
+                          />
+                        ))}
+                        <Typography 
+                          variant="caption" 
+                          sx={{ 
+                            fontWeight: 600, 
+                            ml: 0.5,
+                            color: 'text.secondary'
+                          }}
+                        >
                           {cert.popularity}%
                         </Typography>
                       </Box>
-                      <LinearProgress 
-                        variant="determinate" 
-                        value={cert.popularity} 
-                        sx={{ 
-                          height: 4, 
-                          borderRadius: 2,
-                          bgcolor: alpha(profilePurple, 0.1),
-                          '& .MuiLinearProgress-bar': {
-                            bgcolor: profilePurple
-                          }
-                        }}
-                      />
+                      
+                      {/* People count with icon */}
+                      <Tooltip title={`${cert.completions} professionals completed this certification`}>
+                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                          <PeopleAltOutlinedIcon sx={{ 
+                            fontSize: '1rem', 
+                            color: profilePurple,
+                            mr: 0.5
+                          }} />
+                          <Typography 
+                            variant="caption" 
+                            sx={{ 
+                              fontWeight: 500,
+                              color: 'text.secondary'
+                            }}
+                          >
+                            {cert.completions}
+                          </Typography>
+                        </Box>
+                      </Tooltip>
                     </Box>
                   </Box>
-                </Box>
-              </CardContent>
-            </Card>
-          ))
+                </Card>
+              </Grid>
+            );
+          })
         ) : (
-          <Box sx={{ textAlign: 'center', py: 3 }}>
-            <Typography variant="body2" color="text.secondary">
-              No popular certifications found
-            </Typography>
-          </Box>
+          <Grid item xs={12}>
+            <Box sx={{ 
+              textAlign: 'center', 
+              py: 4,
+              border: `1px dashed ${alpha(profilePurple, 0.2)}`,
+              borderRadius: 2
+            }}>
+              <Typography variant="body2" color="text.secondary">
+                No popular certifications found
+              </Typography>
+            </Box>
+          </Grid>
         )}
-      </Box>
-    </Card>
+      </Grid>
+    </Box>
   );
 };
