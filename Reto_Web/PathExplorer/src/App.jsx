@@ -21,6 +21,7 @@ import SubmitCertification from "./pages/SubmitCertification.jsx";
 import AddProject from "./pages/AddProject.jsx";
 import RoleAssign from "./pages/RoleAssign.jsx";
 import ProjectEdit from "./pages/ProjectEdit.jsx";
+import AllSkills from "./pages/AllSkills.jsx";
 
 // Nuevo componente de detalle de perfil
 import UserProfileDetail from "./pages/UserProfileDetail";
@@ -73,6 +74,7 @@ function App() {
           {/* Rutas accesibles solo para manager */}
           <Route element={<ProtectedRoute allowedRoles={["manager"]} />}>
             <Route path="analytics" element={<Analytics />} />
+            <Route path="all-skills" element={<AllSkills />} />
           </Route>
 
           {/* Redirección por defecto */}
