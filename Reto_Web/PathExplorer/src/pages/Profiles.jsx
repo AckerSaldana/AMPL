@@ -411,7 +411,6 @@ const Profiles = () => {
   return (
     <Box sx={{ 
       p: 2, 
-      backgroundColor: "#f8f9fa",
       width: "100%",
       boxSizing: "border-box",
       maxWidth: "100vw"

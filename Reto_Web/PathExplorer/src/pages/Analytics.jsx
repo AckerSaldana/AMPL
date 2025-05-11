@@ -428,21 +428,16 @@ const Analytics = () => {
   };
 
   return (
-    <Box sx={{ p: { xs: 2, sm: 3, md: 4 }, backgroundColor: "#fafafa" }}>
+    <Box sx={{ p: { xs: 2, sm: 3, md: 4 }}}>
       <Typography
-        variant="h4"
-        gutterBottom
-        sx={{
-          color: theme.palette.text.primary,
-          mb: 3,
-          fontSize: { xs: "1.5rem", sm: "1.75rem", md: "2rem" },
-          fontWeight: 500,
-          letterSpacing: "0.02em",
-          position: "relative",
-          // Eliminada la línea inferior
-        }}
-      >
-        Analytics Dashboard
+      variant="h4"
+      sx={{
+        fontWeight: 600,
+        mb: 3,
+        position: "relative"
+      }}
+    >
+        Analytics
       </Typography>
 
       {/* Executive Summary Cards - Mejorado el hover como en PopularCertifications */}
