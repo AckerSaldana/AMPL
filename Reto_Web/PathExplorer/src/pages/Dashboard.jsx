@@ -384,7 +384,6 @@ const Dashboard = () => {
 
   return (
     <Box sx={{ 
-      bgcolor: '#f9f7ff', 
       minHeight: '100vh',
       width: '100%',
       padding: { xs: 2, md: 3 }

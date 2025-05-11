@@ -2,108 +2,172 @@ import React from "react";
 import {
   Box,
   Typography,
-  Card,
-  CardContent,
+  Paper,
+  Chip,
   Divider,
-  Avatar,
-  Button,
-  useTheme,
 } from "@mui/material";
 import {
   WorkspacePremium,
   CalendarMonth,
-  Badge,
-  KeyboardArrowRight,
-  Score,
+  School,
 } from "@mui/icons-material";
+import { ACCENTURE_COLORS } from "../styles/styles";
 
-const CertificationPathCard = ({ certification }) => {
-  const theme = useTheme();
-
+const CertificationCard = ({ certification }) => {
   return (
-    <Card
-      variant="outlined"
+    <Paper 
+      elevation={0}
       sx={{
+        borderRadius: 2,
+        overflow: "hidden",
         height: "100%",
+        boxShadow: "0 2px 10px rgba(0,0,0,0.03)",
         display: "flex",
         flexDirection: "column",
-        transition: "all 0.2s",
+        transition: "transform 0.2s, box-shadow 0.2s",
         "&:hover": {
-          boxShadow: 3,
           transform: "translateY(-4px)",
+          boxShadow: "0 6px 20px rgba(0,0,0,0.06)",
         },
+        bgcolor: "#fff",
+        position: "relative",
       }}
     >
-      <CardContent sx={{ pt: 2, pb: 1 }}>
-        <Box display="flex" gap={2} mb={1} alignItems="flex-start">
-          <Avatar
-            sx={{
-              bgcolor: theme.palette.secondary.main,
-              width: 40,
-              height: 40,
-            }}
-          >
-            <WorkspacePremium />
-          </Avatar>
-          <Box>
-            <Typography variant="h6" component="div">
-              {certification.name}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              {certification.issuer}
-            </Typography>
-          </Box>
-        </Box>
-      </CardContent>
+      {/* Color accent line - Full width */}
+      <Box 
+        sx={{ 
+          width: "100%", 
+          height: "4px", 
+          bgcolor: ACCENTURE_COLORS.corePurple2,
+          position: "absolute",
+          top: 0,
+          left: 0,
+        }} 
+      />
 
-      <Divider sx={{ my: 1 }} />
-
-      <CardContent sx={{ pt: 1, pb: 1, flex: 1 }}>
-        <Box display="flex" gap={1} alignItems="center" mb={1}>
-          <CalendarMonth fontSize="small" color="action" />
-          <Typography variant="body2" color="text.secondary">
-            Issued: {certification.date}
-          </Typography>
-        </Box>
-
-        {certification.expiryDate && (
-          <Box display="flex" gap={1} alignItems="center" mb={1}>
-            <CalendarMonth fontSize="small" color="action" />
-            <Typography variant="body2" color="text.secondary">
-              Expires: {certification.expiryDate}
-            </Typography>
-          </Box>
-        )}
-
-        {certification.score && (
-          <Box display="flex" gap={1} alignItems="center" mb={1}>
-            <Score fontSize="small" color="action" />
-            <Typography variant="body2" color="text.secondary">
-              Score: {certification.score}
-            </Typography>
-          </Box>
-        )}
-
-        <Box display="flex" gap={1} alignItems="center">
-          <Badge fontSize="small" color="action" />
-          <Typography variant="body2" color="text.secondary">
-            ID: {certification.credentialId}
-          </Typography>
-        </Box>
-      </CardContent>
-
-      <Divider />
-      <Box sx={{ p: 1 }}>
-        <Button
-          size="small"
-          endIcon={<KeyboardArrowRight />}
-          sx={{ width: "100%", justifyContent: "space-between" }}
+      {/* Header */}
+      <Box sx={{ p: 3, pt: 4 }}>
+        <Typography
+          variant="h6"
+          sx={{
+            fontWeight: 500,
+            fontSize: "1.1rem",
+            color: ACCENTURE_COLORS.black,
+            mb: 1.5,
+            display: "flex",
+            alignItems: "center",
+            gap: 1,
+          }}
         >
-          View Certificate
-        </Button>
+          {certification.name}
+          {certification.score && (
+            <Chip
+              size="small"
+              label={certification.score}
+              sx={{
+                height: 20,
+                fontSize: "0.65rem",
+                bgcolor: `${ACCENTURE_COLORS.corePurple2}10`,
+                color: ACCENTURE_COLORS.corePurple2,
+                fontWeight: 500,
+                ml: 1,
+              }}
+            />
+          )}
+        </Typography>
+
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 2 }}>
+          <School 
+            fontSize="small" 
+            sx={{ color: ACCENTURE_COLORS.corePurple2, opacity: 0.8 }} 
+          />
+          <Typography
+            variant="body2"
+            sx={{ color: ACCENTURE_COLORS.darkGray }}
+          >
+            {certification.issuer}
+          </Typography>
+        </Box>
+
+        {/* Credential ID */}
+        <Box
+          sx={{
+            bgcolor: "rgba(0,0,0,0.02)",
+            px: 2,
+            py: 1.5,
+            borderRadius: 1,
+            fontFamily: "monospace",
+            fontSize: "0.75rem",
+            color: ACCENTURE_COLORS.darkGray,
+            position: "relative",
+            overflow: "hidden",
+            "&::before": {
+              content: '""',
+              position: "absolute",
+              left: 0,
+              top: 0,
+              bottom: 0,
+              width: "3px",
+              bgcolor: `${ACCENTURE_COLORS.corePurple2}40`,
+            }
+          }}
+        >
+          ID: {certification.credentialId}
+        </Box>
       </Box>
-    </Card>
+
+      <Divider sx={{ mt: "auto", opacity: 0.5 }} />
+
+      {/* Footer */}
+      <Box sx={{ p: 3, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            gap: 1.5,
+          }}
+        >
+          <CalendarMonth
+            fontSize="small"
+            sx={{ color: ACCENTURE_COLORS.corePurple2, opacity: 0.6 }}
+          />
+          <Box>
+            <Typography
+              variant="body2"
+              sx={{ color: ACCENTURE_COLORS.darkGray }}
+            >
+              {certification.date}
+            </Typography>
+            {certification.expiryDate && (
+              <Typography
+                variant="caption"
+                sx={{ 
+                  color: ACCENTURE_COLORS.darkGray,
+                  display: "block",
+                  mt: 0.25,
+                }}
+              >
+                Expires: {certification.expiryDate}
+              </Typography>
+            )}
+          </Box>
+        </Box>
+        
+        <Box 
+          sx={{ 
+            opacity: 0.7,
+            display: "flex",
+            alignItems: "center",
+          }}
+        >
+          <WorkspacePremium
+            fontSize="small"
+            sx={{ color: ACCENTURE_COLORS.corePurple2 }}
+          />
+        </Box>
+      </Box>
+    </Paper>
   );
 };
 
-export default CertificationPathCard;
+export default CertificationCard;

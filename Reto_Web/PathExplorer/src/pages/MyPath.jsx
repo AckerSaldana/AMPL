@@ -2,36 +2,28 @@ import React, { useState } from "react";
 import {
   Box,
   Typography,
-  Card,
-  CardContent,
   Grid,
-  Divider,
-  Chip,
-  Avatar,
-  Button,
-  Tab,
   Tabs,
-  useTheme,
-  Stack,
+  Tab,
+  Paper,
 } from "@mui/material";
 import {
   WorkspacePremium,
   Code,
-  CalendarMonth,
-  Person,
-  Business,
-  FilterList,
-  KeyboardArrowRight,
-  Badge,
   Timeline,
 } from "@mui/icons-material";
 
 // Component imports
-import ProjectPathCard from "../components/ProjectPathCard";
-import CertificationPathCard from "../components/CertificationPathCard";
-import UserPathCard from "../components/UserPathCard";
-import AmountsCard from "../components/AmountsCard";
-import TimelineItem from "../components/TimelineItem";
+import ProjectCard from "../components/ProjectPathCard";
+import CertificationCard from "../components/CertificationPathCard";
+import ProfileSummary from "../components/ProfileSummary";
+import CareerTimeline from "../components/CareerTimeline";
+import VirtualAssistant from "../components/VirtualAssistant";
+
+// Import styles
+import { 
+  ACCENTURE_COLORS
+} from "../styles/styles";
 
 // Mock data - replace with your actual data fetching logic
 const mockProjects = [
@@ -98,8 +90,12 @@ const mockCertifications = [
 
 // Sample user info - This would come from your user profile data
 const userInfo = {
+  name: "Alex Johnson",
+  avatar: "/path/to/avatar.jpg", // Add a placeholder or actual avatar path
   currentRole: "Senior Frontend Developer",
   yearsExperience: 4,
+  projectsCount: 3,
+  certificationsCount: 3,
   primarySkills: [
     "React",
     "JavaScript",
@@ -108,10 +104,9 @@ const userInfo = {
     "Node.js",
     "GraphQL",
   ],
-  topAchievements: 3,
 };
 
-// Combine and sort both projects and certifications for timeline
+// Create timeline data
 const getTimelineItems = () => {
   const projects = mockProjects.map((proj) => ({
     ...proj,
@@ -126,7 +121,7 @@ const getTimelineItems = () => {
   }));
 
   return [...projects, ...certifications].sort((a, b) => {
-    // Simple sort by date - in a real app, parse dates properly
+    // Sort by date - newest first
     return (
       new Date(b.displayDate.split(" - ")[0]) -
       new Date(a.displayDate.split(" - ")[0])
@@ -134,16 +129,8 @@ const getTimelineItems = () => {
   });
 };
 
-// ======================= HU-14: TRAYECTORIA PROFESIONAL (ID: HU14) ===================
-// Como empleado quiero ver mis proyectos, certificados y cursos pasados
-// Objetivo: Mostrar historial profesional y sugerir certificaciones futuras.
-// Acciones:
-// - Crear perfil de usuario con historial de proyectos pasados y certificaciones.
-// - Implementar motor de recomendaciones de certificados base al perfil de usuario.
-// - Integrar IA básica para sugerencias personalizadas.
-
+// Main component
 const MyPath = () => {
-  const theme = useTheme();
   const [activeTab, setActiveTab] = useState(0);
   const timelineItems = getTimelineItems();
 
@@ -151,142 +138,202 @@ const MyPath = () => {
     setActiveTab(newValue);
   };
 
+  // Main render
   return (
-    <Box sx={{ p: { xs: 2, md: 3 }, maxWidth: "100%" }}>
-      {/* Header with Summary Stats */}
-      <Box mb={4}>
-        <Typography variant="h4" fontWeight="bold" gutterBottom>
-          My Professional Path
+    <Box sx={{ 
+      width: "100%", 
+      height: "100vh", 
+      display: "flex",
+      flexDirection: "column",
+      overflow: "hidden",
+      // El color de fondo se eliminó para coincidir con ProjectDashboard
+      margin: 0,
+      padding: 0,
+    }}>
+      <Box sx={{ 
+        p: { xs: 2, md: 3 }, 
+        maxWidth: "100%", 
+        height: "100%",
+        display: "flex",
+        flexDirection: "column"
+      }}>
+        <Typography variant="h4" sx={{ fontWeight: 600, mb: 3 }}>
+          Professional Journey
         </Typography>
 
-        {/* Stats Section */}
-        <Grid container spacing={3}>
-          {/* User Profile Summary */}
-          <Grid item xs={12} md={6}>
-            <UserPathCard userInfo={userInfo} />
-          </Grid>
+        {/* Main content */}
+        <Box sx={{ 
+          flexGrow: 1, 
+          display: "flex", 
+          width: "100%",
+          height: "calc(100% - 70px)", // Subtract header height
+          overflow: "hidden"
+        }}>
+          <Grid container spacing={3} sx={{ 
+            width: "100%", 
+            height: "100%", 
+            margin: 0,
+          }}>
+            {/* Left column: Career profile content */}
+            <Grid item xs={12} md={6} sx={{ 
+              height: "100%",
+              display: "flex", 
+              flexDirection: "column",
+              pr: { xs: 0, md: 1 },
+              overflow: "hidden" // Prevent outside overflow
+            }}>
+              {/* Profile Summary */}
+              <Box sx={{ mb: 2 }}>
+                <ProfileSummary userInfo={userInfo} />
+              </Box>
 
-          {/* Stats Cards */}
-          <Grid item xs={12} md={6}>
-            <Grid container spacing={2} height="100%">
-              <Grid item xs={12} sm={6}>
-                <AmountsCard
-                  count={mockProjects.length}
-                  title="Projects"
-                  subtitle="Completed projects"
-                  icon={<Code />}
-                  color={theme.palette.primary.main}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <AmountsCard
-                  count={mockCertifications.length}
-                  title="Certifications"
-                  subtitle="Active certifications"
-                  icon={<WorkspacePremium />}
-                  color={theme.palette.secondary.main}
-                />
-              </Grid>
+              {/* Tabs Navigation */}
+              <Paper
+                elevation={0}
+                sx={{
+                  borderRadius: 4,
+                  mb: 2,
+                  overflow: "visible",
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
+                  position: "relative",
+                  zIndex: 1
+                }}
+              >
+                <Tabs
+                  value={activeTab}
+                  onChange={handleTabChange}
+                  aria-label="career sections"
+                  variant="fullWidth"
+                  sx={{
+                    "& .MuiTab-root": {
+                      textTransform: "none",
+                      fontSize: "1rem",
+                      fontWeight: 400,
+                      color: ACCENTURE_COLORS.darkGray,
+                      py: 2.5,
+                      minHeight: 64,
+                    },
+                    "& .MuiTab-root.Mui-selected": {
+                      color: ACCENTURE_COLORS.corePurple1,
+                      fontWeight: 500,
+                    },
+                    "& .MuiTabs-indicator": {
+                      backgroundColor: ACCENTURE_COLORS.corePurple1,
+                      height: 3,
+                    },
+                  }}
+                >
+                  <Tab
+                    icon={<Timeline />}
+                    iconPosition="start"
+                    label="Timeline"
+                    sx={{
+                      "&.Mui-selected::after": {
+                        content: '""',
+                        position: "absolute",
+                        bottom: 0,
+                        left: 0,
+                        width: "100%",
+                        height: "3px",
+                        backgroundColor: ACCENTURE_COLORS.corePurple1,
+                        borderRadius: "3px 3px 0 0",
+                        display: "block"
+                      }
+                    }}
+                  />
+                  <Tab 
+                    icon={<Code />} 
+                    iconPosition="start" 
+                    label="Projects" 
+                    sx={{
+                      "&.Mui-selected::after": {
+                        content: '""',
+                        position: "absolute",
+                        bottom: 0,
+                        left: 0,
+                        width: "100%",
+                        height: "3px",
+                        backgroundColor: ACCENTURE_COLORS.corePurple1,
+                        borderRadius: "3px 3px 0 0",
+                        display: "block"
+                      }
+                    }}
+                  />
+                  <Tab
+                    icon={<WorkspacePremium />}
+                    iconPosition="start"
+                    label="Certifications"
+                    sx={{
+                      "&.Mui-selected::after": {
+                        content: '""',
+                        position: "absolute",
+                        bottom: 0,
+                        left: 0,
+                        width: "100%",
+                        height: "3px",
+                        backgroundColor: ACCENTURE_COLORS.corePurple1,
+                        borderRadius: "3px 3px 0 0",
+                        display: "block"
+                      }
+                    }}
+                  />
+                </Tabs>
+              </Paper>
+
+              {/* Panel Content with scrolling */}
+              <Box sx={{ 
+                flexGrow: 1, 
+                overflowY: "auto", 
+                pr: 1,
+                pb: 3,
+                mt: 1,
+                height: "100%", // Take available height
+                "& .MuiGrid-container": {
+                  width: "100%", 
+                  m: 0
+                }
+              }}>
+                {/* Timeline Panel with more height */}
+                {activeTab === 0 && (
+                  <Box sx={{ minHeight: "600px" }}>
+                    <CareerTimeline timelineItems={timelineItems} />
+                  </Box>
+                )}
+
+                {/* Projects Panel */}
+                {activeTab === 1 && (
+                  <Grid container spacing={2}>
+                    {mockProjects.map((project) => (
+                      <Grid item xs={12} sm={6} key={project.id}>
+                        <ProjectCard project={project} />
+                      </Grid>
+                    ))}
+                  </Grid>
+                )}
+
+                {/* Certifications Panel */}
+                {activeTab === 2 && (
+                  <Grid container spacing={2}>
+                    {mockCertifications.map((cert) => (
+                      <Grid item xs={12} sm={6} key={cert.id}>
+                        <CertificationCard certification={cert} />
+                      </Grid>
+                    ))}
+                  </Grid>
+                )}
+              </Box>
+            </Grid>
+            
+            {/* Right column: Chat interface */}
+            <Grid item xs={12} md={6} sx={{ 
+              height: "100%", 
+              display: "flex",
+              pl: { xs: 0, md: 1 }
+            }}>
+              <VirtualAssistant />
             </Grid>
           </Grid>
-        </Grid>
-      </Box>
-
-      {/* Career Timeline*/}
-      <Card sx={{ mb: 4 }}>
-        <CardContent>
-          <Box
-            mb={3}
-            display="flex"
-            justifyContent="space-between"
-            alignItems="center"
-          >
-            <Box display="flex" alignItems="center" gap={1}>
-              <Timeline color="primary" />
-              <Typography variant="h6" fontWeight="medium">
-                Career Timeline
-              </Typography>
-            </Box>
-          </Box>
-
-          <Box sx={{ maxHeight: 500, overflowY: "auto", px: { xs: 0, sm: 2 } }}>
-            {/* Responsive timeline - desktop view for medium screens and up */}
-            <Box sx={{ display: { xs: "none", md: "block" } }}>
-              {timelineItems.map((item, index) => (
-                <TimelineItem
-                  key={`desktop-${item.type}-${item.id}`}
-                  item={item}
-                  index={index}
-                  isLast={index === timelineItems.length - 1}
-                  viewType="desktop"
-                />
-              ))}
-            </Box>
-
-            {/* Mobile view for small screens */}
-            <Box sx={{ display: { xs: "block", md: "none" } }}>
-              {timelineItems.map((item, index) => (
-                <TimelineItem
-                  key={`mobile-${item.type}-${item.id}`}
-                  item={item}
-                  index={index}
-                  isLast={index === timelineItems.length - 1}
-                  viewType="mobile"
-                />
-              ))}
-            </Box>
-          </Box>
-        </CardContent>
-      </Card>
-
-      {/* Detailed Lists */}
-      <Box>
-        <Tabs
-          value={activeTab}
-          onChange={handleTabChange}
-          sx={{
-            mb: 2,
-            "& .MuiTab-root.Mui-selected": {
-              color: theme.palette.primary.main,
-              borderBottom: "none",
-            },
-            "& .MuiTabs-indicator": {
-              backgroundColor: theme.palette.primary.main,
-            },
-            "& .MuiTab-root:focus": {
-              outline: "none",
-            },
-          }}
-        >
-          <Tab icon={<Code />} iconPosition="start" label="Projects" />
-          <Tab
-            icon={<WorkspacePremium />}
-            iconPosition="start"
-            label="Certifications"
-          />
-        </Tabs>
-
-        {/* Projects Panel */}
-        {activeTab === 0 && (
-          <Grid container spacing={3}>
-            {mockProjects.map((project) => (
-              <Grid item xs={12} sm={6} lg={4} key={project.id}>
-                <ProjectPathCard project={project} />
-              </Grid>
-            ))}
-          </Grid>
-        )}
-
-        {/* Certifications Panel */}
-        {activeTab === 1 && (
-          <Grid container spacing={3}>
-            {mockCertifications.map((cert) => (
-              <Grid item xs={12} sm={6} lg={4} key={cert.id}>
-                <CertificationPathCard certification={cert} />
-              </Grid>
-            ))}
-          </Grid>
-        )}
+        </Box>
       </Box>
     </Box>
   );
