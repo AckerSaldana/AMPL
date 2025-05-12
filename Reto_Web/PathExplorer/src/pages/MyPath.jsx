@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, lazy, Suspense } from "react";
 import {
   Box,
   Typography,
@@ -6,7 +6,6 @@ import {
   Tabs,
   Tab,
   Paper,
-  CircularProgress,
   Alert,
 } from "@mui/material";
 import {
@@ -15,12 +14,19 @@ import {
   Timeline,
 } from "@mui/icons-material";
 
-// Component imports
-import ProjectCard from "../components/ProjectPathCard";
-import CertificationCard from "../components/CertificationPathCard";
-import ProfileSummary from "../components/ProfileSummary";
-import CareerTimeline from "../components/CareerTimeline";
-import VirtualAssistant from "../components/VirtualAssistant";
+// Component imports with lazy loading
+const ProjectCard = lazy(() => import("../components/ProjectPathCard"));
+const CertificationCard = lazy(() => import("../components/CertificationPathCard"));
+const ProfileSummary = lazy(() => import("../components/ProfileSummary"));
+const CareerTimeline = lazy(() => import("../components/CareerTimeline"));
+const VirtualAssistant = lazy(() => import("../components/VirtualAssistant"));
+
+// Skeleton imports
+import ProfileSummarySkeleton from "../components/ProfileSummarySkeleton";
+import CareerTimelineSkeleton from "../components/CareerTimelineSkeleton";
+import ProjectsGridSkeleton from "../components/ProjectsGridSkeleton";
+import CertificationsGridSkeleton from "../components/CertificationsGridSkeleton";
+import VirtualAssistantSkeleton from "../components/VirtualAssistantSkeleton";
 
 // Custom hooks
 import useUserProfile from "../hooks/useUserProfile";
@@ -29,9 +35,7 @@ import useUserCertifications from "../hooks/useUserCertifications";
 import useUserTimeline from "../hooks/useUserTimeline";
 
 // Import styles
-import { 
-  ACCENTURE_COLORS
-} from "../styles/styles";
+import { ACCENTURE_COLORS } from "../styles/styles";
 
 // Main component
 const MyPath = () => {
@@ -108,13 +112,13 @@ const MyPath = () => {
             }}>
               {/* Profile Summary */}
               <Box sx={{ mb: 2 }}>
-                {profileLoading ? (
-                  <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
-                    <CircularProgress sx={{ color: ACCENTURE_COLORS.corePurple1 }} />
-                  </Box>
-                ) : (
-                  <ProfileSummary userInfo={userProfile} />
-                )}
+                <Suspense fallback={<ProfileSummarySkeleton />}>
+                  {profileLoading ? (
+                    <ProfileSummarySkeleton />
+                  ) : (
+                    <ProfileSummary userInfo={userProfile} />
+                  )}
+                </Suspense>
               </Box>
 
               {/* Tabs Navigation */}
@@ -226,89 +230,89 @@ const MyPath = () => {
                 {/* Timeline Panel */}
                 {activeTab === 0 && (
                   <Box sx={{ minHeight: "600px" }}>
-                    {renderMockDataAlert(usingMockTimeline)}
+                    {!timelineLoading && renderMockDataAlert(usingMockTimeline)}
                     
-                    {timelineLoading ? (
-                      <Box sx={{ display: 'flex', justifyContent: 'center', mt: 5 }}>
-                        <CircularProgress sx={{ color: ACCENTURE_COLORS.corePurple1 }} />
-                      </Box>
-                    ) : (
-                      <CareerTimeline timelineItems={timelineItems} />
-                    )}
+                    <Suspense fallback={<CareerTimelineSkeleton />}>
+                      {timelineLoading ? (
+                        <CareerTimelineSkeleton />
+                      ) : (
+                        <CareerTimeline timelineItems={timelineItems} />
+                      )}
+                    </Suspense>
                   </Box>
                 )}
 
                 {/* Projects Panel */}
                 {activeTab === 1 && (
                   <>
-                    {renderMockDataAlert(usingMockProjects)}
+                    {!projectsLoading && renderMockDataAlert(usingMockProjects)}
                     
-                    {projectsLoading ? (
-                      <Box sx={{ display: 'flex', justifyContent: 'center', mt: 5 }}>
-                        <CircularProgress sx={{ color: ACCENTURE_COLORS.corePurple1 }} />
-                      </Box>
-                    ) : (
-                      <Grid container spacing={2}>
-                        {projects.length > 0 ? (
-                          projects.map((project) => (
-                            <Grid item xs={12} sm={6} key={project.id}>
-                              <ProjectCard project={project} />
+                    <Suspense fallback={<ProjectsGridSkeleton />}>
+                      {projectsLoading ? (
+                        <ProjectsGridSkeleton />
+                      ) : (
+                        <Grid container spacing={2}>
+                          {projects.length > 0 ? (
+                            projects.map((project) => (
+                              <Grid item xs={12} sm={6} key={project.id}>
+                                <ProjectCard project={project} />
+                              </Grid>
+                            ))
+                          ) : (
+                            <Grid item xs={12}>
+                              <Paper elevation={0} sx={{ 
+                                p: 3, 
+                                borderRadius: 2, 
+                                textAlign: 'center',
+                                boxShadow: "0 2px 12px rgba(0, 0, 0, 0.03)",
+                                border: `1px dashed ${ACCENTURE_COLORS.corePurple1}30`
+                              }}>
+                                <Typography variant="body1" sx={{ color: ACCENTURE_COLORS.darkGray }}>
+                                  No projects found. New projects will appear here.
+                                </Typography>
+                              </Paper>
                             </Grid>
-                          ))
-                        ) : (
-                          <Grid item xs={12}>
-                            <Paper elevation={0} sx={{ 
-                              p: 3, 
-                              borderRadius: 2, 
-                              textAlign: 'center',
-                              boxShadow: "0 2px 12px rgba(0, 0, 0, 0.03)",
-                              border: `1px dashed ${ACCENTURE_COLORS.corePurple1}30`
-                            }}>
-                              <Typography variant="body1" sx={{ color: ACCENTURE_COLORS.darkGray }}>
-                                No projects found. New projects will appear here.
-                              </Typography>
-                            </Paper>
-                          </Grid>
-                        )}
-                      </Grid>
-                    )}
+                          )}
+                        </Grid>
+                      )}
+                    </Suspense>
                   </>
                 )}
 
                 {/* Certifications Panel */}
                 {activeTab === 2 && (
                   <>
-                    {renderMockDataAlert(usingMockCerts)}
+                    {!certificationsLoading && renderMockDataAlert(usingMockCerts)}
                     
-                    {certificationsLoading ? (
-                      <Box sx={{ display: 'flex', justifyContent: 'center', mt: 5 }}>
-                        <CircularProgress sx={{ color: ACCENTURE_COLORS.corePurple1 }} />
-                      </Box>
-                    ) : (
-                      <Grid container spacing={2}>
-                        {certifications.length > 0 ? (
-                          certifications.map((cert) => (
-                            <Grid item xs={12} sm={6} key={cert.id}>
-                              <CertificationCard certification={cert} />
+                    <Suspense fallback={<CertificationsGridSkeleton />}>
+                      {certificationsLoading ? (
+                        <CertificationsGridSkeleton />
+                      ) : (
+                        <Grid container spacing={2}>
+                          {certifications.length > 0 ? (
+                            certifications.map((cert) => (
+                              <Grid item xs={12} sm={6} key={cert.id}>
+                                <CertificationCard certification={cert} />
+                              </Grid>
+                            ))
+                          ) : (
+                            <Grid item xs={12}>
+                              <Paper elevation={0} sx={{ 
+                                p: 3, 
+                                borderRadius: 2, 
+                                textAlign: 'center',
+                                boxShadow: "0 2px 12px rgba(0, 0, 0, 0.03)",
+                                border: `1px dashed ${ACCENTURE_COLORS.corePurple1}30`
+                              }}>
+                                <Typography variant="body1" sx={{ color: ACCENTURE_COLORS.darkGray }}>
+                                  No certifications found. Your certifications will appear here once obtained.
+                                </Typography>
+                              </Paper>
                             </Grid>
-                          ))
-                        ) : (
-                          <Grid item xs={12}>
-                            <Paper elevation={0} sx={{ 
-                              p: 3, 
-                              borderRadius: 2, 
-                              textAlign: 'center',
-                              boxShadow: "0 2px 12px rgba(0, 0, 0, 0.03)",
-                              border: `1px dashed ${ACCENTURE_COLORS.corePurple1}30`
-                            }}>
-                              <Typography variant="body1" sx={{ color: ACCENTURE_COLORS.darkGray }}>
-                                No certifications found. Your certifications will appear here once obtained.
-                              </Typography>
-                            </Paper>
-                          </Grid>
-                        )}
-                      </Grid>
-                    )}
+                          )}
+                        </Grid>
+                      )}
+                    </Suspense>
                   </>
                 )}
               </Box>
@@ -320,7 +324,9 @@ const MyPath = () => {
               display: "flex",
               pl: { xs: 0, md: 1 }
             }}>
-              <VirtualAssistant />
+              <Suspense fallback={<VirtualAssistantSkeleton />}>
+                <VirtualAssistant />
+              </Suspense>
             </Grid>
           </Grid>
         </Box>
