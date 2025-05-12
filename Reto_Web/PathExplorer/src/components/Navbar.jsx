@@ -44,6 +44,13 @@ import { supabase } from "../supabase/supabaseClient";
 import AccentureLogo from "../brand/AccenturePurpleLogo.png";
 import Loading from "./Loading";
 
+import AssignmentIcon from '@mui/icons-material/Assignment';
+import EventIcon from '@mui/icons-material/Event';
+import UpdateIcon from '@mui/icons-material/Update';
+import RateReviewIcon from '@mui/icons-material/RateReview';
+import MessageIcon from '@mui/icons-material/Message';
+import { Popover, Divider, ListItemButton } from "@mui/material";
+
 const RippleEffect = ({ active }) => {
   return (
     <Box
@@ -78,11 +85,29 @@ const Navbar = ({ children }) => {
   const [mobileOpen, setMobileOpen] = useState(false); // Estado para el drawer móvil
   const [hoveredItem, setHoveredItem] = useState(null);
   const [rippleActive, setRippleActive] = useState(false);
-  const [notificationCount, setNotificationCount] = useState(3);
+  const [notifications, setNotifications] = useState([]);
+  const [notifAnchorEl, setNotifAnchorEl] = useState(null);
   const location = useLocation();
   const [activeItem, setActiveItem] = useState("Dashboard");
   const navBgColor = darkMode ? "#222" : "#fff";
   const [userName, setUserName] = useState("");
+
+  const unreadCount = (notifications || []).filter(n => !n.read).length;
+
+  const getIconByType = (type) => {
+    switch (type) {
+      case "task": return <AssignmentIcon fontSize="small" />;
+      case "event": return <EventIcon fontSize="small" />;
+      case "update": return <UpdateIcon fontSize="small" />;
+      case "review": return <RateReviewIcon fontSize="small" />;
+      case "message": return <MessageIcon fontSize="small" />;
+      case "project": return <FolderIcon fontSize="small" />;
+      case "certification": return <SchoolIcon fontSize="small" />;
+      case "course": return <WorkspacePremiumIcon fontSize="small" />;
+      case "path": return <ExploreIcon fontSize="small" />;
+      default: return null;
+    }
+  };
 
   // Actualizar el estado de expansión cuando cambie el tamaño de la pantalla
   useEffect(() => {
@@ -112,6 +137,98 @@ const Navbar = ({ children }) => {
 
     fetchUserInfo();
   }, [user]);
+
+  useEffect(() => {
+    const fetchProjectNotifications = async () => {
+      const { data: projectsData, error } = await supabase
+        .from("Project")
+        .select("projectID, title, status, progress, end_date")
+        .in("status", ["In Progress", "On Hold"]);
+  
+      if (!error && projectsData) {
+        const notifs = projectsData.map((project) => {
+          const isDueSoon = new Date(project.end_date) - new Date() < 7 * 24 * 60 * 60 * 1000;
+  
+          return {
+            id: project.projectID,
+            text: `Proyecto activo: ${project.title}${isDueSoon ? " (fecha límite próxima)" : ""}`,
+            type: "project",
+            read: false,
+          };
+        });
+  
+        setNotifications(notifs);
+      }
+    };
+  
+    fetchProjectNotifications(); // Primer fetch inmediato
+  
+    const interval = setInterval(fetchProjectNotifications, 60000); // ⏱️ cada 60 segundos
+  
+    return () => clearInterval(interval); // limpiar al desmontar
+  }, []);
+
+  useEffect(() => {
+    const fetchExtraNotifications = async () => {
+      let extraNotifs = [];
+  
+      // Certificaciones nuevas
+      const { data: certs } = await supabase
+        .from("Certifications")
+        .select("title, created_at")
+        .order("created_at", { ascending: false })
+        .limit(3);
+      if (certs) {
+        extraNotifs.push(
+          ...certs.map((cert) => ({
+            id: `cert-${cert.title}`,
+            text: `Nueva certificación: ${cert.title}`,
+            type: "certification",
+            read: false,
+          }))
+        );
+      }
+  
+      // Cursos nuevos (tabla: Course)
+      const { data: courses } = await supabase
+        .from("Course")
+        .select("title, created_at")
+        .order("created_at", { ascending: false })
+        .limit(3);
+      if (courses) {
+        extraNotifs.push(
+          ...courses.map((course) => ({
+            id: `course-${course.title}`,
+            text: `Nuevo curso disponible: ${course.title}`,
+            type: "course",
+            read: false,
+          }))
+        );
+      }
+  
+      // Avances recientes en MyPath
+      const { data: pathEvents } = await supabase
+        .from("Path_Progress")
+        .select("title, updated_at")
+        .order("updated_at", { ascending: false })
+        .limit(3);
+      if (pathEvents) {
+        extraNotifs.push(
+          ...pathEvents.map((event) => ({
+            id: `path-${event.title}`,
+            text: `Avance en tu ruta: ${event.title}`,
+            type: "path",
+            read: false,
+          }))
+        );
+      }
+  
+      // Añadir al estado
+      setNotifications((prev) => [...prev, ...extraNotifs]);
+    };
+  
+    fetchExtraNotifications();
+  }, []);
 
   // Determinar el elemento activo basado en la ruta actual
   useEffect(() => {
@@ -153,11 +270,7 @@ const Navbar = ({ children }) => {
     }
   };
 
-  const handleNotificationClick = () => {
-    if (notificationCount > 0) {
-      setNotificationCount(notificationCount - 1);
-    }
-  };
+  
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -623,74 +736,119 @@ const Navbar = ({ children }) => {
 
           {/* Notificaciones - Ocultar en pantallas muy pequeñas */}
           <IconButton
-            onClick={handleNotificationClick}
-            size="small"
+  onClick={(e) => setNotifAnchorEl(e.currentTarget)}
+  size="small"
+  sx={{
+    color: secondaryTextColor,
+    bgcolor: darkMode
+      ? alpha("#ffffff", 0.05)
+      : alpha("#000000", 0.05),
+    width: 36,
+    height: 36,
+    minWidth: 36,
+    minHeight: 36,
+    borderRadius: "8px",
+    transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+    position: "relative",
+    overflow: "hidden",
+    display: { xs: isXsScreen ? 'none' : 'flex', sm: 'flex' },
+    "&:hover": {
+      bgcolor: darkMode
+        ? alpha("#ffffff", 0.1)
+        : alpha("#000000", 0.08),
+      transform: "scale(1.05)",
+    },
+  }}
+>
+<Badge
+  badgeContent={unreadCount}
+  color="error"
+  overlap="circular"
+  anchorOrigin={{
+    vertical: "top",
+    horizontal: "right",
+  }}
+  sx={{
+    "& .MuiBadge-badge": {
+      minWidth: 18,
+      height: 18,
+      fontSize: "0.7rem",
+      padding: "0 4px",
+      transform: "scale(1) translate(40%, -40%)",
+      transformOrigin: "100% 0%",
+      animation: unreadCount > 0 ? "pulse 2s infinite" : "none",
+      "@keyframes pulse": {
+        "0%": { boxShadow: "0 0 0 0 rgba(255, 59, 48, 0.7)" },
+        "70%": { boxShadow: "0 0 0 5px rgba(255, 59, 48, 0)" },
+        "100%": { boxShadow: "0 0 0 0 rgba(255, 59, 48, 0)" },
+      },
+    },
+  }}
+>
+    <NotificationsIcon fontSize="small" />
+  </Badge>
+</IconButton>
+
+<Popover
+  open={Boolean(notifAnchorEl)}
+  anchorEl={notifAnchorEl}
+  onClose={() => setNotifAnchorEl(null)}
+  anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+  transformOrigin={{ vertical: "top", horizontal: "right" }}
+  PaperProps={{
+    sx: {
+      mt: 1.5,
+      width: 280,
+      maxHeight: 360,
+      overflowY: "auto",
+      boxShadow: 4,
+      borderRadius: "12px",
+      bgcolor: navBgColor,
+      border: `1px solid ${borderColor}`,
+    },
+  }}
+>
+  <Box sx={{ p: 2 }}>
+    <Typography variant="subtitle1" sx={{ fontWeight: 600, color: textColor }}>
+      Notificaciones
+    </Typography>
+  </Box>
+  <Divider />
+  <List disablePadding>
+    {notifications.map((notif) => (
+      <ListItemButton
+        key={notif.id}
+        onClick={() => {
+          navigate("/projects");
+          setNotifications((prev) => prev.filter((n) => n.id !== notif.id));
+          setNotifAnchorEl(null);
+        }}
+      >
+        <Box sx={{ display: "flex", alignItems: "center", gap: 2, width: "100%" }}>
+          <Box
             sx={{
-              color: secondaryTextColor,
-              bgcolor: darkMode
-                ? alpha("#ffffff", 0.05)
-                : alpha("#000000", 0.05),
               width: 36,
               height: 36,
-              minWidth: 36,
-              minHeight: 36,
-              borderRadius: "8px",
-              transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-              position: "relative",
-              overflow: "hidden",
-              display: { xs: isXsScreen ? "none" : "flex", sm: "flex" }, // Ocultar en pantallas muy pequeñas
-              "&:hover": {
-                bgcolor: darkMode
-                  ? alpha("#ffffff", 0.1)
-                  : alpha("#000000", 0.08),
-                transform: "scale(1.05)",
-              },
-              "&::after": {
-                content: '""',
-                position: "absolute",
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                opacity: 0,
-                transition: "opacity 0.3s ease",
-                background: `radial-gradient(circle at center, ${
-                  darkMode ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.1)"
-                } 0%, transparent 70%)`,
-                pointerEvents: "none",
-              },
-              "&:active::after": {
-                opacity: 1,
-              },
+              borderRadius: "50%",
+              bgcolor: primaryColor,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "white",
+              flexShrink: 0,
+              boxShadow: `0 0 6px ${alpha(primaryColor, 0.3)}`
             }}
           >
-            <Badge
-              badgeContent={notificationCount}
-              color="error"
-              sx={{
-                "& .MuiBadge-badge": {
-                  transition: "all 0.3s ease",
-                  transform: "scale(1) translate(25%, -25%)",
-                  transformOrigin: "100% 0%",
-                  animation:
-                    notificationCount > 0 ? "pulse 2s infinite" : "none",
-                  "@keyframes pulse": {
-                    "0%": {
-                      boxShadow: "0 0 0 0 rgba(255, 59, 48, 0.7)",
-                    },
-                    "70%": {
-                      boxShadow: "0 0 0 5px rgba(255, 59, 48, 0)",
-                    },
-                    "100%": {
-                      boxShadow: "0 0 0 0 rgba(255, 59, 48, 0)",
-                    },
-                  },
-                },
-              }}
-            >
-              <NotificationsIcon fontSize="small" />
-            </Badge>
-          </IconButton>
+            {getIconByType(notif.type)}
+          </Box>
+          <Typography variant="body2" sx={{ fontSize: '0.9rem', color: textColor, lineHeight: 1.4 }}>
+            {notif.text}
+          </Typography>
+        </Box>
+      </ListItemButton>
+    ))}
+  </List>
+</Popover>
 
           {/* Botón de cerrar sesión - Siempre visible */}
           <Tooltip title="Cerrar sesión" arrow TransitionComponent={Zoom}>
