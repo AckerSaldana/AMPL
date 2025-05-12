@@ -177,7 +177,7 @@ const ProfileSummary = ({ userInfo = defaultUserInfo }) => {
               >
                 {Array.isArray(safeUserInfo.primarySkills) && safeUserInfo.primarySkills.map((skill, index) => (
                   <Chip
-                    key={skill}
+                    key={index}
                     label={skill}
                     size="small"
                     sx={{

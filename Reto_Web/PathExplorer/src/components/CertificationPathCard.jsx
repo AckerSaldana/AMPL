@@ -5,15 +5,35 @@ import {
   Paper,
   Chip,
   Divider,
+  Link,
+  Tooltip
 } from "@mui/material";
 import {
   WorkspacePremium,
   CalendarMonth,
   School,
+  VerifiedUser,
+  Visibility
 } from "@mui/icons-material";
 import { ACCENTURE_COLORS } from "../styles/styles";
 
 const CertificationCard = ({ certification }) => {
+  // Ensure certification has default values
+  const safeCert = {
+    name: "Certification",
+    issuer: "Issuer",
+    date: "No date",
+    credentialId: "N/A",
+    status: "pending",
+    ...certification
+  };
+
+  // Determine if there's evidence and if it's a link
+  const hasEvidence = safeCert.evidence && safeCert.evidence.trim() !== "";
+  const isEvidenceLink = hasEvidence && 
+    (safeCert.evidence.startsWith('http://') || 
+    safeCert.evidence.startsWith('https://'));
+
   return (
     <Paper 
       elevation={0}
@@ -45,6 +65,23 @@ const CertificationCard = ({ certification }) => {
         }} 
       />
 
+      {/* Status badge if not approved */}
+      {safeCert.status !== "approved" && (
+        <Chip
+          label={safeCert.status === "rejected" ? "Rejected" : "Pending"}
+          size="small"
+          color={safeCert.status === "rejected" ? "error" : "warning"}
+          sx={{
+            position: "absolute",
+            top: 10,
+            right: 10,
+            fontSize: "0.65rem",
+            fontWeight: 500,
+            zIndex: 1
+          }}
+        />
+      )}
+
       {/* Header */}
       <Box sx={{ p: 3, pt: 4 }}>
         <Typography
@@ -57,13 +94,14 @@ const CertificationCard = ({ certification }) => {
             display: "flex",
             alignItems: "center",
             gap: 1,
+            pr: safeCert.status !== "approved" ? 8 : 0, // Space for badge
           }}
         >
-          {certification.name}
-          {certification.score && (
+          {safeCert.name}
+          {safeCert.score && (
             <Chip
               size="small"
-              label={certification.score}
+              label={safeCert.score}
               sx={{
                 height: 20,
                 fontSize: "0.65rem",
@@ -85,9 +123,49 @@ const CertificationCard = ({ certification }) => {
             variant="body2"
             sx={{ color: ACCENTURE_COLORS.darkGray }}
           >
-            {certification.issuer}
+            {safeCert.issuer}
           </Typography>
         </Box>
+
+        {/* Status and Evidence */}
+        {(safeCert.status === "approved" && hasEvidence) && (
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 2 }}>
+            <VerifiedUser
+              fontSize="small"
+              sx={{ color: "success.main", opacity: 0.8 }}
+            />
+            {isEvidenceLink ? (
+              <Link 
+                href={safeCert.evidence} 
+                target="_blank"
+                rel="noopener"
+                sx={{ 
+                  display: "flex", 
+                  alignItems: "center", 
+                  gap: 0.5,
+                  color: ACCENTURE_COLORS.corePurple2,
+                  textDecoration: "none",
+                  "&:hover": {
+                    textDecoration: "underline"
+                  }
+                }}
+              >
+                <Typography variant="body2">
+                  View evidence
+                </Typography>
+                <Visibility fontSize="small" />
+              </Link>
+            ) : (
+              <Typography
+                variant="body2"
+                sx={{ color: ACCENTURE_COLORS.darkGray }}
+              >
+                Evidence available
+              </Typography>
+            )}
+          </Box>
+        )}
+
 
         {/* Credential ID */}
         <Box
@@ -112,7 +190,7 @@ const CertificationCard = ({ certification }) => {
             }
           }}
         >
-          ID: {certification.credentialId}
+          ID: {safeCert.credentialId}
         </Box>
       </Box>
 
@@ -136,9 +214,9 @@ const CertificationCard = ({ certification }) => {
               variant="body2"
               sx={{ color: ACCENTURE_COLORS.darkGray }}
             >
-              {certification.date}
+              {safeCert.date}
             </Typography>
-            {certification.expiryDate && (
+            {safeCert.expiryDate && (
               <Typography
                 variant="caption"
                 sx={{ 
@@ -147,7 +225,7 @@ const CertificationCard = ({ certification }) => {
                   mt: 0.25,
                 }}
               >
-                Expires: {certification.expiryDate}
+                Expires: {safeCert.expiryDate}
               </Typography>
             )}
           </Box>
