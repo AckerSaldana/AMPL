@@ -1,5 +1,4 @@
 import * as functions from "firebase-functions";
-import app from "./server.js"; // Ajusta la ruta según tu estructura
+import app from "./server.js";
 
-// Exponer la app Express como función
 export const api = functions.https.onRequest(app);

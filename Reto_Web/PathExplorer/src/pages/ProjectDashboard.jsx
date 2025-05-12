@@ -14,6 +14,7 @@ import {
   Alert,
 } from "@mui/material";
 import ProjectCard from "../components/ProjectCard.jsx";
+import SkeletonProjectCard from "../components/SkeletonProjectCard.jsx";
 import ProjectFilter from "../components/ProjectFilter.jsx";
 import AddProjectButton from "../components/AddProjectButton.jsx";
 import useAuth from "../hooks/useAuth";
@@ -32,73 +33,90 @@ const ProjectDashboard = () => {
     severity: "success",
   });
   const [projects, setProjects] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
 
   const fetchProjects = async () => {
-    const { data: projectsData, error: projectsError } = await supabase
-      .from("Project")
-      .select(
-        "projectID, title, description, status, logo, progress, start_date, end_date, priority"
-      );
+    setIsLoading(true);
+    
+    try {
+      const { data: projectsData, error: projectsError } = await supabase
+        .from("Project")
+        .select(
+          "projectID, title, description, status, logo, progress, start_date, end_date, priority"
+        );
 
-    if (projectsError) {
-      console.error("Error fetching projects:", projectsError.message);
-      setSnackbar({
-        open: true,
-        message: `Error al cargar los proyectos: ${projectsError.message}`,
-        severity: "error",
-      });
-      return;
-    }
-
-    const { data: userRolesData, error: rolesError } = await supabase
-      .from("UserRole")
-      .select("project_id, user_id, User:User(user_id, name, profile_pic)");
-
-    if (rolesError) {
-      console.error("Error fetching user roles:", rolesError.message);
-      setSnackbar({
-        open: true,
-        message: `Error al cargar los equipos: ${rolesError.message}`,
-        severity: "error",
-      });
-      return;
-    }
-
-    const teamByProject = {};
-    userRolesData.forEach(({ project_id, User }) => {
-      if (!teamByProject[project_id]) teamByProject[project_id] = [];
-      if (User) {
-        teamByProject[project_id].push({
-          name: User.name || "Usuario",
-          avatar: User.profile_pic || "",
+      if (projectsError) {
+        console.error("Error fetching projects:", projectsError.message);
+        setSnackbar({
+          open: true,
+          message: `Error al cargar los proyectos: ${projectsError.message}`,
+          severity: "error",
         });
+        return;
       }
-    });
 
-    const combinedData = projectsData.map((project) => ({
-      id: project.projectID,
-      title: project.title,
-      description: project.description,
-      status: project.status,
-      logo: project.logo,
-      team: teamByProject[project.projectID] || [],
-      progress: project.progress,
-      assignedDate: project.start_date,
-      dueDate: project.end_date,
-      priority: project.priority,
-    }));
+      const { data: userRolesData, error: rolesError } = await supabase
+        .from("UserRole")
+        .select("project_id, user_id, User:User(user_id, name, profile_pic)");
 
-    // Sort projects by priority
-    const priorityOrder = { High: 1, Medium: 2, Low: 3 };
+      if (rolesError) {
+        console.error("Error fetching user roles:", rolesError.message);
+        setSnackbar({
+          open: true,
+          message: `Error al cargar los equipos: ${rolesError.message}`,
+          severity: "error",
+        });
+        return;
+      }
 
-    combinedData.sort((a, b) => {
-      const orderA = priorityOrder[a.priority] || 99;
-      const orderB = priorityOrder[b.priority] || 99;
-      return orderA - orderB;
-    });
+      const teamByProject = {};
+      userRolesData.forEach(({ project_id, User }) => {
+        if (!teamByProject[project_id]) teamByProject[project_id] = [];
+        if (User) {
+          teamByProject[project_id].push({
+            name: User.name || "Usuario",
+            avatar: User.profile_pic || "",
+          });
+        }
+      });
 
-    setProjects(combinedData);
+      const combinedData = projectsData.map((project) => ({
+        id: project.projectID,
+        title: project.title,
+        description: project.description,
+        status: project.status,
+        logo: project.logo,
+        team: teamByProject[project.projectID] || [],
+        progress: project.progress,
+        assignedDate: project.start_date,
+        dueDate: project.end_date,
+        priority: project.priority,
+      }));
+
+      // Sort projects by priority
+      const priorityOrder = { High: 1, Medium: 2, Low: 3 };
+
+      combinedData.sort((a, b) => {
+        const orderA = priorityOrder[a.priority] || 99;
+        const orderB = priorityOrder[b.priority] || 99;
+        return orderA - orderB;
+      });
+
+      setProjects(combinedData);
+    } catch (error) {
+      console.error("Error in fetchProjects:", error);
+      setSnackbar({
+        open: true,
+        message: `Error inesperado: ${error.message}`,
+        severity: "error",
+      });
+    } finally {
+      // Simulate loading for demo purposes (remove in production)
+      setTimeout(() => {
+        setIsLoading(false);
+      }, 1000);
+    }
   };
 
   useEffect(() => {
@@ -168,6 +186,13 @@ const ProjectDashboard = () => {
     return project.status?.toLowerCase() === activeFilter.toLowerCase();
   });
 
+  // Create an array of skeleton cards for loading state
+  const skeletonCards = Array(6).fill(0).map((_, index) => (
+    <Grid item xs={12} sm={6} lg={4} key={`skeleton-${index}`}>
+      <SkeletonProjectCard />
+    </Grid>
+  ));
+
   return (
     <Box sx={{ p: { xs: 2, md: 3 }, maxWidth: "100%" }}>
       <Typography variant="h4" sx={{ fontWeight: 600, mb: 3 }}>
@@ -189,6 +214,7 @@ const ProjectDashboard = () => {
               <ProjectFilter
                 activeFilter={activeFilter}
                 setActiveFilter={setActiveFilter}
+                disabled={isLoading}
               />
             </CardContent>
           </Card>
@@ -196,7 +222,11 @@ const ProjectDashboard = () => {
 
         <Grid item xs={12} md={9} lg={9.5}>
           <Grid container spacing={3}>
-            {filteredProjects.length > 0 ? (
+            {isLoading ? (
+              // Show skeleton cards while loading
+              skeletonCards
+            ) : filteredProjects.length > 0 ? (
+              // Show actual project cards
               filteredProjects.map((project) => (
                 <Grid item xs={12} sm={6} lg={4} key={project.id}>
                   <ProjectCard
@@ -216,6 +246,7 @@ const ProjectDashboard = () => {
                 </Grid>
               ))
             ) : (
+              // Show "no projects" message
               <Grid item xs={12}>
                 <Box
                   sx={{

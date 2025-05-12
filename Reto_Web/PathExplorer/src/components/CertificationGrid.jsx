@@ -16,12 +16,13 @@ export const CertificationGrid = ({ userId }) => {
       try {
         setIsLoading(true);
         
+        // Updated query to use 'status' instead of 'completion_Status'
         const { data, error: certError } = await supabase
         .from('UserCertifications')
         .select(`
             certification_ID,
             score,
-            completion_Status,
+            status,
             valid_Until,
             Certifications (
               title,
@@ -32,47 +33,47 @@ export const CertificationGrid = ({ userId }) => {
             )
           `)
         .eq('user_ID', userId)
-        .in('completion_Status', ['TRUE', 'FALSE'])
+        // Show approved and pending certifications
+        .in('status', ['approved', 'pending'])
         .order('valid_Until', { ascending: false })
         .limit(4);
 
         if (certError) throw certError;
 
-        if (certError) throw certError;
+        //Juntar todos los skill ods de todas las certificaciones
+        const allSkillIDs = [...new Set(
+          data.flatMap(cert => cert.Certifications?.skill_acquired || [])
+        )];
 
-    //Juntar todos los skill ods de todas las certificaciones
-    const allSkillIDs = [...new Set(
-      data.flatMap(cert => cert.Certifications?.skill_acquired || [])
-    )];
+        // Llamar nombres reales desde la tabla Skill
+        const { data: skillData, error: skillError } = await supabase
+          .from('Skill')
+          .select('skill_ID, name')
+          .in('skill_ID', allSkillIDs);
 
-    // Llamar nombres reales desde la tabla Skill
-    const { data: skillData, error: skillError } = await supabase
-      .from('Skill')
-      .select('skill_ID, name')
-      .in('skill_ID', allSkillIDs);
+        if (skillError) throw skillError;
 
-    if (skillError) throw skillError;
+        //Crear un diccionario skill_ID => name
+        const skillMap = Object.fromEntries(skillData.map(s => [s.skill_ID, s.name]));
 
-    //Crear un diccionario skill_ID => name
-    const skillMap = Object.fromEntries(skillData.map(s => [s.skill_ID, s.name]));
-
-    setCertifications(
-      data.map(cert => ({
-        id: cert.certification_ID,
-        title: cert.Certifications?.title || "Untitled",
-        url: cert.Certifications?.url || "#",
-        skills: (cert.Certifications?.skill_acquired || []).map(id => skillMap[id] || "Unknown"),
-        backgroundImage: cert.Certifications?.certification_Image || getDefaultImage()
-      }))
-    );
-  } catch (error) {
-    console.error("Error fetching certifications:", error);
-    setError(error.message);
-    setCertifications(getFallbackCertifications());
-  } finally {
-    setIsLoading(false);
-  }
-};
+        setCertifications(
+          data.map(cert => ({
+            id: cert.certification_ID,
+            title: cert.Certifications?.title || "Untitled",
+            url: cert.Certifications?.url || "#",
+            skills: (cert.Certifications?.skill_acquired || []).map(id => skillMap[id] || "Unknown"),
+            status: cert.status || "pending", // Add status information to the certification
+            backgroundImage: cert.Certifications?.certification_Image || getDefaultImage()
+          }))
+        );
+      } catch (error) {
+        console.error("Error fetching certifications:", error);
+        setError(error.message);
+        setCertifications(getFallbackCertifications());
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
     if (userId) {
       fetchCertifications();
@@ -90,6 +91,7 @@ export const CertificationGrid = ({ userId }) => {
         title: "AWS Certified Solutions Architect",
         url: "https://aws.amazon.com/certification/certified-solutions-architect-associate/",
         skills: ["AWS", "Cloud Architecture", "Networking"],
+        status: "approved",
         backgroundImage: "https://d1.awsstatic.com/training-and-certification/certification-badges/AWS-Certified-Solutions-Architect-Associate_badge.3419559c4ef4d0693bff300b6e5fb80f4f8e7c48.png"
       },
       {
@@ -97,6 +99,7 @@ export const CertificationGrid = ({ userId }) => {
         title: "React Professional Developer",
         url: "https://reactjs.org/",
         skills: ["React", "JavaScript", "Frontend"],
+        status: "approved",
         backgroundImage: "https://miro.medium.com/max/1200/1*y6C4nSvy2Woe0m7bWEn4BA.png"
       },
       {
@@ -104,6 +107,7 @@ export const CertificationGrid = ({ userId }) => {
         title: "Node.js Advanced Concepts",
         url: "https://nodejs.org/",
         skills: ["Node.js", "JavaScript", "Backend"],
+        status: "pending",
         backgroundImage: "https://www.cloudbees.com/sites/default/files/styles/free_style/public/2018-11/node-js-1.png"
       },
       {
@@ -111,6 +115,7 @@ export const CertificationGrid = ({ userId }) => {
         title: "Python for Data Science",
         url: "https://www.python.org/",
         skills: ["Python", "Data Science", "Machine Learning"],
+        status: "pending",
         backgroundImage: "https://miro.medium.com/max/1400/1*YVlQ9GXqVlO-SIocAU5xXA.png"
       }
     ];
@@ -175,6 +180,7 @@ export const CertificationGrid = ({ userId }) => {
                 title={cert.title}
                 url={cert.url}
                 skills={cert.skills}
+                status={cert.status} // Pass status to the card component
                 backgroundImage={cert.backgroundImage}
               />
             </Grid>

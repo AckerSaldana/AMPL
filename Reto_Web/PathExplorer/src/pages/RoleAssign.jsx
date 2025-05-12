@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   Box,
   Grid,
@@ -189,6 +189,9 @@ const RoleAssign = () => {
   const [tempProject, setTempProject] = useState(null);
   const [tempProjectData, setTempProjectData] = useState(null);
   const [skillMap, setSkillMap] = useState({});
+  
+  // NUEVO: Estado para rastrear empleados asignados
+  const [assignedEmployeeIds, setAssignedEmployeeIds] = useState(new Set());
 
   // Cargar datos iniciales
   useEffect(() => {
@@ -422,6 +425,16 @@ const RoleAssign = () => {
         });
         
         setRoles(rolesWithSuggestions);
+        
+        // NUEVO: Inicializar el conjunto de IDs de empleados asignados
+        const initiallyAssignedIds = new Set();
+        rolesWithSuggestions.forEach(role => {
+          if (role.assigned) {
+            initiallyAssignedIds.add(role.assigned.id);
+          }
+        });
+        setAssignedEmployeeIds(initiallyAssignedIds);
+        
       } catch (error) {
         console.error("Error loading data:", error);
         setSnackbar({
@@ -437,14 +450,33 @@ const RoleAssign = () => {
     loadInitialData();
   }, []);
 
+  // MODIFICADO: handleEmployeeChange para actualizar el conjunto de IDs asignados
   const handleEmployeeChange = (roleIndex, newEmployeeId) => {
     setRoles(prevRoles => {
       const updatedRoles = [...prevRoles];
       const currentRole = { ...updatedRoles[roleIndex] };
+      
+      // Si ya había un empleado asignado, removerlo del set de asignados
+      if (currentRole.assigned) {
+        setAssignedEmployeeIds(prev => {
+          const updated = new Set(prev);
+          updated.delete(currentRole.assigned.id);
+          return updated;
+        });
+      }
+      
       const newEmployee = currentRole.allCandidates.find(
         candidate => candidate.id === newEmployeeId
       );
       if (!newEmployee) return prevRoles;
+      
+      // Agregar el nuevo empleado al set de asignados
+      setAssignedEmployeeIds(prev => {
+        const updated = new Set(prev);
+        updated.add(newEmployeeId);
+        return updated;
+      });
+      
       currentRole.assigned = newEmployee;
       currentRole.matches = currentRole.allCandidates.filter(
         candidate => candidate.id !== newEmployee.id
@@ -533,7 +565,17 @@ const RoleAssign = () => {
     }
   };
 
-  const availableCandidates = roles[selectedRoleIndex]?.matches || [];
+  // MODIFICADO: Usar useMemo para filtrar candidatos disponibles excluyendo los ya asignados
+  const availableCandidates = useMemo(() => {
+    const roleCandidates = roles[selectedRoleIndex]?.matches || [];
+    
+    // Filtrar candidatos que ya están asignados a otros roles
+    return roleCandidates.filter(candidate => 
+      !assignedEmployeeIds.has(candidate.id) || 
+      // Excepción: incluir al empleado si está asignado al rol actual
+      (roles[selectedRoleIndex]?.assigned?.id === candidate.id)
+    );
+  }, [selectedRoleIndex, roles, assignedEmployeeIds]);
 
   if (loading) {
     return (

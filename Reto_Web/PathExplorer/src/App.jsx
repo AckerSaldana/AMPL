@@ -9,7 +9,7 @@ import MainLayout from "./layout/MainLayout";
 import Dashboard from "./pages/Dashboard";
 import Profiles from "./pages/Profiles";
 import Analytics from "./pages/Analytics";
-import Settings from "./pages/Settings";
+import MyPath from "./pages/MyPath";
 import User from "./pages/User";
 import Certifications from "./pages/Certifications";
 import ProjectDashboard from "./pages/ProjectDashboard.jsx";
@@ -21,6 +21,7 @@ import SubmitCertification from "./pages/SubmitCertification.jsx";
 import AddProject from "./pages/AddProject.jsx";
 import RoleAssign from "./pages/RoleAssign.jsx";
 import ProjectEdit from "./pages/ProjectEdit.jsx";
+import AllSkills from "./pages/AllSkills.jsx";
 
 // Nuevo componente de detalle de perfil
 import UserProfileDetail from "./pages/UserProfileDetail";
@@ -56,7 +57,7 @@ function App() {
               path="submit-certification"
               element={<SubmitCertification />}
             />
-            <Route path="settings" element={<Settings />} />
+            <Route path="mypath" element={<MyPath />} />
             <Route path="user" element={<User />} />
             {/* Nueva ruta para ver detalle de usuario por ID */}
             <Route path="user/:id" element={<UserProfileDetail />} />
@@ -73,6 +74,7 @@ function App() {
           {/* Rutas accesibles solo para manager */}
           <Route element={<ProtectedRoute allowedRoles={["manager"]} />}>
             <Route path="analytics" element={<Analytics />} />
+            <Route path="all-skills" element={<AllSkills />} />
           </Route>
 
           {/* Redirección por defecto */}

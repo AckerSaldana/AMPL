@@ -16,11 +16,17 @@ import {
   alpha,
   Divider,
   useMediaQuery,
-  IconButton
+  IconButton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions
 } from "@mui/material";
 import {
   CalendarToday,
   Edit as EditIcon,
+  Delete as DeleteIcon,
   ArrowBack as ArrowBackIcon,
   People as PeopleIcon,
   Assignment as AssignmentIcon,
@@ -146,6 +152,44 @@ const ProjectDetail = () => {
       setLoading(false);
     }
   };
+  
+  // Para mostrar/ocultar el diálogo de confirmación
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+
+  const handleDeleteClick = () => {
+    setDeleteConfirmOpen(true);
+  };
+  const handleCancelDelete = () => {
+    setDeleteConfirmOpen(false);
+  };
+
+  const handleConfirmDelete = async () => {
+    setDeleteConfirmOpen(false);
+    setLoading(true);
+    try {
+      const { error } = await supabase
+        .from("Project")
+        .delete()
+        .eq("projectID", projectId);
+      if (error) throw error;
+
+      setSnackbar({
+        open: true,
+        message: "Project deleted successfully",
+        severity: "success",
+      });
+      // Después de un segundo vuelves atrás o a la lista de proyectos
+      setTimeout(() => navigate("/projects"), 1000);
+    } catch (error) {
+      setSnackbar({
+        open: true,
+        message: `Error deleting project: ${error.message}`,
+        severity: "error",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Effect to load data when component mounts
   useEffect(() => {
@@ -204,48 +248,83 @@ const ProjectDetail = () => {
         >
           BACK
         </Button>
-        
-        <Box sx={{ 
-          display: "flex", 
-          justifyContent: "space-between", 
-          alignItems: "center"
-        }}>
-          <Typography 
-            variant="h4" 
-            sx={{ 
+
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center"
+          }}
+        >
+          <Typography
+            variant="h4"
+            sx={{
               fontWeight: 600,
               fontSize: { xs: "1.5rem", sm: "2rem", md: "2.125rem" }
             }}
           >
             Project Details
           </Typography>
-          
-          <Button
-            variant="contained"
-            startIcon={<EditIcon />}
-            onClick={() => navigate(`/project-edit/${projectId}`)}
-            sx={{
-              bgcolor: theme.palette.primary.main,
-              textTransform: "none",
-              display: { xs: "none", sm: "inline-flex" }
-            }}
-          >
-            Edit
-          </Button>
-          
-          <IconButton 
-            onClick={() => navigate(`/project-edit/${projectId}`)}
-            sx={{ 
-              color: "white", 
-              bgcolor: theme.palette.primary.main,
-              display: { xs: "flex", sm: "none" },
-              "&:hover": { bgcolor: theme.palette.primary.dark }
-            }}
-          >
-            <EditIcon fontSize="small" />
-          </IconButton>
+
+          {/* Agrupamos ambos botones en un solo contenedor */}
+          <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+            {/* Edit desktop */}
+            <Button
+              variant="contained"
+              startIcon={<EditIcon />}
+              onClick={() => navigate(`/project-edit/${projectId}`)}
+              sx={{
+                bgcolor: theme.palette.primary.main,
+                textTransform: "none",
+                display: { xs: "none", sm: "inline-flex" }
+              }}
+            >
+              Edit
+            </Button>
+
+            {/* Delete desktop */}
+            <Button
+              variant="outlined"
+              color="error"
+              startIcon={<DeleteIcon />}
+              onClick={handleDeleteClick}             // ← aquí
+              sx={{
+                textTransform: "none",
+                display: { xs: "none", sm: "inline-flex" }
+              }}
+            >
+              Delete
+            </Button>
+
+            {/* Edit mobile */}
+            <IconButton
+              onClick={() => navigate(`/project-edit/${projectId}`)}
+              sx={{
+                color: "white",
+                bgcolor: theme.palette.primary.main,
+                display: { xs: "flex", sm: "none" },
+                "&:hover": { bgcolor: theme.palette.primary.dark }
+              }}
+            >
+              <EditIcon fontSize="small" />
+            </IconButton>
+
+            {/* Delete mobile */}
+            <IconButton
+              onClick={handleDeleteClick}
+              sx={{
+                color: theme.palette.error.main,
+                bgcolor: alpha(theme.palette.error.main, 0.1),
+                display: { xs: "flex", sm: "none" },
+                "&:hover": { bgcolor: alpha(theme.palette.error.dark, 0.2) }
+              }}
+            >
+              <DeleteIcon fontSize="small" />
+            </IconButton>
+          </Box>
         </Box>
       </Box>
+
 
       {/* Project overview */}
       <Paper 
@@ -728,6 +807,26 @@ const ProjectDetail = () => {
           )}
         </Grid>
       </Paper>
+
+      <Dialog
+        open={deleteConfirmOpen}
+        onClose={handleCancelDelete}
+      >
+        <DialogTitle>Confirm Delete</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Are you sure you want to permanently delete this project? This action cannot be undone.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCancelDelete} color="primary">
+            Cancel
+          </Button>
+          <Button onClick={handleConfirmDelete} color="error" variant="contained">
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Notification Snackbar */}
       <Snackbar

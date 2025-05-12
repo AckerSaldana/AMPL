@@ -5,15 +5,21 @@ import {
   Typography, 
   Paper, 
   useTheme,
-  CircularProgress
+  CircularProgress,
+  Button,
+  alpha
 } from "@mui/material";
 import SchoolIcon from "@mui/icons-material/School";
 import CodeIcon from "@mui/icons-material/Code";
+import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
 
 export const MyPathTimeline = ({ items: initialItems }) => {
   const theme = useTheme();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
+  
+  // Color original del perfil
+  const profilePurple = '#9c27b0';
   
   // Simular carga de datos
   useEffect(() => {
@@ -48,7 +54,7 @@ export const MyPathTimeline = ({ items: initialItems }) => {
     if (loading) {
       return (
         <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 200 }}>
-          <CircularProgress size={30} />
+          <CircularProgress size={30} sx={{ color: profilePurple }} />
         </Box>
       );
     }
@@ -88,7 +94,7 @@ export const MyPathTimeline = ({ items: initialItems }) => {
           const isFirstItem = index === 0;
           const isProject = item.type === "Project";
           const color = isFirstItem
-            ? "#ccc"
+            ? profilePurple
             : isProject
             ? theme.palette.primary.main
             : theme.palette.secondary.main;
@@ -109,6 +115,7 @@ export const MyPathTimeline = ({ items: initialItems }) => {
                 borderRadius: 1,
                 alignItems: "flex-start",
                 justifyContent: "space-between",
+                border: `1px solid ${alpha(color, 0.2)}`,
               }}
             >
               {/* Timeline dot */}
@@ -141,7 +148,7 @@ export const MyPathTimeline = ({ items: initialItems }) => {
                   variant="caption"
                   sx={{ 
                     color: showAISuggested 
-                      ? theme.palette.primary.main
+                      ? profilePurple
                       : theme.palette.text.secondary
                   }}
                 >
@@ -170,18 +177,46 @@ export const MyPathTimeline = ({ items: initialItems }) => {
     <Paper
       sx={{
         p: 2,
-        borderRadius: 1,
+        borderRadius: 2,
         height: "100%",
-        boxShadow: '0 1px 3px rgba(0,0,0,0.12)',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
         overflow: "hidden",
         display: 'flex',
-        flexDirection: 'column'
+        flexDirection: 'column',
+        bgcolor: '#ffffff'
       }}
     >
-      <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-        <Typography variant="h6">
-          MyPath
-        </Typography>
+      <Box sx={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'space-between',
+        mb: 2
+      }}>
+        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+          <SchoolIcon 
+            sx={{ 
+              color: profilePurple, 
+              mr: 1.5,
+              fontSize: 20
+            }} 
+          />
+          <Typography variant="h6" fontWeight={500} sx={{ fontSize: '1.125rem' }}>
+            MyPath
+          </Typography>
+        </Box>
+        <Button
+          endIcon={<ArrowForwardIosIcon sx={{ fontSize: '0.7rem' }} />}
+          sx={{
+            color: profilePurple,
+            fontWeight: 400,
+            fontSize: '0.75rem',
+            textTransform: 'none',
+            '&:hover': { bgcolor: 'transparent' }
+          }}
+          onClick={() => {}} // Navegación a la vista completa de MyPath
+        >
+          View All
+        </Button>
       </Box>
       
       {renderContent()}

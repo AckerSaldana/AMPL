@@ -1,41 +1,44 @@
-// src/components/dashboard/PopularCertifications.jsx
+// src/components/PopularCertifications.jsx
 import React from "react";
 import { 
   Box, 
   Typography, 
-  Paper, 
-  useTheme, 
-  Card, 
-  CardContent, 
+  Card,
   Avatar,
-  Chip,
-  Button
+  Button,
+  alpha,
+  Stack,
+  Grid,
+  Divider,
+  Tooltip
 } from "@mui/material";
-import { alpha } from "@mui/material/styles";
 
 // Iconos
 import EmojiEventsIcon from "@mui/icons-material/EmojiEvents";
 import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
-import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import StorageIcon from "@mui/icons-material/Storage";
 import CodeIcon from "@mui/icons-material/Code";
 import WorkIcon from "@mui/icons-material/Work";
-import CodeOffIcon from "@mui/icons-material/CodeOff";
 import CloudIcon from "@mui/icons-material/Cloud";
 import DataObjectIcon from "@mui/icons-material/DataObject";
 import SecurityIcon from "@mui/icons-material/Security";
 import AnalyticsIcon from "@mui/icons-material/Analytics";
+import StarIcon from "@mui/icons-material/Star";
+import PeopleAltOutlinedIcon from "@mui/icons-material/PeopleAltOutlined";
+import { useNavigate } from "react-router-dom";
 
 export const PopularCertifications = ({ certifications }) => {
-  const theme = useTheme();
+  const navigate = useNavigate();
   
-  // Función para obtener el icono según el tipo
+  // Match Dashboard profile color
+  const profilePurple = '#9c27b0';
+  
+  // Get icon based on certification type
   const getIconByType = (iconType) => {
     switch (iconType) {
       case 'Storage': return <StorageIcon />;
       case 'Code': return <CodeIcon />;
       case 'Work': return <WorkIcon />;
-      case 'CodeOff': return <CodeOffIcon />;
       case 'Cloud': return <CloudIcon />;
       case 'DataObject': return <DataObjectIcon />;
       case 'Security': return <SecurityIcon />;
@@ -44,129 +47,204 @@ export const PopularCertifications = ({ certifications }) => {
     }
   };
   
+  // Calculate star rating based on popularity percentage
+  const calculateStars = (popularity) => {
+    // Transform popularity percentage to a 0-5 scale
+    return Math.round(popularity / 20);
+  };
+  
   return (
-    <Paper
-      sx={{
-        p: 3,
-        borderRadius: 3,
-        height: '100%',
-        boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
-      }}
-    >
-      <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-        <Avatar sx={{ bgcolor: alpha(theme.palette.secondary.main, 0.1), color: theme.palette.secondary.main, mr: 2 }}>
-          <EmojiEventsIcon />
-        </Avatar>
-        <Typography variant="h6" fontWeight="bold">Popular certifications</Typography>
-        <Box sx={{ flexGrow: 1 }} />
+    <Box sx={{ height: '100%', p: 2 }}>
+      {/* Header */}
+      <Box 
+        sx={{ 
+          display: 'flex', 
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          mb: 3
+        }}
+      >
+        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+          <EmojiEventsIcon 
+            sx={{ 
+              color: profilePurple, 
+              mr: 1.5,
+              fontSize: 20
+            }} 
+          />
+          <Typography variant="h6" fontWeight={500} sx={{ fontSize: '1.125rem' }}>
+            Popular Certifications
+          </Typography>
+        </Box>
         <Button 
-  size="small"
-  color="secondary"
-  endIcon={<ArrowForwardIosIcon sx={{ fontSize: '0.8rem' }} />}
-  onClick={() => navigate('/certifications')}
-  sx={{ 
-    textTransform: 'none',
-    fontSize: '0.8rem'
-  }}
->
-  Ver todas
-</Button>
+          size="small"
+          endIcon={<ArrowForwardIosIcon sx={{ fontSize: '0.7rem' }} />}
+          onClick={() => navigate('/certifications')}
+          sx={{ 
+            textTransform: 'none',
+            fontSize: '0.75rem',
+            color: profilePurple,
+            fontWeight: 400,
+            '&:hover': {
+              bgcolor: 'transparent'
+            }
+          }}
+        >
+          View All
+        </Button>
       </Box>
       
-      <Box sx={{ px: 0.5 }}>
-        {certifications.map((cert) => (
-          <Card 
-            key={cert.id}
-            elevation={0}
-            sx={{
-              mb: 2,
-              borderRadius: 2,
-              border: '1px solid',
-              borderColor: alpha(theme.palette.secondary.main, 0.2),
-              transition: 'all 0.2s ease',
-              overflow: 'visible',
-              '&:hover': {
-                transform: 'translateY(-3px)',
-                boxShadow: `0 8px 15px ${alpha(theme.palette.secondary.main, 0.15)}`,
-              }
-            }}
-          >
-            <CardContent sx={{ py: 2, px: 2, position: 'relative' }}>
-              {/* Indicador de popularidad */}
-              <Box 
-                sx={{ 
-                  position: 'absolute', 
-                  top: -10, 
-                  right: 16,
-                  px: 1,
-                  py: 0.5,
-                  fontSize: '0.7rem',
-                  fontWeight: 'bold',
-                  color: '#fff',
-                  bgcolor: theme.palette.secondary.main,
-                  borderRadius: 1,
-                  boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
-                  zIndex: 1,
-                }}
-              >
-                {cert.popularity}% popular
-              </Box>
+      {/* Content - Card Grid Layout */}
+      <Grid container spacing={2}>
+        {certifications.length > 0 ? (
+          certifications.map((cert, index) => {
+            // Calculate star rating (0-5)
+            const starRating = calculateStars(cert.popularity);
             
-              <Box sx={{ display: 'flex', alignItems: 'flex-start' }}>
-                <Avatar 
-                  sx={{ 
-                    bgcolor: alpha(theme.palette.secondary.main, 0.1),
-                    color: theme.palette.secondary.main,
-                    mr: 1.5
+            return (
+              <Grid item xs={12} key={cert.id}>
+                <Card 
+                  elevation={0}
+                  sx={{
+                    borderRadius: 2,
+                    border: `1px solid ${alpha(profilePurple, 0.1)}`,
+                    transition: 'all 0.2s',
+                    position: 'relative',
+                    overflow: 'hidden',
+                    '&:hover': {
+                      borderColor: alpha(profilePurple, 0.3),
+                      boxShadow: `0 4px 12px ${alpha(profilePurple, 0.08)}`,
+                      '& .cert-number': {
+                        opacity: 1
+                      }
+                    }
                   }}
                 >
-                  {getIconByType(cert.iconType)}
-                </Avatar>
-                
-                <Box sx={{ flex: 1 }}>
-                  <Typography variant="body1" fontWeight="bold" gutterBottom>
-                    {cert.name}
-                  </Typography>
-                  
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-                    <Chip 
-                      label={cert.category} 
-                      size="small"
-                      sx={{ 
-                        height: 20,
-                        fontSize: '0.7rem',
-                        backgroundColor: alpha(theme.palette.secondary.main, 0.1),
-                        color: theme.palette.secondary.main,
-                        fontWeight: 'medium'
-                      }}
-                    />
-                    
-                    <Typography variant="caption" color="text.secondary">
-                      {cert.completions} certifications
-                    </Typography>
-                  </Box>
-                  
-                  <Button
-                    size="small"
-                    variant="outlined"
-                    color="secondary"
-                    endIcon={<OpenInNewIcon fontSize="small" />}
-                    sx={{
-                      mt: 1.5,
-                      borderRadius: 1,
-                      textTransform: 'none',
-                      opacity: 0.9,
-                      transition: 'all 0.2s ease',
+                  {/* Position indicator */}
+                  <Box 
+                    className="cert-number"
+                    sx={{ 
+                      position: 'absolute',
+                      right: 0,
+                      top: 0,
+                      width: 30,
+                      height: 30,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      bgcolor: alpha(profilePurple, 0.1),
+                      color: profilePurple,
+                      fontWeight: 700,
+                      fontSize: '0.875rem',
+                      opacity: 0.7,
+                      transition: 'opacity 0.2s'
                     }}
                   >
-                    See details
-                  </Button>
-                </Box>
-              </Box>
-            </CardContent>
-          </Card>
-        ))}
-      </Box>
-    </Paper>
+                    {index + 1}
+                  </Box>
+                
+                  <Box sx={{ p: 2 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.5 }}>
+                      <Avatar 
+                        sx={{ 
+                          bgcolor: alpha(profilePurple, 0.08),
+                          color: profilePurple,
+                          mr: 2,
+                          width: 42,
+                          height: 42
+                        }}
+                      >
+                        {getIconByType(cert.iconType)}
+                      </Avatar>
+                      
+                      <Box sx={{ flex: 1 }}>
+                        <Typography variant="subtitle1" fontWeight={600}>
+                          {cert.name}
+                        </Typography>
+                        
+                        <Typography variant="caption" sx={{ 
+                          color: alpha(profilePurple, 0.8),
+                          fontWeight: 500,
+                          fontSize: '0.7rem',
+                          textTransform: 'uppercase',
+                          letterSpacing: 0.5
+                        }}>
+                          {cert.category}
+                        </Typography>
+                      </Box>
+                    </Box>
+                    
+                    <Divider sx={{ my: 1.5, borderColor: alpha(profilePurple, 0.08) }} />
+                    
+                    <Box sx={{ 
+                      display: 'flex', 
+                      justifyContent: 'space-between',
+                      alignItems: 'center'
+                    }}>
+                      {/* Star Rating */}
+                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                        {[...Array(5)].map((_, i) => (
+                          <StarIcon 
+                            key={i} 
+                            sx={{ 
+                              fontSize: '0.95rem',
+                              color: i < starRating ? profilePurple : alpha(profilePurple, 0.2),
+                              mr: 0.3
+                            }} 
+                          />
+                        ))}
+                        <Typography 
+                          variant="caption" 
+                          sx={{ 
+                            fontWeight: 600, 
+                            ml: 0.5,
+                            color: 'text.secondary'
+                          }}
+                        >
+                          {cert.popularity}%
+                        </Typography>
+                      </Box>
+                      
+                      {/* People count with icon */}
+                      <Tooltip title={`${cert.completions} professionals completed this certification`}>
+                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                          <PeopleAltOutlinedIcon sx={{ 
+                            fontSize: '1rem', 
+                            color: profilePurple,
+                            mr: 0.5
+                          }} />
+                          <Typography 
+                            variant="caption" 
+                            sx={{ 
+                              fontWeight: 500,
+                              color: 'text.secondary'
+                            }}
+                          >
+                            {cert.completions}
+                          </Typography>
+                        </Box>
+                      </Tooltip>
+                    </Box>
+                  </Box>
+                </Card>
+              </Grid>
+            );
+          })
+        ) : (
+          <Grid item xs={12}>
+            <Box sx={{ 
+              textAlign: 'center', 
+              py: 4,
+              border: `1px dashed ${alpha(profilePurple, 0.2)}`,
+              borderRadius: 2
+            }}>
+              <Typography variant="body2" color="text.secondary">
+                No popular certifications found
+              </Typography>
+            </Box>
+          </Grid>
+        )}
+      </Grid>
+    </Box>
   );
 };
