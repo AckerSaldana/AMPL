@@ -2392,6 +2392,820 @@ app.post("/api/admin/create-employee", async (req, res) => {
   }
 });
 
+function createSkillMapFromDatabase(allDbSkills) {
+  const skillMap = {};
+  
+  allDbSkills.forEach(skill => {
+    if (skill && skill.skill_ID) {
+      skillMap[skill.skill_ID] = {
+        id: skill.skill_ID,
+        name: skill.name || `Skill #${skill.skill_ID}`,
+        category: skill.category || "",
+        type: skill.type || "Technical",
+        description: skill.description || ""
+      };
+    }
+  });
+  
+  return skillMap;
+}
+
+/**
+ * Solución completa para el endpoint de asistente virtual
+ * Con detección mejorada de intención, mapeo directo de skills y respuestas inteligentes
+ */
+app.post("/api/virtual-assistant/chat", async (req, res) => {
+  try {
+    const { message, userId, history = [], availableCertifications: clientCerts = [], availableSkills: clientSkills = [] } = req.body;
+    
+    if (!message || !userId) {
+      return res.status(400).json({ 
+        success: false, 
+        error: "Missing required parameters" 
+      });
+    }
+    
+    console.log(`Processing assistant request for user ${userId}`);
+    console.log(`User query: "${message}"`);
+    
+    // 1. DETECCIÓN DE INTENCIÓN MEJORADA - Identificar el tipo de pregunta
+    const intent = detectUserIntent(message);
+    console.log(`Detected intent: ${intent.type}, focus: ${intent.focus || 'general'}`);
+    
+    // 2. Fetch user profile data including goals
+    const { data: userData, error: userError } = await supabaseAdmin
+      .from('User')
+      .select('*')
+      .eq('user_id', userId)
+      .single();
+      
+    if (userError) {
+      console.error("Error fetching user data:", userError);
+      return res.status(500).json({ 
+        success: false, 
+        error: "Error fetching user profile" 
+      });
+    }
+    
+    // 3. Parse user goals (they are stored as a text array)
+    let userGoals = [];
+    try {
+      if (userData.goals && Array.isArray(userData.goals)) {
+        userGoals = userData.goals.map((goal, index) => {
+          let timeframe = "Short-term";
+          if (index === 1) timeframe = "Mid-term";
+          if (index === 2) timeframe = "Long-term";
+          return { goal, timeframe };
+        });
+      }
+    } catch (err) {
+      console.warn("Error parsing user goals:", err);
+    }
+    
+    // 4. Fetch user skills with details using the UserSkill table
+    const { data: userSkills, error: skillsError } = await supabaseAdmin
+      .from('UserSkill')
+      .select(`
+        skill_ID,
+        proficiency,
+        year_Exp,
+        Skill (
+          name,
+          category,
+          description,
+          type
+        )
+      `)
+      .eq('user_ID', userId);
+      
+    if (skillsError) {
+      console.error("Error fetching user skills:", skillsError);
+      // Continue with partial data
+    }
+    
+    // 5. Fetch ALL SKILLS from database for direct mapping
+    const { data: allDbSkills, error: allDbSkillsError } = await supabaseAdmin
+      .from('Skill')
+      .select('*');
+      
+    if (allDbSkillsError) {
+      console.error("Error fetching all skills from database:", allDbSkillsError);
+    }
+    
+    // 6. Fetch user certifications
+    const { data: userCertifications, error: certsError } = await supabaseAdmin
+      .from('UserCertifications')
+      .select(`
+        status,
+        score,
+        completed_Date,
+        valid_Until,
+        Certifications (
+          certification_id,
+          title,
+          description,
+          skill_acquired,
+          issuer,
+          type
+        )
+      `)
+      .eq('user_ID', userId);
+      
+    if (certsError) {
+      console.error("Error fetching user certifications:", certsError);
+      // Continue with partial data
+    }
+    
+    // 7. Fetch all available certifications
+    let dbCertifications = [];
+    
+    if (clientCerts && clientCerts.length > 0) {
+      // Si el cliente ya envió certificaciones, usarlas directamente
+      console.log("Using client-provided certifications");
+      dbCertifications = clientCerts;
+    } else {
+      // Si no, obtenerlas de la base de datos
+      const { data: availableCertifications, error: availCertsError } = await supabaseAdmin
+        .from('Certifications')
+        .select('*')
+        .limit(50);
+        
+      if (availCertsError) {
+        console.error("Error fetching available certifications:", availCertsError);
+      } else {
+        dbCertifications = availableCertifications || [];
+      }
+    }
+    
+    // 8. Create a comprehensive skill map directly from database
+    const skillMap = createSkillMapFromDatabase(allDbSkills || []);
+    
+    // 9. Format the data for usage
+    
+    // Format user skills
+    const formattedSkills = (userSkills || []).map(item => ({
+      id: item.skill_ID,
+      name: item.Skill?.name || "Unknown Skill",
+      proficiency: item.proficiency || "Low",
+      yearsExperience: item.year_Exp || 0,
+      category: item.Skill?.category || "General",
+      type: item.Skill?.type || "Technical" 
+    }));
+    
+    // Format user certifications and resolve skill IDs to skill names
+    const formattedCertifications = (userCertifications || []).map(cert => {
+      // Get skill names from the skill_acquired array
+      const certSkills = [];
+      if (cert.Certifications?.skill_acquired && Array.isArray(cert.Certifications.skill_acquired)) {
+        cert.Certifications.skill_acquired.forEach(skillId => {
+          const skill = skillMap[skillId];
+          if (skill) {
+            certSkills.push({
+              id: skillId,
+              name: skill.name
+            });
+          }
+        });
+      }
+      
+      return {
+        id: cert.Certifications?.certification_id,
+        title: cert.Certifications?.title || "Unknown Certification",
+        issuer: cert.Certifications?.issuer || "Unknown Issuer",
+        skills: certSkills,
+        status: cert.status,
+        completedDate: cert.completed_Date,
+        validUntil: cert.valid_Until
+      };
+    });
+    
+    // Format available certifications
+    const formattedAvailableCertifications = dbCertifications
+      .filter(cert => {
+        // Filter out certifications the user already has
+        const userCertIds = (userCertifications || [])
+          .map(uc => uc.Certifications?.certification_id);
+        return !userCertIds.includes(cert.certification_id);
+      })
+      .map(cert => {
+        // Get skill names from the skill_acquired array
+        const certSkills = [];
+        if (cert.skill_acquired && Array.isArray(cert.skill_acquired)) {
+          cert.skill_acquired.forEach(skillId => {
+            const skill = skillMap[skillId];
+            if (skill) {
+              certSkills.push({
+                id: skillId,
+                name: skill.name
+              });
+            }
+          });
+        }
+        
+        return {
+          id: cert.certification_id,
+          title: cert.title || "Unknown Certification",
+          description: cert.description || "",
+          issuer: cert.issuer || "Unknown Issuer",
+          skills: certSkills,
+          type: cert.type || "General"
+        };
+      });
+    
+    console.log(`Formatted ${formattedAvailableCertifications.length} certifications with skills`);
+      
+    // 10. INTENT-SPECIFIC PROCESSING - Filtrar y procesar según la intención
+    
+    // A. Para preguntas sobre certificaciones generales
+    if (intent.type === 'certification_recommendation') {
+      // Si es una pregunta general sobre certificaciones, ordenarlas por relevancia
+      // según las skills y goals del usuario
+      const recommendedCertifications = rankCertificationsByRelevance(
+        formattedAvailableCertifications,
+        formattedSkills,
+        userGoals,
+        intent.focus
+      );
+      
+      // Limitar a las 5 certificaciones más relevantes para la respuesta
+      const topCertifications = recommendedCertifications.slice(0, 5);
+      
+      // Usar un prompt específico para recomendaciones de certificaciones
+      const systemPrompt = createCertificationRecommendationPrompt(
+        userData, 
+        formattedSkills, 
+        userGoals, 
+        topCertifications,
+        intent.focus
+      );
+      
+      // Llamar a OpenAI con el prompt especializado
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [
+          { role: "system", content: systemPrompt },
+          ...history.slice(-4).map(msg => ({ 
+            role: msg.sender === "user" ? "user" : "assistant", 
+            content: msg.text 
+          })),
+          { role: "user", content: message }
+        ],
+        temperature: 0.4, // Temperatura más baja para respuestas precisas
+        max_tokens: 750,
+      });
+      
+      // Enviar respuesta específica de certificaciones
+      const botResponse = response.choices[0].message.content;
+      return res.json({
+        success: true,
+        response: {
+          sender: "bot",
+          text: botResponse,
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        }
+      });
+    }
+    // B. NUEVO: Para mapeo específico de skill a certificación
+    else if (intent.type === 'skill_certification_match' && intent.focus) {
+      // Este intent maneja específicamente preguntas sobre qué certificaciones enseñan una habilidad particular
+      
+      // Filtrar certificaciones que explícitamente proporcionan la habilidad solicitada
+      const skillSpecificCerts = formattedAvailableCertifications.filter(cert => 
+        cert.skills.some(skill => 
+          skill.name.toLowerCase().includes(intent.focus.toLowerCase())
+        ) || 
+        (cert.description && cert.description.toLowerCase().includes(intent.focus.toLowerCase()))
+      );
+      
+      // Ordenar por relevancia - priorizar coincidencias exactas de skill
+      const rankedCerts = skillSpecificCerts.sort((a, b) => {
+        // Priorizar certificaciones con coincidencia exacta de nombre de skill
+        const aExactMatch = a.skills.some(s => s.name.toLowerCase() === intent.focus.toLowerCase());
+        const bExactMatch = b.skills.some(s => s.name.toLowerCase() === intent.focus.toLowerCase());
+        
+        if (aExactMatch && !bExactMatch) return -1;
+        if (!aExactMatch && bExactMatch) return 1;
+        
+        // Si ambos o ninguno tienen coincidencias exactas, priorizar por número de skills coincidentes
+        const aMatchCount = a.skills.filter(s => 
+          s.name.toLowerCase().includes(intent.focus.toLowerCase())
+        ).length;
+        
+        const bMatchCount = b.skills.filter(s => 
+          s.name.toLowerCase().includes(intent.focus.toLowerCase())
+        ).length;
+        
+        return bMatchCount - aMatchCount;
+      });
+      
+      // Usar prompt especializado para mapeo de skill a certificación
+      const systemPrompt = createSkillCertificationMatchPrompt(
+        userData,
+        intent.focus,
+        rankedCerts
+      );
+      
+      // Llamar a OpenAI con prompt especializado
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [
+          { role: "system", content: systemPrompt },
+          ...history.slice(-4).map(msg => ({ 
+            role: msg.sender === "user" ? "user" : "assistant", 
+            content: msg.text 
+          })),
+          { role: "user", content: message }
+        ],
+        temperature: 0.3, // Temperatura más baja para recomendaciones más precisas
+        max_tokens: 750,
+      });
+      
+      const botResponse = response.choices[0].message.content;
+      return res.json({
+        success: true,
+        response: {
+          sender: "bot",
+          text: botResponse,
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        }
+      });
+    }
+    // C. Para preguntas sobre desarrollo de habilidades específicas
+    else if (intent.type === 'skill_development' && intent.focus) {
+      // Filtrar certificaciones relevantes para esta habilidad
+      const relevantCertifications = formattedAvailableCertifications.filter(cert => 
+        cert.skills.some(skill => 
+          skill.name.toLowerCase().includes(intent.focus.toLowerCase())
+        ) || 
+        (cert.description && cert.description.toLowerCase().includes(intent.focus.toLowerCase()))
+      );
+      
+      // Verificar si el usuario ya tiene esta habilidad
+      const userHasSkill = formattedSkills.some(skill => 
+        skill.name.toLowerCase().includes(intent.focus.toLowerCase())
+      );
+      
+      // Usar un prompt específico para desarrollo de habilidades
+      const systemPrompt = createSkillDevelopmentPrompt(
+        userData,
+        formattedSkills,
+        userGoals,
+        relevantCertifications,
+        intent.focus,
+        userHasSkill
+      );
+      
+      // Llamar a OpenAI con el prompt especializado
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [
+          { role: "system", content: systemPrompt },
+          ...history.slice(-4).map(msg => ({ 
+            role: msg.sender === "user" ? "user" : "assistant", 
+            content: msg.text 
+          })),
+          { role: "user", content: message }
+        ],
+        temperature: 0.4,
+        max_tokens: 750,
+      });
+      
+      // Enviar respuesta específica para desarrollo de habilidades
+      const botResponse = response.choices[0].message.content;
+      return res.json({
+        success: true,
+        response: {
+          sender: "bot",
+          text: botResponse,
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        }
+      });
+    }
+    
+    // 11. Para todos los demás tipos de preguntas, usar un prompt general mejorado
+    const contextData = {
+      user: {
+        name: userData?.name || "User",
+        lastName: userData?.last_name || "",
+        level: userData?.level || 1,
+        about: userData?.about || "",
+        goals: userGoals,
+        skills: formattedSkills,
+        certifications: formattedCertifications
+      },
+      availableCertifications: formattedAvailableCertifications,
+      intent: intent,
+      query: message,
+      requestConciseResponse: req.body.requestConciseResponse || false
+    };
+    
+    const systemPrompt = createGeneralPrompt(contextData);
+    
+    // Llamar a OpenAI con el prompt mejorado
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        { role: "system", content: systemPrompt },
+        ...history.slice(-4).map(msg => ({ 
+          role: msg.sender === "user" ? "user" : "assistant", 
+          content: msg.text 
+        })),
+        { role: "user", content: message }
+      ],
+      temperature: 0.5,
+      max_tokens: 750,
+    });
+    
+    // Enviar respuesta general
+    const botResponse = response.choices[0].message.content;
+    const currentTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    
+    return res.json({
+      success: true,
+      response: {
+        sender: "bot",
+        text: botResponse,
+        time: currentTime
+      }
+    });
+    
+  } catch (error) {
+    console.error("Error in virtual assistant:", error);
+    return res.status(500).json({ 
+      success: false, 
+      error: `AI Assistant error: ${error.message}` 
+    });
+  }
+});
+
+/**
+ * Detectar la intención del usuario a partir de su mensaje
+ * Versión mejorada con detección de patrones de certificación-skill
+ */
+function detectUserIntent(message) {
+  // Convertir a minúsculas para facilitar el matching
+  const query = message.toLowerCase();
+  
+  // Patrones para detectar intenciones
+  const certificationPatterns = [
+    'certification', 'certificate', 'certif', 
+    'what cert', 'which cert', 'recommend cert',
+    'should i pursue', 'should i get', 'what should i study',
+    'best certification', 'popular certification'
+  ];
+  
+  // NUEVO: Patrones específicos para mapeo skill-certification
+  const skillCertificationPatterns = [
+    'certification for', 'certification to learn', 'cert for',
+    'which certification teaches', 'certification that covers',
+    'certification to improve my', 'how to get certified in',
+    'best way to learn', 'what certification should I get for',
+    'what cert gives', 'what cert provides', 'cert that teaches',
+    'certificacion para', 'certificacion que enseñe', 'certifica en'
+  ];
+  
+  const skillDevelopmentPatterns = [
+    'learn', 'develop', 'improve', 'master', 
+    'get better at', 'study', 'practice',
+    'how to learn', 'how to improve'
+  ];
+  
+  const careerPathPatterns = [
+    'career path', 'career progression', 'next step', 
+    'advance', 'promotion', 'grow', 'level up',
+    'next level', 'senior', 'lead'
+  ];
+  
+  // Lista de tecnologías y habilidades comunes para detectar
+  const techKeywords = [
+    'kubernetes', 'k8s', 'docker', 'containers', 'cloud native',
+    'react', 'javascript', 'typescript', 'node.js', 'angular', 'vue',
+    'python', 'java', 'c#', '.net', 'golang', 'ruby', 'php',
+    'aws', 'azure', 'gcp', 'cloud', 'devops', 'ci/cd', 'jenkins',
+    'machine learning', 'ai', 'data science', 'big data', 'analytics',
+    'agile', 'scrum', 'project management', 'leadership', 'architecture',
+    'security', 'cybersecurity', 'networking', 'blockchain',
+    'ui/ux', 'frontend', 'backend', 'fullstack', 'mobile', 'ios', 'android'
+  ];
+  
+  // Detectar intención primaria
+  let intentType = 'general';
+  let intentFocus = null;
+  
+  // NUEVO: Verificar primero si es una solicitud específica de skill-certification
+  if (skillCertificationPatterns.some(pattern => query.includes(pattern))) {
+    intentType = 'skill_certification_match';
+    
+    // Extraer la habilidad específica que se está preguntando
+    for (const keyword of techKeywords) {
+      if (query.includes(keyword)) {
+        intentFocus = keyword;
+        break;
+      }
+    }
+    
+    // Si no se encuentra una palabra clave técnica específica, intentar extraer del contexto
+    if (!intentFocus) {
+      // Buscar nombre de habilidad después de frases comunes
+      for (const pattern of skillCertificationPatterns) {
+        if (query.includes(pattern)) {
+          const afterPattern = query.split(pattern)[1]?.trim();
+          if (afterPattern && afterPattern.length > 2) {
+            // Extraer las primeras palabras como posible habilidad
+            intentFocus = afterPattern.split(/\s+/).slice(0, 3).join(' ');
+            break;
+          }
+        }
+      }
+    }
+    
+    // Si todavía no se encuentra un enfoque pero es claramente una consulta de skill-cert, establecer un enfoque general
+    if (!intentFocus && intentType === 'skill_certification_match') {
+      intentType = 'certification_recommendation'; // Volver a recomendación general de certificación
+    }
+  }
+  // Verificar si es una pregunta sobre certificaciones general
+  else if (certificationPatterns.some(pattern => query.includes(pattern))) {
+    intentType = 'certification_recommendation';
+  }
+  // Verificar si es una pregunta sobre desarrollo de habilidades
+  else if (skillDevelopmentPatterns.some(pattern => query.includes(pattern))) {
+    intentType = 'skill_development';
+  }
+  // Verificar si es una pregunta sobre carrera profesional
+  else if (careerPathPatterns.some(pattern => query.includes(pattern))) {
+    intentType = 'career_path';
+  }
+  
+  // Detectar enfoque específico (habilidad o tecnología) si aún no se ha establecido
+  if (!intentFocus) {
+    for (const keyword of techKeywords) {
+      if (query.includes(keyword)) {
+        intentFocus = keyword;
+        break;
+      }
+    }
+  }
+  
+  return {
+    type: intentType,
+    focus: intentFocus
+  };
+}
+
+/**
+ * Ordenar certificaciones por relevancia para el usuario
+ * Versión mejorada con mejor detección de skills
+ */
+function rankCertificationsByRelevance(certifications, userSkills, userGoals, focusSkill = null) {
+  return certifications.map(cert => {
+    let relevanceScore = 0;
+    
+    // 1. Si se especificó una habilidad de enfoque, priorizar certificaciones relacionadas
+    if (focusSkill) {
+      // Verificar coincidencia exacta con cualquier habilidad de certificación
+      const exactSkillMatch = cert.skills.some(skill => 
+        skill.name.toLowerCase() === focusSkill.toLowerCase()
+      );
+      
+      // Verificar coincidencia parcial
+      const partialSkillMatch = cert.skills.some(skill => 
+        skill.name.toLowerCase().includes(focusSkill.toLowerCase()) ||
+        focusSkill.toLowerCase().includes(skill.name.toLowerCase())
+      );
+      
+      // Verificar descripción para mención de la habilidad
+      const descriptionMatch = cert.description && 
+        cert.description.toLowerCase().includes(focusSkill.toLowerCase());
+      
+      // Asignar puntuaciones basadas en la calidad de la coincidencia
+      if (exactSkillMatch) {
+        relevanceScore += 100; // Máxima prioridad para coincidencias exactas
+      } else if (partialSkillMatch) {
+        relevanceScore += 50; // Alta prioridad para coincidencias parciales
+      } else if (descriptionMatch) {
+        relevanceScore += 30; // Prioridad media para menciones en la descripción
+      }
+    }
+    
+    // 2. Relevancia basada en skills del usuario
+    // Priorizar certificaciones que complementen skills existentes
+    userSkills.forEach(userSkill => {
+      cert.skills.forEach(certSkill => {
+        // Si la certificación tiene una skill relacionada con una que ya tiene el usuario
+        if (certSkill.name.toLowerCase().includes(userSkill.name.toLowerCase()) ||
+            userSkill.name.toLowerCase().includes(certSkill.name.toLowerCase())) {
+          relevanceScore += 5;
+          
+          // Bonus si la proficiency del usuario es alta (building on strengths)
+          if (userSkill.proficiency === 'High' || userSkill.proficiency === 'Expert') {
+            relevanceScore += 3;
+          }
+        }
+      });
+    });
+    
+    // 3. Relevancia basada en objetivos del usuario
+    userGoals.forEach(goal => {
+      if (goal.goal) {
+        const goalKeywords = goal.goal.toLowerCase().split(/\s+/);
+        
+        // Verificar si la certificación tiene skills relacionadas con palabras clave de los objetivos
+        cert.skills.forEach(skill => {
+          goalKeywords.forEach(keyword => {
+            if (skill.name.toLowerCase().includes(keyword) || 
+                (cert.description && cert.description.toLowerCase().includes(keyword))) {
+              relevanceScore += 10; // Alto valor a certificaciones alineadas con objetivos
+              
+              // Bonus adicional para objetivos a corto plazo
+              if (goal.timeframe === 'Short-term') {
+                relevanceScore += 5;
+              }
+            }
+          });
+        });
+      }
+    });
+    
+    return {
+      ...cert,
+      relevanceScore
+    };
+  }).sort((a, b) => b.relevanceScore - a.relevanceScore);
+}
+
+/**
+ * Prompt especializado para recomendaciones de certificaciones
+ */
+function createCertificationRecommendationPrompt(userData, userSkills, userGoals, certifications, focusSkill = null) {
+  return `You are Accenture Career AI, an assistant specialized in providing personalized certification recommendations.
+
+IMPORTANT INSTRUCTION:
+- ONLY recommend certifications from the provided list below. Do not invent or suggest certifications not listed.
+- Keep your responses concise: 2-4 sentences per certification, max 3 certifications total.
+- Focus on matching the most relevant certifications to the user's needs.
+
+USER PROFILE:
+- Name: ${userData.name || 'User'}
+- Level: ${userData.level || 1}
+- Current Skills: ${userSkills.map(s => s.name).join(', ')}
+- Goals: ${userGoals.map(g => g.goal || 'Not specified').join(', ')}
+
+${focusSkill ? `The user is specifically interested in certifications related to ${focusSkill.toUpperCase()}.` : ''}
+
+AVAILABLE CERTIFICATIONS (ONLY recommend from this list):
+${certifications.map((cert, index) => `
+${index + 1}. ${cert.title} by ${cert.issuer}
+   - Skills covered: ${cert.skills.map(s => s.name).join(', ')}
+   - Description: ${cert.description || 'Not available'}
+`).join('')}
+
+YOUR RESPONSE MUST:
+1. Be brief and direct - focus on 1-3 most relevant certifications
+2. Include certification title, issuer, and briefly why it's relevant
+3. Use concise bullet points instead of lengthy paragraphs
+4. Only recommend certifications from the list above
+
+FORMAT EXAMPLE:
+"Based on your needs, these certifications would be most valuable:
+
+**[Certification Name]** by [Issuer]
+- Covers: [key skills]
+- Benefit: [brief value proposition]
+
+**[Certification Name]** by [Issuer]
+- Covers: [key skills]
+- Benefit: [brief value proposition]"`;
+}
+
+/**
+ * NUEVO: Prompt especializado para mapeo de skill a certificación
+ */
+function createSkillCertificationMatchPrompt(userData, focusSkill, relevantCertifications) {
+  return `You are Accenture Career AI, an assistant specialized in recommending certifications for specific skills.
+
+IMPORTANT INSTRUCTION: The user is asking about certifications that teach or improve ${focusSkill.toUpperCase()} skills. 
+Your response MUST focus ONLY on listing certifications from our database that specifically teach this skill.
+
+USER QUERY FOCUS: ${focusSkill.toUpperCase()} skill
+
+CERTIFICATIONS AVAILABLE THAT TEACH ${focusSkill.toUpperCase()}:
+${relevantCertifications.length > 0 ? relevantCertifications.map((cert, index) => `
+${index + 1}. ${cert.title} by ${cert.issuer}
+   - Skills covered: ${cert.skills.map(s => s.name).join(', ')}
+   - Description: ${cert.description || 'Not available'}
+`).join('') : 'No specific certifications found for this skill in our database.'}
+
+YOUR RESPONSE REQUIREMENTS:
+1. List ONLY the certifications from above that specifically teach ${focusSkill.toUpperCase()} skills
+2. For each certification, briefly explain:
+   - What specific aspects of ${focusSkill} it covers
+   - Why it's valuable for learning this skill
+   - Any prerequisites or difficulty level
+3. List certifications in order of relevance to ${focusSkill}
+4. If no certifications are found, clearly state that we don't currently have certifications specifically for ${focusSkill} in our database
+5. Keep your response concise and focused
+
+FORMAT EXAMPLE:
+"Here are the certifications in our database that specifically teach ${focusSkill} skills:
+
+### 1. [Certification Name] by [Provider]
+- **Focus**: [Specific aspects of the skill covered]
+- **Value**: [Why it's beneficial for this skill]
+- **Level**: [Beginner/Intermediate/Advanced]
+
+### 2. [Certification Name] by [Provider]
+- **Focus**: [Specific aspects of the skill covered]
+- **Value**: [Why it's beneficial for this skill]
+- **Level**: [Beginner/Intermediate/Advanced]"
+
+If there are no relevant certifications, your response should be:
+"Currently, we don't have specific certifications in our database that focus on teaching ${focusSkill} skills. However, I'd be happy to recommend some alternative learning approaches or related certifications that might partially cover this skill area."`;
+}
+
+/**
+ * Prompt especializado para desarrollo de habilidades específicas
+ * Versión mejorada para enfocarse más en certificaciones
+ */
+function createSkillDevelopmentPrompt(userData, userSkills, userGoals, relevantCertifications, focusSkill, userHasSkill) {
+  return `You are Accenture Career AI, an assistant specialized in providing personalized career advice to employees.
+
+IMPORTANT INSTRUCTION: The user is asking about developing their ${focusSkill.toUpperCase()} skills. Your response should focus primarily on specific certifications that teach this skill.
+
+USER PROFILE:
+- Name: ${userData.name || 'User'}
+- Level: ${userData.level || 1}
+- Goals: ${userGoals.map(g => g.goal || 'Not specified').join(', ')}
+- Current Skills: ${userSkills.map(s => s.name).join(', ')}
+- ${userHasSkill ? `The user ALREADY HAS some ${focusSkill} skills` : `The user DOES NOT YET HAVE ${focusSkill} skills`}
+
+CERTIFICATIONS THAT TEACH ${focusSkill.toUpperCase()} SKILLS:
+${relevantCertifications.length > 0 ? relevantCertifications.map((cert, index) => `
+${index + 1}. ${cert.title} by ${cert.issuer}
+   - Skills covered: ${cert.skills.map(s => s.name).join(', ')}
+   - Description: ${cert.description || 'Not available'}
+`).join('') : 'No specific certifications found for this skill in our database.'}
+
+YOUR PRIMARY TASK:
+1. Recommend the most relevant certifications from the list above that will help the user develop ${focusSkill} skills
+2. For each recommended certification, explain:
+   - What specific aspects of ${focusSkill} it teaches
+   - Why it's particularly valuable for the user's goals and current skill level
+   - How it complements their existing skills
+
+YOUR RESPONSE STRUCTURE:
+1. Brief introduction to the importance of ${focusSkill} (1-2 sentences only)
+2. List of recommended certifications from our database (2-3 most relevant ones)
+3. Brief learning path suggestion (1-2 sentences)
+
+If no certifications in our database teach this skill, clearly state this fact and suggest alternative approaches to learning.`;
+}
+
+/**
+ * Prompt general mejorado para otras consultas
+ */
+function createGeneralPrompt(contextData) {
+  // Determinar si se requieren respuestas más concisas
+  const conciseInstruction = contextData.requestConciseResponse ? 
+    "IMPORTANT: Keep your response extremely concise. Use 2-3 sentences maximum. Focus on direct answers without elaboration." :
+    "Keep your response focused and informative but concise.";
+
+  return `You are Accenture Career AI, an assistant specialized in providing personalized career advice to employees.
+
+USER PROFILE:
+- Name: ${contextData.user.name} ${contextData.user.lastName}
+- Level: ${contextData.user.level}
+- About: ${contextData.user.about || 'Not specified'}
+- Goals: ${contextData.user.goals.map(g => `${g.timeframe}: ${g.goal || 'Not specified'}`).join(', ')}
+- Current Skills: ${contextData.user.skills.map(s => s.name).join(', ')}
+- Current Certifications: ${contextData.user.certifications.map(c => c.title).join(', ')}
+
+USER QUERY: "${contextData.query}"
+DETECTED INTENT: ${contextData.intent.type}${contextData.intent.focus ? `, Focus: ${contextData.intent.focus}` : ''}
+
+YOUR RESPONSE REQUIREMENTS:
+1. Answer the user's specific question directly and comprehensively
+2. Provide personalized advice based on their profile, skills, and goals
+3. Structure your response with clear sections using markdown (bold, lists, etc.)
+4. ${conciseInstruction}
+5. When mentioning certifications or skills, be specific and explain relevance
+6. ONLY recommend certifications that are in our database, never invent or suggest alternatives
+
+DO NOT:
+- Provide generic career advice that ignores the specific question
+- List skills or certifications without explaining why they're relevant
+- Ignore the specific context of the user's query
+- Present information in vague or overly general terms
+
+FORMATTING GUIDELINES:
+- Use **bold** for important terms, skill names, and certification titles
+- Use ### for section headers
+- Use numbered lists (1., 2., etc.) for steps or prioritized recommendations
+- Use bullet points (*) for features, benefits, or characteristics
+
+Remember to be direct, specific, and relevant to the user's actual question.`;
+}
+
 app.use((err, req, res, next) => {
   console.error("Unhandled error:", err);
   res.status(500).json({ success: false, error: err.message });

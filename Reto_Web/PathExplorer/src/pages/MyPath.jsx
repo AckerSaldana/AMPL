@@ -6,6 +6,8 @@ import {
   Tabs,
   Tab,
   Paper,
+  CircularProgress,
+  Alert,
 } from "@mui/material";
 import {
   WorkspacePremium,
@@ -20,122 +22,45 @@ import ProfileSummary from "../components/ProfileSummary";
 import CareerTimeline from "../components/CareerTimeline";
 import VirtualAssistant from "../components/VirtualAssistant";
 
+// Custom hooks
+import useUserProfile from "../hooks/useUserProfile";
+import useUserProjects from "../hooks/useUserProjects";
+import useUserCertifications from "../hooks/useUserCertifications";
+import useUserTimeline from "../hooks/useUserTimeline";
+
 // Import styles
 import { 
   ACCENTURE_COLORS
 } from "../styles/styles";
 
-// Mock data - replace with your actual data fetching logic
-const mockProjects = [
-  {
-    id: 1,
-    name: "E-commerce Platform Redesign",
-    role: "Frontend Developer",
-    company: "TechSolutions Inc.",
-    date: "Jan 2023 - Mar 2023",
-    skills: ["React", "Material UI", "GraphQL"],
-    description:
-      "Led the UI/UX redesign of the customer-facing e-commerce platform",
-  },
-  {
-    id: 2,
-    name: "Inventory Management System",
-    role: "Full Stack Developer",
-    company: "LogisticsPlus",
-    date: "Apr 2023 - Aug 2023",
-    skills: ["Node.js", "React", "MongoDB"],
-    description:
-      "Developed a real-time inventory tracking system with dashboard analytics",
-  },
-  {
-    id: 3,
-    name: "Mobile Banking App",
-    role: "React Native Developer",
-    company: "FinTech Solutions",
-    date: "Sep 2023 - Dec 2023",
-    skills: ["React Native", "Redux", "Jest"],
-    description:
-      "Built secure transaction flows and account management features",
-  },
-];
-
-const mockCertifications = [
-  {
-    id: 1,
-    name: "AWS Certified Solutions Architect",
-    issuer: "Amazon Web Services",
-    date: "Feb 2023",
-    expiryDate: "Feb 2026",
-    credentialId: "AWS-123456",
-    score: "900/1000",
-  },
-  {
-    id: 2,
-    name: "Professional Scrum Master I",
-    issuer: "Scrum.org",
-    date: "May 2023",
-    credentialId: "PSM-789012",
-    score: "95%",
-  },
-  {
-    id: 3,
-    name: "Google Professional Cloud Developer",
-    issuer: "Google Cloud",
-    date: "Oct 2023",
-    expiryDate: "Oct 2025",
-    credentialId: "GCP-345678",
-    score: "850/1000",
-  },
-];
-
-// Sample user info - This would come from your user profile data
-const userInfo = {
-  name: "Alex Johnson",
-  avatar: "/path/to/avatar.jpg", // Add a placeholder or actual avatar path
-  currentRole: "Senior Frontend Developer",
-  yearsExperience: 4,
-  projectsCount: 3,
-  certificationsCount: 3,
-  primarySkills: [
-    "React",
-    "JavaScript",
-    "TypeScript",
-    "Material UI",
-    "Node.js",
-    "GraphQL",
-  ],
-};
-
-// Create timeline data
-const getTimelineItems = () => {
-  const projects = mockProjects.map((proj) => ({
-    ...proj,
-    type: "project",
-    displayDate: proj.date,
-  }));
-
-  const certifications = mockCertifications.map((cert) => ({
-    ...cert,
-    type: "certification",
-    displayDate: cert.date,
-  }));
-
-  return [...projects, ...certifications].sort((a, b) => {
-    // Sort by date - newest first
-    return (
-      new Date(b.displayDate.split(" - ")[0]) -
-      new Date(a.displayDate.split(" - ")[0])
-    );
-  });
-};
-
 // Main component
 const MyPath = () => {
   const [activeTab, setActiveTab] = useState(0);
-  const timelineItems = getTimelineItems();
+  const { userProfile, loading: profileLoading } = useUserProfile();
+  const { projects, loading: projectsLoading, useMockData: usingMockProjects } = useUserProjects();
+  const { certifications, loading: certificationsLoading, useMockData: usingMockCerts } = useUserCertifications();
+  const { timelineItems, loading: timelineLoading, useMockData: usingMockTimeline } = useUserTimeline();
 
   const handleTabChange = (event, newValue) => {
     setActiveTab(newValue);
+  };
+
+  // Function to show alert for sample data if needed
+  const renderMockDataAlert = (isUsingMockData) => {
+    if (isUsingMockData) {
+      return (
+        <Alert 
+          severity="info" 
+          sx={{ 
+            mb: 2, 
+            "& .MuiAlert-icon": { color: ACCENTURE_COLORS.corePurple1 } 
+          }}
+        >
+          Showing sample data. Your actual data will appear here when available.
+        </Alert>
+      );
+    }
+    return null;
   };
 
   // Main render
@@ -146,7 +71,6 @@ const MyPath = () => {
       display: "flex",
       flexDirection: "column",
       overflow: "hidden",
-      // El color de fondo se eliminó para coincidir con ProjectDashboard
       margin: 0,
       padding: 0,
     }}>
@@ -184,7 +108,13 @@ const MyPath = () => {
             }}>
               {/* Profile Summary */}
               <Box sx={{ mb: 2 }}>
-                <ProfileSummary userInfo={userInfo} />
+                {profileLoading ? (
+                  <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+                    <CircularProgress sx={{ color: ACCENTURE_COLORS.corePurple1 }} />
+                  </Box>
+                ) : (
+                  <ProfileSummary userInfo={userProfile} />
+                )}
               </Box>
 
               {/* Tabs Navigation */}
@@ -293,33 +223,93 @@ const MyPath = () => {
                   m: 0
                 }
               }}>
-                {/* Timeline Panel with more height */}
+                {/* Timeline Panel */}
                 {activeTab === 0 && (
                   <Box sx={{ minHeight: "600px" }}>
-                    <CareerTimeline timelineItems={timelineItems} />
+                    {renderMockDataAlert(usingMockTimeline)}
+                    
+                    {timelineLoading ? (
+                      <Box sx={{ display: 'flex', justifyContent: 'center', mt: 5 }}>
+                        <CircularProgress sx={{ color: ACCENTURE_COLORS.corePurple1 }} />
+                      </Box>
+                    ) : (
+                      <CareerTimeline timelineItems={timelineItems} />
+                    )}
                   </Box>
                 )}
 
                 {/* Projects Panel */}
                 {activeTab === 1 && (
-                  <Grid container spacing={2}>
-                    {mockProjects.map((project) => (
-                      <Grid item xs={12} sm={6} key={project.id}>
-                        <ProjectCard project={project} />
+                  <>
+                    {renderMockDataAlert(usingMockProjects)}
+                    
+                    {projectsLoading ? (
+                      <Box sx={{ display: 'flex', justifyContent: 'center', mt: 5 }}>
+                        <CircularProgress sx={{ color: ACCENTURE_COLORS.corePurple1 }} />
+                      </Box>
+                    ) : (
+                      <Grid container spacing={2}>
+                        {projects.length > 0 ? (
+                          projects.map((project) => (
+                            <Grid item xs={12} sm={6} key={project.id}>
+                              <ProjectCard project={project} />
+                            </Grid>
+                          ))
+                        ) : (
+                          <Grid item xs={12}>
+                            <Paper elevation={0} sx={{ 
+                              p: 3, 
+                              borderRadius: 2, 
+                              textAlign: 'center',
+                              boxShadow: "0 2px 12px rgba(0, 0, 0, 0.03)",
+                              border: `1px dashed ${ACCENTURE_COLORS.corePurple1}30`
+                            }}>
+                              <Typography variant="body1" sx={{ color: ACCENTURE_COLORS.darkGray }}>
+                                No projects found. New projects will appear here.
+                              </Typography>
+                            </Paper>
+                          </Grid>
+                        )}
                       </Grid>
-                    ))}
-                  </Grid>
+                    )}
+                  </>
                 )}
 
                 {/* Certifications Panel */}
                 {activeTab === 2 && (
-                  <Grid container spacing={2}>
-                    {mockCertifications.map((cert) => (
-                      <Grid item xs={12} sm={6} key={cert.id}>
-                        <CertificationCard certification={cert} />
+                  <>
+                    {renderMockDataAlert(usingMockCerts)}
+                    
+                    {certificationsLoading ? (
+                      <Box sx={{ display: 'flex', justifyContent: 'center', mt: 5 }}>
+                        <CircularProgress sx={{ color: ACCENTURE_COLORS.corePurple1 }} />
+                      </Box>
+                    ) : (
+                      <Grid container spacing={2}>
+                        {certifications.length > 0 ? (
+                          certifications.map((cert) => (
+                            <Grid item xs={12} sm={6} key={cert.id}>
+                              <CertificationCard certification={cert} />
+                            </Grid>
+                          ))
+                        ) : (
+                          <Grid item xs={12}>
+                            <Paper elevation={0} sx={{ 
+                              p: 3, 
+                              borderRadius: 2, 
+                              textAlign: 'center',
+                              boxShadow: "0 2px 12px rgba(0, 0, 0, 0.03)",
+                              border: `1px dashed ${ACCENTURE_COLORS.corePurple1}30`
+                            }}>
+                              <Typography variant="body1" sx={{ color: ACCENTURE_COLORS.darkGray }}>
+                                No certifications found. Your certifications will appear here once obtained.
+                              </Typography>
+                            </Paper>
+                          </Grid>
+                        )}
                       </Grid>
-                    ))}
-                  </Grid>
+                    )}
+                  </>
                 )}
               </Box>
             </Grid>
