@@ -6,13 +6,11 @@ import {
   Card,
   CardContent,
   Grid,
-  Tabs,
-  Tab,
   TextField,
   InputAdornment,
   IconButton,
-  Divider,
-  Chip,
+  CircularProgress,
+  alpha,
 } from "@mui/material";
 import {
   ArrowBack,
@@ -29,6 +27,12 @@ import { Bar } from "react-chartjs-2";
 import { useTheme } from "@mui/material/styles";
 import { supabase } from "../supabase/supabaseClient.js";
 import AddSkillModal from "../components/AddSkillModal.jsx";
+import { 
+  ACCENTURE_COLORS, 
+  inputStyles, 
+  primaryButtonStyles, 
+  outlineButtonStyles
+} from "../styles/styles.js";
 
 const AllSkills = () => {
   const theme = useTheme();
@@ -118,10 +122,11 @@ const AllSkills = () => {
         data: filteredSkills.map((skill) => skill.proficiency),
         backgroundColor: filteredSkills.map((skill) =>
           skill.type === "Hard"
-            ? theme.palette.chart.blue
-            : theme.palette.chart.red
+            ? ACCENTURE_COLORS.corePurple1
+            : ACCENTURE_COLORS.accentPurple2
         ),
-        borderWidth: 1,
+        borderWidth: 0,
+        borderRadius: 4,
       },
     ],
   };
@@ -130,118 +135,190 @@ const AllSkills = () => {
     setSortOrder(sortOrder === "ascending" ? "descending" : "ascending");
   };
 
+  // Get color for the stat cards based on type
+  const getStatCardColor = (type) => {
+    switch (type) {
+      case "total":
+        return ACCENTURE_COLORS.corePurple1;
+      case "hard":
+        return ACCENTURE_COLORS.red;
+      case "soft":
+        return ACCENTURE_COLORS.blue;
+      default:
+        return ACCENTURE_COLORS.corePurple1;
+    }
+  };
+
+  // Custom styled components
+  const StatsCard = ({ icon, title, value, type }) => {
+    const color = getStatCardColor(type);
+
+    return (
+      <Card sx={{
+        borderRadius: 2,
+        boxShadow: "0 4px 6px rgba(0,0,0,0.04)",
+        height: '100%',
+        display: "flex",
+        flexDirection: "column",
+        overflow: "hidden",
+        border: '1px solid',
+        borderColor: 'rgba(0,0,0,0.06)',
+        position: 'relative',
+        transition: 'all 0.2s',
+        '&:hover': {
+          borderColor: alpha(color, 0.3),
+                },
+        '&::after': {
+          content: '""',
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '4px',
+          height: '100%',
+          backgroundColor: color,
+          borderTopLeftRadius: '8px',
+          borderBottomLeftRadius: '8px',
+        }
+      }}>
+        <CardContent sx={{ p: 3 }}>
+          <Box sx={{ display: "flex", alignItems: "center", mb: 1.5 }}>
+            <Box
+              sx={{
+                backgroundColor: `${color}15`,
+                borderRadius: "8px",
+                width: 42,
+                height: 42,
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                mr: 1.5,
+              }}
+            >
+              {icon}
+            </Box>
+            <Typography 
+              color="textSecondary" 
+              sx={{ 
+                fontSize: '0.875rem',
+                fontWeight: 500,
+              }}
+            >
+              {title}
+            </Typography>
+          </Box>
+          <Typography
+            variant="h3"
+            component="div"
+            sx={{ 
+              color: color, 
+              fontWeight: 600,
+              fontSize: { xs: '1.8rem', sm: '2.2rem' },
+            }}
+          >
+            {value}
+          </Typography>
+        </CardContent>
+      </Card>
+    );
+  };
+
+  const FilterButton = ({ label, active, onClick }) => (
+    <Button
+      variant={active ? "contained" : "outlined"}
+      size="small"
+      onClick={onClick}
+      sx={{
+        minWidth: "80px",
+        ...(active ? primaryButtonStyles : outlineButtonStyles),
+        height: '36px',
+        transform: 'none',
+        '&:hover': {
+          transform: 'none',
+          boxShadow: 'none',
+        }
+      }}
+    >
+      {label}
+    </Button>
+  );
+
   return (
-    <Box sx={{ p: 3, maxWidth: "100%" }}>
-      <Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
+    <Box sx={{ p: { xs: 2, sm: 3 }, maxWidth: "100%" }}>
+      {/* Header mejorado con mejor alineación */}
+      <Box 
+        sx={{ 
+          display: "flex", 
+          alignItems: "center", 
+          mb: { xs: 3, sm: 4 }, 
+          px: { xs: 0, sm: 1 },
+          height: 48 // Altura fija para el header
+        }}
+      >
         <IconButton
           onClick={() => navigate("/analytics")}
-          sx={{ mr: 2, color: theme.palette.primary.main }}
+          sx={{ 
+            mr: 2, 
+            color: ACCENTURE_COLORS.corePurple1,
+            backgroundColor: `${ACCENTURE_COLORS.corePurple1}10`,
+            '&:hover': {
+              backgroundColor: `${ACCENTURE_COLORS.corePurple1}15`,
+            }
+          }}
           aria-label="Back to analytics"
         >
           <ArrowBack />
         </IconButton>
-        <Typography variant="h4" component="h1">
+        <Typography 
+          variant="h4" 
+          component="h1"
+          sx={{
+            fontWeight: 600,
+            lineHeight: 1,
+            pt: 0.5 // Pequeño ajuste para centrar visualmente
+          }}
+        >
           All Skills
         </Typography>
       </Box>
 
       {/* Stats Cards */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item sm={12} md={4}>
-          <Card elevation={2}>
-            <CardContent>
-              <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
-                <Box
-                  sx={{
-                    backgroundColor: theme.palette.primary.main,
-                    borderRadius: "50%",
-                    width: 40,
-                    height: 40,
-                    display: "flex",
-                    justifyContent: "center",
-                    alignItems: "center",
-                    mr: 1,
-                  }}
-                >
-                  <FilterList sx={{ color: "white" }} />
-                </Box>
-                <Typography color="textSecondary">Total Skills</Typography>
-              </Box>
-              <Typography
-                variant="h3"
-                component="div"
-                color={theme.palette.primary.main}
-              >
-                {statsData.totalSkills}
-              </Typography>
-            </CardContent>
-          </Card>
+        <Grid item xs={12} sm={12} md={4}>
+          <StatsCard
+            icon={<FilterList sx={{ color: ACCENTURE_COLORS.corePurple1 }} />}
+            title="Total Skills"
+            value={statsData.totalSkills}
+            type="total"
+          />
         </Grid>
-        <Grid item sm={12} md={4}>
-          <Card elevation={2}>
-            <CardContent>
-              <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
-                <Box
-                  sx={{
-                    backgroundColor: theme.palette.chart.red,
-                    borderRadius: "50%",
-                    width: 40,
-                    height: 40,
-                    display: "flex",
-                    justifyContent: "center",
-                    alignItems: "center",
-                    mr: 1,
-                  }}
-                >
-                  <Code sx={{ color: "white" }} />
-                </Box>
-                <Typography color="textSecondary">Hard Skills</Typography>
-              </Box>
-              <Typography
-                variant="h3"
-                component="div"
-                color={theme.palette.chart.red}
-              >
-                {statsData.hardSkills}
-              </Typography>
-            </CardContent>
-          </Card>
+        <Grid item xs={12} sm={6} md={4}>
+          <StatsCard
+            icon={<Code sx={{ color: ACCENTURE_COLORS.red }} />}
+            title="Hard Skills"
+            value={statsData.hardSkills}
+            type="hard"
+          />
         </Grid>
-        <Grid item sm={12} md={4}>
-          <Card elevation={2}>
-            <CardContent>
-              <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
-                <Box
-                  sx={{
-                    backgroundColor: theme.palette.chart.blue,
-                    borderRadius: "50%",
-                    width: 40,
-                    height: 40,
-                    display: "flex",
-                    justifyContent: "center",
-                    alignItems: "center",
-                    mr: 1,
-                  }}
-                >
-                  <People sx={{ color: "white" }} />
-                </Box>
-                <Typography color="textSecondary">Soft Skills</Typography>
-              </Box>
-              <Typography
-                variant="h3"
-                component="div"
-                color={theme.palette.chart.blue}
-              >
-                {statsData.softSkills}
-              </Typography>
-            </CardContent>
-          </Card>
+        <Grid item xs={12} sm={6} md={4}>
+          <StatsCard
+            icon={<People sx={{ color: ACCENTURE_COLORS.blue }} />}
+            title="Soft Skills"
+            value={statsData.softSkills}
+            type="soft"
+          />
         </Grid>
       </Grid>
 
       {/* Controls Section */}
-      <Card sx={{ mb: 4 }}>
-        <CardContent>
+      <Card 
+        sx={{
+          borderRadius: 2,
+          boxShadow: "0 4px 6px rgba(0,0,0,0.04)",
+          mb: 4,
+          border: `1px solid ${ACCENTURE_COLORS.lightGray}`,
+        }}
+      >
+        <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
           <Grid container spacing={2} alignItems="center">
             {/* Left side: Search bar and Add Skill button */}
             <Grid item xs={12} md={5}>
@@ -256,11 +333,12 @@ const AllSkills = () => {
                     InputProps={{
                       startAdornment: (
                         <InputAdornment position="start">
-                          <Search />
+                          <Search sx={{ color: ACCENTURE_COLORS.darkGray }} />
                         </InputAdornment>
                       ),
                     }}
                     size="small"
+                    sx={inputStyles}
                   />
                 </Box>
                 <AddSkillModal onSkillAdded={handleSkillAdded} />
@@ -276,7 +354,7 @@ const AllSkills = () => {
                 sx={{
                   display: "flex",
                   gap: 2,
-                  justifyContent: "flex-end",
+                  justifyContent: { xs: "flex-start", md: "flex-end" },
                   alignItems: "center",
                   flexWrap: { xs: "wrap", md: "nowrap" },
                 }}
@@ -284,29 +362,12 @@ const AllSkills = () => {
                 {/* Filter buttons */}
                 <Box sx={{ display: "flex", gap: 1 }}>
                   {["All", "Hard", "Soft"].map((filter) => (
-                    <Button
+                    <FilterButton
                       key={filter}
-                      variant={
-                        skillFilter === filter ? "contained" : "outlined"
-                      }
-                      size="small"
+                      label={filter}
+                      active={skillFilter === filter}
                       onClick={() => setSkillFilter(filter)}
-                      sx={{
-                        minWidth: "80px",
-                        backgroundColor:
-                          skillFilter === filter
-                            ? theme.palette.primary.main
-                            : "transparent",
-                        "&:hover": {
-                          backgroundColor:
-                            skillFilter === filter
-                              ? theme.palette.primary.dark
-                              : "rgba(0,0,0,0.04)",
-                        },
-                      }}
-                    >
-                      {filter}
-                    </Button>
+                    />
                   ))}
                 </Box>
 
@@ -316,6 +377,20 @@ const AllSkills = () => {
                   startIcon={<Sort />}
                   onClick={toggleSortOrder}
                   size="small"
+                  sx={{
+                    height: '36px',
+                    borderColor: ACCENTURE_COLORS.darkGray,
+                    color: ACCENTURE_COLORS.darkGray,
+                    borderRadius: 1.5,
+                    padding: '7px 16px',
+                    textTransform: 'none',
+                    fontSize: { xs: '0.8rem', sm: '0.875rem' },
+                    fontWeight: 500,
+                    '&:hover': {
+                      borderColor: ACCENTURE_COLORS.darkGray,
+                      backgroundColor: 'transparent',
+                    }
+                  }}
                 >
                   Sort {sortOrder === "ascending" ? "↑" : "↓"}
                 </Button>
@@ -326,9 +401,23 @@ const AllSkills = () => {
       </Card>
 
       {/* Skills Chart */}
-      <Card sx={{ mb: 4 }}>
-        <CardContent>
-          <Typography variant="h6" sx={{ mb: 2 }}>
+      <Card 
+        sx={{
+          borderRadius: 2,
+          boxShadow: "0 4px 6px rgba(0,0,0,0.04)",
+          mb: 4,
+          overflow: 'hidden',
+        }}
+      >
+        <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+          <Typography 
+            variant="h6" 
+            sx={{ 
+              mb: 3,
+              fontWeight: 600,
+              fontSize: '1.1rem',
+            }}
+          >
             Skills Proficiency{" "}
             {filteredSkills.length > 0
               ? `(${filteredSkills.length} skills)`
@@ -344,7 +433,7 @@ const AllSkills = () => {
                 alignItems: "center",
               }}
             >
-              <Typography>Loading skills data...</Typography>
+              <CircularProgress size={40} sx={{ color: ACCENTURE_COLORS.corePurple1 }} />
             </Box>
           ) : error ? (
             <Box
@@ -353,12 +442,46 @@ const AllSkills = () => {
                 display: "flex",
                 justifyContent: "center",
                 alignItems: "center",
+                flexDirection: 'column',
+                gap: 2
               }}
             >
-              <Typography color="error">{error}</Typography>
+              <Typography 
+                color="error" 
+                sx={{ 
+                  color: ACCENTURE_COLORS.red,
+                  fontWeight: 500
+                }}
+              >
+                {error}
+              </Typography>
+              <Button 
+                variant="outlined" 
+                onClick={fetchSkills}
+                sx={{
+                  borderColor: ACCENTURE_COLORS.corePurple1,
+                  color: ACCENTURE_COLORS.corePurple1,
+                  fontSize: { xs: '0.8rem', sm: '0.875rem' },
+                  fontWeight: 500,
+                  borderRadius: 1.5,
+                  padding: '7px 16px',
+                  textTransform: 'none',
+                  '&:hover': {
+                    borderColor: ACCENTURE_COLORS.corePurple1,
+                    backgroundColor: 'transparent',
+                  }
+                }}
+              >
+                Try Again
+              </Button>
             </Box>
           ) : filteredSkills.length > 0 ? (
-            <Box sx={{ height: Math.max(400, filteredSkills.length * 35) }}>
+            <Box 
+              sx={{ 
+                height: Math.max(400, filteredSkills.length * 35),
+                px: { xs: 0, sm: 1 }
+              }}
+            >
               <Bar
                 data={chartData}
                 options={{
@@ -368,6 +491,15 @@ const AllSkills = () => {
                   plugins: {
                     legend: { display: false },
                     tooltip: {
+                      backgroundColor: ACCENTURE_COLORS.black,
+                      titleFont: {
+                        size: 14,
+                        weight: 'bold'
+                      },
+                      bodyFont: {
+                        size: 13
+                      },
+                      padding: 12,
                       callbacks: {
                         label: function (context) {
                           const skillIndex = context.dataIndex;
@@ -384,15 +516,33 @@ const AllSkills = () => {
                     x: {
                       beginAtZero: true,
                       max: 100,
+                      grid: {
+                        color: 'rgba(0,0,0,0.03)',
+                      },
                       title: {
                         display: true,
                         text: "Proficiency (%)",
+                        font: {
+                          size: 12,
+                          weight: 500
+                        },
+                        padding: { top: 10 }
                       },
+                      ticks: {
+                        color: ACCENTURE_COLORS.darkGray
+                      }
                     },
                     y: {
                       ticks: {
                         autoSkip: false,
+                        color: ACCENTURE_COLORS.black,
+                        font: {
+                          weight: 500
+                        }
                       },
+                      grid: {
+                        display: false
+                      }
                     },
                   },
                   devicePixelRatio: 2,
@@ -406,11 +556,37 @@ const AllSkills = () => {
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
+                flexDirection: 'column',
+                gap: 2
               }}
             >
-              <Typography variant="body1" color="textSecondary">
+              <Typography 
+                variant="body1" 
+                sx={{ 
+                  color: ACCENTURE_COLORS.darkGray,
+                  fontWeight: 500,
+                  fontSize: '1rem'
+                }}
+              >
                 No skills match your search criteria
               </Typography>
+              {searchTerm && (
+                <Button 
+                  variant="text"
+                  onClick={() => setSearchTerm('')}
+                  sx={{
+                    color: ACCENTURE_COLORS.corePurple1,
+                    textTransform: 'none',
+                    fontSize: { xs: '0.8rem', sm: '0.875rem' },
+                    fontWeight: 500,
+                    '&:hover': {
+                      backgroundColor: 'transparent',
+                    }
+                  }}
+                >
+                  Clear Search
+                </Button>
+              )}
             </Box>
           )}
         </CardContent>
