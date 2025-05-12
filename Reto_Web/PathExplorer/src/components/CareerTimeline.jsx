@@ -10,20 +10,20 @@ import {
 } from "@mui/icons-material";
 import { ACCENTURE_COLORS } from "../styles/styles";
 
-// Item por defecto para evitar errores con propiedades indefinidas
+// Default item to avoid errors with undefined properties
 const defaultItem = {
   id: "default",
-  name: "Evento",
+  name: "Event",
   type: "project",
-  displayDate: "Sin fecha",
-  role: "Sin rol",
-  issuer: "Sin emisor",
+  displayDate: "No date",
+  role: "No role",
+  issuer: "No issuer",
   description: "",
   company: ""
 };
 
 const TimelineItem = ({ item = defaultItem, isLast = false, index = 0 }) => {
-  // Combinamos el item por defecto con el item proporcionado para asegurar todas las propiedades
+  // Combine default item with provided item to ensure all properties
   const safeItem = { ...defaultItem, ...item };
   
   const theme = useTheme();
@@ -193,7 +193,7 @@ const TimelineItem = ({ item = defaultItem, isLast = false, index = 0 }) => {
 };
 
 const CareerTimeline = ({ timelineItems = [] }) => {
-  // Aseguramos que timelineItems sea un array
+  // Ensure timelineItems is an array
   const safeTimelineItems = Array.isArray(timelineItems) ? timelineItems : [];
 
   return (
@@ -205,16 +205,16 @@ const CareerTimeline = ({ timelineItems = [] }) => {
         pr: { xs: 0, sm: 2 },
       }}
     >
-      {/* Solo mostramos la línea si hay elementos */}
+      {/* Only show the line if there are items */}
       {safeTimelineItems.length > 0 && (
         <Box
           sx={{
             position: "absolute",
             left: { xs: 38, md: 53 },
-            width: 6,  // Línea más delgada para un aspecto más elegante
+            width: 6,  // Thinner line for a more elegant look
             top: 22,
             bottom: 22,
-            bgcolor: `${ACCENTURE_COLORS.corePurple1}20`,  // Más sutil
+            bgcolor: `${ACCENTURE_COLORS.corePurple1}20`,  // More subtle
             borderRadius: 4,
             zIndex: 1,
           }}
@@ -230,7 +230,7 @@ const CareerTimeline = ({ timelineItems = [] }) => {
         />
       ))}
 
-      {/* Mensaje cuando no hay elementos */}
+      {/* Message when there are no items */}
       {safeTimelineItems.length === 0 && (
         <Paper
           elevation={0}
@@ -247,7 +247,7 @@ const CareerTimeline = ({ timelineItems = [] }) => {
             variant="body1"
             sx={{ color: ACCENTURE_COLORS.darkGray }}
           >
-            No hay eventos en tu cronología aún.
+            No events in your timeline yet.
           </Typography>
         </Paper>
       )}

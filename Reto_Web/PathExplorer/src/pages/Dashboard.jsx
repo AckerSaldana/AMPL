@@ -375,7 +375,6 @@ const Dashboard = () => {
         alignItems: 'center', 
         height: '100vh',
         width: '100%',
-        bgcolor: '#f9f7ff'
       }}>
         <CircularProgress sx={{ color: profilePurple }} />
       </Box>
