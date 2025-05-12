@@ -34,7 +34,6 @@ const Loading = ({ loadingText = "Loading" }) => {
         alignItems: "center",
         height: "100vh",
         width: "100%",
-        backgroundColor: "background.paper",
       }}
     >
       <CircularProgress

@@ -2,113 +2,131 @@ import React from "react";
 import {
   Box,
   Typography,
-  Card,
-  CardContent,
+  Paper,
   Divider,
-  Chip,
-  Button,
-  Avatar,
-  useTheme,
 } from "@mui/material";
 import {
-  Code,
   CalendarMonth,
   Person,
   Business,
-  KeyboardArrowRight,
 } from "@mui/icons-material";
+import { ACCENTURE_COLORS } from "../styles/styles";
 
-const ProjectPathCard = ({ project }) => {
-  const theme = useTheme();
-
+const ProjectCard = ({ project }) => {
   return (
-    <Card
-      variant="outlined"
+    <Paper 
+      elevation={0}
       sx={{
+        borderRadius: 2,
+        overflow: "hidden",
         height: "100%",
+        boxShadow: "0 2px 10px rgba(0,0,0,0.03)",
         display: "flex",
         flexDirection: "column",
-        transition: "all 0.2s",
+        transition: "transform 0.2s, box-shadow 0.2s",
         "&:hover": {
-          boxShadow: 3,
           transform: "translateY(-4px)",
+          boxShadow: "0 6px 20px rgba(0,0,0,0.06)",
         },
+        bgcolor: "#fff",
+        position: "relative",
       }}
     >
-      <CardContent sx={{ pt: 2, pb: 1 }}>
-        <Box display="flex" gap={2} mb={1} alignItems="flex-start">
-          <Avatar
-            sx={{
-              bgcolor: theme.palette.primary.main,
-              width: 40,
-              height: 40,
-            }}
-          >
-            <Code />
-          </Avatar>
-          <Box>
-            <Typography variant="h6" component="div">
-              {project.name}
+      {/* Color accent line - Full width */}
+      <Box 
+        sx={{ 
+          width: "100%", 
+          height: "4px", 
+          bgcolor: ACCENTURE_COLORS.corePurple1,
+          position: "absolute",
+          top: 0,
+          left: 0,
+        }} 
+      />
+
+      {/* Header */}
+      <Box sx={{ p: 3, pt: 4 }}>
+        <Typography
+          variant="h6"
+          sx={{
+            fontWeight: 500,
+            fontSize: "1.1rem",
+            color: ACCENTURE_COLORS.black,
+            mb: 1.5,
+          }}
+        >
+          {project.name}
+        </Typography>
+
+        <Typography
+          variant="body2"
+          sx={{
+            color: ACCENTURE_COLORS.darkGray,
+            mb: 2,
+            minHeight: "40px",
+            overflow: "hidden",
+            display: "-webkit-box",
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: "vertical",
+          }}
+        >
+          {project.description}
+        </Typography>
+      </Box>
+
+      <Divider sx={{ mt: "auto", opacity: 0.5 }} />
+
+      {/* Details */}
+      <Box sx={{ p: 3 }}>
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 2,
+          }}
+        >
+          <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+            <Person
+              fontSize="small"
+              sx={{ color: ACCENTURE_COLORS.corePurple1, opacity: 0.8 }}
+            />
+            <Typography
+              variant="body2"
+              sx={{ fontWeight: 500, color: ACCENTURE_COLORS.black }}
+            >
+              {project.role}
             </Typography>
-            <Typography variant="body2" color="text.secondary">
-              {project.description}
+          </Box>
+
+          <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+            <Business
+              fontSize="small"
+              sx={{ color: ACCENTURE_COLORS.corePurple1, opacity: 0.6 }}
+            />
+            <Typography
+              variant="body2"
+              sx={{ color: ACCENTURE_COLORS.darkGray }}
+            >
+              {project.company}
+            </Typography>
+          </Box>
+
+          <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+            <CalendarMonth
+              fontSize="small"
+              sx={{ color: ACCENTURE_COLORS.corePurple1, opacity: 0.6 }}
+            />
+            <Typography
+              variant="body2"
+              sx={{ color: ACCENTURE_COLORS.darkGray }}
+            >
+              {project.date}
             </Typography>
           </Box>
         </Box>
-      </CardContent>
-
-      <Divider sx={{ my: 1 }} />
-
-      <CardContent sx={{ pt: 1, pb: 1, flex: 1 }}>
-        <Box display="flex" gap={1} alignItems="center" mb={1}>
-          <Person fontSize="small" color="action" />
-          <Typography
-            variant="body2"
-            color="text.secondary"
-            fontWeight="medium"
-          >
-            {project.role}
-          </Typography>
-        </Box>
-
-        <Box display="flex" gap={1} alignItems="center" mb={1}>
-          <Business fontSize="small" color="action" />
-          <Typography variant="body2" color="text.secondary">
-            {project.company}
-          </Typography>
-        </Box>
-
-        <Box display="flex" gap={1} alignItems="center" mb={2}>
-          <CalendarMonth fontSize="small" color="action" />
-          <Typography variant="body2" color="text.secondary">
-            {project.date}
-          </Typography>
-        </Box>
-
-        <Box display="flex" gap={1} flexWrap="wrap">
-          {project.skills.map((skill) => (
-            <Chip
-              key={skill}
-              label={skill}
-              size="small"
-              sx={{ bgcolor: theme.palette.primary.light, color: "white" }}
-            />
-          ))}
-        </Box>
-      </CardContent>
-
-      <Divider />
-      <Box sx={{ p: 1 }}>
-        <Button
-          size="small"
-          endIcon={<KeyboardArrowRight />}
-          sx={{ width: "100%", justifyContent: "space-between" }}
-        >
-          View Project Details
-        </Button>
       </Box>
-    </Card>
+    </Paper>
   );
 };
 
-export default ProjectPathCard;
+export default ProjectCard;
