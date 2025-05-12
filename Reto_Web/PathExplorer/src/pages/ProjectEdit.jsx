@@ -1098,7 +1098,6 @@ const ProjectEdit = () => {
             </Box>
           ))}
         </DialogContent>
-
         <DialogActions sx={{ justifyContent: "center", mb: 1 }}>
           <Button
             variant="contained"

@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import {
   Button,
   Dialog,
-  DialogTitle,
   DialogContent,
   DialogActions,
   TextField,
@@ -15,10 +14,19 @@ import {
   Snackbar,
   Alert,
   Typography,
+  IconButton,
+  Divider,
+  alpha,
+  Fade,
 } from "@mui/material";
-import { Add } from "@mui/icons-material";
+import { Add, Close } from "@mui/icons-material";
 import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 import { supabase } from "../supabase/supabaseClient.js";
+import { 
+  ACCENTURE_COLORS, 
+  primaryButtonStyles, 
+  outlineButtonStyles 
+} from "../styles/styles.js";
 
 const AddSkillModal = ({ onSkillAdded }) => {
   const [open, setOpen] = useState(false);
@@ -114,21 +122,83 @@ const AddSkillModal = ({ onSkillAdded }) => {
         startIcon={<Add />}
         onClick={handleOpen}
         size="small"
+        sx={{
+          ...primaryButtonStyles,
+          height: '36px',
+          boxShadow: 'none',
+          fontSize: '0.8rem',
+          '&:hover': {
+            boxShadow: 'none',
+            bgcolor: ACCENTURE_COLORS.corePurple2,
+            transform: 'translateY(-2px)',
+          }
+        }}
       >
         Add Skill
       </Button>
 
-      <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
-        {/* Properly styled DialogTitle with icon */}
-        <DialogTitle
-          sx={{ display: "flex", alignItems: "center", gap: 1, pb: 1 }}
+      <Dialog 
+        open={open} 
+        onClose={handleClose} 
+        maxWidth="sm" 
+        fullWidth
+        TransitionComponent={Fade}
+        transitionDuration={300}
+        PaperProps={{
+          elevation: 12,
+          sx: {
+            borderRadius: 2,
+            overflow: 'hidden'
+          }
+        }}
+      >
+        {/* Modal Header */}
+        <Box 
+          sx={{ 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'center',
+            p: '16px 24px',
+            bgcolor: alpha(ACCENTURE_COLORS.corePurple1, 0.03),
+            borderBottom: `1px solid ${alpha(ACCENTURE_COLORS.darkGray, 0.1)}`
+          }}
         >
-          <AddCircleOutlineIcon color="primary" />
-          <Typography variant="h6">Add New Skill</Typography>
-        </DialogTitle>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+            <AddCircleOutlineIcon 
+              sx={{ 
+                color: ACCENTURE_COLORS.corePurple1, 
+                fontSize: 24 
+              }} 
+            />
+            <Typography 
+              variant="h6" 
+              sx={{ 
+                fontWeight: 600, 
+                color: ACCENTURE_COLORS.black,
+                fontSize: '1.1rem'
+              }}
+            >
+              Add New Skill
+            </Typography>
+          </Box>
+          <IconButton 
+            onClick={handleClose}
+            size="small"
+            sx={{ 
+              color: ACCENTURE_COLORS.darkGray,
+              '&:hover': { 
+                color: ACCENTURE_COLORS.black,
+                bgcolor: alpha(ACCENTURE_COLORS.corePurple1, 0.05)
+              }
+            }}
+          >
+            <Close fontSize="small" />
+          </IconButton>
+        </Box>
 
-        <DialogContent>
-          <Box sx={{ mt: 2, display: "flex", flexDirection: "column", gap: 2 }}>
+        <DialogContent sx={{ p: 3, pt: 3 }}>
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 2.5 }}>
+            {/* Campo Skill Name */}
             <TextField
               required
               label="Skill Name"
@@ -136,30 +206,162 @@ const AddSkillModal = ({ onSkillAdded }) => {
               value={formData.name}
               onChange={handleChange}
               fullWidth
+              variant="outlined"
+              placeholder="Enter skill name"
+              InputLabelProps={{
+                shrink: true,
+                sx: {
+                  color: ACCENTURE_COLORS.corePurple1,
+                  fontWeight: 500
+                }
+              }}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: 1.5,
+                  backgroundColor: alpha(ACCENTURE_COLORS.white, 0.8),
+                  transition: 'all 0.2s',
+                  '& fieldset': {
+                    borderColor: alpha(ACCENTURE_COLORS.darkGray, 0.1),
+                    borderWidth: '1px',
+                  },
+                  '&:hover': {
+                    backgroundColor: ACCENTURE_COLORS.white,
+                    '& fieldset': {
+                      borderColor: ACCENTURE_COLORS.corePurple1,
+                    }
+                  },
+                  '&.Mui-focused fieldset': {
+                    borderColor: ACCENTURE_COLORS.corePurple1,
+                    borderWidth: '1px',
+                  }
+                }
+              }}
             />
 
+            {/* Campo Category */}
             <TextField
               label="Category"
               name="category"
               value={formData.category}
               onChange={handleChange}
               fullWidth
-              placeholder="e.g., Programming, Leadership, etc."
+              variant="outlined"
+              placeholder="e.g., Programming, Leadership, Design"
+              InputLabelProps={{ 
+                shrink: true,
+                sx: {
+                  color: ACCENTURE_COLORS.corePurple1,
+                  fontWeight: 500
+                }
+              }}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: 1.5,
+                  backgroundColor: alpha(ACCENTURE_COLORS.white, 0.8),
+                  transition: 'all 0.2s',
+                  '& fieldset': {
+                    borderColor: alpha(ACCENTURE_COLORS.darkGray, 0.1),
+                    borderWidth: '1px',
+                  },
+                  '&:hover': {
+                    backgroundColor: ACCENTURE_COLORS.white,
+                    '& fieldset': {
+                      borderColor: ACCENTURE_COLORS.corePurple1,
+                    }
+                  },
+                  '&.Mui-focused fieldset': {
+                    borderColor: ACCENTURE_COLORS.corePurple1,
+                    borderWidth: '1px',
+                  }
+                }
+              }}
             />
 
-            <FormControl fullWidth required>
-              <InputLabel>Type</InputLabel>
+            {/* Campo Skill Type */}
+            <FormControl 
+              fullWidth 
+              required 
+              sx={{
+                '& .MuiInputLabel-root': {
+                  color: ACCENTURE_COLORS.corePurple1,
+                  fontWeight: 500
+                }
+              }}
+            >
+              <InputLabel 
+                shrink 
+                sx={{
+                  color: ACCENTURE_COLORS.corePurple1,
+                  fontWeight: 500
+                }}
+              >
+                Skill Type
+              </InputLabel>
               <Select
                 name="type"
                 value={formData.type}
                 onChange={handleChange}
-                label="Type"
+                displayEmpty
+                notched
+                label="Skill Type"
+                sx={{
+                  borderRadius: 1.5,
+                  backgroundColor: alpha(ACCENTURE_COLORS.white, 0.8),
+                  transition: 'all 0.2s',
+                  '& .MuiOutlinedInput-notchedOutline': {
+                    borderColor: alpha(ACCENTURE_COLORS.darkGray, 0.1),
+                    borderWidth: '1px',
+                  },
+                  '&:hover': {
+                    backgroundColor: ACCENTURE_COLORS.white,
+                    '& .MuiOutlinedInput-notchedOutline': {
+                      borderColor: ACCENTURE_COLORS.corePurple1,
+                    }
+                  },
+                  '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                    borderColor: ACCENTURE_COLORS.corePurple1,
+                    borderWidth: '1px',
+                  }
+                }}
+                MenuProps={{
+                  PaperProps: {
+                    elevation: 3,
+                    sx: {
+                      mt: 1,
+                      borderRadius: 2,
+                      boxShadow: `0 4px 12px ${alpha(ACCENTURE_COLORS.corePurple1, 0.08)}`,
+                      '& .MuiMenuItem-root': {
+                        fontSize: '0.9rem',
+                        py: 1.2,
+                        px: 2,
+                        '&:hover': {
+                          backgroundColor: alpha(ACCENTURE_COLORS.corePurple1, 0.04),
+                        },
+                        '&.Mui-selected': {
+                          backgroundColor: alpha(ACCENTURE_COLORS.corePurple1, 0.08),
+                          color: ACCENTURE_COLORS.corePurple1,
+                          fontWeight: 500,
+                          '&:hover': {
+                            backgroundColor: alpha(ACCENTURE_COLORS.corePurple1, 0.12),
+                          }
+                        }
+                      }
+                    }
+                  }
+                }}
+                renderValue={(selected) => {
+                  if (!selected) {
+                    return <Typography sx={{ color: 'text.secondary' }}>Select skill type</Typography>;
+                  }
+                  return selected;
+                }}
               >
                 <MenuItem value="Technical Skill">Technical Skill</MenuItem>
                 <MenuItem value="Soft Skill">Soft Skill</MenuItem>
               </Select>
             </FormControl>
 
+            {/* Campo Description */}
             <TextField
               label="Description"
               name="description"
@@ -168,36 +370,113 @@ const AddSkillModal = ({ onSkillAdded }) => {
               fullWidth
               multiline
               rows={3}
-              placeholder="Describe this skill"
+              variant="outlined"
+              placeholder="Brief description of this skill"
+              InputLabelProps={{ 
+                shrink: true,
+                sx: {
+                  color: ACCENTURE_COLORS.corePurple1,
+                  fontWeight: 500
+                }
+              }}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: 1.5,
+                  backgroundColor: alpha(ACCENTURE_COLORS.white, 0.8),
+                  transition: 'all 0.2s',
+                  '& fieldset': {
+                    borderColor: alpha(ACCENTURE_COLORS.darkGray, 0.1),
+                    borderWidth: '1px',
+                  },
+                  '&:hover': {
+                    backgroundColor: ACCENTURE_COLORS.white,
+                    '& fieldset': {
+                      borderColor: ACCENTURE_COLORS.corePurple1,
+                    }
+                  },
+                  '&.Mui-focused fieldset': {
+                    borderColor: ACCENTURE_COLORS.corePurple1,
+                    borderWidth: '1px',
+                  }
+                }
+              }}
             />
           </Box>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={handleClose} color="primary">
+
+        <Divider sx={{ mx: 2, borderColor: alpha(ACCENTURE_COLORS.darkGray, 0.08) }} />
+        
+        <DialogActions sx={{ px: 3, py: 2, justifyContent: 'space-between' }}>
+          <Button 
+            onClick={handleClose} 
+            sx={{
+              ...outlineButtonStyles,
+              color: ACCENTURE_COLORS.darkGray,
+              borderColor: alpha(ACCENTURE_COLORS.darkGray, 0.3),
+              '&:hover': {
+                borderColor: ACCENTURE_COLORS.darkGray,
+                bgcolor: alpha(ACCENTURE_COLORS.darkGray, 0.05),
+                transform: 'translateY(-2px)',
+              }
+            }}
+          >
             Cancel
           </Button>
           <Button
             onClick={handleSubmit}
-            color="primary"
             variant="contained"
             disabled={loading || !formData.name || !formData.type}
+            sx={{
+              ...primaryButtonStyles,
+              width: loading ? '100px' : 'auto',
+              position: 'relative',
+              '&:hover': {
+                boxShadow: `0 4px 8px ${alpha(ACCENTURE_COLORS.corePurple1, 0.2)}`,
+                bgcolor: ACCENTURE_COLORS.corePurple2,
+                transform: 'translateY(-2px)',
+              },
+              '&.Mui-disabled': {
+                bgcolor: alpha(ACCENTURE_COLORS.corePurple1, 0.4),
+                color: 'white',
+              }
+            }}
           >
-            {loading ? <CircularProgress size={24} /> : "Save"}
+            {loading ? (
+              <CircularProgress 
+                size={24} 
+                sx={{ 
+                  color: 'white',
+                  position: 'absolute',
+                  top: '50%',
+                  left: '50%',
+                  marginTop: '-12px',
+                  marginLeft: '-12px',
+                }} 
+              />
+            ) : "Save Skill"}
           </Button>
         </DialogActions>
       </Dialog>
 
       <Snackbar
         open={snackbar.open}
-        autoHideDuration={6000}
+        autoHideDuration={5000}
         onClose={handleSnackbarClose}
         anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
       >
         <Alert
           onClose={handleSnackbarClose}
           severity={snackbar.severity}
-          elevation={6}
           variant="filled"
+          elevation={6}
+          sx={{ 
+            borderRadius: 1.5,
+            boxShadow: '0 8px 16px rgba(0,0,0,0.1)',
+            width: '100%',
+            '& .MuiAlert-icon': {
+              fontSize: '1.2rem'
+            }
+          }}
         >
           {snackbar.message}
         </Alert>
