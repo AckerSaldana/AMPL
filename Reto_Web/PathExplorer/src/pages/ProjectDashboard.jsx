@@ -201,13 +201,13 @@ const ProjectDashboard = () => {
 
       <Grid container spacing={3}>
         <Grid item xs={12} md={3} lg={2.5}>
-          {(role === "manager" || role === "TFS" || true) && (
-            <Card variant="outlined" sx={{ borderRadius: 2, mb: 2 }}>
-              <CardContent sx={{ py: 3 }}>
-                <AddProjectButton onClick={handleAddProject} />
-              </CardContent>
-            </Card>
-          )}
+                  {role === "manager" && (
+          <Card variant="outlined" sx={{ borderRadius: 2, mb: 2 }}>
+            <CardContent sx={{ py: 3 }}>
+              <AddProjectButton onClick={handleAddProject} />
+            </CardContent>
+          </Card>
+        )}
 
           <Card variant="outlined" sx={{ borderRadius: 2 }}>
             <CardContent sx={{ py: 1 }}>
@@ -232,12 +232,12 @@ const ProjectDashboard = () => {
                   <ProjectCard
                     project={project}
                     onEdit={
-                      role === "manager" || role === "TFS"
+                      role === "manager"
                         ? handleEditProject
                         : undefined
                     }
                     onDelete={
-                      role === "manager" || role === "TFS"
+                      role === "manager"
                         ? handleDeleteProject
                         : undefined
                     }

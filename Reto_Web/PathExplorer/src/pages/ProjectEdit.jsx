@@ -205,22 +205,7 @@ const ProjectEdit = () => {
   const handleSubmitFeedback = async () => {
     setSaving(true);
     try {
-      const projectUpdates = {
-        title: overviewData.title,
-        description: overviewData.description,
-        logo: overviewData.logo,       
-        end_date: overviewData.dueDate,
-        priority: overviewData.priority,
-        status: "Completed",
-        progress: 100,
-      };
-
-      const { error: projectError } = await supabase
-        .from("Project")
-        .update(projectUpdates)
-        .eq("projectID", projectId);
-      if (projectError) throw projectError;
-
+      // por cada par [user_id, notes]
       await Promise.all(
         Object.entries(feedbackNotes).map(([user_id, notes]) =>
           supabase
@@ -229,21 +214,10 @@ const ProjectEdit = () => {
             .match({ project_id: projectId, user_id })
         )
       );
-
-      setSnackbar({
-        open: true,
-        message: "Proyecto y feedback guardados exitosamente!",
-        severity: "success",
-      });
+      setSnackbar({ open: true, message: "Feedback saved!", severity: "success" });
       setFeedbackOpen(false);
-
-      setTimeout(() => navigate(`/project-detail/${projectId}`), 1000);
-    } catch (error) {
-      setSnackbar({
-        open: true,
-        message: `Error al guardar: ${error.message}`,
-        severity: "error",
-      });
+    } catch (err) {
+      setSnackbar({ open: true, message: err.message, severity: "error" });
     } finally {
       setSaving(false);
     }

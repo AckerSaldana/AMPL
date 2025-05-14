@@ -1,7 +1,8 @@
 import React, { useState } from "react";
-import { Box, Grid, Typography } from "@mui/material";
+import { Box, Grid, Typography, Paper } from "@mui/material";
 import { AddProjectCard } from "../components/AddProjectCard";
 import { AddRoleCard } from "../components/AddRoleCard";
+import { ACCENTURE_COLORS, contentPaperStyles } from "../styles/styles";
 
 const AddProject = () => {
   // Estado compartido entre componentes para los roles
@@ -45,28 +46,73 @@ const AddProject = () => {
   return (
     <Box
       sx={{
-        p: 4,
         minHeight: "calc(100vh - 60px)",
-        width: "100%", 
+        width: "100%",
+        p: 4,
+        overflow: "auto", // Solo añadimos scroll a nivel de página
       }}
     >
-      <Grid container spacing={3}>
+      {/* Encabezado de página */}
+      <Box mb={4} sx={{ px: 1 }}>
+        <Typography 
+          variant="h4" 
+          sx={{ fontWeight: 600, mb: 3 }}
+        >
+          Create New Project
+        </Typography>
+      </Box>
+
+      <Grid container spacing={4} sx={{ width: "100%" }}>
         {/* Izquierda: Formulario de proyecto y lista de roles */}
-        <Grid item xs={12} md={4}>
-          <AddProjectCard
-            roles={projectRoles}
-            onEditRole={handleEditRole}
-            onDeleteRole={handleDeleteRole}
-          />
+        <Grid item xs={12} md={5} lg={4}>
+          <Paper 
+            elevation={0} 
+            sx={{ 
+              ...contentPaperStyles,
+              height: "auto", // Cambiamos a altura automática
+              "&::before": {
+                content: '""',
+                position: "absolute",
+                top: 0,
+                left: 0,
+                width: "100%",
+                height: "4px",
+                background: ACCENTURE_COLORS.corePurple1,
+              },
+            }}
+          >
+            <AddProjectCard
+              roles={projectRoles}
+              onEditRole={handleEditRole}
+              onDeleteRole={handleDeleteRole}
+            />
+          </Paper>
         </Grid>
 
         {/* Derecha: Formulario para crear/editar roles */}
-        <Grid item xs={12} md={8}>
-          <AddRoleCard
-            onRoleCreated={handleRoleCreated}
-            onCancel={handleCancelEdit}
-            initialRole={selectedRoleForEdit}
-          />
+        <Grid item xs={12} md={7} lg={8}>
+          <Paper 
+            elevation={0} 
+            sx={{ 
+              ...contentPaperStyles,
+              height: "auto", // Cambiamos a altura automática
+              "&::before": {
+                content: '""',
+                position: "absolute",
+                top: 0,
+                left: 0,
+                width: "100%",
+                height: "4px",
+                background: ACCENTURE_COLORS.corePurple1,
+              },
+            }}
+          >
+            <AddRoleCard
+              onRoleCreated={handleRoleCreated}
+              onCancel={handleCancelEdit}
+              initialRole={selectedRoleForEdit}
+            />
+          </Paper>
         </Grid>
       </Grid>
     </Box>

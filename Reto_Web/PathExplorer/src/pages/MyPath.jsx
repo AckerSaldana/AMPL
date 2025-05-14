@@ -71,17 +71,17 @@ const MyPath = () => {
   return (
     <Box sx={{ 
       width: "100%", 
-      height: "100vh", 
+      minHeight: "100vh", // Cambiado de height a minHeight
       display: "flex",
       flexDirection: "column",
-      overflow: "hidden",
+      overflow: "auto", // Cambiado de "hidden" a "auto" para permitir scroll
       margin: 0,
       padding: 0,
     }}>
       <Box sx={{ 
         p: { xs: 2, md: 3 }, 
         maxWidth: "100%", 
-        height: "100%",
+        flexGrow: 1, // Asegura que tome todo el espacio disponible
         display: "flex",
         flexDirection: "column"
       }}>
@@ -94,21 +94,18 @@ const MyPath = () => {
           flexGrow: 1, 
           display: "flex", 
           width: "100%",
-          height: "calc(100% - 70px)", // Subtract header height
-          overflow: "hidden"
+          marginBottom: 3, // Añadido para evitar que el contenido se pegue al fondo
+          overflow: "visible", // Cambiado de "hidden" a "visible"
         }}>
           <Grid container spacing={3} sx={{ 
             width: "100%", 
-            height: "100%", 
             margin: 0,
           }}>
             {/* Left column: Career profile content */}
             <Grid item xs={12} md={6} sx={{ 
-              height: "100%",
               display: "flex", 
               flexDirection: "column",
               pr: { xs: 0, md: 1 },
-              overflow: "hidden" // Prevent outside overflow
             }}>
               {/* Profile Summary */}
               <Box sx={{ mb: 2 }}>
@@ -214,14 +211,12 @@ const MyPath = () => {
                 </Tabs>
               </Paper>
 
-              {/* Panel Content with scrolling */}
+              {/* Panel Content */}
               <Box sx={{ 
-                flexGrow: 1, 
-                overflowY: "auto", 
+                flexGrow: 1,
                 pr: 1,
                 pb: 3,
                 mt: 1,
-                height: "100%", // Take available height
                 "& .MuiGrid-container": {
                   width: "100%", 
                   m: 0
@@ -229,7 +224,7 @@ const MyPath = () => {
               }}>
                 {/* Timeline Panel */}
                 {activeTab === 0 && (
-                  <Box sx={{ minHeight: "600px" }}>
+                  <Box>
                     {!timelineLoading && renderMockDataAlert(usingMockTimeline)}
                     
                     <Suspense fallback={<CareerTimelineSkeleton />}>
@@ -320,9 +315,9 @@ const MyPath = () => {
             
             {/* Right column: Chat interface */}
             <Grid item xs={12} md={6} sx={{ 
-              height: "100%", 
               display: "flex",
-              pl: { xs: 0, md: 1 }
+              pl: { xs: 0, md: 1 },
+              mt: { xs: 3, md: 0 } // Añadir margen superior en móviles
             }}>
               <Suspense fallback={<VirtualAssistantSkeleton />}>
                 <VirtualAssistant />
