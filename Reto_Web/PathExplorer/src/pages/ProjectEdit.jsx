@@ -337,33 +337,6 @@ const ProjectEdit = () => {
       setSaving(false);
     }
   };
-  const handleCompleteProject = async () => {
-    setSaving(true);
-    try {
-      // Marca estado Completed y progreso = 100
-      const { error } = await supabase
-        .from("Project")
-        .update({ status: "Completed", progress: 100 })
-        .eq("projectID", projectId);
-
-      if (error) throw error;
-
-      setSnackbar({
-        open: true,
-        message: "Project marked as completed!",
-        severity: "success",
-      });
-      setTimeout(() => navigate(`/project-detail/${projectId}`), 1500);
-    } catch (error) {
-      setSnackbar({
-        open: true,
-        message: `Error completing project: ${error.message}`,
-        severity: "error",
-      });
-    } finally {
-      setSaving(false);
-    }
-  };
 
   // Loading state
   if (loading) {
