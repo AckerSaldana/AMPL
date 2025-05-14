@@ -206,10 +206,58 @@ export async function testAPIKey() {
 // Preprocesamiento del texto
 export function preprocessText(text, maxLength = 1000) {
   if (!text || !text.trim()) return "";
-  let processed = text.toLowerCase().replace(/\s+/g, " ").trim();
+  
+  // Extraer términos técnicos y darles más peso
+  const technicalTerms = extractTechnicalTerms(text);
+  // Repetir términos importantes para darles más peso en el embedding
+  const enhancedText = text + " " + technicalTerms.join(" ");
+  
+  let processed = enhancedText.toLowerCase().replace(/\s+/g, " ").trim();
   if (processed.length > maxLength) processed = processed.substring(0, maxLength);
   return processed;
 }
+
+function extractTechnicalTerms(text) {
+  // Lista de palabras clave técnicas para tecnologías y habilidades
+  const techKeywords = [
+    'java', 'python', 'javascript', 'typescript', 'react', 'angular', 'vue',
+    'node.js', 'c#', 'c++', 'php', 'ruby', 'go', 'rust', 'swift', 'kotlin',
+    'aws', 'azure', 'gcp', 'cloud', 'docker', 'kubernetes', 'terraform',
+    'sql', 'nosql', 'mongodb', 'postgresql', 'mysql', 'database',
+    'frontend', 'backend', 'fullstack', 'mobile', 'web', 'api',
+    'devops', 'cicd', 'git', 'agile', 'scrum', 'machine learning', 'ai'
+  ];
+  
+  // Encontrar términos técnicos presentes en el texto
+  if (!text) return [];
+  const lowerText = text.toLowerCase();
+  return techKeywords.filter(term => lowerText.includes(term));
+}
+
+/**
+ * Función para enriquecer la descripción del rol
+ */
+function enhanceRoleDescription(role) {
+  let enhancedRole = {...role};
+  
+  // Si la descripción es muy corta, enriquecerla con nombres de skills
+  if (enhancedRole.description && enhancedRole.description.length < 100 && 
+      enhancedRole.skills && enhancedRole.skills.length > 0) {
+    // Extraer nombres de skills si están disponibles
+    const skillNames = enhancedRole.skills
+      .filter(s => s.name)
+      .map(s => s.name)
+      .join(", ");
+    
+    if (skillNames) {
+      enhancedRole.description += ` Esta posición requiere experiencia con: ${skillNames}.`;
+    }
+  }
+  
+  return enhancedRole;
+}
+
+
 
 // Obtener embeddings con caché
 export async function getBatchEmbeddings(texts, sources = []) {
@@ -354,12 +402,17 @@ export function cosineSimilarity(vecA, vecB) {
   return dotProduct / (normA * normB);
 }
 
+function enhanceSimilarityScore(similarity) {
+  // Transformación no lineal que aumenta los valores medios y bajos
+  return Math.min(Math.floor((Math.pow(similarity, 0.5) * 100) + 20), 100);
+}
+
 // Paralelización con Worker (si se invoca el módulo en modo Worker)
 if (!isMainThread) {
   const { roleEmbedding, candidateEmbeddings } = workerData;
   const similarities = candidateEmbeddings.map((candidateEmbedding) => {
     const sim = cosineSimilarity(roleEmbedding, candidateEmbedding);
-    return Math.floor(sim * 100);
+    return enhanceSimilarityScore(sim); // Usar la función mejorada
   });
   parentPort.postMessage(similarities);
 }
@@ -389,7 +442,7 @@ function startSimilarityWorker(roleEmbedding, candidateEmbeddings) {
       console.error("Error al iniciar el worker:", error);
       const similarities = candidateEmbeddings.map(candidate => {
         const sim = cosineSimilarity(roleEmbedding, candidate);
-        return Math.floor(sim * 100);
+        return enhanceSimilarityScore(sim); // Usar la función mejorada
       });
       resolve(similarities);
     }
@@ -538,8 +591,8 @@ function ensureSkillMap(skillMapInput, role, employees) {
 
 // Función de pesos dinámicos basada en la descripción y skills del rol
 export function calculateDynamicWeights(roleDescription = "", roleSkills = [], skillMap = {}) {
-  // Default weights with new specific limits: technical between 80-90%, contextual between 10-20%
-  let alpha = 0.85, beta = 0.15; 
+  // Default weights with new specific limits: technical between 85-95%, contextual between 5-15%
+  let alpha = 0.90, beta = 0.10; 
   console.log("Calculating dynamic weights based on skills and role description");
   
   // Validación adicional de skillMap
@@ -776,26 +829,26 @@ export function calculateDynamicWeights(roleDescription = "", roleSkills = [], s
     }
   }
   
-  // Calculate dynamic weights based on importance, but respect the new limits
+  // Calculate dynamic weights based on importance, with new stricter limits
   const totalImportance = technicalImportance + softImportance;
   if (totalImportance > 0) {
     // Calculate initial proportion based on importance
     let rawRatio = technicalImportance / totalImportance;
     
-    // Map this ratio to the new range (80-90% for technical)
+    // Map this ratio to the new range (85-95% for technical)
     // Higher rawRatio means more technical weighting
-    alpha = 0.80 + (rawRatio * 0.10); // Ajustado para el rango 80-90%
+    alpha = 0.85 + (rawRatio * 0.10); // Ajustado para el rango 85-95%
     
     // Beta is simply the complement to make sure they sum to 1
     beta = 1 - alpha;
     
-    // Apply hard limits to ensure we're always in the 10-20% range for contextual
-    if (beta < 0.10) {  // Mínimo 10% contextual
-      beta = 0.10;
-      alpha = 0.90;     // Máximo 90% técnico
-    } else if (beta > 0.20) {  // Máximo 20% contextual
-      beta = 0.20;
-      alpha = 0.80;     // Mínimo 80% técnico
+    // Apply hard limits to ensure we're always in the 5-15% range for contextual
+    if (beta < 0.05) {  // Mínimo 5% contextual
+      beta = 0.05;
+      alpha = 0.95;     // Máximo 95% técnico
+    } else if (beta > 0.15) {  // Máximo 15% contextual
+      beta = 0.15;
+      alpha = 0.85;     // Mínimo 85% técnico
     }
   }
   
@@ -807,30 +860,30 @@ export function calculateDynamicWeights(roleDescription = "", roleSkills = [], s
     if (descLower.includes("highly technical") || 
         descLower.includes("technical expert") ||
         (descLower.includes("architect") && descLower.includes("senior"))) {
-      alpha = 0.90;
-      beta = 0.10;
+      alpha = 0.95;
+      beta = 0.05;
       console.log("Special adjustment: Highly technical role");
     } 
     // Detect client/culture-focused roles - increase contextual to maximum allowed
     else if ((descLower.includes("culture") || descLower.includes("cultural fit")) && 
              (descLower.includes("soft skills")) ||
              (descLower.includes("client") && descLower.includes("relationship"))) {
-      alpha = 0.80;
-      beta = 0.20;
+      alpha = 0.85;
+      beta = 0.15;
       console.log("Special adjustment: Role focused on soft skills/culture");
     }
     // Detect technical leadership roles - moderate technical focus
     else if ((descLower.includes("technical lead")) && 
              (descLower.includes("team"))) {
-      alpha = 0.85;
-      beta = 0.15;
+      alpha = 0.90;
+      beta = 0.10;
       console.log("Special adjustment: Technical leadership role");
     }
     // Detect project management roles - balance towards more contextual
     else if ((descLower.includes("project manager")) &&
              (descLower.includes("management"))) {
-      alpha = 0.80;
-      beta = 0.20;
+      alpha = 0.85;
+      beta = 0.15;
       console.log("Special adjustment: Project management role");
     }
   }
@@ -957,16 +1010,19 @@ export function calculateSkillMatch(employeeSkills, roleSkills, employeeName = "
  * Prepara datos del rol para el prompt
  */
 function prepareRoleData(role) {
+  // Enriquecer la descripción del rol
+  const enhancedRole = enhanceRoleDescription(role);
+  
   // Extraer habilidades con años requeridos
-  const skills = (role.skills || []).map(skill => ({
+  const skills = (enhancedRole.skills || []).map(skill => ({
     id: String(skill.id || skill.skill_ID),
     years: skill.years || 0,
     importance: skill.importance || 1
   }));
   
   return {
-    name: role.role || role.name || "Rol sin nombre",
-    description: role.description || "",
+    name: enhancedRole.role || enhancedRole.name || "Rol sin nombre",
+    description: enhancedRole.description || "",
     skills: skills
   };
 }
@@ -985,9 +1041,9 @@ function prepareCandidatesData(employees) {
     
     return {
       id: emp.id,
-      index: index, // Añadir índice para rastreo
+      index: index,
       name: emp.name,
-      bio: emp.about || emp.bio || "", // Priorizar el campo about pero mantener compatibilidad con bio
+      bio: emp.about || emp.bio || "", 
       skills: skills
     };
   });
@@ -1020,24 +1076,25 @@ INSTRUCCIONES:
 
 PARA EVALUACIÓN TÉCNICA (${technicalWeight}%):
 1. Para cada candidato, evalúa si tiene las habilidades requeridas por el rol.
-2. Compara los años de experiencia del candidato con los años requeridos para cada habilidad.
-3. Asigna puntuaciones siguiendo estas reglas:
+2. PRIORIZA ESPECIALMENTE candidatos que tengan mas habilidades o todas las habilidades requeridas por el rol.
+3. Compara los años de experiencia del candidato con los años requeridos para cada habilidad.
+4. Asigna puntuaciones siguiendo estas reglas MEJORADAS:
    - Si el candidato tiene exactamente los años requeridos: 100%
-   - Si el candidato tiene más años: 100% + bonus de 5% por cada año adicional (máximo 25% extra)
-   - Si el candidato tiene menos años: Porcentaje proporcional (ej: 3 años de 5 requeridos = 60%)
-   - Si el rol no especifica años y el candidato tiene la habilidad: 85%
-4. Calcula un score técnico (0-100) para cada candidato.
+   - Si el candidato tiene más años: 100% + bonus de 5% por cada año adicional (máximo 20% extra)
+   - Si el candidato tiene menos años: Porcentaje más generoso (ej: 2 años de 3 requeridos = 75%)
+5. Calcula un score técnico (0-100) para cada candidato.
 
 PARA EVALUACIÓN CONTEXTUAL (${contextualWeight}%):
 1. Analiza ÚNICAMENTE la bio/about del candidato para evaluar alineación con la descripción del rol.
 2. Identifica palabras clave, experiencia indicada, intereses y valores mencionados en la bio.
 3. No inventes ni asumas experiencia que no esté mencionada explícitamente en la bio.
-4. Asigna un score contextual (0-100) basado en esta alineación.
-5. Si la bio está vacía o es muy limitada, asigna un valor de 75.
+4. Sé GENEROSO en la evaluación contextual cuando veas términos relacionados con la descripción del rol.
+5. Asigna un score contextual (0-100) basado en esta alineación.
+6. Si la bio está vacía o es muy limitada, asigna un valor de 70 (más generoso).
 
 PARA SCORE FINAL:
 1. Combina ambos scores usando las ponderaciones exactas: (${technicalWeight}% × Score Técnico) + (${contextualWeight}% × Score Contextual)
-2. El score final debe estar entre 70 y 100, con un mínimo de 70 para cualquier candidato que tenga al menos una habilidad relevante.
+2. El score final debe estar entre 65 y 100, con un mínimo de 65 para cualquier candidato que tenga al menos una habilidad relevante.
 
 FORMATO DE RESPUESTA:
 Responde con un objeto JSON con esta estructura exacta:
@@ -1050,7 +1107,7 @@ Responde con un objeto JSON con esta estructura exacta:
       "contextualScore": 70,
       "combinedScore": 82,
       "matchDetails": [
-        {"skillId": "id_habilidad", "required": 3, "actual": 5, "score": 108}
+        {"skillId": "id_habilidad", "skillName": "nombre_habilidad", "required": 3, "actual": 5, "score": 108}
       ]
     }
   ]
@@ -1058,9 +1115,11 @@ Responde con un objeto JSON con esta estructura exacta:
 
 IMPORTANTE: 
 - Aplica los pesos exactamente como se indica (${technicalWeight}% técnico, ${contextualWeight}% contextual).
+- Sé generoso en tus evaluaciones para dar puntuaciones más altas.
 - El score técnico debe basarse ÚNICAMENTE en los años de experiencia de las habilidades coincidentes.
 - El score contextual debe basarse ÚNICAMENTE en el contenido del campo "bio" del candidato.
-- Asigna scores que reflejen un rango realista entre 70-100 para candidatos con al menos algunas habilidades relevantes.
+- Incluye el nombre de la habilidad en los detalles del match para mejorar la explicabilidad.
+- Asigna scores que reflejen un rango más generoso entre 65-100 para candidatos con al menos algunas habilidades relevantes.
 `;
 }
 
@@ -1325,7 +1384,28 @@ export async function batchProcessWithGPT(role, employees, skillMap) {
 }
 
 /**
- * Proceso optimizado de matching usando embeddings solo para filtrar candidatos
+ * Función para asegurar diversidad en la selección de candidatos
+ */
+function ensureDiverseSelection(similarities, employees, baseTopN) {
+  // Garantizar que haya un número mínimo de candidatos seleccionados
+  const selectedCandidates = similarities.slice(0, Math.min(baseTopN, similarities.length));
+  
+  // Si hay suficientes candidatos, agregar algunos aleatorios del resto para mayor diversidad
+  if (similarities.length > baseTopN) {
+    const remainingCandidates = similarities.slice(baseTopN);
+    // Seleccionar hasta 5 candidatos aleatorios adicionales
+    const randomSample = remainingCandidates
+      .sort(() => 0.5 - Math.random())
+      .slice(0, Math.min(5, remainingCandidates.length));
+    
+    return [...selectedCandidates, ...randomSample];
+  }
+  
+  return selectedCandidates;
+}
+
+/**
+ * Proceso optimizado de matching usando embeddings para filtrar candidatos
  * @param {Object} role - Rol a cubrir
  * @param {Array} employees - Lista completa de empleados
  * @param {Object} skillMap - Mapa de habilidades (opcional)
@@ -1360,7 +1440,13 @@ export async function filteredGPTMatching(role, employees, skillMap = {}, topN =
   
   // Ordenar por similitud y seleccionar los mejores
   similarities.sort((a, b) => b.similarity - a.similarity);
-  const topCandidates = similarities.slice(0, topN);
+  
+  // Determinar número óptimo de candidatos con valores aumentados
+  const baseTopN = employees.length <= 5 ? employees.length : 
+                   employees.length <= 30 ? Math.ceil(employees.length * 0.7) : 15; // Aumentado a 25
+  
+  // Selección mejorada con diversidad
+  const topCandidates = ensureDiverseSelection(similarities, employees, baseTopN);
   
   console.log(`Fase 1 completada: ${topCandidates.length} candidatos preseleccionados`);
   
@@ -2087,7 +2173,7 @@ app.post("/getMatches", async (req, res) => {
     const skillMap = ensureSkillMap(rawSkillMap, role, employees);
     console.log(`Mapa de skills: ${Object.keys(skillMap).length} skills disponibles`);
     
-    // Calcular pesos dinámicos con los límites especificados (técnico: 80-90%, contextual: 10-20%)
+    // Calcular pesos dinámicos con los límites especificados (técnico: 85-95%, contextual: 5-15%)
     const { alpha, beta } = calculateDynamicWeights(role.description, role.skills, skillMap);
     console.log(`Pesos calculados - Técnico: ${Math.round(alpha * 100)}%, Contextual: ${Math.round(beta * 100)}%`);
     
@@ -2097,10 +2183,10 @@ app.post("/getMatches", async (req, res) => {
     let adjustedAlpha = alpha;
     let adjustedBeta = beta;
     
-    if (technicalWeight < 80 || technicalWeight > 90 || contextualWeight < 10 || contextualWeight > 20) {
+    if (technicalWeight < 85 || technicalWeight > 95 || contextualWeight < 5 || contextualWeight > 15) {
       console.warn("Pesos fuera de rango, ajustando a los límites especificados");
       // Ajuste forzado a los límites
-      adjustedAlpha = Math.min(Math.max(alpha, 0.8), 0.9);
+      adjustedAlpha = Math.min(Math.max(alpha, 0.85), 0.95);
       adjustedBeta = 1 - adjustedAlpha;
       
       // Actualizar para logs
@@ -2111,7 +2197,7 @@ app.post("/getMatches", async (req, res) => {
     
     // Determinar número óptimo de candidatos para filtrado
     const topN = employees.length <= 5 ? employees.length : 
-               employees.length <= 30 ? Math.ceil(employees.length / 2) : 15;
+               employees.length <= 30 ? Math.ceil(employees.length * 0.7) : 25;
     
     // Usar el nuevo método optimizado
     console.log(`Iniciando filtrado y evaluación de candidatos...`);
@@ -2122,15 +2208,36 @@ app.post("/getMatches", async (req, res) => {
     const endTime = Date.now();
     console.log(`Procesamiento completado en ${endTime - startTime}ms`);
     
-    // Enviar respuesta
+    // Agregar explicabilidad a los primeros 5 candidatos
+    const matchesWithExplanations = matches.slice(0, 10).map(match => {
+      // Generar explicaciones por candidato
+      const explanation = {
+        skillsMatch: match.matchDetails?.map(detail => ({
+          skill: detail.skillName || `Skill #${detail.skillId}`,
+          required: detail.required || 0,
+          actual: detail.actual || 0,
+          score: detail.score || 0
+        })) || [],
+        technicalScore: match.technicalScore,
+        contextualScore: match.contextualScore,
+        summary: `Compatibilidad técnica: ${match.technicalScore}%, Compatibilidad contextual: ${match.contextualScore}%`
+      };
+      
+      return {
+        ...match,
+        explanation
+      };
+    });
+    
+    // Enviar respuesta enriquecida
     res.json({
-      matches,
+      matches: matchesWithExplanations,
       weights: {
         technical: technicalWeight,
         contextual: contextualWeight
       },
       totalCandidates: employees.length,
-      message: "Matching procesado exitosamente con enfoque optimizado",
+      message: "Matching procesado exitosamente con enfoque optimizado"
     });
   } catch (error) {
     console.error("Error en /getMatches:", error);
@@ -2156,7 +2263,7 @@ app.post("/api/getMatches", async (req, res) => {
     const skillMap = ensureSkillMap(rawSkillMap, role, employees);
     console.log(`Mapa de skills: ${Object.keys(skillMap).length} skills disponibles`);
     
-    // Calcular pesos dinámicos con los límites especificados (técnico: 80-90%, contextual: 10-20%)
+    // Calcular pesos dinámicos con los límites especificados (técnico: 85-95%, contextual: 5-15%)
     const { alpha, beta } = calculateDynamicWeights(role.description, role.skills, skillMap);
     console.log(`Pesos calculados - Técnico: ${Math.round(alpha * 100)}%, Contextual: ${Math.round(beta * 100)}%`);
     
@@ -2166,10 +2273,10 @@ app.post("/api/getMatches", async (req, res) => {
     let adjustedAlpha = alpha;
     let adjustedBeta = beta;
     
-    if (technicalWeight < 80 || technicalWeight > 90 || contextualWeight < 10 || contextualWeight > 20) {
+    if (technicalWeight < 85 || technicalWeight > 95 || contextualWeight < 5 || contextualWeight > 15) {
       console.warn("Pesos fuera de rango, ajustando a los límites especificados");
       // Ajuste forzado a los límites
-      adjustedAlpha = Math.min(Math.max(alpha, 0.8), 0.9);
+      adjustedAlpha = Math.min(Math.max(alpha, 0.85), 0.95);
       adjustedBeta = 1 - adjustedAlpha;
       
       // Actualizar para logs
@@ -2180,7 +2287,7 @@ app.post("/api/getMatches", async (req, res) => {
     
     // Determinar número óptimo de candidatos para filtrado
     const topN = employees.length <= 5 ? employees.length : 
-               employees.length <= 30 ? Math.ceil(employees.length / 2) : 15;
+               employees.length <= 30 ? Math.ceil(employees.length * 0.7) : 25;
     
     // Usar el nuevo método optimizado
     console.log(`Iniciando filtrado y evaluación de candidatos...`);
@@ -2191,15 +2298,36 @@ app.post("/api/getMatches", async (req, res) => {
     const endTime = Date.now();
     console.log(`Procesamiento completado en ${endTime - startTime}ms`);
     
-    // Enviar respuesta
+    // Agregar explicabilidad a los primeros 5 candidatos
+    const matchesWithExplanations = matches.slice(0, 10).map(match => {
+      // Generar explicaciones por candidato
+      const explanation = {
+        skillsMatch: match.matchDetails?.map(detail => ({
+          skill: detail.skillName || `Skill #${detail.skillId}`,
+          required: detail.required || 0,
+          actual: detail.actual || 0,
+          score: detail.score || 0
+        })) || [],
+        technicalScore: match.technicalScore,
+        contextualScore: match.contextualScore,
+        summary: `Compatibilidad técnica: ${match.technicalScore}%, Compatibilidad contextual: ${match.contextualScore}%`
+      };
+      
+      return {
+        ...match,
+        explanation
+      };
+    });
+    
+    // Enviar respuesta enriquecida
     res.json({
-      matches,
+      matches: matchesWithExplanations,
       weights: {
         technical: technicalWeight,
         contextual: contextualWeight
       },
       totalCandidates: employees.length,
-      message: "Matching procesado exitosamente con enfoque optimizado",
+      message: "Matching procesado exitosamente con enfoque optimizado"
     });
   } catch (error) {
     console.error("Error en /api/getMatches:", error);

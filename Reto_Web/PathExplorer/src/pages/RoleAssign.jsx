@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import {
   Box,
   Grid,
@@ -17,17 +17,18 @@ import {
   DialogContent,
   DialogContentText,
   DialogActions,
-  Tooltip
+  Tooltip,
+  Container
 } from "@mui/material";
 import AssistantIcon from "@mui/icons-material/Assistant";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import CloseIcon from "@mui/icons-material/Close";
 import InfoIcon from "@mui/icons-material/Info";
-import { alpha } from "@mui/material/styles";
+import { ACCENTURE_COLORS, contentPaperStyles } from "../styles/styles";
 import RoleCard from "../components/RoleCard";
 import MatchedEmployeeCard from "../components/MatchedEmployeeCard";
 import { supabase } from "../supabase/supabaseClient";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation, useBeforeUnload } from "react-router-dom";
 
 // Función para generar descripción de rol basada en sus habilidades
 function generateRoleDescription(roleName, skills = [], skillMap = {}) {
@@ -61,7 +62,6 @@ function generateRoleDescription(roleName, skills = [], skillMap = {}) {
 }
 
 // Función para llamar al endpoint backend que procesa el matching para un rol.
-
 async function getMatchesForRole(role, employees, skillMap) {
   try {
     // Debug de habilidades requeridas para el rol y sus tipos
@@ -171,12 +171,16 @@ function countSkillTypes(skillMap) {
 const RoleAssign = () => {
   const theme = useTheme();
   const navigate = useNavigate();
+  const location = useLocation();
 
   // Estados para la UI
   const [selectedRoleIndex, setSelectedRoleIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [confirming, setConfirming] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [exitDialogOpen, setExitDialogOpen] = useState(false);
+  const [exitDestination, setExitDestination] = useState(null);
+  const [dataChanged, setDataChanged] = useState(false);
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: "",
@@ -190,8 +194,52 @@ const RoleAssign = () => {
   const [tempProjectData, setTempProjectData] = useState(null);
   const [skillMap, setSkillMap] = useState({});
   
-  // NUEVO: Estado para rastrear empleados asignados
+  // Estado para rastrear empleados asignados
   const [assignedEmployeeIds, setAssignedEmployeeIds] = useState(new Set());
+
+  // Función para confirmar antes de salir
+  const confirmExit = useCallback((destination = null) => {
+    if (!dataChanged || confirming) {
+      // Si no hay cambios o estamos en proceso de guardar, permitir la navegación
+      if (destination) {
+        navigate(destination);
+      }
+      return true;
+    }
+    
+    // Si hay un destino específico, guardarlo para usarlo después de la confirmación
+    if (destination) {
+      setExitDestination(destination);
+    }
+    
+    setExitDialogOpen(true);
+    return false;
+  }, [dataChanged, confirming, navigate]);
+
+  // Manejar navegación dentro de la aplicación
+  const handleNavigate = useCallback((path) => {
+    if (confirmExit(path)) {
+      navigate(path);
+    }
+  }, [confirmExit, navigate]);
+
+  // Configurar el manejador beforeunload para navegador
+  useEffect(() => {
+    const handleBeforeUnload = (e) => {
+      if (dataChanged && !confirming) {
+        const message = "¿Estás seguro de que quieres salir? Los cambios no guardados se perderán.";
+        e.preventDefault();
+        e.returnValue = message;
+        return message;
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [dataChanged, confirming]);
 
   // Cargar datos iniciales
   useEffect(() => {
@@ -257,20 +305,6 @@ const RoleAssign = () => {
         
         setSkillMap(newSkillMap);
         
-        // Detectar los primeros 5 IDs para verificación
-        const firstFiveSkillIds = allSkills.slice(0, 5).map(skill => skill.skill_ID);
-        
-        console.log("Skills loaded:", {
-          count: allSkills?.length || 0,
-          sampleKeys: firstFiveSkillIds,
-          sampleData: firstFiveSkillIds.map(id => newSkillMap[id]),
-          typeCounts: {
-            technical: Object.values(newSkillMap).filter(skill => skill.type === "technical").length,
-            soft: Object.values(newSkillMap).filter(skill => skill.type === "soft").length,
-            unknown: Object.values(newSkillMap).filter(skill => !skill.type).length
-          }
-        });
-
         // 3. Obtener todos los usuarios básicos
         const { data: userData, error: userError } = await supabase
           .from("User")
@@ -310,7 +344,6 @@ const RoleAssign = () => {
         });
 
         // 5. Preparar empleados vinculando sus skills y usando el campo "about" como bio
-        // En tu componente RoleAssign, en la parte donde mapeas los empleados:
         const employeesWithSkills = userData.map(user => {
           const userId = user.user_id;
           const userSkills = userSkillsMap[userId] || [];
@@ -426,7 +459,7 @@ const RoleAssign = () => {
         
         setRoles(rolesWithSuggestions);
         
-        // NUEVO: Inicializar el conjunto de IDs de empleados asignados
+        // Inicializar el conjunto de IDs de empleados asignados
         const initiallyAssignedIds = new Set();
         rolesWithSuggestions.forEach(role => {
           if (role.assigned) {
@@ -434,6 +467,9 @@ const RoleAssign = () => {
           }
         });
         setAssignedEmployeeIds(initiallyAssignedIds);
+        
+        // Los datos iniciales no se consideran como cambios
+        setDataChanged(false);
         
       } catch (error) {
         console.error("Error loading data:", error);
@@ -450,7 +486,7 @@ const RoleAssign = () => {
     loadInitialData();
   }, []);
 
-  // MODIFICADO: handleEmployeeChange para actualizar el conjunto de IDs asignados
+  // handleEmployeeChange para actualizar el conjunto de IDs asignados
   const handleEmployeeChange = (roleIndex, newEmployeeId) => {
     setRoles(prevRoles => {
       const updatedRoles = [...prevRoles];
@@ -482,6 +518,10 @@ const RoleAssign = () => {
         candidate => candidate.id !== newEmployee.id
       );
       updatedRoles[roleIndex] = currentRole;
+      
+      // Marcar que los datos han cambiado
+      setDataChanged(true);
+      
       return updatedRoles;
     });
   };
@@ -524,6 +564,10 @@ const RoleAssign = () => {
       );
       if (error) throw error;
       if (!data) throw new Error("No se obtuvo el ID del proyecto.");
+      
+      // Resetear el estado de cambios ya que hemos guardado
+      setDataChanged(false);
+      
       setSnackbar({
         open: true,
         message: `¡Proyecto "${projectData.title}" creado con éxito! ID: ${data}`,
@@ -559,13 +603,31 @@ const RoleAssign = () => {
   };
 
   const handleCancel = () => {
-    if (window.confirm("¿Estás seguro de que deseas cancelar? Se perderá la información del proyecto.")) {
-      localStorage.removeItem("tempProject");
-      navigate("/projects");
+    confirmExit("/projects");
+  };
+  
+  // Manejo de confirmación de salida
+  const handleConfirmExit = () => {
+    // Limpiar el estado de cambios y cerrar el diálogo
+    setDataChanged(false);
+    setExitDialogOpen(false);
+    
+    // Si teníamos un destino guardado, navegar hacia él
+    if (exitDestination) {
+      navigate(exitDestination);
+      setExitDestination(null);
     }
+    
+    // Si no hay destino específico, simplemente permitir la salida
+    localStorage.removeItem("tempProject");
+  };
+  
+  const handleCancelExit = () => {
+    setExitDialogOpen(false);
+    setExitDestination(null);
   };
 
-  // MODIFICADO: Usar useMemo para filtrar candidatos disponibles excluyendo los ya asignados
+  // Usar useMemo para filtrar candidatos disponibles excluyendo los ya asignados
   const availableCandidates = useMemo(() => {
     const roleCandidates = roles[selectedRoleIndex]?.matches || [];
     
@@ -579,252 +641,341 @@ const RoleAssign = () => {
 
   if (loading) {
     return (
-      <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "70vh" }}>
-        <CircularProgress size={60} sx={{ mb: 3 }} />
-        <Typography variant="h6" color="text.secondary">
-          Analizando perfiles y calculando compatibilidad...
+      <Box sx={{ 
+        display: "flex", 
+        flexDirection: "column", 
+        alignItems: "center", 
+        justifyContent: "center", 
+        height: "calc(100vh - 60px)",
+        backgroundColor: "#f9f9fc"
+      }}>
+        <CircularProgress size={60} sx={{ mb: 3, color: ACCENTURE_COLORS.corePurple1 }} />
+        <Typography variant="h5" color={ACCENTURE_COLORS.corePurple3} fontWeight={600} mb={1}>
+          Analizando perfiles
         </Typography>
-        <Typography variant="caption" color="text.secondary" sx={{ mt: 1 }}>
-          Analizando perfiles profesionales y habilidades técnicas
+        <Typography variant="body1" color="text.secondary">
+          Calculando compatibilidad entre candidatos y roles del proyecto
         </Typography>
       </Box>
     );
   }
 
   return (
-    <Paper elevation={3} sx={{ borderRadius: 2, overflow: "hidden" }}>
-      <Box
-        sx={{
-          backgroundColor: theme.palette.primary.main,
-          color: "#fff",
-          px: 3,
-          py: 2,
-          borderTopLeftRadius: 8,
-          borderTopRightRadius: 8,
-          height: "4rem",
-          display: "flex",
-          alignItems: "center"
-        }}
-      >
-        <AssistantIcon sx={{ mr: 1.5 }} />
-        <Typography variant="h6" fontWeight={600}>
-          {tempProject ? `Assign Roles for: ${tempProject.title}` : "Assign Roles"}
+    <Box
+      sx={{
+        minHeight: "calc(100vh - 60px)",
+        width: "100%",
+        p: 4,
+      }}
+    >
+      {/* Encabezado */}
+      <Box mb={4} sx={{ px: 1 }}>
+        <Typography 
+          variant="h4" 
+          sx={{ fontWeight: 600, mb: 1 }}
+        >
+          Assign Roles
         </Typography>
-        <Chip
-          label={`${roles.length} Roles`}
-          size="small"
-          sx={{
-            ml: 2,
-            backgroundColor: alpha("#fff", 0.2),
-            color: "#fff",
-            fontWeight: 500
-          }}
-        />
       </Box>
 
-      <Box sx={{ p: 3 }}>
-        <Grid container spacing={3}>
-          <Grid item xs={12} md={6}>
-            <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
-              <Box
-                sx={{
-                  backgroundColor: theme.palette.primary.light,
-                  color: "#fff",
-                  width: 28,
-                  height: 28,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  borderRadius: "50%",
-                  mr: 1.5,
-                  fontWeight: "bold"
-                }}
-              >
-                1
-              </Box>
-              <Typography variant="subtitle1" fontWeight={700} color="text.primary">
-                AI Suggested Role Assignments
-              </Typography>
-            </Box>
+      <Paper 
+        elevation={0} 
+        sx={{ 
+          ...contentPaperStyles,
+          p: 0,
+          overflow: "hidden",
+          "&::before": {
+            content: '""',
+            position: "absolute",
+            top: 0,
+            left: 0,
+            width: "100%",
+            height: "4px",
+            background: ACCENTURE_COLORS.corePurple1,
+          },
+        }}
+      >
 
-            {roles.length > 0 ? (
-              <Box
-                sx={{
-                  maxHeight: 480,
-                  overflowY: "auto",
-                  pr: 1,
-                  pb: 1,
-                  "&::-webkit-scrollbar": { width: "8px" },
-                  "&::-webkit-scrollbar-thumb": {
-                    backgroundColor: alpha(theme.palette.primary.main, 0.3),
-                    borderRadius: "4px"
-                  },
-                  "&::-webkit-scrollbar-track": {
-                    backgroundColor: alpha(theme.palette.primary.main, 0.05),
-                    borderRadius: "4px"
-                  }
-                }}
-              >
-                {roles.map((r, i) => (
-                  <React.Fragment key={`${r.id}-${i}`}>
-                    <RoleCard
-                      role={r.role}
-                      name={r.assigned?.name || "Sin asignar"}
-                      avatar={r.assigned?.avatar}
-                      percentage={r.assigned?.score || 0}
-                      onClick={() => setSelectedRoleIndex(i)}
-                      selected={selectedRoleIndex === i}
-                    />
-                    {i === selectedRoleIndex && (
-                      <Box sx={{ mt: 1, mb: 2, px: 1 }}>
-                        <Typography variant="caption" color="text.secondary" sx={{ display: 'flex', alignItems: 'center' }}>
-                          <InfoIcon fontSize="inherit" sx={{ mr: 0.5 }} />
-                          Descripción: {r.description?.substring(0, 100)}...
+        <Box sx={{ p: 3, height: "calc(100vh - 240px)", display: "flex", flexDirection: "column" }}>
+          <Grid container spacing={3} sx={{ flexGrow: 1, overflow: "hidden" }}>
+            <Grid item xs={12} md={6} sx={{ height: "100%" }}>
+              <Box sx={{ 
+                display: "flex", 
+                flexDirection: "column", 
+                height: "100%",
+                overflow: "hidden"
+              }}>
+                <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
+                  <Box
+                    sx={{
+                      backgroundColor: ACCENTURE_COLORS.corePurple1,
+                      color: "#fff",
+                      width: 28,
+                      height: 28,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      borderRadius: "50%",
+                      mr: 1.5,
+                      fontWeight: "bold"
+                    }}
+                  >
+                    1
+                  </Box>
+                  <Typography variant="subtitle1" fontWeight={700} color={ACCENTURE_COLORS.corePurple3}>
+                    AI Suggested Role Assignments
+                  </Typography>
+                </Box>
+
+                <Paper sx={{ 
+                  flexGrow: 1, 
+                  overflow: "hidden",
+                  display: "flex",
+                  flexDirection: "column",
+                  borderRadius: 2,
+                  border: "1px solid rgba(0,0,0,0.08)",
+                  boxShadow: "none"
+                }}>
+                  {roles.length > 0 ? (
+                    <Box
+                      sx={{
+                        flexGrow: 1,
+                        overflowY: "auto",
+                        p: 2,
+                        "&::-webkit-scrollbar": { width: "8px" },
+                        "&::-webkit-scrollbar-track": {
+                          backgroundColor: "rgba(0,0,0,0.02)",
+                          borderRadius: "4px"
+                        },
+                        "&::-webkit-scrollbar-thumb": {
+                          backgroundColor: ACCENTURE_COLORS.accentPurple5,
+                          borderRadius: "4px",
+                          "&:hover": {
+                            backgroundColor: ACCENTURE_COLORS.accentPurple4,
+                          }
+                        }
+                      }}
+                    >
+                      {roles.map((r, i) => (
+                        <React.Fragment key={`${r.id}-${i}`}>
+                          <RoleCard
+                            role={r.role}
+                            name={r.assigned?.name || "Sin asignar"}
+                            avatar={r.assigned?.avatar}
+                            percentage={r.assigned?.score || 0}
+                            onClick={() => setSelectedRoleIndex(i)}
+                            selected={selectedRoleIndex === i}
+                          />
+                          {i === selectedRoleIndex && (
+                            <Box sx={{ mt: 1, mb: 2, px: 1 }}>
+                              <Typography variant="caption" color="text.secondary" sx={{ display: 'flex', alignItems: 'center' }}>
+                                <InfoIcon fontSize="inherit" sx={{ mr: 0.5, color: ACCENTURE_COLORS.accentPurple3 }} />
+                                Descripción: {r.description?.substring(0, 100)}...
+                              </Typography>
+                              {r.assigned && (
+                                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+                                  Pesos: Técnico {r.assigned.weights?.technical || "60"}%, Contextual {r.assigned.weights?.contextual || "40"}%
+                                </Typography>
+                              )}
+                            </Box>
+                          )}
+                        </React.Fragment>
+                      ))}
+                    </Box>
+                  ) : (
+                    <Box sx={{ 
+                      display: "flex", 
+                      alignItems: "center", 
+                      justifyContent: "center", 
+                      height: "100%",
+                      p: 4
+                    }}>
+                      <Typography variant="body1" color="text.secondary">
+                        No hay roles definidos para este proyecto
+                      </Typography>
+                    </Box>
+                  )}
+                </Paper>
+              </Box>
+            </Grid>
+
+            <Grid item xs={12} md={6} sx={{ height: "100%" }}>
+              <Box sx={{ 
+                display: "flex", 
+                flexDirection: "column", 
+                height: "100%",
+                overflow: "hidden"
+              }}>
+                <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
+                  <Box
+                    sx={{
+                      backgroundColor: ACCENTURE_COLORS.corePurple1,
+                      color: "#fff",
+                      width: 28,
+                      height: 28,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      borderRadius: "50%",
+                      mr: 1.5,
+                      fontWeight: "bold"
+                    }}
+                  >
+                    2
+                  </Box>
+                  <Typography variant="subtitle1" fontWeight={700} color={ACCENTURE_COLORS.corePurple3}>
+                    {roles.length > 0 ? (
+                      <>
+                        Candidate Matches for{" "}
+                        <Typography component="span" color={ACCENTURE_COLORS.corePurple2} sx={{ fontWeight: 700 }}>
+                          {roles[selectedRoleIndex]?.role || ""}
                         </Typography>
-                        {r.assigned && (
-                          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
-                            Pesos: Técnico {r.assigned.weights?.technical || "60"}%, Contextual {r.assigned.weights?.contextual || "40"}%
+                      </>
+                    ) : (
+                      "Candidate Matches"
+                    )}
+                  </Typography>
+                </Box>
+
+                <Paper sx={{ 
+                  flexGrow: 1, 
+                  overflow: "hidden",
+                  display: "flex",
+                  flexDirection: "column",
+                  borderRadius: 2,
+                  border: "1px solid rgba(0,0,0,0.08)",
+                  boxShadow: "none",
+                  backgroundColor: "rgba(255,255,255,0.8)"
+                }}>
+                  <Box
+                    sx={{
+                      flexGrow: 1,
+                      overflowY: "auto",
+                      p: 2,
+                      "&::-webkit-scrollbar": { width: "8px" },
+                      "&::-webkit-scrollbar-track": {
+                        backgroundColor: "rgba(0,0,0,0.02)",
+                        borderRadius: "4px"
+                      },
+                      "&::-webkit-scrollbar-thumb": {
+                        backgroundColor: ACCENTURE_COLORS.accentPurple5,
+                        borderRadius: "4px",
+                        "&:hover": {
+                          backgroundColor: ACCENTURE_COLORS.accentPurple4,
+                        }
+                      }
+                    }}
+                  >
+                    {roles.length > 0 ? (
+                      availableCandidates.length > 0 ? (
+                        availableCandidates.map(match => (
+                          <MatchedEmployeeCard
+                            key={match.id}
+                            name={match.name}
+                            avatar={match.avatar}
+                            score={match.score || match.combinedScore || 0}
+                            technicalScore={match.technicalScore || 0}
+                            contextualScore={match.contextualScore || 0}
+                            weights={match.weights || { technical: 60, contextual: 40 }}
+                            onSelect={() => handleEmployeeChange(selectedRoleIndex, match.id)}
+                          />
+                        ))
+                      ) : (
+                        <Box sx={{ 
+                          display: "flex", 
+                          alignItems: "center", 
+                          justifyContent: "center", 
+                          height: "100%",
+                          p: 4
+                        }}>
+                          <Typography variant="body1" color="text.secondary">
+                            No hay más candidatos disponibles para este rol
                           </Typography>
-                        )}
+                        </Box>
+                      )
+                    ) : (
+                      <Box sx={{ 
+                        display: "flex", 
+                        alignItems: "center", 
+                        justifyContent: "center", 
+                        height: "100%",
+                        p: 4
+                      }}>
+                        <Typography variant="body1" color="text.secondary">
+                          Seleccione un rol primero
+                        </Typography>
                       </Box>
                     )}
-                  </React.Fragment>
-                ))}
+                  </Box>
+                </Paper>
               </Box>
-            ) : (
-              <Box sx={{ textAlign: "center", py: 4, color: "text.secondary" }}>
-                <Typography>No hay roles definidos para este proyecto</Typography>
-              </Box>
-            )}
+            </Grid>
           </Grid>
 
-          <Grid item xs={12} md={6}>
-            <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
-              <Box
-                sx={{
-                  backgroundColor: theme.palette.primary.light,
-                  color: "#fff",
-                  width: 28,
-                  height: 28,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  borderRadius: "50%",
-                  mr: 1.5,
-                  fontWeight: "bold"
-                }}
-              >
-                2
-              </Box>
-              <Typography variant="subtitle1" fontWeight={700} color="text.primary">
-                {roles.length > 0 ? (
-                  <>
-                    Candidate Matches for{" "}
-                    <Typography component="span" color="primary" sx={{ fontWeight: 700 }}>
-                      {roles[selectedRoleIndex]?.role || ""}
-                    </Typography>
-                  </>
-                ) : (
-                  "Candidate Matches"
-                )}
-              </Typography>
-            </Box>
+          <Divider sx={{ my: 3 }} />
 
-            <Box
+          <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
+            <Button
+              variant="outlined"
+              onClick={handleCancel}
+              disabled={confirming}
               sx={{
-                maxHeight: 480,
-                overflowY: "auto",
-                backgroundColor: alpha(theme.palette.primary.main, 0.03),
-                borderRadius: 2,
-                p: 2,
-                border: "1px solid",
-                borderColor: alpha(theme.palette.primary.main, 0.1),
-                "&::-webkit-scrollbar": { width: "8px" },
-                "&::-webkit-scrollbar-thumb": {
-                  backgroundColor: alpha(theme.palette.primary.main, 0.3),
-                  borderRadius: "4px"
+                mr: 2,
+                color: ACCENTURE_COLORS.accentPurple1,
+                borderColor: ACCENTURE_COLORS.accentPurple1,
+                "&:hover": {
+                  borderColor: ACCENTURE_COLORS.accentPurple1,
+                  backgroundColor: `${ACCENTURE_COLORS.accentPurple1}10`,
                 },
-                "&::-webkit-scrollbar-track": {
-                  backgroundColor: alpha(theme.palette.primary.main, 0.05),
-                  borderRadius: "4px"
+                px: 3
+              }}
+              startIcon={<CloseIcon />}
+            >
+              CANCEL
+            </Button>
+            <Button
+              variant="contained"
+              onClick={handleConfirmAssignments}
+              disabled={confirming || roles.length === 0}
+              startIcon={
+                confirming ? <CircularProgress size={20} color="inherit" /> : <CheckCircleIcon />
+              }
+              sx={{
+                fontWeight: 600,
+                px: 3,
+                backgroundColor: ACCENTURE_COLORS.corePurple1,
+                "&:hover": {
+                  backgroundColor: ACCENTURE_COLORS.corePurple2
                 }
               }}
             >
-              {roles.length > 0 ? (
-                availableCandidates.length > 0 ? (
-                  availableCandidates.map(match => (
-                    <MatchedEmployeeCard
-                      key={match.id}
-                      name={match.name}
-                      avatar={match.avatar}
-                      score={match.score || match.combinedScore || 0}
-                      technicalScore={match.technicalScore || 0}
-                      contextualScore={match.contextualScore || 0}
-                      weights={match.weights || { technical: 60, contextual: 40 }}
-                      onSelect={() => handleEmployeeChange(selectedRoleIndex, match.id)}
-                    />
-                  ))
-                ) : (
-                  <Box sx={{ textAlign: "center", py: 4, color: "text.secondary" }}>
-                    <Typography>No hay más candidatos disponibles para este rol</Typography>
-                  </Box>
-                )
-              ) : (
-                <Box sx={{ textAlign: "center", py: 4, color: "text.secondary" }}>
-                  <Typography>Seleccione un rol primero</Typography>
-                </Box>
-              )}
-            </Box>
-          </Grid>
-        </Grid>
-
-        <Divider sx={{ my: 4 }} />
-
-        <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
-          <Button
-            variant="outlined"
-            color="inherit"
-            onClick={handleCancel}
-            disabled={confirming}
-            sx={{
-              mr: 2,
-              color: theme.palette.text.secondary,
-              borderColor: theme.palette.divider,
-              "&:hover": {
-                borderColor: theme.palette.text.secondary,
-                backgroundColor: alpha(theme.palette.text.secondary, 0.04)
-              }
-            }}
-            startIcon={<CloseIcon />}
-          >
-            CANCEL
-          </Button>
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={handleConfirmAssignments}
-            disabled={confirming || roles.length === 0}
-            startIcon={
-              confirming ? <CircularProgress size={20} color="inherit" /> : <CheckCircleIcon />
-            }
-            sx={{
-              fontWeight: 600,
-              boxShadow: 2,
-              px: 3,
-              "&:hover": {
-                boxShadow: 4
-              }
-            }}
-          >
-            {confirming ? "PROCESSING..." : "CONFIRM ASSIGNMENTS"}
-          </Button>
+              {confirming ? "PROCESSING..." : "CONFIRM ASSIGNMENTS"}
+            </Button>
+          </Box>
         </Box>
-      </Box>
+      </Paper>
 
-      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)}>
-        <DialogTitle>Confirmar Proyecto y Asignaciones</DialogTitle>
-        <DialogContent>
-        <DialogContentText>
+      {/* Diálogo de confirmación para guardar proyecto */}
+      <Dialog 
+        open={dialogOpen} 
+        onClose={() => setDialogOpen(false)}
+        PaperProps={{
+          sx: {
+            borderRadius: 2,
+            maxWidth: 500
+          }
+        }}
+      >
+        <DialogTitle sx={{ 
+          fontWeight: 600, 
+          pb: 1, 
+          color: ACCENTURE_COLORS.corePurple3,
+          borderBottom: `1px solid ${ACCENTURE_COLORS.accentPurple5}`
+        }}>
+          Confirmar Proyecto y Asignaciones
+        </DialogTitle>
+        <DialogContent sx={{ mt: 2 }}>
+          <DialogContentText>
             Estás a punto de <strong>crear el proyecto y finalizar</strong> el proceso de asignación de roles.
             Se asignarán los siguientes roles:
             <Box component="ul" sx={{ mt: 2 }}>
@@ -838,12 +989,88 @@ const RoleAssign = () => {
             ¿Deseas continuar con la creación del proyecto y las asignaciones?
           </DialogContentText>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDialogOpen(false)} color="inherit">
+        <DialogActions sx={{ px: 3, pb: 3 }}>
+          <Button 
+            onClick={() => setDialogOpen(false)} 
+            color="inherit"
+            sx={{
+              color: ACCENTURE_COLORS.accentPurple1,
+              "&:hover": {
+                backgroundColor: `${ACCENTURE_COLORS.accentPurple1}10`,
+              }
+            }}
+          >
             Cancelar
           </Button>
-          <Button onClick={handleFinalConfirmation} color="primary" variant="contained" autoFocus>
+          <Button 
+            onClick={handleFinalConfirmation} 
+            variant="contained" 
+            autoFocus
+            sx={{
+              backgroundColor: ACCENTURE_COLORS.corePurple1,
+              "&:hover": {
+                backgroundColor: ACCENTURE_COLORS.corePurple2
+              }
+            }}
+          >
             Confirmar
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Diálogo de confirmación para salir */}
+      <Dialog 
+        open={exitDialogOpen} 
+        onClose={handleCancelExit}
+        PaperProps={{
+          sx: {
+            borderRadius: 2,
+            maxWidth: 500
+          }
+        }}
+      >
+        <DialogTitle sx={{ 
+          fontWeight: 600, 
+          pb: 1, 
+          color: ACCENTURE_COLORS.corePurple3,
+          borderBottom: `1px solid ${ACCENTURE_COLORS.accentPurple5}`
+        }}>
+          ¿Abandonar cambios?
+        </DialogTitle>
+        <DialogContent sx={{ mt: 2 }}>
+          <DialogContentText>
+            Tienes cambios sin guardar en las asignaciones de roles. Si sales ahora, perderás todos los cambios realizados.
+            
+            <Box sx={{ mt: 2, fontWeight: 500, color: ACCENTURE_COLORS.corePurple3 }}>
+              ¿Estás seguro de que deseas salir sin guardar?
+            </Box>
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 3 }}>
+          <Button 
+            onClick={handleCancelExit} 
+            color="inherit"
+            autoFocus
+            sx={{
+              color: ACCENTURE_COLORS.accentPurple1,
+              "&:hover": {
+                backgroundColor: `${ACCENTURE_COLORS.accentPurple1}10`,
+              }
+            }}
+          >
+            Seguir editando
+          </Button>
+          <Button 
+            onClick={handleConfirmExit} 
+            variant="contained"
+            sx={{
+              backgroundColor: ACCENTURE_COLORS.corePurple1,
+              "&:hover": {
+                backgroundColor: ACCENTURE_COLORS.corePurple2
+              }
+            }}
+          >
+            Salir sin guardar
           </Button>
         </DialogActions>
       </Dialog>
@@ -854,11 +1081,19 @@ const RoleAssign = () => {
         onClose={() => setSnackbar({ ...snackbar, open: false })}
         anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
       >
-        <Alert onClose={() => setSnackbar({ ...snackbar, open: false })} severity={snackbar.severity} sx={{ width: "100%" }}>
+        <Alert 
+          onClose={() => setSnackbar({ ...snackbar, open: false })} 
+          severity={snackbar.severity} 
+          sx={{ 
+            width: "100%",
+            borderRadius: 2,
+            boxShadow: "0 4px 12px rgba(0,0,0,0.15)"
+          }}
+        >
           {snackbar.message}
         </Alert>
       </Snackbar>
-    </Paper>
+    </Box>
   );
 };
 
