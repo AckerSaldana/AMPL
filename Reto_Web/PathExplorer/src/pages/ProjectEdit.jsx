@@ -205,7 +205,22 @@ const ProjectEdit = () => {
   const handleSubmitFeedback = async () => {
     setSaving(true);
     try {
-      // por cada par [user_id, notes]
+      const projectUpdates = {
+        title: overviewData.title,
+        description: overviewData.description,
+        logo: overviewData.logo,        // si overviewData.logo es URL
+        end_date: overviewData.dueDate,
+        priority: overviewData.priority,
+        status: "Completed",
+        progress: 100,
+      };
+
+      const { error: projectError } = await supabase
+        .from("Project")
+        .update(projectUpdates)
+        .eq("projectID", projectId);
+      if (projectError) throw projectError;
+
       await Promise.all(
         Object.entries(feedbackNotes).map(([user_id, notes]) =>
           supabase
@@ -214,14 +229,26 @@ const ProjectEdit = () => {
             .match({ project_id: projectId, user_id })
         )
       );
-      setSnackbar({ open: true, message: "Feedback saved!", severity: "success" });
+
+      setSnackbar({
+        open: true,
+        message: "Proyecto & feedback saved succesfully!",
+        severity: "success",
+      });
       setFeedbackOpen(false);
-    } catch (err) {
-      setSnackbar({ open: true, message: err.message, severity: "error" });
+
+      setTimeout(() => navigate(`/project-detail/${projectId}`), 1000);
+    } catch (error) {
+      setSnackbar({
+        open: true,
+        message: `Error al guardar: ${error.message}`,
+        severity: "error",
+      });
     } finally {
       setSaving(false);
     }
   };
+
 
   
 
@@ -305,33 +332,6 @@ const ProjectEdit = () => {
       setSnackbar({
         open: true,
         message: `Failed to save changes: ${error.message}`,
-        severity: "error",
-      });
-    } finally {
-      setSaving(false);
-    }
-  };
-  const handleCompleteProject = async () => {
-    setSaving(true);
-    try {
-      // Marca estado Completed y progreso = 100
-      const { error } = await supabase
-        .from("Project")
-        .update({ status: "Completed", progress: 100 })
-        .eq("projectID", projectId);
-
-      if (error) throw error;
-
-      setSnackbar({
-        open: true,
-        message: "Project marked as completed!",
-        severity: "success",
-      });
-      setTimeout(() => navigate(`/project-detail/${projectId}`), 1500);
-    } catch (error) {
-      setSnackbar({
-        open: true,
-        message: `Error completing project: ${error.message}`,
         severity: "error",
       });
     } finally {
