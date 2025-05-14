@@ -65,7 +65,7 @@ const ProjectEdit = () => {
   });
 
   const [feedbackOpen, setFeedbackOpen] = useState(false);
-  const [feedbackText, setFeedbackText] = useState("");
+  const [feedbackNotes, setFeedbackNotes] = useState({});
 
 
   const handleOpenFeedback = () => setFeedbackOpen(true);
@@ -170,13 +170,28 @@ const ProjectEdit = () => {
       const teamByProject = userRolesData
         .filter((entry) => entry.User)
         .map(({ User, role_name }) => ({
-          name: User.name || "User",
-          last_name: User.last_name || "",
-          avatar: User.profile_pic || "",
-          role: role_name || "Member",
+          user_id: User.user_id,
+          name: User.name,
+          last_name: User.last_name,
+          avatar: User.profile_pic,
+          role: role_name,
         }));
 
       setTeammates(teamByProject);
+      // inicializa una clave vacía para cada miembro
+      const initial = {};
+      teamByProject.forEach((m) => {
+        initial[m.user_id] = "";
+      });
+      setFeedbackNotes(initial);
+
+
+      const initialNotes = {};
+      teamByProject.forEach((member) => {
+        initialNotes[member.user_id] = "";
+      });
+      setFeedbackNotes(initialNotes);
+
     } catch (error) {
       setSnackbar({
         open: true,
@@ -186,36 +201,24 @@ const ProjectEdit = () => {
     }
   };
 
+
   const handleSubmitFeedback = async () => {
     setSaving(true);
     try {
-      const updates = {
-        status: "Completed",
-        progress: 100,
-        feedback_text: feedbackText,        // <-- aquí el nuevo campo
-      };
-  
-      const { error } = await supabase
-        .from("Project")
-        .update(updates)
-        .eq("projectID", projectId);
-  
-      if (error) throw error;
-  
-      setSnackbar({
-        open: true,
-        message: "Feedback submitted and project completed!",
-        severity: "success",
-      });
+      // por cada par [user_id, notes]
+      await Promise.all(
+        Object.entries(feedbackNotes).map(([user_id, notes]) =>
+          supabase
+            .from("UserRole")
+            .update({ feedback_notes: notes })
+            .match({ project_id: projectId, user_id })
+        )
+      );
+
+      setSnackbar({ open: true, message: "Feedback saved!", severity: "success" });
       setFeedbackOpen(false);
-      // opcional: navegar después de un instante
-      setTimeout(() => navigate(`/project-detail/${projectId}`), 1000);
-    } catch (error) {
-      setSnackbar({
-        open: true,
-        message: `Error: ${error.message}`,
-        severity: "error",
-      });
+    } catch (err) {
+      setSnackbar({ open: true, message: err.message, severity: "error" });
     } finally {
       setSaving(false);
     }
@@ -1069,21 +1072,31 @@ const ProjectEdit = () => {
         fullWidth
       >
         <DialogTitle sx={{ textAlign: "center", pt: 2 }}>
-          <Typography variant="h5" fontWeight={600}>
+          <Typography component="div" variant="h5" fontWeight={600}>
             PROJECT FEEDBACK
           </Typography>
         </DialogTitle>
-        <DialogContent>
-        <TextField
-          autoFocus
-          multiline
-          rows={8}
-          placeholder="Escribe tu feedback aquí…"
-          variant="outlined"
-          fullWidth
-          value={feedbackText}                     // <-- valor
-          onChange={(e) => setFeedbackText(e.target.value)}  // <-- onChange
-        />
+        <DialogContent dividers>
+          {teammates.map((m) => (
+            <Box key={m.user_id} sx={{ mb: 2 }}>
+              <Typography fontWeight={500}>
+                {m.name} {m.last_name} <i>({m.role})</i>
+              </Typography>
+              <TextField
+                multiline
+                rows={3}
+                fullWidth
+                placeholder="Escribe tu feedback aquí…"
+                value={feedbackNotes[m.user_id] || ""}
+                onChange={(e) =>
+                  setFeedbackNotes(prev => ({
+                    ...prev,
+                    [m.user_id]: e.target.value
+                  }))
+                }
+              />
+            </Box>
+          ))}
         </DialogContent>
         <DialogActions sx={{ justifyContent: "center", mb: 1 }}>
           <Button

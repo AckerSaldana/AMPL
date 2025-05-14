@@ -4,23 +4,28 @@ import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
 import PersonIcon from "@mui/icons-material/Person";
 import TipsAndUpdatesIcon from "@mui/icons-material/TipsAndUpdates";
 import BuildIcon from "@mui/icons-material/Build";
-import { alpha } from "@mui/material/styles";
+import { ACCENTURE_COLORS } from "../styles/styles";
 
 const MatchedEmployeeCard = ({ 
   name, 
   avatar, 
-  score = 0,  // Valor predeterminado 
+  score = 0,
   technicalScore = 0, 
   contextualScore = 0, 
-  weights = { technical: 60, contextual: 40 },  // Valores predeterminados
+  weights = { technical: 60, contextual: 40 },
   onSelect 
 }) => {
   
-  
+  // Determinar el color del score basado en el porcentaje
+  const getScoreColor = (value) => {
+    if (value >= 90) return ACCENTURE_COLORS.green;
+    if (value >= 70) return ACCENTURE_COLORS.orange;
+    return ACCENTURE_COLORS.red;
+  };
   
   return (
     <Paper
-      elevation={1}
+      elevation={0}
       sx={{
         display: "flex",
         alignItems: "center",
@@ -30,11 +35,12 @@ const MatchedEmployeeCard = ({
         borderRadius: 1.5,
         transition: "all 0.2s ease-in-out",
         border: "1px solid",
-        borderColor: alpha("#000", 0.08),
+        borderColor: "rgba(0,0,0,0.08)",
         "&:hover": {
-          boxShadow: 3,
-          borderColor: alpha("#673ab7", 0.3),
-          backgroundColor: alpha("#673ab7", 0.02),
+          boxShadow: "0 3px 8px rgba(0,0,0,0.08)",
+          borderColor: ACCENTURE_COLORS.accentPurple4,
+          transform: "translateY(-2px)",
+          backgroundColor: "rgba(255,255,255,0.9)",
         },
       }}
       onClick={onSelect}
@@ -45,9 +51,10 @@ const MatchedEmployeeCard = ({
           width: 48, 
           height: 48, 
           mr: 2.5, 
-          backgroundColor: "primary.light",
-          boxShadow: "0 2px 8px rgba(0,0,0,0.12)",
-          border: "2px solid #fff"
+          backgroundColor: `${ACCENTURE_COLORS.corePurple1}15`,
+          color: ACCENTURE_COLORS.corePurple2,
+          fontWeight: "bold",
+          border: `1px solid ${ACCENTURE_COLORS.accentPurple5}`
         }}
       >
         {!avatar && <PersonIcon />}
@@ -56,7 +63,7 @@ const MatchedEmployeeCard = ({
         <Typography 
           fontWeight={600} 
           variant="subtitle2"
-          color="text.primary"
+          color={ACCENTURE_COLORS.corePurple3}
           sx={{ mb: 0.5 }}
         >
           {name}
@@ -68,11 +75,10 @@ const MatchedEmployeeCard = ({
             sx={{ 
               height: 20, 
               fontSize: "0.7rem",
-              backgroundColor: alpha("#61dafb", 0.1),
-              borderColor: alpha("#61dafb", 0.2),
-              color: "text.secondary" 
+              backgroundColor: `${ACCENTURE_COLORS.corePurple1}10`,
+              color: ACCENTURE_COLORS.corePurple2,
+              border: `1px solid ${ACCENTURE_COLORS.accentPurple4}30`
             }}
-            variant="outlined"
           />
           <Chip
             label="JavaScript"
@@ -80,11 +86,10 @@ const MatchedEmployeeCard = ({
             sx={{ 
               height: 20, 
               fontSize: "0.7rem",
-              backgroundColor: alpha("#f7df1e", 0.1),
-              borderColor: alpha("#f7df1e", 0.2),
-              color: "text.secondary" 
+              backgroundColor: `${ACCENTURE_COLORS.corePurple1}10`,
+              color: ACCENTURE_COLORS.corePurple2,
+              border: `1px solid ${ACCENTURE_COLORS.accentPurple4}30`
             }}
-            variant="outlined"
           />
           <Chip
             label="TypeScript"
@@ -92,11 +97,10 @@ const MatchedEmployeeCard = ({
             sx={{ 
               height: 20, 
               fontSize: "0.7rem",
-              backgroundColor: alpha("#3178c6", 0.1),
-              borderColor: alpha("#3178c6", 0.2),
-              color: "text.secondary" 
+              backgroundColor: `${ACCENTURE_COLORS.corePurple1}10`,
+              color: ACCENTURE_COLORS.corePurple2,
+              border: `1px solid ${ACCENTURE_COLORS.accentPurple4}30`
             }}
-            variant="outlined"
           />
         </Box>
       </Box>
@@ -108,13 +112,13 @@ const MatchedEmployeeCard = ({
                 Desglose de compatibilidad:
               </Typography>
               <Box sx={{ display: "flex", alignItems: "center", mb: 0.5 }}>
-                <BuildIcon fontSize="small" sx={{ mr: 1, color: "warning.main" }} />
+                <BuildIcon fontSize="small" sx={{ mr: 1, color: ACCENTURE_COLORS.corePurple1 }} />
                 <Typography variant="body2">
                   Técnico: <b>{technicalScore}%</b> <small>(peso {weights?.technical || 60}%)</small>
                 </Typography>
               </Box>
               <Box sx={{ display: "flex", alignItems: "center" }}>
-                <TipsAndUpdatesIcon fontSize="small" sx={{ mr: 1, color: "info.main" }} />
+                <TipsAndUpdatesIcon fontSize="small" sx={{ mr: 1, color: ACCENTURE_COLORS.accentPurple1 }} />
                 <Typography variant="body2">
                   Contextual: <b>{contextualScore}%</b> <small>(peso {weights?.contextual || 40}%)</small>
                 </Typography>
@@ -136,7 +140,7 @@ const MatchedEmployeeCard = ({
             variant="h6" 
             fontWeight={700}
             sx={{ 
-              color: score >= 90 ? "success.main" : score >= 70 ? "warning.main" : "error.main"
+              color: getScoreColor(score)
             }}
           >{`${score || 0}%`}</Typography>
           <Typography 
@@ -152,13 +156,16 @@ const MatchedEmployeeCard = ({
         size="small" 
         color="primary"
         sx={{ 
-          backgroundColor: alpha("#673ab7", 0.08),
-          "&:hover": {
-            backgroundColor: alpha("#673ab7", 0.15),
+          backgroundColor: `${ACCENTURE_COLORS.accentPurple5}90`,
+          color: ACCENTURE_COLORS.corePurple1,
+          width: 32,
+          height: 32,
+          '&:hover': {
+            backgroundColor: ACCENTURE_COLORS.accentPurple5,
           }
         }}
       >
-        <ArrowForwardIosIcon fontSize="small" />
+        <ArrowForwardIosIcon sx={{ fontSize: 16 }} />
       </IconButton>
     </Paper>
   );
