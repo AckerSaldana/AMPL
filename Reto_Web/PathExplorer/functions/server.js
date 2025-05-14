@@ -1076,14 +1076,12 @@ INSTRUCCIONES:
 
 PARA EVALUACIÓN TÉCNICA (${technicalWeight}%):
 1. Para cada candidato, evalúa si tiene las habilidades requeridas por el rol.
-2. PRIORIZA ESPECIALMENTE candidatos que tengan las habilidades más importantes del rol.
+2. PRIORIZA ESPECIALMENTE candidatos que tengan mas habilidades o todas las habilidades requeridas por el rol.
 3. Compara los años de experiencia del candidato con los años requeridos para cada habilidad.
 4. Asigna puntuaciones siguiendo estas reglas MEJORADAS:
    - Si el candidato tiene exactamente los años requeridos: 100%
-   - Si el candidato tiene más años: 100% + bonus de 10% por cada año adicional (máximo 30% extra)
-   - Si el candidato tiene menos años: Porcentaje más generoso (ej: 2 años de 3 requeridos = 85%)
-   - Si el rol no especifica años y el candidato tiene la habilidad: 90%
-   - Añade un 5% adicional por cada habilidad donde el candidato excede las expectativas
+   - Si el candidato tiene más años: 100% + bonus de 5% por cada año adicional (máximo 20% extra)
+   - Si el candidato tiene menos años: Porcentaje más generoso (ej: 2 años de 3 requeridos = 75%)
 5. Calcula un score técnico (0-100) para cada candidato.
 
 PARA EVALUACIÓN CONTEXTUAL (${contextualWeight}%):
@@ -1092,11 +1090,11 @@ PARA EVALUACIÓN CONTEXTUAL (${contextualWeight}%):
 3. No inventes ni asumas experiencia que no esté mencionada explícitamente en la bio.
 4. Sé GENEROSO en la evaluación contextual cuando veas términos relacionados con la descripción del rol.
 5. Asigna un score contextual (0-100) basado en esta alineación.
-6. Si la bio está vacía o es muy limitada, asigna un valor de 80 (más generoso).
+6. Si la bio está vacía o es muy limitada, asigna un valor de 70 (más generoso).
 
 PARA SCORE FINAL:
 1. Combina ambos scores usando las ponderaciones exactas: (${technicalWeight}% × Score Técnico) + (${contextualWeight}% × Score Contextual)
-2. El score final debe estar entre 75 y 100, con un mínimo de 75 para cualquier candidato que tenga al menos una habilidad relevante.
+2. El score final debe estar entre 65 y 100, con un mínimo de 65 para cualquier candidato que tenga al menos una habilidad relevante.
 
 FORMATO DE RESPUESTA:
 Responde con un objeto JSON con esta estructura exacta:
@@ -1121,7 +1119,7 @@ IMPORTANTE:
 - El score técnico debe basarse ÚNICAMENTE en los años de experiencia de las habilidades coincidentes.
 - El score contextual debe basarse ÚNICAMENTE en el contenido del campo "bio" del candidato.
 - Incluye el nombre de la habilidad en los detalles del match para mejorar la explicabilidad.
-- Asigna scores que reflejen un rango más generoso entre 75-100 para candidatos con al menos algunas habilidades relevantes.
+- Asigna scores que reflejen un rango más generoso entre 65-100 para candidatos con al menos algunas habilidades relevantes.
 `;
 }
 
@@ -1445,7 +1443,7 @@ export async function filteredGPTMatching(role, employees, skillMap = {}, topN =
   
   // Determinar número óptimo de candidatos con valores aumentados
   const baseTopN = employees.length <= 5 ? employees.length : 
-                   employees.length <= 30 ? Math.ceil(employees.length * 0.7) : 25; // Aumentado a 25
+                   employees.length <= 30 ? Math.ceil(employees.length * 0.7) : 15; // Aumentado a 25
   
   // Selección mejorada con diversidad
   const topCandidates = ensureDiverseSelection(similarities, employees, baseTopN);

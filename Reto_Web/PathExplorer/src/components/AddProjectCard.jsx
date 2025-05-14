@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import {
   Box,
-  Paper,
   Typography,
   TextField,
   MenuItem,
@@ -14,12 +13,27 @@ import {
   Chip,
   Card,
   CardContent,
-  Divider
+  Divider,
+  Stack,
+  Fade
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
+import AssignmentIcon from "@mui/icons-material/Assignment";
+import BusinessIcon from "@mui/icons-material/Business";
+import PriorityHighIcon from "@mui/icons-material/PriorityHigh";
+import EventIcon from "@mui/icons-material/Event";
+import DescriptionIcon from "@mui/icons-material/Description";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../supabase/supabaseClient";
+import { 
+  ACCENTURE_COLORS, 
+  formFieldStyles, 
+  primaryButtonStyles, 
+  outlineButtonStyles,
+  statusChipStyles,
+  chipStyles
+} from "../styles/styles";
 
 // Modificado para usar props: roles, onEditRole, onDeleteRole
 export const AddProjectCard = ({ roles, onEditRole, onDeleteRole }) => {
@@ -108,12 +122,11 @@ export const AddProjectCard = ({ roles, onEditRole, onDeleteRole }) => {
     try {
       setLoading(true);
 
-      // Preparar los roles con el formato correcto para el matching
+      // Preparar los roles con el formato correcto para el matching (sin yearsOfExperience)
       const formattedRoles = roles.map(role => ({
         id: role.id,
         name: role.name,
         area: role.area,
-        yearsOfExperience: role.yearsOfExperience,
         description: role.description,
         skills: role.skills.map(skill => ({
           id: skill.id,
@@ -171,44 +184,29 @@ export const AddProjectCard = ({ roles, onEditRole, onDeleteRole }) => {
   };
 
   const handleCancel = () => {
-    // Puedes navegar de vuelta a la página de proyectos o mostrar un diálogo de confirmación
     navigate("/projects");
   };
 
   return (
-    <Paper 
-      sx={{ 
-        height: "100%", 
-        boxShadow: "0px 4px 12px rgba(0, 0, 0, 0.08)",
-        borderRadius: 1,
-        overflow: "hidden",
-        display: "flex",
-        flexDirection: "column",
-      }}
-    >
+    <Box sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
       {/* Encabezado */}
-      <Box
-        sx={{
-          backgroundColor: theme.palette.primary.main,
-          py: 2,
-          px: 3,
-          borderTopLeftRadius: 4,
-          borderTopRightRadius: 4,
-        }}
-      >
-        <Typography variant="h6" fontWeight={600} color="white">
-          Add a project
-        </Typography>
-      </Box>
+      <Typography variant="h6" fontWeight={600} color={ACCENTURE_COLORS.corePurple3} gutterBottom>
+        Project Details
+      </Typography>
+      <Typography variant="body2" color="text.secondary" mb={3}>
+        Fill in the basic information about your new project
+      </Typography>
 
-      {/* Contenido principal - con flex-grow para que ocupe el espacio disponible */}
-      <Box sx={{ p: 3, flexGrow: 1, display: "flex", flexDirection: "column" }}>
-        {/* Contenido scrollable */}
-        <Box sx={{ flexGrow: 1, overflow: "auto" }}>
-          <Box mb={3}>
-            <Typography fontWeight={600} mb={1} color="text.primary">
-              Project title
-            </Typography>
+      {/* Contenido principal */}
+      <Box sx={{ mb: 4, flexGrow: 1, overflow: "auto" }}>
+        <Stack spacing={3}>
+          <Box>
+            <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
+              <AssignmentIcon sx={{ color: ACCENTURE_COLORS.corePurple2, mr: 1, fontSize: 18 }} />
+              <Typography fontWeight={600} color="text.primary">
+                Project title
+              </Typography>
+            </Box>
             <TextField
               fullWidth
               placeholder="Add project title here..."
@@ -217,18 +215,19 @@ export const AddProjectCard = ({ roles, onEditRole, onDeleteRole }) => {
               value={projectData.title}
               onChange={handleInputChange}
               sx={{
-                "& .MuiOutlinedInput-root": {
-                  borderRadius: 1,
-                },
+                ...formFieldStyles
               }}
             />
           </Box>
 
-          <Box display="flex" gap={3} mb={3}>
-            <Box flex={1}>
-              <Typography fontWeight={600} mb={1} color="text.primary">
-                Start Date
-              </Typography>
+          <Box sx={{ display: "flex", gap: 2, flexWrap: { xs: "wrap", sm: "nowrap" } }}>
+            <Box sx={{ flex: 1, minWidth: { xs: "100%", sm: "45%" } }}>
+              <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
+                <EventIcon sx={{ color: ACCENTURE_COLORS.corePurple2, mr: 1, fontSize: 18 }} />
+                <Typography fontWeight={600} color="text.primary">
+                  Start Date
+                </Typography>
+              </Box>
               <TextField
                 fullWidth
                 type="date"
@@ -236,17 +235,18 @@ export const AddProjectCard = ({ roles, onEditRole, onDeleteRole }) => {
                 value={projectData.start_date}
                 onChange={handleInputChange}
                 size="small"
-                InputProps={{
-                  sx: {
-                    borderRadius: 1,
-                  },
+                sx={{
+                  ...formFieldStyles
                 }}
               />
             </Box>
-            <Box flex={1}>
-              <Typography fontWeight={600} mb={1} color="text.primary">
-                End Date
-              </Typography>
+            <Box sx={{ flex: 1, minWidth: { xs: "100%", sm: "45%" } }}>
+              <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
+                <EventIcon sx={{ color: ACCENTURE_COLORS.corePurple2, mr: 1, fontSize: 18 }} />
+                <Typography fontWeight={600} color="text.primary">
+                  End Date
+                </Typography>
+              </Box>
               <TextField
                 fullWidth
                 type="date"
@@ -254,20 +254,21 @@ export const AddProjectCard = ({ roles, onEditRole, onDeleteRole }) => {
                 value={projectData.end_date}
                 onChange={handleInputChange}
                 size="small"
-                InputProps={{
-                  sx: {
-                    borderRadius: 1,
-                  },
+                sx={{
+                  ...formFieldStyles
                 }}
               />
             </Box>
           </Box>
 
           {/* Selección de cliente */}
-          <Box mb={3}>
-            <Typography fontWeight={600} mb={1} color="text.primary">
-              Client
-            </Typography>
+          <Box>
+            <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
+              <BusinessIcon sx={{ color: ACCENTURE_COLORS.corePurple2, mr: 1, fontSize: 18 }} />
+              <Typography fontWeight={600} color="text.primary">
+                Client
+              </Typography>
+            </Box>
             <TextField
               select
               fullWidth
@@ -277,9 +278,7 @@ export const AddProjectCard = ({ roles, onEditRole, onDeleteRole }) => {
               size="small"
               disabled={loadingClients}
               sx={{
-                "& .MuiOutlinedInput-root": {
-                  borderRadius: 1,
-                },
+                ...formFieldStyles
               }}
             >
               <MenuItem value="">-- Select Client --</MenuItem>
@@ -291,11 +290,14 @@ export const AddProjectCard = ({ roles, onEditRole, onDeleteRole }) => {
             </TextField>
           </Box>
 
-          <Box display="flex" gap={3} mb={3}>
-            <Box flex={1}>
-              <Typography fontWeight={600} mb={1} color="text.primary">
-                Priority
-              </Typography>
+          <Box sx={{ display: "flex", gap: 2, flexWrap: { xs: "wrap", sm: "nowrap" } }}>
+            <Box sx={{ flex: 1, minWidth: { xs: "100%", sm: "45%" } }}>
+              <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
+                <PriorityHighIcon sx={{ color: ACCENTURE_COLORS.corePurple2, mr: 1, fontSize: 18 }} />
+                <Typography fontWeight={600} color="text.primary">
+                  Priority
+                </Typography>
+              </Box>
               <TextField
                 select
                 fullWidth
@@ -304,9 +306,7 @@ export const AddProjectCard = ({ roles, onEditRole, onDeleteRole }) => {
                 onChange={handleInputChange}
                 size="small"
                 sx={{
-                  "& .MuiOutlinedInput-root": {
-                    borderRadius: 1,
-                  },
+                  ...formFieldStyles
                 }}
               >
                 <MenuItem value="Low">Low</MenuItem>
@@ -314,10 +314,22 @@ export const AddProjectCard = ({ roles, onEditRole, onDeleteRole }) => {
                 <MenuItem value="High">High</MenuItem>
               </TextField>
             </Box>
-            <Box flex={1}>
-              <Typography fontWeight={600} mb={1} color="text.primary">
-                Status
-              </Typography>
+            <Box sx={{ flex: 1, minWidth: { xs: "100%", sm: "45%" } }}>
+              <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
+                <Box 
+                  component="span" 
+                  sx={{ 
+                    width: 18, 
+                    height: 18, 
+                    borderRadius: "50%", 
+                    bgcolor: ACCENTURE_COLORS.corePurple2, 
+                    mr: 1 
+                  }}
+                />
+                <Typography fontWeight={600} color="text.primary">
+                  Status
+                </Typography>
+              </Box>
               <TextField
                 select
                 fullWidth
@@ -326,9 +338,7 @@ export const AddProjectCard = ({ roles, onEditRole, onDeleteRole }) => {
                 onChange={handleInputChange}
                 size="small"
                 sx={{
-                  "& .MuiOutlinedInput-root": {
-                    borderRadius: 1,
-                  },
+                  ...formFieldStyles
                 }}
               >
                 <MenuItem value="Not Started">Not Started</MenuItem>
@@ -338,208 +348,298 @@ export const AddProjectCard = ({ roles, onEditRole, onDeleteRole }) => {
             </Box>
           </Box>
 
-          <Box mb={3}>
-            <Typography fontWeight={600} mb={1} color="text.primary">
-              Description
-            </Typography>
+          <Box>
+            <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
+              <DescriptionIcon sx={{ color: ACCENTURE_COLORS.corePurple2, mr: 1, fontSize: 18 }} />
+              <Typography fontWeight={600} color="text.primary">
+                Description
+              </Typography>
+            </Box>
             <TextField
               fullWidth
               placeholder="Add a description here..."
               multiline
-              rows={4}
+              rows={3}
               name="description"
               value={projectData.description}
               onChange={handleInputChange}
               sx={{
-                "& .MuiOutlinedInput-root": {
-                  borderRadius: 1,
-                },
+                ...formFieldStyles
               }}
             />
           </Box>
+        </Stack>
+      </Box>
 
-          {/* Sección de roles */}
-          <Box mb={3}>
-            <Box 
-              display="flex" 
-              justifyContent="space-between" 
-              alignItems="center"
-              mb={1.5}
-            >
-              <Typography fontWeight={600} color="text.primary">
-                Project Roles
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                {roles.length} {roles.length === 1 ? 'role' : 'roles'} added
-              </Typography>
-            </Box>
-            
-            {/* Lista de roles */}
-            <Box
-              sx={{
-                border: "1px solid",
-                borderColor: "divider",
-                borderRadius: 1,
-                p: 0,
-                maxHeight: 300,
-                overflowY: "auto",
-              }}
-            >
-              {roles.length > 0 ? (
-                roles.map((role, index) => (
-                  <Card
-                    key={role.id}
-                    variant="outlined"
-                    sx={{ 
-                      mb: index < roles.length - 1 ? 1 : 0,
-                      mx: 1, 
-                      mt: index === 0 ? 1 : 0,
-                      borderRadius: 1,
-                      boxShadow: "0 1px 3px rgba(0,0,0,0.05)"
-                    }}
-                  >
-                    <CardContent sx={{ p: 2, "&:last-child": { pb: 2 } }}>
-                      <Box
-                        sx={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "flex-start",
-                        }}
-                      >
-                        <Box>
-                          <Typography variant="subtitle2" fontWeight={600}>
-                            {role.name}
-                          </Typography>
-                          <Typography variant="body2" color="text.secondary">
-                            {role.area} • {role.yearsOfExperience || 0} years experience
-                          </Typography>
-                          
-                          {/* Mostrar skills como chips */}
-                          {role.skills && role.skills.length > 0 && (
-                            <Box sx={{ mt: 1, display: "flex", flexWrap: "wrap", gap: 0.5 }}>
-                              {role.skills.map((skill, idx) => (
-                                <Chip
-                                  key={idx}
-                                  label={`${skill.name} (${skill.years}y)`}
-                                  size="small"
-                                  sx={{ 
-                                    height: 24,
-                                    fontSize: "0.7rem", 
-                                    bgcolor: theme.palette.primary.light,
-                                    color: "white"
-                                  }}
-                                />
-                              ))}
-                            </Box>
-                          )}
-                        </Box>
-                        
-                        <Box sx={{ display: "flex", gap: 1 }}>
-                          <IconButton 
-                            size="small"
-                            onClick={() => onEditRole(role)}
-                            sx={{ 
-                              color: theme.palette.primary.main,
-                              bgcolor: theme.palette.primary.light + '20',
-                            }}
-                          >
-                            <EditIcon fontSize="small" />
-                          </IconButton>
-                          <IconButton
-                            size="small"
-                            onClick={() => onDeleteRole(role.id)}
-                            sx={{ 
-                              color: "white",
-                              backgroundColor: theme.palette.error.main,
-                              width: 28,
-                              height: 28,
-                              '&:hover': {
-                                backgroundColor: theme.palette.error.dark,
-                              }
-                            }}
-                          >
-                            <DeleteIcon fontSize="small" />
-                          </IconButton>
-                        </Box>
-                      </Box>
-                      
-                      {/* Mostrar descripción si existe */}
-                      {role.description && (
-                        <Box sx={{ mt: 1 }}>
-                          <Divider sx={{ my: 1 }} />
-                          <Typography variant="body2" color="text.secondary" sx={{ fontStyle: "italic" }}>
-                            {role.description.length > 120 
-                              ? `${role.description.slice(0, 120)}...` 
-                              : role.description}
-                          </Typography>
-                        </Box>
-                      )}
-                    </CardContent>
-                  </Card>
-                ))
-              ) : (
-                <Box sx={{ p: 3, textAlign: "center" }}>
-                  <Typography variant="body2" color="text.secondary">
-                    No roles added yet. Use the form on the right to create your first role.
-                  </Typography>
-                </Box>
-              )}
-            </Box>
-          </Box>
-        </Box>
-
-        {/* Contenedor para los botones - Posición fija en la parte inferior */}
+      {/* Sección de roles */}
+      <Box sx={{ mb: 4, flexGrow: 1, display: "flex", flexDirection: "column" }}>
         <Box 
           sx={{ 
             display: "flex", 
-            justifyContent: "center",
-            pt: 3,
-            mt: "auto", // Empuja hacia abajo
+            justifyContent: "space-between", 
+            alignItems: "center",
+            mb: 2,
           }}
         >
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={handleCreateTemporaryProject}
-            disabled={loading}
-            sx={{ 
-              minWidth: 110, 
-              mx: 1, 
-              py: 1,
-              px: 3, 
-              borderRadius: 1,
-              textTransform: "uppercase",
-              fontWeight: 600,
-              backgroundColor: theme.palette.primary.main,
-            }}
+          <Typography 
+            variant="h6" 
+            fontWeight={600} 
+            color={ACCENTURE_COLORS.corePurple3}
           >
-            {loading ? (
-              <CircularProgress size={24} color="inherit" />
-            ) : (
-              "ASSIGN"
-            )}
-          </Button>
-          <Button
-            variant="contained"
-            onClick={handleCancel}
-            disabled={loading}
+            Project Roles
+          </Typography>
+          <Chip 
+            label={`${roles.length} ${roles.length === 1 ? 'role' : 'roles'}`}
+            size="small"
             sx={{ 
-              minWidth: 110, 
-              mx: 1, 
-              py: 1,
-              px: 3, 
-              borderRadius: 1,
-              backgroundColor: theme.palette.grey[700],
-              "&:hover": {
-                backgroundColor: theme.palette.grey[800],
-              },
-              textTransform: "uppercase",
+              ...chipStyles(),
               fontWeight: 600,
+              backgroundColor: ACCENTURE_COLORS.accentPurple5,
+              color: ACCENTURE_COLORS.corePurple2
             }}
-          >
-            CANCEL
-          </Button>
+          />
         </Box>
+        
+        {/* Lista de roles */}
+        <Box
+          sx={{
+            borderRadius: 2,
+            border: "1px solid",
+            borderColor: "rgba(0,0,0,0.08)",
+            bgcolor: "rgba(255,255,255,0.6)",
+            p: 0,
+            flexGrow: 1,
+            minHeight: 200,
+            overflow: "hidden",
+            position: "relative",
+            boxShadow: "inset 0 1px 3px rgba(0,0,0,0.02)",
+            display: "flex",
+            flexDirection: "column"
+          }}
+        >
+          <Box
+            sx={{
+              flexGrow: 1,
+              overflowY: "auto",
+              px: 2,
+              py: 1,
+              "&::-webkit-scrollbar": {
+                width: "8px",
+              },
+              "&::-webkit-scrollbar-track": {
+                backgroundColor: "rgba(0,0,0,0.02)",
+                borderRadius: "4px",
+              },
+              "&::-webkit-scrollbar-thumb": {
+                backgroundColor: ACCENTURE_COLORS.accentPurple5,
+                borderRadius: "4px",
+                "&:hover": {
+                  backgroundColor: ACCENTURE_COLORS.accentPurple4,
+                }
+              },
+            }}
+          >
+            {roles.length > 0 ? (
+              <Stack spacing={1.5} sx={{ py: 1 }}>
+                {roles.map((role, index) => (
+                  <Fade key={role.id} in={true} timeout={300} style={{ transitionDelay: `${index * 50}ms` }}>
+                    <Card
+                      variant="outlined"
+                      sx={{ 
+                        borderRadius: 2,
+                        boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
+                        borderColor: "rgba(0,0,0,0.06)",
+                        transition: "all 0.2s ease",
+                        "&:hover": {
+                          boxShadow: "0 3px 8px rgba(0,0,0,0.08)",
+                          borderColor: ACCENTURE_COLORS.accentPurple4,
+                          transform: "translateY(-2px)"
+                        }
+                      }}
+                    >
+                      <CardContent sx={{ p: "12px 16px", "&:last-child": { pb: "12px" } }}>
+                        <Box
+                          sx={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "flex-start",
+                          }}
+                        >
+                          <Box>
+                            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                              <Typography variant="subtitle2" fontWeight={600} color={ACCENTURE_COLORS.corePurple3}>
+                                {role.name}
+                              </Typography>
+                              <Chip 
+                                label={role.area} 
+                                size="small" 
+                                sx={{ 
+                                  height: 20, 
+                                  fontSize: "0.625rem",
+                                  fontWeight: 500,
+                                  color: ACCENTURE_COLORS.corePurple2,
+                                  bgcolor: `${ACCENTURE_COLORS.accentPurple5}90`
+                                }}
+                              />
+                            </Box>
+                            
+                            {/* Mostrar skills como chips */}
+                            {role.skills && role.skills.length > 0 && (
+                              <Box sx={{ mt: 1, display: "flex", flexWrap: "wrap", gap: 0.5 }}>
+                                {role.skills.map((skill, idx) => (
+                                  <Chip
+                                    key={idx}
+                                    label={`${skill.name} (${skill.years}y)`}
+                                    size="small"
+                                    sx={{ 
+                                      height: 20,
+                                      fontSize: "0.625rem", 
+                                      fontWeight: 500,
+                                      bgcolor: `${ACCENTURE_COLORS.corePurple1}15`,
+                                      color: ACCENTURE_COLORS.corePurple2,
+                                      border: `1px solid ${ACCENTURE_COLORS.accentPurple4}30`
+                                    }}
+                                  />
+                                ))}
+                              </Box>
+                            )}
+                          </Box>
+                          
+                          <Box sx={{ display: "flex", gap: 1 }}>
+                            <IconButton 
+                              size="small"
+                              onClick={() => onEditRole(role)}
+                              sx={{ 
+                                color: ACCENTURE_COLORS.corePurple1,
+                                bgcolor: `${ACCENTURE_COLORS.accentPurple5}90`,
+                                width: 28,
+                                height: 28,
+                                '&:hover': {
+                                  bgcolor: ACCENTURE_COLORS.accentPurple5,
+                                }
+                              }}
+                            >
+                              <EditIcon sx={{ fontSize: 16 }} />
+                            </IconButton>
+                            <IconButton
+                              size="small"
+                              onClick={() => onDeleteRole(role.id)}
+                              sx={{ 
+                                color: "white",
+                                backgroundColor: ACCENTURE_COLORS.red,
+                                width: 28,
+                                height: 28,
+                                opacity: 0.8,
+                                '&:hover': {
+                                  backgroundColor: ACCENTURE_COLORS.red,
+                                  opacity: 1
+                                }
+                              }}
+                            >
+                              <DeleteIcon sx={{ fontSize: 16 }} />
+                            </IconButton>
+                          </Box>
+                        </Box>
+                        
+                        {/* Mostrar descripción si existe */}
+                        {role.description && (
+                          <Box sx={{ mt: 1 }}>
+                            <Divider sx={{ my: 1, borderColor: "rgba(0,0,0,0.04)" }} />
+                            <Typography 
+                              variant="body2" 
+                              color="text.secondary" 
+                              sx={{ 
+                                fontStyle: "italic",
+                                fontSize: "0.75rem",
+                                lineHeight: 1.4
+                              }}
+                            >
+                              {role.description.length > 120 
+                                ? `${role.description.slice(0, 120)}...` 
+                                : role.description}
+                            </Typography>
+                          </Box>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </Fade>
+                ))}
+              </Stack>
+            ) : (
+              <Box sx={{ 
+                p: 3, 
+                textAlign: "center", 
+                height: "100%", 
+                display: "flex", 
+                alignItems: "center", 
+                justifyContent: "center",
+                minHeight: 150
+              }}>
+                <Box>
+                  <Typography 
+                    variant="body1" 
+                    color="text.secondary" 
+                    sx={{ 
+                      fontWeight: 500,
+                      mb: 1
+                    }}
+                  >
+                    No roles added yet
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Use the form on the right to create your first role
+                  </Typography>
+                </Box>
+              </Box>
+            )}
+          </Box>
+        </Box>
+      </Box>
+
+      {/* Contenedor para los botones */}
+      <Box 
+        sx={{ 
+          display: "flex", 
+          justifyContent: "center",
+          pt: 2,
+          mt: "auto",
+        }}
+      >
+        <Button
+          variant="contained"
+          onClick={handleCreateTemporaryProject}
+          disabled={loading}
+          startIcon={loading ? <CircularProgress size={20} color="inherit" /> : null}
+          sx={{ 
+            ...primaryButtonStyles,
+            minWidth: 130,
+            mx: 1,
+            backgroundColor: ACCENTURE_COLORS.corePurple1,
+            "&:hover": {
+              backgroundColor: ACCENTURE_COLORS.corePurple2,
+            }
+          }}
+        >
+          ASSIGN ROLES
+        </Button>
+        <Button
+          variant="outlined"
+          onClick={handleCancel}
+          disabled={loading}
+          sx={{ 
+            ...outlineButtonStyles,
+            minWidth: 130,
+            mx: 1,
+            borderColor: ACCENTURE_COLORS.accentPurple1,
+            color: ACCENTURE_COLORS.accentPurple1,
+            "&:hover": {
+              borderColor: ACCENTURE_COLORS.accentPurple1,
+              backgroundColor: `${ACCENTURE_COLORS.accentPurple1}10`,
+            }
+          }}
+        >
+          CANCEL
+        </Button>
       </Box>
 
       {/* Snackbar para mostrar mensajes */}
@@ -552,11 +652,15 @@ export const AddProjectCard = ({ roles, onEditRole, onDeleteRole }) => {
         <Alert 
           onClose={() => setSnackbar({ ...snackbar, open: false })} 
           severity={snackbar.severity}
-          sx={{ width: '100%' }}
+          sx={{ 
+            width: '100%',
+            borderRadius: 2,
+            boxShadow: "0 4px 12px rgba(0,0,0,0.15)"
+          }}
         >
           {snackbar.message}
         </Alert>
       </Snackbar>
-    </Paper>
+    </Box>
   );
 };
