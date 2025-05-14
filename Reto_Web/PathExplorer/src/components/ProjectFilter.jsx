@@ -5,6 +5,7 @@ import GridViewIcon from '@mui/icons-material/GridView';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import ScheduleIcon from '@mui/icons-material/Schedule';
 import PauseCircleOutlineIcon from '@mui/icons-material/PauseCircleOutline';
+import DoNotDisturbIcon from '@mui/icons-material/DoNotDisturb';
 
 /**
  * Componente para filtrar proyectos por su estado
@@ -17,7 +18,8 @@ const ProjectFilter = ({ activeFilter, setActiveFilter }) => {
     { id: 'all', label: 'All projects', icon: <GridViewIcon sx={{ mr: 1 }} /> },
     { id: 'Completed', label: 'Completed', icon: <CheckCircleOutlineIcon sx={{ mr: 1 }} /> },
     { id: 'In Progress', label: 'Ongoing', icon: <ScheduleIcon sx={{ mr: 1 }} /> },
-    { id: 'On Hold', label: 'Not started', icon: <PauseCircleOutlineIcon sx={{ mr: 1 }} /> },
+    { id: 'On Hold', label: 'On Hold', icon: <PauseCircleOutlineIcon sx={{ mr: 1 }} /> },
+    { id: 'Not Started', label: 'Not Started', icon: <DoNotDisturbIcon sx={{ mr: 1 }} /> },
   ];
 
   return (
