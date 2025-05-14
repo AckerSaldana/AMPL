@@ -206,10 +206,58 @@ export async function testAPIKey() {
 // Preprocesamiento del texto
 export function preprocessText(text, maxLength = 1000) {
   if (!text || !text.trim()) return "";
-  let processed = text.toLowerCase().replace(/\s+/g, " ").trim();
+  
+  // Extraer términos técnicos y darles más peso
+  const technicalTerms = extractTechnicalTerms(text);
+  // Repetir términos importantes para darles más peso en el embedding
+  const enhancedText = text + " " + technicalTerms.join(" ");
+  
+  let processed = enhancedText.toLowerCase().replace(/\s+/g, " ").trim();
   if (processed.length > maxLength) processed = processed.substring(0, maxLength);
   return processed;
 }
+
+function extractTechnicalTerms(text) {
+  // Lista de palabras clave técnicas para tecnologías y habilidades
+  const techKeywords = [
+    'java', 'python', 'javascript', 'typescript', 'react', 'angular', 'vue',
+    'node.js', 'c#', 'c++', 'php', 'ruby', 'go', 'rust', 'swift', 'kotlin',
+    'aws', 'azure', 'gcp', 'cloud', 'docker', 'kubernetes', 'terraform',
+    'sql', 'nosql', 'mongodb', 'postgresql', 'mysql', 'database',
+    'frontend', 'backend', 'fullstack', 'mobile', 'web', 'api',
+    'devops', 'cicd', 'git', 'agile', 'scrum', 'machine learning', 'ai'
+  ];
+  
+  // Encontrar términos técnicos presentes en el texto
+  if (!text) return [];
+  const lowerText = text.toLowerCase();
+  return techKeywords.filter(term => lowerText.includes(term));
+}
+
+/**
+ * Función para enriquecer la descripción del rol
+ */
+function enhanceRoleDescription(role) {
+  let enhancedRole = {...role};
+  
+  // Si la descripción es muy corta, enriquecerla con nombres de skills
+  if (enhancedRole.description && enhancedRole.description.length < 100 && 
+      enhancedRole.skills && enhancedRole.skills.length > 0) {
+    // Extraer nombres de skills si están disponibles
+    const skillNames = enhancedRole.skills
+      .filter(s => s.name)
+      .map(s => s.name)
+      .join(", ");
+    
+    if (skillNames) {
+      enhancedRole.description += ` Esta posición requiere experiencia con: ${skillNames}.`;
+    }
+  }
+  
+  return enhancedRole;
+}
+
+
 
 // Obtener embeddings con caché
 export async function getBatchEmbeddings(texts, sources = []) {
@@ -354,12 +402,17 @@ export function cosineSimilarity(vecA, vecB) {
   return dotProduct / (normA * normB);
 }
 
+function enhanceSimilarityScore(similarity) {
+  // Transformación no lineal que aumenta los valores medios y bajos
+  return Math.min(Math.floor((Math.pow(similarity, 0.5) * 100) + 20), 100);
+}
+
 // Paralelización con Worker (si se invoca el módulo en modo Worker)
 if (!isMainThread) {
   const { roleEmbedding, candidateEmbeddings } = workerData;
   const similarities = candidateEmbeddings.map((candidateEmbedding) => {
     const sim = cosineSimilarity(roleEmbedding, candidateEmbedding);
-    return Math.floor(sim * 100);
+    return enhanceSimilarityScore(sim); // Usar la función mejorada
   });
   parentPort.postMessage(similarities);
 }
@@ -389,7 +442,7 @@ function startSimilarityWorker(roleEmbedding, candidateEmbeddings) {
       console.error("Error al iniciar el worker:", error);
       const similarities = candidateEmbeddings.map(candidate => {
         const sim = cosineSimilarity(roleEmbedding, candidate);
-        return Math.floor(sim * 100);
+        return enhanceSimilarityScore(sim); // Usar la función mejorada
       });
       resolve(similarities);
     }
@@ -538,8 +591,8 @@ function ensureSkillMap(skillMapInput, role, employees) {
 
 // Función de pesos dinámicos basada en la descripción y skills del rol
 export function calculateDynamicWeights(roleDescription = "", roleSkills = [], skillMap = {}) {
-  // Default weights with new specific limits: technical between 80-90%, contextual between 10-20%
-  let alpha = 0.85, beta = 0.15; 
+  // Default weights with new specific limits: technical between 85-95%, contextual between 5-15%
+  let alpha = 0.90, beta = 0.10; 
   console.log("Calculating dynamic weights based on skills and role description");
   
   // Validación adicional de skillMap
@@ -776,26 +829,26 @@ export function calculateDynamicWeights(roleDescription = "", roleSkills = [], s
     }
   }
   
-  // Calculate dynamic weights based on importance, but respect the new limits
+  // Calculate dynamic weights based on importance, with new stricter limits
   const totalImportance = technicalImportance + softImportance;
   if (totalImportance > 0) {
     // Calculate initial proportion based on importance
     let rawRatio = technicalImportance / totalImportance;
     
-    // Map this ratio to the new range (80-90% for technical)
+    // Map this ratio to the new range (85-95% for technical)
     // Higher rawRatio means more technical weighting
-    alpha = 0.80 + (rawRatio * 0.10); // Ajustado para el rango 80-90%
+    alpha = 0.85 + (rawRatio * 0.10); // Ajustado para el rango 85-95%
     
     // Beta is simply the complement to make sure they sum to 1
     beta = 1 - alpha;
     
-    // Apply hard limits to ensure we're always in the 10-20% range for contextual
-    if (beta < 0.10) {  // Mínimo 10% contextual
-      beta = 0.10;
-      alpha = 0.90;     // Máximo 90% técnico
-    } else if (beta > 0.20) {  // Máximo 20% contextual
-      beta = 0.20;
-      alpha = 0.80;     // Mínimo 80% técnico
+    // Apply hard limits to ensure we're always in the 5-15% range for contextual
+    if (beta < 0.05) {  // Mínimo 5% contextual
+      beta = 0.05;
+      alpha = 0.95;     // Máximo 95% técnico
+    } else if (beta > 0.15) {  // Máximo 15% contextual
+      beta = 0.15;
+      alpha = 0.85;     // Mínimo 85% técnico
     }
   }
   
@@ -807,30 +860,30 @@ export function calculateDynamicWeights(roleDescription = "", roleSkills = [], s
     if (descLower.includes("highly technical") || 
         descLower.includes("technical expert") ||
         (descLower.includes("architect") && descLower.includes("senior"))) {
-      alpha = 0.90;
-      beta = 0.10;
+      alpha = 0.95;
+      beta = 0.05;
       console.log("Special adjustment: Highly technical role");
     } 
     // Detect client/culture-focused roles - increase contextual to maximum allowed
     else if ((descLower.includes("culture") || descLower.includes("cultural fit")) && 
              (descLower.includes("soft skills")) ||
              (descLower.includes("client") && descLower.includes("relationship"))) {
-      alpha = 0.80;
-      beta = 0.20;
+      alpha = 0.85;
+      beta = 0.15;
       console.log("Special adjustment: Role focused on soft skills/culture");
     }
     // Detect technical leadership roles - moderate technical focus
     else if ((descLower.includes("technical lead")) && 
              (descLower.includes("team"))) {
-      alpha = 0.85;
-      beta = 0.15;
+      alpha = 0.90;
+      beta = 0.10;
       console.log("Special adjustment: Technical leadership role");
     }
     // Detect project management roles - balance towards more contextual
     else if ((descLower.includes("project manager")) &&
              (descLower.includes("management"))) {
-      alpha = 0.80;
-      beta = 0.20;
+      alpha = 0.85;
+      beta = 0.15;
       console.log("Special adjustment: Project management role");
     }
   }
@@ -957,16 +1010,19 @@ export function calculateSkillMatch(employeeSkills, roleSkills, employeeName = "
  * Prepara datos del rol para el prompt
  */
 function prepareRoleData(role) {
+  // Enriquecer la descripción del rol
+  const enhancedRole = enhanceRoleDescription(role);
+  
   // Extraer habilidades con años requeridos
-  const skills = (role.skills || []).map(skill => ({
+  const skills = (enhancedRole.skills || []).map(skill => ({
     id: String(skill.id || skill.skill_ID),
     years: skill.years || 0,
     importance: skill.importance || 1
   }));
   
   return {
-    name: role.role || role.name || "Rol sin nombre",
-    description: role.description || "",
+    name: enhancedRole.role || enhancedRole.name || "Rol sin nombre",
+    description: enhancedRole.description || "",
     skills: skills
   };
 }
@@ -985,9 +1041,9 @@ function prepareCandidatesData(employees) {
     
     return {
       id: emp.id,
-      index: index, // Añadir índice para rastreo
+      index: index,
       name: emp.name,
-      bio: emp.about || emp.bio || "", // Priorizar el campo about pero mantener compatibilidad con bio
+      bio: emp.about || emp.bio || "", 
       skills: skills
     };
   });
@@ -1020,24 +1076,25 @@ INSTRUCCIONES:
 
 PARA EVALUACIÓN TÉCNICA (${technicalWeight}%):
 1. Para cada candidato, evalúa si tiene las habilidades requeridas por el rol.
-2. Compara los años de experiencia del candidato con los años requeridos para cada habilidad.
-3. Asigna puntuaciones siguiendo estas reglas:
+2. PRIORIZA ESPECIALMENTE candidatos que tengan mas habilidades o todas las habilidades requeridas por el rol.
+3. Compara los años de experiencia del candidato con los años requeridos para cada habilidad.
+4. Asigna puntuaciones siguiendo estas reglas MEJORADAS:
    - Si el candidato tiene exactamente los años requeridos: 100%
-   - Si el candidato tiene más años: 100% + bonus de 5% por cada año adicional (máximo 25% extra)
-   - Si el candidato tiene menos años: Porcentaje proporcional (ej: 3 años de 5 requeridos = 60%)
-   - Si el rol no especifica años y el candidato tiene la habilidad: 85%
-4. Calcula un score técnico (0-100) para cada candidato.
+   - Si el candidato tiene más años: 100% + bonus de 5% por cada año adicional (máximo 20% extra)
+   - Si el candidato tiene menos años: Porcentaje más generoso (ej: 2 años de 3 requeridos = 75%)
+5. Calcula un score técnico (0-100) para cada candidato.
 
 PARA EVALUACIÓN CONTEXTUAL (${contextualWeight}%):
 1. Analiza ÚNICAMENTE la bio/about del candidato para evaluar alineación con la descripción del rol.
 2. Identifica palabras clave, experiencia indicada, intereses y valores mencionados en la bio.
 3. No inventes ni asumas experiencia que no esté mencionada explícitamente en la bio.
-4. Asigna un score contextual (0-100) basado en esta alineación.
-5. Si la bio está vacía o es muy limitada, asigna un valor de 75.
+4. Sé GENEROSO en la evaluación contextual cuando veas términos relacionados con la descripción del rol.
+5. Asigna un score contextual (0-100) basado en esta alineación.
+6. Si la bio está vacía o es muy limitada, asigna un valor de 70 (más generoso).
 
 PARA SCORE FINAL:
 1. Combina ambos scores usando las ponderaciones exactas: (${technicalWeight}% × Score Técnico) + (${contextualWeight}% × Score Contextual)
-2. El score final debe estar entre 70 y 100, con un mínimo de 70 para cualquier candidato que tenga al menos una habilidad relevante.
+2. El score final debe estar entre 65 y 100, con un mínimo de 65 para cualquier candidato que tenga al menos una habilidad relevante.
 
 FORMATO DE RESPUESTA:
 Responde con un objeto JSON con esta estructura exacta:
@@ -1050,7 +1107,7 @@ Responde con un objeto JSON con esta estructura exacta:
       "contextualScore": 70,
       "combinedScore": 82,
       "matchDetails": [
-        {"skillId": "id_habilidad", "required": 3, "actual": 5, "score": 108}
+        {"skillId": "id_habilidad", "skillName": "nombre_habilidad", "required": 3, "actual": 5, "score": 108}
       ]
     }
   ]
@@ -1058,9 +1115,11 @@ Responde con un objeto JSON con esta estructura exacta:
 
 IMPORTANTE: 
 - Aplica los pesos exactamente como se indica (${technicalWeight}% técnico, ${contextualWeight}% contextual).
+- Sé generoso en tus evaluaciones para dar puntuaciones más altas.
 - El score técnico debe basarse ÚNICAMENTE en los años de experiencia de las habilidades coincidentes.
 - El score contextual debe basarse ÚNICAMENTE en el contenido del campo "bio" del candidato.
-- Asigna scores que reflejen un rango realista entre 70-100 para candidatos con al menos algunas habilidades relevantes.
+- Incluye el nombre de la habilidad en los detalles del match para mejorar la explicabilidad.
+- Asigna scores que reflejen un rango más generoso entre 65-100 para candidatos con al menos algunas habilidades relevantes.
 `;
 }
 
@@ -1325,7 +1384,28 @@ export async function batchProcessWithGPT(role, employees, skillMap) {
 }
 
 /**
- * Proceso optimizado de matching usando embeddings solo para filtrar candidatos
+ * Función para asegurar diversidad en la selección de candidatos
+ */
+function ensureDiverseSelection(similarities, employees, baseTopN) {
+  // Garantizar que haya un número mínimo de candidatos seleccionados
+  const selectedCandidates = similarities.slice(0, Math.min(baseTopN, similarities.length));
+  
+  // Si hay suficientes candidatos, agregar algunos aleatorios del resto para mayor diversidad
+  if (similarities.length > baseTopN) {
+    const remainingCandidates = similarities.slice(baseTopN);
+    // Seleccionar hasta 5 candidatos aleatorios adicionales
+    const randomSample = remainingCandidates
+      .sort(() => 0.5 - Math.random())
+      .slice(0, Math.min(5, remainingCandidates.length));
+    
+    return [...selectedCandidates, ...randomSample];
+  }
+  
+  return selectedCandidates;
+}
+
+/**
+ * Proceso optimizado de matching usando embeddings para filtrar candidatos
  * @param {Object} role - Rol a cubrir
  * @param {Array} employees - Lista completa de empleados
  * @param {Object} skillMap - Mapa de habilidades (opcional)
@@ -1360,7 +1440,13 @@ export async function filteredGPTMatching(role, employees, skillMap = {}, topN =
   
   // Ordenar por similitud y seleccionar los mejores
   similarities.sort((a, b) => b.similarity - a.similarity);
-  const topCandidates = similarities.slice(0, topN);
+  
+  // Determinar número óptimo de candidatos con valores aumentados
+  const baseTopN = employees.length <= 5 ? employees.length : 
+                   employees.length <= 30 ? Math.ceil(employees.length * 0.7) : 15; // Aumentado a 25
+  
+  // Selección mejorada con diversidad
+  const topCandidates = ensureDiverseSelection(similarities, employees, baseTopN);
   
   console.log(`Fase 1 completada: ${topCandidates.length} candidatos preseleccionados`);
   
@@ -1694,7 +1780,7 @@ async function analyzeWithOpenAI(cvText, availableSkills = [], availableRoles = 
     
     // Crear prompt optimizado para extraer datos específicos
     const skillsForPrompt = availableSkills.length > 0 
-      ? availableSkills.map(s => s.name || s).slice(0, 50).join(', ') // Limitamos a 50 skills para no sobrecargar
+      ? availableSkills.map(s => s.name || s).slice(0, 100).join(', ') // Limitamos a 50 skills para no sobrecargar
       : "JavaScript, HTML, CSS, React, Angular, Node.js, Python, Java, SQL, Scrum, Agile, AWS, Communication, Teamwork";
       
     const rolesForPrompt = availableRoles.length > 0
@@ -1765,7 +1851,7 @@ Responde EXCLUSIVAMENTE con un objeto JSON con esta estructura:
       ],
       response_format: { type: "json_object" }, // Forzar respuesta en formato JSON
       temperature: 0.2, // Baja temperatura para mayor precisión
-      max_tokens: 800, // Limitar tamaño de respuesta
+      max_tokens: 2500, // Limitar tamaño de respuesta
     });
 
     // Extraer y parsear la respuesta JSON
@@ -2087,7 +2173,7 @@ app.post("/getMatches", async (req, res) => {
     const skillMap = ensureSkillMap(rawSkillMap, role, employees);
     console.log(`Mapa de skills: ${Object.keys(skillMap).length} skills disponibles`);
     
-    // Calcular pesos dinámicos con los límites especificados (técnico: 80-90%, contextual: 10-20%)
+    // Calcular pesos dinámicos con los límites especificados (técnico: 85-95%, contextual: 5-15%)
     const { alpha, beta } = calculateDynamicWeights(role.description, role.skills, skillMap);
     console.log(`Pesos calculados - Técnico: ${Math.round(alpha * 100)}%, Contextual: ${Math.round(beta * 100)}%`);
     
@@ -2097,10 +2183,10 @@ app.post("/getMatches", async (req, res) => {
     let adjustedAlpha = alpha;
     let adjustedBeta = beta;
     
-    if (technicalWeight < 80 || technicalWeight > 90 || contextualWeight < 10 || contextualWeight > 20) {
+    if (technicalWeight < 85 || technicalWeight > 95 || contextualWeight < 5 || contextualWeight > 15) {
       console.warn("Pesos fuera de rango, ajustando a los límites especificados");
       // Ajuste forzado a los límites
-      adjustedAlpha = Math.min(Math.max(alpha, 0.8), 0.9);
+      adjustedAlpha = Math.min(Math.max(alpha, 0.85), 0.95);
       adjustedBeta = 1 - adjustedAlpha;
       
       // Actualizar para logs
@@ -2111,7 +2197,7 @@ app.post("/getMatches", async (req, res) => {
     
     // Determinar número óptimo de candidatos para filtrado
     const topN = employees.length <= 5 ? employees.length : 
-               employees.length <= 30 ? Math.ceil(employees.length / 2) : 15;
+               employees.length <= 30 ? Math.ceil(employees.length * 0.7) : 25;
     
     // Usar el nuevo método optimizado
     console.log(`Iniciando filtrado y evaluación de candidatos...`);
@@ -2122,15 +2208,36 @@ app.post("/getMatches", async (req, res) => {
     const endTime = Date.now();
     console.log(`Procesamiento completado en ${endTime - startTime}ms`);
     
-    // Enviar respuesta
+    // Agregar explicabilidad a los primeros 5 candidatos
+    const matchesWithExplanations = matches.slice(0, 10).map(match => {
+      // Generar explicaciones por candidato
+      const explanation = {
+        skillsMatch: match.matchDetails?.map(detail => ({
+          skill: detail.skillName || `Skill #${detail.skillId}`,
+          required: detail.required || 0,
+          actual: detail.actual || 0,
+          score: detail.score || 0
+        })) || [],
+        technicalScore: match.technicalScore,
+        contextualScore: match.contextualScore,
+        summary: `Compatibilidad técnica: ${match.technicalScore}%, Compatibilidad contextual: ${match.contextualScore}%`
+      };
+      
+      return {
+        ...match,
+        explanation
+      };
+    });
+    
+    // Enviar respuesta enriquecida
     res.json({
-      matches,
+      matches: matchesWithExplanations,
       weights: {
         technical: technicalWeight,
         contextual: contextualWeight
       },
       totalCandidates: employees.length,
-      message: "Matching procesado exitosamente con enfoque optimizado",
+      message: "Matching procesado exitosamente con enfoque optimizado"
     });
   } catch (error) {
     console.error("Error en /getMatches:", error);
@@ -2156,7 +2263,7 @@ app.post("/api/getMatches", async (req, res) => {
     const skillMap = ensureSkillMap(rawSkillMap, role, employees);
     console.log(`Mapa de skills: ${Object.keys(skillMap).length} skills disponibles`);
     
-    // Calcular pesos dinámicos con los límites especificados (técnico: 80-90%, contextual: 10-20%)
+    // Calcular pesos dinámicos con los límites especificados (técnico: 85-95%, contextual: 5-15%)
     const { alpha, beta } = calculateDynamicWeights(role.description, role.skills, skillMap);
     console.log(`Pesos calculados - Técnico: ${Math.round(alpha * 100)}%, Contextual: ${Math.round(beta * 100)}%`);
     
@@ -2166,10 +2273,10 @@ app.post("/api/getMatches", async (req, res) => {
     let adjustedAlpha = alpha;
     let adjustedBeta = beta;
     
-    if (technicalWeight < 80 || technicalWeight > 90 || contextualWeight < 10 || contextualWeight > 20) {
+    if (technicalWeight < 85 || technicalWeight > 95 || contextualWeight < 5 || contextualWeight > 15) {
       console.warn("Pesos fuera de rango, ajustando a los límites especificados");
       // Ajuste forzado a los límites
-      adjustedAlpha = Math.min(Math.max(alpha, 0.8), 0.9);
+      adjustedAlpha = Math.min(Math.max(alpha, 0.85), 0.95);
       adjustedBeta = 1 - adjustedAlpha;
       
       // Actualizar para logs
@@ -2180,7 +2287,7 @@ app.post("/api/getMatches", async (req, res) => {
     
     // Determinar número óptimo de candidatos para filtrado
     const topN = employees.length <= 5 ? employees.length : 
-               employees.length <= 30 ? Math.ceil(employees.length / 2) : 15;
+               employees.length <= 30 ? Math.ceil(employees.length * 0.7) : 25;
     
     // Usar el nuevo método optimizado
     console.log(`Iniciando filtrado y evaluación de candidatos...`);
@@ -2191,15 +2298,36 @@ app.post("/api/getMatches", async (req, res) => {
     const endTime = Date.now();
     console.log(`Procesamiento completado en ${endTime - startTime}ms`);
     
-    // Enviar respuesta
+    // Agregar explicabilidad a los primeros 5 candidatos
+    const matchesWithExplanations = matches.slice(0, 10).map(match => {
+      // Generar explicaciones por candidato
+      const explanation = {
+        skillsMatch: match.matchDetails?.map(detail => ({
+          skill: detail.skillName || `Skill #${detail.skillId}`,
+          required: detail.required || 0,
+          actual: detail.actual || 0,
+          score: detail.score || 0
+        })) || [],
+        technicalScore: match.technicalScore,
+        contextualScore: match.contextualScore,
+        summary: `Compatibilidad técnica: ${match.technicalScore}%, Compatibilidad contextual: ${match.contextualScore}%`
+      };
+      
+      return {
+        ...match,
+        explanation
+      };
+    });
+    
+    // Enviar respuesta enriquecida
     res.json({
-      matches,
+      matches: matchesWithExplanations,
       weights: {
         technical: technicalWeight,
         contextual: contextualWeight
       },
       totalCandidates: employees.length,
-      message: "Matching procesado exitosamente con enfoque optimizado",
+      message: "Matching procesado exitosamente con enfoque optimizado"
     });
   } catch (error) {
     console.error("Error en /api/getMatches:", error);
@@ -2537,10 +2665,20 @@ app.post("/api/virtual-assistant/chat", async (req, res) => {
       }
     }
     
-    // 8. Create a comprehensive skill map directly from database
+    // 8. Preparar lista de skills disponibles
+    let availableSkills = [];
+    if (clientSkills && clientSkills.length > 0) {
+      console.log("Using client-provided skills");
+      availableSkills = clientSkills;
+    } else if (allDbSkills && allDbSkills.length > 0) {
+      availableSkills = allDbSkills;
+      console.log(`Using ${availableSkills.length} skills from database`);
+    }
+    
+    // 9. Create a comprehensive skill map directly from database
     const skillMap = createSkillMapFromDatabase(allDbSkills || []);
     
-    // 9. Format the data for usage
+    // 10. Format the data for usage
     
     // Format user skills
     const formattedSkills = (userSkills || []).map(item => ({
@@ -2579,13 +2717,34 @@ app.post("/api/virtual-assistant/chat", async (req, res) => {
       };
     });
     
-    // Format available certifications
+    // Crear conjuntos de IDs y títulos de certificaciones que el usuario ya tiene para búsqueda más robusta
+    const userCertIds = new Set();
+    const userCertTitles = new Set();
+    formattedCertifications.forEach(cert => {
+      if (cert.id) userCertIds.add(cert.id);
+      if (cert.title) userCertTitles.add(cert.title.toLowerCase());
+    });
+    
+    console.log(`User already has ${userCertIds.size} certifications by ID and ${userCertTitles.size} by title`);
+    
+    // Format available certifications - FILTRADO MEJORADO para las que el usuario ya tiene
     const formattedAvailableCertifications = dbCertifications
       .filter(cert => {
-        // Filter out certifications the user already has
-        const userCertIds = (userCertifications || [])
-          .map(uc => uc.Certifications?.certification_id);
-        return !userCertIds.includes(cert.certification_id);
+        // Comprobación más robusta: verificar tanto por ID como por título
+        const certId = cert.certification_id || cert.id;
+        const certTitle = cert.title ? cert.title.toLowerCase() : "";
+        
+        // Verificar si el usuario ya tiene esta certificación (por ID o por título)
+        const userHasById = certId && userCertIds.has(certId);
+        const userHasByTitle = certTitle && userCertTitles.has(certTitle);
+        
+        // Para debugging
+        if (userHasById || userHasByTitle) {
+          console.log(`Filtering out certification: ${cert.title} - User already has it`);
+        }
+        
+        // Si el usuario ya tiene esta certificación (por ID o título), filtrarla
+        return !userHasById && !userHasByTitle;
       })
       .map(cert => {
         // Get skill names from the skill_acquired array
@@ -2612,9 +2771,9 @@ app.post("/api/virtual-assistant/chat", async (req, res) => {
         };
       });
     
-    console.log(`Formatted ${formattedAvailableCertifications.length} certifications with skills`);
+    console.log(`After filtering, ${formattedAvailableCertifications.length} certifications available to recommend`);
       
-    // 10. INTENT-SPECIFIC PROCESSING - Filtrar y procesar según la intención
+    // 11. INTENT-SPECIFIC PROCESSING - Filtrar y procesar según la intención
     
     // A. Para preguntas sobre certificaciones generales
     if (intent.type === 'certification_recommendation') {
@@ -2624,7 +2783,8 @@ app.post("/api/virtual-assistant/chat", async (req, res) => {
         formattedAvailableCertifications,
         formattedSkills,
         userGoals,
-        intent.focus
+        intent.focus,
+        formattedCertifications // Pasar las certificaciones del usuario para filtrarlas
       );
       
       // Limitar a las 5 certificaciones más relevantes para la respuesta
@@ -2636,7 +2796,9 @@ app.post("/api/virtual-assistant/chat", async (req, res) => {
         formattedSkills, 
         userGoals, 
         topCertifications,
-        intent.focus
+        intent.focus,
+        formattedCertifications, // Añadir las certificaciones del usuario
+        availableSkills // Añadir skills disponibles en la base de datos
       );
       
       // Llamar a OpenAI con el prompt especializado
@@ -2651,25 +2813,33 @@ app.post("/api/virtual-assistant/chat", async (req, res) => {
           { role: "user", content: message }
         ],
         temperature: 0.4, // Temperatura más baja para respuestas precisas
-        max_tokens: 750,
+        max_tokens: 2500,
       });
       
-      // Enviar respuesta específica de certificaciones
+      // Validar la respuesta para asegurar que solo menciona skills/certs disponibles
       const botResponse = response.choices[0].message.content;
+      const validatedResponse = await validateAndSanitizeResponse(
+        botResponse, 
+        availableSkills, 
+        formattedAvailableCertifications, 
+        formattedCertifications
+      );
+      
+      // Enviar respuesta específica de certificaciones
       return res.json({
         success: true,
         response: {
           sender: "bot",
-          text: botResponse,
+          text: validatedResponse,
           time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         }
       });
     }
-    // B. NUEVO: Para mapeo específico de skill a certificación
+    // B. Para mapeo específico de skill a certificación
     else if (intent.type === 'skill_certification_match' && intent.focus) {
       // Este intent maneja específicamente preguntas sobre qué certificaciones enseñan una habilidad particular
       
-      // Filtrar certificaciones que explícitamente proporcionan la habilidad solicitada
+      // Filtrar certificaciones que explícitamente proporcionan la habilidad solicitada Y que el usuario no tenga
       const skillSpecificCerts = formattedAvailableCertifications.filter(cert => 
         cert.skills.some(skill => 
           skill.name.toLowerCase().includes(intent.focus.toLowerCase())
@@ -2702,7 +2872,9 @@ app.post("/api/virtual-assistant/chat", async (req, res) => {
       const systemPrompt = createSkillCertificationMatchPrompt(
         userData,
         intent.focus,
-        rankedCerts
+        rankedCerts,
+        formattedCertifications, // Añadir las certificaciones del usuario
+        availableSkills // Añadir skills disponibles en la base de datos
       );
       
       // Llamar a OpenAI con prompt especializado
@@ -2717,22 +2889,30 @@ app.post("/api/virtual-assistant/chat", async (req, res) => {
           { role: "user", content: message }
         ],
         temperature: 0.3, // Temperatura más baja para recomendaciones más precisas
-        max_tokens: 750,
+        max_tokens: 2500,
       });
       
+      // Validar la respuesta
       const botResponse = response.choices[0].message.content;
+      const validatedResponse = await validateAndSanitizeResponse(
+        botResponse, 
+        availableSkills, 
+        formattedAvailableCertifications, 
+        formattedCertifications
+      );
+      
       return res.json({
         success: true,
         response: {
           sender: "bot",
-          text: botResponse,
+          text: validatedResponse,
           time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         }
       });
     }
     // C. Para preguntas sobre desarrollo de habilidades específicas
     else if (intent.type === 'skill_development' && intent.focus) {
-      // Filtrar certificaciones relevantes para esta habilidad
+      // Filtrar certificaciones relevantes para esta habilidad Y que el usuario no tenga
       const relevantCertifications = formattedAvailableCertifications.filter(cert => 
         cert.skills.some(skill => 
           skill.name.toLowerCase().includes(intent.focus.toLowerCase())
@@ -2752,7 +2932,9 @@ app.post("/api/virtual-assistant/chat", async (req, res) => {
         userGoals,
         relevantCertifications,
         intent.focus,
-        userHasSkill
+        userHasSkill,
+        formattedCertifications, // Pasar certificaciones del usuario
+        availableSkills // Añadir skills disponibles en la base de datos
       );
       
       // Llamar a OpenAI con el prompt especializado
@@ -2767,22 +2949,30 @@ app.post("/api/virtual-assistant/chat", async (req, res) => {
           { role: "user", content: message }
         ],
         temperature: 0.4,
-        max_tokens: 750,
+        max_tokens: 2500,
       });
       
-      // Enviar respuesta específica para desarrollo de habilidades
+      // Validar la respuesta
       const botResponse = response.choices[0].message.content;
+      const validatedResponse = await validateAndSanitizeResponse(
+        botResponse, 
+        availableSkills, 
+        formattedAvailableCertifications, 
+        formattedCertifications
+      );
+      
+      // Enviar respuesta específica para desarrollo de habilidades
       return res.json({
         success: true,
         response: {
           sender: "bot",
-          text: botResponse,
+          text: validatedResponse,
           time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         }
       });
     }
     
-    // 11. Para todos los demás tipos de preguntas, usar un prompt general mejorado
+    // 12. Para todos los demás tipos de preguntas, usar un prompt general mejorado
     const contextData = {
       user: {
         name: userData?.name || "User",
@@ -2793,7 +2983,8 @@ app.post("/api/virtual-assistant/chat", async (req, res) => {
         skills: formattedSkills,
         certifications: formattedCertifications
       },
-      availableCertifications: formattedAvailableCertifications,
+      availableCertifications: formattedAvailableCertifications, // Ya filtradas (excluidas las que ya tiene)
+      availableSkills: availableSkills, // Añadir skills disponibles en la base de datos
       intent: intent,
       query: message,
       requestConciseResponse: req.body.requestConciseResponse || false
@@ -2813,18 +3004,26 @@ app.post("/api/virtual-assistant/chat", async (req, res) => {
         { role: "user", content: message }
       ],
       temperature: 0.5,
-      max_tokens: 750,
+      max_tokens: 2500,
     });
     
-    // Enviar respuesta general
+    // Validar la respuesta
     const botResponse = response.choices[0].message.content;
+    const validatedResponse = await validateAndSanitizeResponse(
+      botResponse, 
+      availableSkills, 
+      formattedAvailableCertifications, 
+      formattedCertifications
+    );
+    
+    // Enviar respuesta general validada
     const currentTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     
     return res.json({
       success: true,
       response: {
         sender: "bot",
-        text: botResponse,
+        text: validatedResponse,
         time: currentTime
       }
     });
@@ -2957,8 +3156,30 @@ function detectUserIntent(message) {
  * Ordenar certificaciones por relevancia para el usuario
  * Versión mejorada con mejor detección de skills
  */
-function rankCertificationsByRelevance(certifications, userSkills, userGoals, focusSkill = null) {
-  return certifications.map(cert => {
+function rankCertificationsByRelevance(certifications, userSkills, userGoals, focusSkill = null, userCertifications = []) {
+  // Crear conjunto de títulos e IDs para búsqueda eficiente
+  const userCertIds = new Set();
+  const userCertTitles = new Set();
+  
+  userCertifications.forEach(cert => {
+    if (cert.id) userCertIds.add(cert.id);
+    if (cert.title) userCertTitles.add(cert.title.toLowerCase());
+  });
+  
+  // Filtrado más robusto usando tanto ID como título
+  const filteredCertifications = certifications.filter(cert => {
+    const certTitle = cert.title ? cert.title.toLowerCase() : "";
+    
+    // No recomendar si el usuario ya tiene esta certificación
+    const userHasById = cert.id && userCertIds.has(cert.id);
+    const userHasByTitle = certTitle && userCertTitles.has(certTitle);
+    
+    return !userHasById && !userHasByTitle;
+  });
+  
+  console.log(`After additional filtering in ranking: ${filteredCertifications.length} certifications`);
+  
+  return filteredCertifications.map(cert => {
     let relevanceScore = 0;
     
     // 1. Si se especificó una habilidad de enfoque, priorizar certificaciones relacionadas
@@ -3037,34 +3258,62 @@ function rankCertificationsByRelevance(certifications, userSkills, userGoals, fo
 /**
  * Prompt especializado para recomendaciones de certificaciones
  */
-function createCertificationRecommendationPrompt(userData, userSkills, userGoals, certifications, focusSkill = null) {
+function createCertificationRecommendationPrompt(userData, userSkills, userGoals, certifications, focusSkill = null, userCertifications = [], availableSkills = []) {
+  // Crear una lista explícita de certificaciones que el usuario ya tiene
+  const userCurrentCertsList = userCertifications.map(cert => cert.title).join(', ');
+  
+  // Crear una lista de todas las skills disponibles en la base de datos
+  const availableSkillsList = (availableSkills || [])
+    .map(skill => skill.name || "")
+    .filter(Boolean)
+    .join(', ');
+  
+  // Crear una lista de certificaciones disponibles
+  const availableCertsList = (certifications || [])
+    .map(cert => cert.title || "")
+    .filter(Boolean)
+    .join(', ');
+
   return `You are Accenture Career AI, an assistant specialized in providing personalized certification recommendations.
 
 IMPORTANT INSTRUCTION:
+- ABSOLUTELY NEVER recommend certifications that the user already has. User currently has these certifications: ${userCurrentCertsList || 'None'}.
 - ONLY recommend certifications from the provided list below. Do not invent or suggest certifications not listed.
+- ONLY recommend skills from this explicit list: ${availableSkillsList}
 - Keep your responses concise: 2-4 sentences per certification, max 3 certifications total.
 - Focus on matching the most relevant certifications to the user's needs.
+- Only talk about topics related to Accenture, career development, and professional growth within the company.
+- Do not discuss unrelated topics or provide general advice outside of Accenture's context.
+- If the user asks about something unrelated to Accenture, careers or certifications, politely redirect the conversation back to these topics.
+- If asked about skills, ONLY mention skills from the list of available skills provided above.
+- NEVER invent, create, or suggest skills or certifications that are not in the provided lists, even if they seem relevant.
 
 USER PROFILE:
 - Name: ${userData.name || 'User'}
 - Level: ${userData.level || 1}
 - Current Skills: ${userSkills.map(s => s.name).join(', ')}
 - Goals: ${userGoals.map(g => g.goal || 'Not specified').join(', ')}
+- Current Certifications: ${userCurrentCertsList || 'None'}
 
 ${focusSkill ? `The user is specifically interested in certifications related to ${focusSkill.toUpperCase()}.` : ''}
 
-AVAILABLE CERTIFICATIONS (ONLY recommend from this list):
-${certifications.map((cert, index) => `
+AVAILABLE CERTIFICATIONS (ONLY recommend from this list - these are certifications the user does NOT already have):
+${certifications.length > 0 ? certifications.map((cert, index) => `
 ${index + 1}. ${cert.title} by ${cert.issuer}
    - Skills covered: ${cert.skills.map(s => s.name).join(', ')}
    - Description: ${cert.description || 'Not available'}
-`).join('')}
+`).join('') : 'No suitable certifications found that the user doesn\'t already have.'}
 
 YOUR RESPONSE MUST:
 1. Be brief and direct - focus on 1-3 most relevant certifications
 2. Include certification title, issuer, and briefly why it's relevant
 3. Use concise bullet points instead of lengthy paragraphs
 4. Only recommend certifications from the list above
+5. NEVER recommend any certification the user already has (listed in Current Certifications above)
+6. Only provide information relevant to Accenture and the user's career at Accenture
+7. If asked about topics unrelated to certifications, skills, or career at Accenture, politely redirect to relevant topics
+8. If mentioning skills, ONLY use skills from the available skills list provided above
+9. Never invent or create new certifications or skills not in the provided lists
 
 FORMAT EXAMPLE:
 "Based on your needs, these certifications would be most valuable:
@@ -3075,26 +3324,53 @@ FORMAT EXAMPLE:
 
 **[Certification Name]** by [Issuer]
 - Covers: [key skills]
-- Benefit: [brief value proposition]"`;
+- Benefit: [brief value proposition]"
+
+If no certifications from the list match what the user is looking for, state: "Currently, there are no certifications in our database that match your specific needs. However, I'd be happy to help you explore other career development opportunities within Accenture."`;
 }
 
 /**
  * NUEVO: Prompt especializado para mapeo de skill a certificación
  */
-function createSkillCertificationMatchPrompt(userData, focusSkill, relevantCertifications) {
+function createSkillCertificationMatchPrompt(userData, focusSkill, relevantCertifications, userCertifications = [], availableSkills = []) {
+  // Crear una lista explícita de certificaciones que el usuario ya tiene
+  const userCurrentCertsList = userCertifications.map(cert => cert.title).join(', ');
+  
+  // Crear una lista de todas las skills disponibles en la base de datos
+  const availableSkillsList = (availableSkills || [])
+    .map(skill => skill.name || "")
+    .filter(Boolean)
+    .join(', ');
+  
+  // Crear una lista de certificaciones relevantes disponibles
+  const availableCertsList = (relevantCertifications || [])
+    .map(cert => cert.title || "")
+    .filter(Boolean)
+    .join(', ');
+  
   return `You are Accenture Career AI, an assistant specialized in recommending certifications for specific skills.
 
 IMPORTANT INSTRUCTION: The user is asking about certifications that teach or improve ${focusSkill.toUpperCase()} skills. 
 Your response MUST focus ONLY on listing certifications from our database that specifically teach this skill.
 
-USER QUERY FOCUS: ${focusSkill.toUpperCase()} skill
+CRITICAL RULES:
+- ABSOLUTELY NEVER recommend certifications that the user already has. User currently has these certifications: ${userCurrentCertsList || 'None'}.
+- ONLY recommend skills from this explicit list: ${availableSkillsList}
+- ONLY recommend certifications from this explicit list: ${availableCertsList}
+- Only provide information related to Accenture, career development at Accenture, and certifications available to Accenture employees.
+- Do not discuss topics unrelated to Accenture's professional environment.
+- If asked about topics unrelated to Accenture, certifications, or career development, politely redirect the conversation back to these topics.
+- NEVER invent, create, or suggest skills or certifications that are not in the provided lists, even if they seem relevant.
 
-CERTIFICATIONS AVAILABLE THAT TEACH ${focusSkill.toUpperCase()}:
+USER QUERY FOCUS: ${focusSkill.toUpperCase()} skill
+USER CURRENT CERTIFICATIONS: ${userCurrentCertsList || 'None'}
+
+CERTIFICATIONS AVAILABLE THAT TEACH ${focusSkill.toUpperCase()} (user does NOT already have these):
 ${relevantCertifications.length > 0 ? relevantCertifications.map((cert, index) => `
 ${index + 1}. ${cert.title} by ${cert.issuer}
    - Skills covered: ${cert.skills.map(s => s.name).join(', ')}
    - Description: ${cert.description || 'Not available'}
-`).join('') : 'No specific certifications found for this skill in our database.'}
+`).join('') : 'No specific certifications found for this skill in our database that the user doesn\'t already have.'}
 
 YOUR RESPONSE REQUIREMENTS:
 1. List ONLY the certifications from above that specifically teach ${focusSkill.toUpperCase()} skills
@@ -3103,8 +3379,12 @@ YOUR RESPONSE REQUIREMENTS:
    - Why it's valuable for learning this skill
    - Any prerequisites or difficulty level
 3. List certifications in order of relevance to ${focusSkill}
-4. If no certifications are found, clearly state that we don't currently have certifications specifically for ${focusSkill} in our database
-5. Keep your response concise and focused
+4. NEVER mention or recommend any certification that appears in the USER CURRENT CERTIFICATIONS list
+5. If no certifications are found, clearly state that we don't currently have certifications specifically for ${focusSkill} in our database that the user doesn't already have
+6. Keep your response concise and focused
+7. Only discuss topics related to Accenture, certifications, and career development within Accenture
+8. ONLY mention skills from the AVAILABLE SKILLS list provided above
+9. Never invent new certifications or skills not listed above
 
 FORMAT EXAMPLE:
 "Here are the certifications in our database that specifically teach ${focusSkill} skills:
@@ -3120,57 +3400,108 @@ FORMAT EXAMPLE:
 - **Level**: [Beginner/Intermediate/Advanced]"
 
 If there are no relevant certifications, your response should be:
-"Currently, we don't have specific certifications in our database that focus on teaching ${focusSkill} skills. However, I'd be happy to recommend some alternative learning approaches or related certifications that might partially cover this skill area."`;
+"Currently, we don't have specific certifications in our database that focus on teaching ${focusSkill} skills that you don't already have. However, I'd be happy to help you explore other career development opportunities at Accenture that align with your interests."`;
 }
 
 /**
  * Prompt especializado para desarrollo de habilidades específicas
  * Versión mejorada para enfocarse más en certificaciones
  */
-function createSkillDevelopmentPrompt(userData, userSkills, userGoals, relevantCertifications, focusSkill, userHasSkill) {
-  return `You are Accenture Career AI, an assistant specialized in providing personalized career advice to employees.
+function createSkillDevelopmentPrompt(userData, userSkills, userGoals, relevantCertifications, focusSkill, userHasSkill, userCertifications = [], availableSkills = []) {
+  // Crear una lista explícita de certificaciones que el usuario ya tiene
+  const userCurrentCertsList = userCertifications.map(cert => cert.title).join(', ');
+  
+  // Crear una lista de todas las skills disponibles en la base de datos
+  const availableSkillsList = (availableSkills || [])
+    .map(skill => skill.name || "")
+    .filter(Boolean)
+    .join(', ');
+  
+  // Crear una lista de certificaciones relevantes disponibles
+  const availableCertsList = (relevantCertifications || [])
+    .map(cert => cert.title || "")
+    .filter(Boolean)
+    .join(', ');
+  
+  return `You are Accenture Career AI, an assistant specialized in providing personalized career advice to Accenture employees.
 
 IMPORTANT INSTRUCTION: The user is asking about developing their ${focusSkill.toUpperCase()} skills. Your response should focus primarily on specific certifications that teach this skill.
+
+CRITICAL RULES:
+- ABSOLUTELY NEVER recommend certifications that the user already has. User currently has these certifications: ${userCurrentCertsList || 'None'}.
+- ONLY recommend skills from this explicit list: ${availableSkillsList}
+- ONLY recommend certifications from this explicit list: ${availableCertsList}
+- Only provide information related to Accenture, career development at Accenture, and certifications available to Accenture employees.
+- Do not discuss topics unrelated to Accenture's professional environment.
+- If asked about topics unrelated to Accenture, certifications, or career development, politely redirect the conversation back to these topics.
+- NEVER invent, create, or suggest skills or certifications that are not in the provided lists, even if they seem relevant.
 
 USER PROFILE:
 - Name: ${userData.name || 'User'}
 - Level: ${userData.level || 1}
 - Goals: ${userGoals.map(g => g.goal || 'Not specified').join(', ')}
 - Current Skills: ${userSkills.map(s => s.name).join(', ')}
+- Current Certifications: ${userCurrentCertsList || 'None'}
 - ${userHasSkill ? `The user ALREADY HAS some ${focusSkill} skills` : `The user DOES NOT YET HAVE ${focusSkill} skills`}
 
-CERTIFICATIONS THAT TEACH ${focusSkill.toUpperCase()} SKILLS:
+CERTIFICATIONS THAT TEACH ${focusSkill.toUpperCase()} SKILLS (user does NOT already have these):
 ${relevantCertifications.length > 0 ? relevantCertifications.map((cert, index) => `
 ${index + 1}. ${cert.title} by ${cert.issuer}
    - Skills covered: ${cert.skills.map(s => s.name).join(', ')}
    - Description: ${cert.description || 'Not available'}
-`).join('') : 'No specific certifications found for this skill in our database.'}
+`).join('') : 'No specific certifications found for this skill in our database that the user doesn\'t already have.'}
 
 YOUR PRIMARY TASK:
 1. Recommend the most relevant certifications from the list above that will help the user develop ${focusSkill} skills
-2. For each recommended certification, explain:
+2. NEVER recommend any certification listed in the user's Current Certifications
+3. For each recommended certification, explain:
    - What specific aspects of ${focusSkill} it teaches
    - Why it's particularly valuable for the user's goals and current skill level
    - How it complements their existing skills
+4. Only provide information relevant to Accenture and the user's career at Accenture
+5. If asked about topics unrelated to certifications, skills, or career at Accenture, politely redirect to relevant topics
+6. ONLY mention skills from the AVAILABLE SKILLS list provided above
+7. ONLY recommend certifications from the CERTIFICATIONS list provided above
 
 YOUR RESPONSE STRUCTURE:
 1. Brief introduction to the importance of ${focusSkill} (1-2 sentences only)
 2. List of recommended certifications from our database (2-3 most relevant ones)
 3. Brief learning path suggestion (1-2 sentences)
 
-If no certifications in our database teach this skill, clearly state this fact and suggest alternative approaches to learning.`;
+If no certifications in our database teach this skill that the user doesn't already have, clearly state:
+"Currently, we don't have specific certifications in our database that focus on teaching ${focusSkill} skills that you don't already have. However, I'd be happy to help you explore other career development opportunities at Accenture that align with your interests."`;
 }
 
-/**
- * Prompt general mejorado para otras consultas
- */
 function createGeneralPrompt(contextData) {
   // Determinar si se requieren respuestas más concisas
   const conciseInstruction = contextData.requestConciseResponse ? 
     "IMPORTANT: Keep your response extremely concise. Use 2-3 sentences maximum. Focus on direct answers without elaboration." :
     "Keep your response focused and informative but concise.";
+  
+  // Crear una lista explícita de certificaciones que el usuario ya tiene
+  const userCurrentCertsList = contextData.user.certifications.map(cert => cert.title).join(', ');
+  
+  // Crear una lista de todas las skills disponibles en la base de datos
+  const availableSkillsList = (contextData.availableSkills || [])
+    .map(skill => skill.name || "")
+    .filter(Boolean)
+    .join(', ');
+  
+  // Crear una lista de todas las certificaciones disponibles
+  const availableCertsList = (contextData.availableCertifications || [])
+    .map(cert => cert.title || "")
+    .filter(Boolean)
+    .join(', ');
 
-  return `You are Accenture Career AI, an assistant specialized in providing personalized career advice to employees.
+  return `You are Accenture Career AI, an assistant specialized in providing personalized career advice to Accenture employees.
+
+IMPORTANT RULES:
+- ABSOLUTELY NEVER recommend certifications that the user already has. User currently has these certifications: ${userCurrentCertsList || 'None'}.
+- Only provide information related to Accenture, career development at Accenture, and certifications available to Accenture employees.
+- Do not discuss topics unrelated to Accenture's professional environment.
+- If asked about topics unrelated to Accenture, certifications, or career development, politely redirect the conversation back to these topics.
+- When specifically asked about certifications, ONLY recommend certifications from this explicit list: ${availableCertsList}
+- If no specific certifications are available in our database for this topic, provide general career advice instead.
 
 USER PROFILE:
 - Name: ${contextData.user.name} ${contextData.user.lastName}
@@ -3178,7 +3509,7 @@ USER PROFILE:
 - About: ${contextData.user.about || 'Not specified'}
 - Goals: ${contextData.user.goals.map(g => `${g.timeframe}: ${g.goal || 'Not specified'}`).join(', ')}
 - Current Skills: ${contextData.user.skills.map(s => s.name).join(', ')}
-- Current Certifications: ${contextData.user.certifications.map(c => c.title).join(', ')}
+- Current Certifications: ${userCurrentCertsList || 'None'}
 
 USER QUERY: "${contextData.query}"
 DETECTED INTENT: ${contextData.intent.type}${contextData.intent.focus ? `, Focus: ${contextData.intent.focus}` : ''}
@@ -3188,14 +3519,19 @@ YOUR RESPONSE REQUIREMENTS:
 2. Provide personalized advice based on their profile, skills, and goals
 3. Structure your response with clear sections using markdown (bold, lists, etc.)
 4. ${conciseInstruction}
-5. When mentioning certifications or skills, be specific and explain relevance
-6. ONLY recommend certifications that are in our database, never invent or suggest alternatives
+5. When mentioning certifications, be specific and only reference certifications in our database
+6. NEVER recommend any certification listed in the user's Current Certifications
+7. When asked about skills, provide general skill categories needed for the role or position. Don't worry about exact skill names matching a database.
+8. Only discuss topics related to Accenture, certifications, and career development within Accenture
+9. If asked about topics unrelated to Accenture, politely redirect the conversation
 
 DO NOT:
 - Provide generic career advice that ignores the specific question
-- List skills or certifications without explaining why they're relevant
 - Ignore the specific context of the user's query
 - Present information in vague or overly general terms
+- Discuss topics unrelated to Accenture's professional environment
+- Recommend certifications the user already has
+- Make up specific certification names that are not in the provided certifications list
 
 FORMATTING GUIDELINES:
 - Use **bold** for important terms, skill names, and certification titles
@@ -3206,6 +3542,88 @@ FORMATTING GUIDELINES:
 Remember to be direct, specific, and relevant to the user's actual question.`;
 }
 
+/**
+ * Función para validar y sanitizar respuestas
+ * Verifica que las certificaciones y skills mencionadas existan en la base de datos
+ */
+async function validateAndSanitizeResponse(response, availableSkills, availableCertifications, userCertifications) {
+  let processedResponse = response;
+  
+  try {
+    // Crear conjuntos de nombres para búsquedas eficientes
+    const availableSkillNames = new Set(
+      availableSkills
+        .map(s => s.name ? s.name.toLowerCase() : "")
+        .filter(Boolean)
+    );
+    
+    const availableCertNames = new Set(
+      availableCertifications
+        .map(c => c.title ? c.title.toLowerCase() : "")
+        .filter(Boolean)
+    );
+    
+    const userCertNames = new Set(
+      userCertifications
+        .map(c => c.title ? c.title.toLowerCase() : "")
+        .filter(Boolean)
+    );
+    
+    // Lista de palabras comunes que debemos ignorar en la validación
+    const commonWords = new Set([
+      'essential', 'important', 'relevant', 'crucial', 'technical', 'leadership',
+      'development', 'software', 'architecture', 'system', 'design', 'security',
+      'cloud', 'api', 'skills', 'experience', 'knowledge', 'understanding',
+      'recommended', 'capabilities', 'architect', 'specialty', 'thinking',
+      'concepts', 'principles', 'patterns', 'solutions', 'applications'
+    ]);
+    
+    // Detectar certificaciones recomendadas (buscando patrones específicos de certificaciones en el texto)
+    // Buscamos patrones muy específicos para evitar falsos positivos
+    const certRegex = /certification:?\s+([A-Za-z0-9\s\-]+(?:Architect|Developer|Engineer|Professional|Associate|Certified|Specialist))/gi;
+    let match;
+    
+    // Verificar si alguna certificación mencionada no está en la lista o el usuario ya la tiene
+    let problematicCerts = [];
+    while ((match = certRegex.exec(processedResponse)) !== null) {
+      const certName = match[1].trim();
+      // Verificar si está en las certificaciones disponibles - búsqueda más flexible
+      const isCertAvailable = Array.from(availableCertNames).some(availableCert => 
+        certName.toLowerCase().includes(availableCert) || 
+        availableCert.includes(certName.toLowerCase())
+      );
+      
+      // Verificar si el usuario ya tiene esta certificación
+      const userHasCert = Array.from(userCertNames).some(userCert => 
+        certName.toLowerCase().includes(userCert) || 
+        userCert.includes(certName.toLowerCase())
+      );
+      
+      if (userHasCert || !isCertAvailable) {
+        problematicCerts.push(certName);
+      }
+    }
+    
+    // Si hay certificaciones problemáticas, añadir una única nota al final
+    if (problematicCerts.length > 0) {
+      const certNote = problematicCerts.map(cert => 
+        `- "${cert}" ${userCertNames.has(cert.toLowerCase()) ? 
+          'ya la tienes en tu perfil' : 
+          'no está actualmente en nuestra base de datos'}`
+      ).join('\n');
+      
+      processedResponse += `\n\n**Nota sobre certificaciones mencionadas:**\n${certNote}\n`;
+    }
+    
+    // IMPORTANTE: NO añadimos la línea en español sobre skills
+    // Eliminamos esta parte para que no aparezca el mensaje en español
+    
+    return processedResponse;
+  } catch (error) {
+    console.error("Error validating response:", error);
+    return response; // Devolver la respuesta original en caso de error
+  }
+}
 app.use((err, req, res, next) => {
   console.error("Unhandled error:", err);
   res.status(500).json({ success: false, error: err.message });

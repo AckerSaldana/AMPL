@@ -14,7 +14,8 @@ import {
   Divider,
   IconButton,
   Tooltip,
-  useTheme
+  useTheme,
+  Skeleton
 } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import { useNavigate } from "react-router-dom";
@@ -24,7 +25,9 @@ import dayjs from 'dayjs';
 // Importar los componentes personalizados
 import { CalendarCompact } from "../components/CalendarCompact";
 import { PopularCertifications } from "../components/PopularCertifications";
+import DashboardTimeline from "../components/DashboardTimeline";
 import useAuth from "../hooks/useAuth";
+import useUserTimeline from "../hooks/useUserTimeline"; // Importamos el hook para la timeline
 
 // Iconos
 import WorkOutlineIcon from "@mui/icons-material/WorkOutline";
@@ -76,44 +79,114 @@ const DEFAULT_CERTIFICATIONS = [
   }
 ];
 
+// Datos de respaldo para timeline (se usa si useUserTimeline falla)
+const DEFAULT_TIMELINE_ITEMS = [
+  {
+    id: 1,
+    title: "AWS Cloud Practitioner",
+    type: "Certificate",
+    date: null
+  },
+  {
+    id: 2,
+    title: "Advanced React Development",
+    type: "Certificate", 
+    date: "2025-04-15"
+  },
+  {
+    id: 3,
+    title: "Machine Learning Fundamentals",
+    type: "Course",
+    date: "2025-03-01"
+  }
+];
+
+// Función auxiliar para obtener el tipo de icono según el tipo de certificación
+const getIconTypeFromCertType = (type) => {
+  const typeMap = {
+    'Cloud Computing': 'Cloud',
+    'Development': 'Code',
+    'Project Management': 'Work',
+    'Cybersecurity': 'Security',
+    'Data': 'DataObject',
+    'Analytics': 'Analytics',
+    'Human Resources': 'PeopleAlt',
+    'Leadership': 'Work'
+  };
+  
+  return typeMap[type] || 'EmojiEvents';
+};
+
+// Componente Skeleton para Timeline mientras carga
+const TimelineSkeleton = ({ profilePurple }) => (
+  <Paper
+    elevation={0}
+    sx={{
+      borderRadius: 2,
+      bgcolor: '#ffffff',
+      boxShadow: '0 4px 12px rgba(0,0,0,0.03)',
+      overflow: 'hidden',
+      mb: 3
+    }}
+  >
+    <Box sx={{ 
+      p: 2, 
+      borderBottom: '1px solid',
+      borderColor: alpha(profilePurple, 0.1),
+      display: 'flex', 
+      justifyContent: 'space-between', 
+      alignItems: 'center' 
+    }}>
+      <Box sx={{ display: 'flex', alignItems: 'center' }}>
+        <SchoolIcon 
+          sx={{ 
+            color: profilePurple, 
+            mr: 1.5,
+            fontSize: 20
+          }} 
+        />
+        <Typography variant="h6" fontWeight={500} sx={{ fontSize: '1.125rem' }}>
+          MyPath Timeline
+        </Typography>
+      </Box>
+    </Box>
+    
+    <Box sx={{ p: 3 }}>
+      {Array.from(new Array(3)).map((_, index) => (
+        <Box key={index} sx={{ display: 'flex', mb: 3, ml: 4 }}>
+          <Skeleton variant="circular" width={16} height={16} sx={{ position: 'absolute', left: 30, mt: 1.5 }} />
+          <Skeleton variant="rounded" height={80} sx={{ flexGrow: 1, borderRadius: 1 }} />
+        </Box>
+      ))}
+    </Box>
+  </Paper>
+);
+
 const Dashboard = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
+  
+  // Estados básicos
   const [stats, setStats] = useState({
     activeProjects: 1,
-    teamMembers: 7
+    teamMembers: 7,
+    myCertifications: 0,     // Certificaciones aprobadas
+    skillsMastered: 0,       // Skills del usuario (inicializa en 0)
+    certsInProgress: 0       // Certificaciones pendientes
   });
   const [userRole, setUserRole] = useState("");
   const [popularSkills, setPopularSkills] = useState(DEFAULT_SKILLS);
   const [isLoading, setIsLoading] = useState(true);
-  const [pathItems, setPathItems] = useState([
-    {
-      id: 1,
-      title: "AWS Cloud Practitioner",
-      type: "Certificate",
-      date: null
-    },
-    {
-      id: 2,
-      title: "Advanced React Development",
-      type: "Certificate", 
-      date: "2025-04-15"
-    },
-    {
-      id: 3,
-      title: "Machine Learning Fundamentals",
-      type: "Course",
-      date: "2025-03-01"
-    }
-  ]);
   
   // Estado para certificaciones populares
   const [popularCertifications, setPopularCertifications] = useState(DEFAULT_CERTIFICATIONS);
   
+  // Usamos el hook de timeline igual que en MyPath
+  const { timelineItems, loading: timelineLoading, useMockData: usingMockTimeline } = useUserTimeline();
+  
   const today = new Date();
   const options = { day: "numeric", month: "long", year: "numeric" };
   const formattedDate = today.toLocaleDateString("en-US", options);
-
-  const navigate = useNavigate();
 
   // Color original del perfil
   const profilePurple = '#9c27b0';
@@ -140,8 +213,39 @@ const Dashboard = () => {
           console.error("Error obteniendo rol:", e);
         }
         
-        // Estadísticas básicas
+        // NUEVO: Obtener conteo de certificaciones aprobadas y pendientes del usuario
         try {
+          // 1. Consulta para certificaciones aprobadas
+          const { data: approvedCerts, error: approvedError, count: approvedCount } = await supabase
+            .from('UserCertifications')
+            .select('*', { count: 'exact' })
+            .eq('user_ID', user.id)
+            .eq('status', 'approved');
+            
+          if (approvedError) throw approvedError;
+          
+          // 2. Consulta para certificaciones pendientes
+          const { data: pendingCerts, error: pendingError, count: pendingCount } = await supabase
+            .from('UserCertifications')
+            .select('*', { count: 'exact' })
+            .eq('user_ID', user.id)
+            .eq('status', 'pending');
+            
+          if (pendingError) throw pendingError;
+          
+          console.log(`Certificaciones aprobadas: ${approvedCount}, Pendientes: ${pendingCount}`);
+          
+          // 3. Obtener conteo de skills del usuario
+          const { data: userSkills, error: userSkillsError, count: totalSkillCount } = await supabase
+            .from('UserSkill')
+            .select('*', { count: 'exact' })
+            .eq('user_ID', user.id);
+            
+          if (userSkillsError) throw userSkillsError;
+          
+          console.log(`Skills totales del usuario: ${totalSkillCount}`);
+          
+          // Estadísticas básicas
           const { data: projCount } = await supabase
             .from('UserRole')
             .select('project_id', { count: 'exact' })
@@ -151,12 +255,37 @@ const Dashboard = () => {
             .from('UserRole')
             .select('user_id', { count: 'exact', distinct: true });
             
+          // Actualizar las estadísticas
           setStats({
             activeProjects: projCount?.length || 1,
-            teamMembers: teamCount?.length || 7
+            teamMembers: teamCount?.length || 7,
+            myCertifications: approvedCount || 0,  
+            skillsMastered: totalSkillCount || 0,   // Valor real de skills desde la BD
+            certsInProgress: pendingCount || 1    // Certificaciones pendientes (valor por defecto: 1)
           });
+          
         } catch (e) {
-          console.error("Error obteniendo estadísticas:", e);
+          console.error("Error obteniendo conteo de certificaciones:", e);
+          
+          // En caso de error, obtenemos al menos las estadísticas básicas
+          try {
+            const { data: projCount } = await supabase
+              .from('UserRole')
+              .select('project_id', { count: 'exact' })
+              .eq('user_id', user.id);
+              
+            const { data: teamCount } = await supabase
+              .from('UserRole')
+              .select('user_id', { count: 'exact', distinct: true });
+              
+            setStats(prevStats => ({
+              ...prevStats,
+              activeProjects: projCount?.length || 1,
+              teamMembers: teamCount?.length || 7
+            }));
+          } catch (statsError) {
+            console.error("Error obteniendo estadísticas:", statsError);
+          }
         }
         
         // INTENTO SIMPLIFICADO PARA OBTENER SKILLS
@@ -188,163 +317,117 @@ const Dashboard = () => {
           // Mantenemos los datos de ejemplo por defecto
         }
 
-        // Obtener certificaciones populares usando la función RPC
+        // Obtener certificaciones populares - Método mejorado
         try {
-          console.log("Obteniendo certificaciones populares con RPC");
+          console.log("Obteniendo certificaciones populares");
           
-          const { data: popularCerts, error } = await supabase
-            .rpc('get_popular_certifications', { limit_count: 3 });
+          // 1. Primero, obtenemos el número total de usuarios en la empresa
+          const { data: totalUsers, error: totalUsersError, count: totalUsersCount } = await supabase
+            .from('UserRole')
+            .select('user_id', { count: 'exact', distinct: true });
             
-          if (error) {
-            console.error("Error en RPC:", error);
-            throw error;
-          }
+          if (totalUsersError) throw totalUsersError;
+          
+          const totalCompanyUsers = totalUsersCount || 1; // Evitar división por cero
+          console.log(`Total de usuarios en la empresa: ${totalCompanyUsers}`);
+          
+          // 2. Obtener todas las certificaciones aprobadas, agrupadas por ID
+          const { data: certCompletions, error: certError } = await supabase
+            .from('UserCertifications')
+            .select('certification_ID, status')
+            .eq('status', 'approved');
             
-          console.log("Datos obtenidos de RPC:", popularCerts);
+          if (certError) throw certError;
+          
+          // 3. Contar usuarios por certificación
+          const certCounts = {};
+          certCompletions.forEach(cert => {
+            const certId = cert.certification_ID;
+            certCounts[certId] = (certCounts[certId] || 0) + 1;
+          });
+          
+          // 4. Convertir a array y ordenar por popularidad
+          const sortedCerts = Object.entries(certCounts)
+            .map(([id, count]) => ({ 
+              id, 
+              count, 
+              // Calcular porcentaje de usuarios que tienen esta certificación
+              percentage: Math.round((count / totalCompanyUsers) * 100) 
+            }))
+            .sort((a, b) => b.count - a.count);
             
-          if (popularCerts && popularCerts.length > 0) {
-            // Mapea los resultados al formato del componente
-            const formattedCerts = popularCerts.map(cert => {
-              // Función para obtener el tipo de icono según el tipo de certificación
-              const getIconType = (type) => {
-                const typeMap = {
-                  'Cloud Computing': 'Cloud',
-                  'Development': 'Code',
-                  'Project Management': 'Work',
-                  'Cybersecurity': 'Security',
-                  'Data': 'DataObject',
-                  'Analytics': 'Analytics',
-                  'Human Resources': 'PeopleAlt',
-                  'Leadership': 'Work'
-                };
-                
-                return typeMap[type] || 'EmojiEvents';
-              };
+          console.log("Certificaciones ordenadas por completados:", sortedCerts);
+          
+          // 5. Obtener los detalles de las certificaciones más populares (top 3)
+          if (sortedCerts.length > 0) {
+            const topCertIds = sortedCerts.slice(0, 3).map(cert => cert.id);
+            
+            // Obtener detalles de estas certificaciones
+            const { data: certDetails, error: certDetailsError } = await supabase
+              .from('Certifications')
+              .select('certification_id, title, type, issuer')
+              .in('certification_id', topCertIds);
               
-              return {
-                id: cert.cert_id,
-                name: cert.title,
-                category: cert.type || 'General',
-                completions: cert.completions,
-                popularity: cert.popularity_percentage,
-                iconType: getIconType(cert.type)
-              };
-            });
+            if (certDetailsError) throw certDetailsError;
             
-            console.log("Certificaciones formateadas:", formattedCerts);
-            setPopularCertifications(formattedCerts);
-          } else {
-            console.log("No se encontraron certificaciones populares, usando datos por defecto");
+            // 6. Formatear los datos para el componente
+            const formattedCertifications = topCertIds
+              .map(id => {
+                // Buscar info de popularidad
+                const popularityInfo = sortedCerts.find(c => c.id === id);
+                
+                // Buscar detalles de la certificación
+                const detailInfo = certDetails.find(c => c.certification_id === id);
+                
+                if (!detailInfo) return null;
+                
+                return {
+                  id: id,
+                  name: detailInfo.title,
+                  category: detailInfo.type || 'General',
+                  completions: popularityInfo.count,
+                  popularity: popularityInfo.percentage,
+                  iconType: getIconTypeFromCertType(detailInfo.type)
+                };
+              })
+              .filter(cert => cert !== null);
+            
+            if (formattedCertifications.length > 0) {
+              console.log("Certificaciones populares formateadas:", formattedCertifications);
+              setPopularCertifications(formattedCertifications);
+              // Salimos con las certificaciones formateadas
+              return;
+            }
+          }
+          
+          // Si no hay certificaciones aprobadas o no se pudieron formatear, intentamos un enfoque simplificado
+          console.log("Usando enfoque simplificado para certificaciones");
+          
+          // Obtener las 3 primeras certificaciones disponibles
+          const { data: certifications, error: simpleCertError } = await supabase
+            .from('Certifications')
+            .select('certification_id, title, type, issuer')
+            .limit(3);
+            
+          if (simpleCertError) throw simpleCertError;
+          
+          if (certifications && certifications.length > 0) {
+            // Asignar datos de popularidad simulados
+            const formattedCertifications = certifications.map((cert, index) => ({
+              id: cert.certification_id,
+              name: cert.title,
+              category: cert.type || 'General',
+              completions: Math.round(totalCompanyUsers * (0.8 - (index * 0.2))), // Datos simulados descendentes
+              popularity: 80 - (index * 15),    // Datos simulados descendentes
+              iconType: getIconTypeFromCertType(cert.type)
+            }));
+            
+            console.log("Certificaciones simplificadas:", formattedCertifications);
+            setPopularCertifications(formattedCertifications);
           }
         } catch (e) {
-          console.error("Error obteniendo certificaciones populares con RPC:", e);
-          console.log("Intentando enfoque alternativo sin RPC");
-          
-          // Método alternativo si la función RPC falla
-          try {
-            console.log("Comenzando a obtener certificaciones populares con método alternativo");
-            
-            // First, we'll count the number of users for each certification
-            const { data: userCertsData, error: userCertsError } = await supabase
-              .from('UserCertifications')
-              .select('certification_ID, status');
-              
-            if (userCertsError) throw userCertsError;
-            
-            console.log("Certificaciones de usuarios obtenidas:", userCertsData);
-            
-            // Filter approved certifications and count them
-            const certCounts = {};
-            userCertsData
-              .filter(cert => cert.status === 'approved')
-              .forEach(cert => {
-                const certId = cert.certification_ID;
-                certCounts[certId] = (certCounts[certId] || 0) + 1;
-              });
-            
-            // Convert to array and sort by count (descending)
-            const sortedCerts = Object.entries(certCounts)
-              .map(([id, count]) => ({ id, count }))
-              .sort((a, b) => b.count - a.count);
-            
-            console.log("Certificaciones ordenadas por popularidad:", sortedCerts);
-            
-            // Get top 3 certification IDs
-            const topCertIds = sortedCerts.slice(0, 3).map(item => item.id);
-            
-            if (topCertIds.length > 0) {
-              console.log("IDs de las certificaciones más populares:", topCertIds);
-              
-              // Get details for these certifications
-              const { data: certDetails, error: certDetailsError } = await supabase
-                .from('Certifications')
-                .select('certification_id, title, type, issuer');
-                
-              if (certDetailsError) throw certDetailsError;
-              
-              console.log("Detalles de certificaciones obtenidos:", certDetails);
-              
-              // Calculate total completions for percentage
-              const totalCompletions = sortedCerts.reduce((sum, cert) => sum + cert.count, 0);
-              
-              // Map certification IDs to their details and format for the component
-              const formattedCertifications = topCertIds
-                .map(id => {
-                  // Find count info
-                  const countInfo = sortedCerts.find(c => c.id === id);
-                  
-                  // Find matching certification details
-                  // Notice we're checking if certification_id matches the ID
-                  const detailInfo = certDetails.find(
-                    c => c.certification_id === id
-                  );
-                  
-                  if (!detailInfo) {
-                    console.log(`No se encontraron detalles para certificación con ID: ${id}`);
-                    return null;
-                  }
-                  
-                  // Map certification type to icon type
-                  const getIconType = (type) => {
-                    const typeMap = {
-                      'Cloud Computing': 'Cloud',
-                      'Development': 'Code',
-                      'Project Management': 'Work',
-                      'Cybersecurity': 'Security',
-                      'Data': 'DataObject',
-                      'Analytics': 'Analytics',
-                      'Human Resources': 'PeopleAlt',
-                      'Leadership': 'Work'
-                    };
-                    
-                    return typeMap[type] || 'EmojiEvents';
-                  };
-                  
-                  // Calculate popularity percentage
-                  const popularity = Math.round((countInfo.count / totalCompletions) * 100);
-                  
-                  return {
-                    id: id,
-                    name: detailInfo.title,
-                    category: detailInfo.type || 'General',
-                    completions: countInfo.count,
-                    popularity: popularity,
-                    iconType: getIconType(detailInfo.type)
-                  };
-                })
-                .filter(cert => cert !== null); // Remove any nulls
-              
-              if (formattedCertifications.length > 0) {
-                console.log("Certificaciones populares formateadas:", formattedCertifications);
-                setPopularCertifications(formattedCertifications);
-              } else {
-                console.log("No se pudieron formatear certificaciones, usando datos por defecto");
-              }
-            }
-          } catch (innerError) {
-            console.error("Error en método alternativo:", innerError);
-            // Mantener datos por defecto
-          }
+          console.error("Error obteniendo certificaciones populares:", e);
+          // En caso de error, mantenemos los datos por defecto
         }
         
       } catch (error) {
@@ -594,7 +677,7 @@ const Dashboard = () => {
             
             <Box sx={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
               <Typography variant="h3" color="text.primary" fontWeight="medium" sx={{ lineHeight: 1 }}>
-                3
+                {stats.myCertifications}
               </Typography>
               
               <Avatar
@@ -617,7 +700,7 @@ const Dashboard = () => {
               fontSize: '0.8rem' 
             }}>
               <Typography variant="caption" fontWeight="medium">
-                1 in progress
+                {stats.certsInProgress} in progress
               </Typography>
             </Box>
           </Paper>
@@ -654,7 +737,7 @@ const Dashboard = () => {
             
             <Box sx={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
               <Typography variant="h3" color="text.primary" fontWeight="medium" sx={{ lineHeight: 1 }}>
-                8
+                {stats.skillsMastered}
               </Typography>
               
               <Avatar
@@ -690,177 +773,31 @@ const Dashboard = () => {
         {/* Column 1: Skills y Calendar */}
         <Grid item xs={12} md={8}>
           <Grid container spacing={3}>
-            {/* MyPath Timeline con diseño renovado */}
+            {/* MyPath Timeline con el nuevo componente */}
             <Grid item xs={12}>
-              <Paper
-                elevation={0}
-                sx={{
-                  borderRadius: 2,
-                  bgcolor: '#ffffff',
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.03)',
-                  overflow: 'hidden',
-                  mb: 3
-                }}
-              >
+              {timelineLoading ? (
+                <TimelineSkeleton profilePurple={profilePurple} />
+              ) : (
+                <DashboardTimeline 
+                  items={timelineItems || DEFAULT_TIMELINE_ITEMS} 
+                  profilePurple={profilePurple}
+                />
+              )}
+              {!timelineLoading && usingMockTimeline && (
                 <Box sx={{ 
-                  p: 2, 
-                  borderBottom: '1px solid',
-                  borderColor: alpha(profilePurple, 0.1),
+                  mt: -2, 
+                  mb: 3, 
+                  px: 2, 
                   display: 'flex', 
-                  justifyContent: 'space-between', 
-                  alignItems: 'center' 
+                  alignItems: 'center', 
+                  color: alpha(profilePurple, 0.7),
+                  fontSize: '0.75rem'
                 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                    <SchoolIcon 
-                      sx={{ 
-                        color: profilePurple, 
-                        mr: 1.5,
-                        fontSize: 20
-                      }} 
-                    />
-                    <Typography variant="h6" fontWeight={500} sx={{ fontSize: '1.125rem' }}>
-                      MyPath Timeline
-                    </Typography>
-                  </Box>
-                  
-                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                    <Button
-                      endIcon={<ArrowForwardIcon sx={{ fontSize: '0.9rem' }} />}
-                      sx={{
-                        color: profilePurple,
-                        fontWeight: 400,
-                        fontSize: '0.75rem',
-                        textTransform: 'none',
-                        '&:hover': { bgcolor: 'transparent' }
-                      }}
-                      onClick={() => navigate('/mypath')}
-                    >
-                      View All
-                    </Button>
-                    
-                    <IconButton size="small" sx={{ ml: 0.5, color: alpha(profilePurple, 0.6) }}>
-                      <MoreHorizIcon fontSize="small" />
-                    </IconButton>
-                  </Box>
+                  <Typography variant="caption" sx={{ fontStyle: 'italic' }}>
+                    Mostrando datos de ejemplo. Los datos reales aparecerán cuando estén disponibles.
+                  </Typography>
                 </Box>
-                
-                {/* Contenido de MyPath - Lista de elementos (Diseño Original) */}
-                <Box
-                  sx={{
-                    position: "relative",
-                    ml: 2,
-                    p: 2,
-                    // Timeline vertical line - centrada
-                    "&::before": {
-                      content: '""',
-                      position: "absolute",
-                      top: 16,
-                      bottom: 38,
-                      left: 16,
-                      width: 2,
-                      bgcolor: alpha(profilePurple, 0.2),
-                    }
-                  }}
-                >
-                  {pathItems.map((item, index) => {
-                    const isFirstItem = index === 0;
-                    const isProject = item.type === "Project";
-                    const color = isFirstItem
-                      ? profilePurple
-                      : isProject
-                      ? profilePurple
-                      : alpha(profilePurple, 0.7);
-                    
-                    // Determinar si debe mostrar "AI Suggested" para items sin fecha
-                    const showAISuggested = !item.date;
-                    
-                    // Formatear la fecha si existe, o mostrar "Soon"
-                    const formattedDate = !item.date 
-                      ? "Soon" 
-                      : (() => {
-                          const [year, month, day] = item.date.split("-");
-                          return `${month} | ${day} | ${year}`;
-                        })();
-                    
-                    return (
-                      <Box
-                        key={item.id}
-                        sx={{
-                          display: "flex",
-                          position: "relative",
-                          mb: 3,
-                          ml: 3,
-                          p: 1.5,
-                          px: 2.5,
-                          backgroundColor: '#ffffff',
-                          borderRadius: 1,
-                          alignItems: "flex-start",
-                          justifyContent: "space-between",
-                          border: `1px solid ${alpha(profilePurple, 0.1)}`,
-                          boxShadow: '0 2px 8px rgba(0,0,0,0.03)',
-                          transition: 'all 0.2s',
-                          '&:hover': {
-                            boxShadow: '0 4px 10px rgba(0,0,0,0.06)',
-                            borderColor: alpha(profilePurple, 0.2)
-                          }
-                        }}
-                      >
-                        {/* Timeline dot - centrado verticalmente */}
-                        <Box
-                          sx={{
-                            width: 14,
-                            height: 14,
-                            borderRadius: "50%",
-                            backgroundColor: color,
-                            position: "absolute",
-                            left: -31,
-                            top: "50%",
-                            transform: "translateY(-50%)",
-                            border: `2px solid white`,
-                            boxShadow: '0 0 0 2px rgba(0,0,0,0.03)'
-                          }}
-                        />
-                        {/* Left content */}
-                        <Box sx={{ flex: 1, pr: 2 }}>
-                          <Typography
-                            fontWeight={600}
-                            variant="subtitle2"
-                            sx={{
-                              color: "text.primary",
-                              fontSize: "0.9rem",
-                              wordBreak: "break-word",
-                            }}
-                          >
-                            {item.title}
-                          </Typography>
-                          <Typography
-                            variant="caption"
-                            sx={{ 
-                              color: showAISuggested 
-                                ? profilePurple
-                                : "text.secondary",
-                              fontWeight: showAISuggested ? 500 : 400
-                            }}
-                          >
-                            {showAISuggested ? "AI Suggested Certificate" : item.type}
-                          </Typography>
-                        </Box>
-                        {/* Right date */}
-                        <Typography
-                          variant="caption"
-                          sx={{
-                            whiteSpace: "nowrap",
-                            color: "text.secondary",
-                            fontSize: "0.75rem",
-                          }}
-                        >
-                          {formattedDate}
-                        </Typography>
-                      </Box>
-                    );
-                  })}
-                </Box>
-              </Paper>
+              )}
             </Grid>
           
             {/* Calendar Component */}
@@ -918,18 +855,6 @@ const Dashboard = () => {
                       Most Popular Skills
                     </Typography>
                   </Box>
-                  <Button
-                    sx={{
-                      color: profilePurple,
-                      fontWeight: 400,
-                      fontSize: '0.75rem',
-                      textTransform: 'none',
-                      '&:hover': { bgcolor: 'transparent' }
-                    }}
-                    onClick={() => navigate('/skills')}
-                  >
-                    View All
-                  </Button>
                 </Box>
                 
                 <Box sx={{ p: 2 }}>
