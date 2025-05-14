@@ -47,9 +47,9 @@ const AddProject = () => {
     <Box
       sx={{
         minHeight: "calc(100vh - 60px)",
-        height: "100%",
         width: "100%",
         p: 4,
+        overflow: "auto", // Solo añadimos scroll a nivel de página
       }}
     >
       {/* Encabezado de página */}
@@ -62,14 +62,14 @@ const AddProject = () => {
         </Typography>
       </Box>
 
-      <Grid container spacing={4} sx={{ height: "calc(100% - 100px)" }}>
+      <Grid container spacing={4} sx={{ width: "100%" }}>
         {/* Izquierda: Formulario de proyecto y lista de roles */}
-        <Grid item xs={12} md={5} lg={4} sx={{ height: { md: "100%" } }}>
+        <Grid item xs={12} md={5} lg={4}>
           <Paper 
             elevation={0} 
             sx={{ 
               ...contentPaperStyles,
-              height: "100%",
+              height: "auto", // Cambiamos a altura automática
               "&::before": {
                 content: '""',
                 position: "absolute",
@@ -90,12 +90,12 @@ const AddProject = () => {
         </Grid>
 
         {/* Derecha: Formulario para crear/editar roles */}
-        <Grid item xs={12} md={7} lg={8} sx={{ height: { md: "100%" } }}>
+        <Grid item xs={12} md={7} lg={8}>
           <Paper 
             elevation={0} 
             sx={{ 
               ...contentPaperStyles,
-              height: "100%",
+              height: "auto", // Cambiamos a altura automática
               "&::before": {
                 content: '""',
                 position: "absolute",
