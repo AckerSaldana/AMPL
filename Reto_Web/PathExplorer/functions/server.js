@@ -1780,7 +1780,7 @@ async function analyzeWithOpenAI(cvText, availableSkills = [], availableRoles = 
     
     // Crear prompt optimizado para extraer datos específicos
     const skillsForPrompt = availableSkills.length > 0 
-      ? availableSkills.map(s => s.name || s).slice(0, 50).join(', ') // Limitamos a 50 skills para no sobrecargar
+      ? availableSkills.map(s => s.name || s).slice(0, 100).join(', ') // Limitamos a 50 skills para no sobrecargar
       : "JavaScript, HTML, CSS, React, Angular, Node.js, Python, Java, SQL, Scrum, Agile, AWS, Communication, Teamwork";
       
     const rolesForPrompt = availableRoles.length > 0
@@ -1851,7 +1851,7 @@ Responde EXCLUSIVAMENTE con un objeto JSON con esta estructura:
       ],
       response_format: { type: "json_object" }, // Forzar respuesta en formato JSON
       temperature: 0.2, // Baja temperatura para mayor precisión
-      max_tokens: 800, // Limitar tamaño de respuesta
+      max_tokens: 2500, // Limitar tamaño de respuesta
     });
 
     // Extraer y parsear la respuesta JSON
@@ -2665,10 +2665,20 @@ app.post("/api/virtual-assistant/chat", async (req, res) => {
       }
     }
     
-    // 8. Create a comprehensive skill map directly from database
+    // 8. Preparar lista de skills disponibles
+    let availableSkills = [];
+    if (clientSkills && clientSkills.length > 0) {
+      console.log("Using client-provided skills");
+      availableSkills = clientSkills;
+    } else if (allDbSkills && allDbSkills.length > 0) {
+      availableSkills = allDbSkills;
+      console.log(`Using ${availableSkills.length} skills from database`);
+    }
+    
+    // 9. Create a comprehensive skill map directly from database
     const skillMap = createSkillMapFromDatabase(allDbSkills || []);
     
-    // 9. Format the data for usage
+    // 10. Format the data for usage
     
     // Format user skills
     const formattedSkills = (userSkills || []).map(item => ({
@@ -2707,13 +2717,34 @@ app.post("/api/virtual-assistant/chat", async (req, res) => {
       };
     });
     
-    // Format available certifications
+    // Crear conjuntos de IDs y títulos de certificaciones que el usuario ya tiene para búsqueda más robusta
+    const userCertIds = new Set();
+    const userCertTitles = new Set();
+    formattedCertifications.forEach(cert => {
+      if (cert.id) userCertIds.add(cert.id);
+      if (cert.title) userCertTitles.add(cert.title.toLowerCase());
+    });
+    
+    console.log(`User already has ${userCertIds.size} certifications by ID and ${userCertTitles.size} by title`);
+    
+    // Format available certifications - FILTRADO MEJORADO para las que el usuario ya tiene
     const formattedAvailableCertifications = dbCertifications
       .filter(cert => {
-        // Filter out certifications the user already has
-        const userCertIds = (userCertifications || [])
-          .map(uc => uc.Certifications?.certification_id);
-        return !userCertIds.includes(cert.certification_id);
+        // Comprobación más robusta: verificar tanto por ID como por título
+        const certId = cert.certification_id || cert.id;
+        const certTitle = cert.title ? cert.title.toLowerCase() : "";
+        
+        // Verificar si el usuario ya tiene esta certificación (por ID o por título)
+        const userHasById = certId && userCertIds.has(certId);
+        const userHasByTitle = certTitle && userCertTitles.has(certTitle);
+        
+        // Para debugging
+        if (userHasById || userHasByTitle) {
+          console.log(`Filtering out certification: ${cert.title} - User already has it`);
+        }
+        
+        // Si el usuario ya tiene esta certificación (por ID o título), filtrarla
+        return !userHasById && !userHasByTitle;
       })
       .map(cert => {
         // Get skill names from the skill_acquired array
@@ -2740,9 +2771,9 @@ app.post("/api/virtual-assistant/chat", async (req, res) => {
         };
       });
     
-    console.log(`Formatted ${formattedAvailableCertifications.length} certifications with skills`);
+    console.log(`After filtering, ${formattedAvailableCertifications.length} certifications available to recommend`);
       
-    // 10. INTENT-SPECIFIC PROCESSING - Filtrar y procesar según la intención
+    // 11. INTENT-SPECIFIC PROCESSING - Filtrar y procesar según la intención
     
     // A. Para preguntas sobre certificaciones generales
     if (intent.type === 'certification_recommendation') {
@@ -2752,7 +2783,8 @@ app.post("/api/virtual-assistant/chat", async (req, res) => {
         formattedAvailableCertifications,
         formattedSkills,
         userGoals,
-        intent.focus
+        intent.focus,
+        formattedCertifications // Pasar las certificaciones del usuario para filtrarlas
       );
       
       // Limitar a las 5 certificaciones más relevantes para la respuesta
@@ -2764,7 +2796,9 @@ app.post("/api/virtual-assistant/chat", async (req, res) => {
         formattedSkills, 
         userGoals, 
         topCertifications,
-        intent.focus
+        intent.focus,
+        formattedCertifications, // Añadir las certificaciones del usuario
+        availableSkills // Añadir skills disponibles en la base de datos
       );
       
       // Llamar a OpenAI con el prompt especializado
@@ -2779,25 +2813,33 @@ app.post("/api/virtual-assistant/chat", async (req, res) => {
           { role: "user", content: message }
         ],
         temperature: 0.4, // Temperatura más baja para respuestas precisas
-        max_tokens: 750,
+        max_tokens: 2500,
       });
       
-      // Enviar respuesta específica de certificaciones
+      // Validar la respuesta para asegurar que solo menciona skills/certs disponibles
       const botResponse = response.choices[0].message.content;
+      const validatedResponse = await validateAndSanitizeResponse(
+        botResponse, 
+        availableSkills, 
+        formattedAvailableCertifications, 
+        formattedCertifications
+      );
+      
+      // Enviar respuesta específica de certificaciones
       return res.json({
         success: true,
         response: {
           sender: "bot",
-          text: botResponse,
+          text: validatedResponse,
           time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         }
       });
     }
-    // B. NUEVO: Para mapeo específico de skill a certificación
+    // B. Para mapeo específico de skill a certificación
     else if (intent.type === 'skill_certification_match' && intent.focus) {
       // Este intent maneja específicamente preguntas sobre qué certificaciones enseñan una habilidad particular
       
-      // Filtrar certificaciones que explícitamente proporcionan la habilidad solicitada
+      // Filtrar certificaciones que explícitamente proporcionan la habilidad solicitada Y que el usuario no tenga
       const skillSpecificCerts = formattedAvailableCertifications.filter(cert => 
         cert.skills.some(skill => 
           skill.name.toLowerCase().includes(intent.focus.toLowerCase())
@@ -2830,7 +2872,9 @@ app.post("/api/virtual-assistant/chat", async (req, res) => {
       const systemPrompt = createSkillCertificationMatchPrompt(
         userData,
         intent.focus,
-        rankedCerts
+        rankedCerts,
+        formattedCertifications, // Añadir las certificaciones del usuario
+        availableSkills // Añadir skills disponibles en la base de datos
       );
       
       // Llamar a OpenAI con prompt especializado
@@ -2845,22 +2889,30 @@ app.post("/api/virtual-assistant/chat", async (req, res) => {
           { role: "user", content: message }
         ],
         temperature: 0.3, // Temperatura más baja para recomendaciones más precisas
-        max_tokens: 750,
+        max_tokens: 2500,
       });
       
+      // Validar la respuesta
       const botResponse = response.choices[0].message.content;
+      const validatedResponse = await validateAndSanitizeResponse(
+        botResponse, 
+        availableSkills, 
+        formattedAvailableCertifications, 
+        formattedCertifications
+      );
+      
       return res.json({
         success: true,
         response: {
           sender: "bot",
-          text: botResponse,
+          text: validatedResponse,
           time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         }
       });
     }
     // C. Para preguntas sobre desarrollo de habilidades específicas
     else if (intent.type === 'skill_development' && intent.focus) {
-      // Filtrar certificaciones relevantes para esta habilidad
+      // Filtrar certificaciones relevantes para esta habilidad Y que el usuario no tenga
       const relevantCertifications = formattedAvailableCertifications.filter(cert => 
         cert.skills.some(skill => 
           skill.name.toLowerCase().includes(intent.focus.toLowerCase())
@@ -2880,7 +2932,9 @@ app.post("/api/virtual-assistant/chat", async (req, res) => {
         userGoals,
         relevantCertifications,
         intent.focus,
-        userHasSkill
+        userHasSkill,
+        formattedCertifications, // Pasar certificaciones del usuario
+        availableSkills // Añadir skills disponibles en la base de datos
       );
       
       // Llamar a OpenAI con el prompt especializado
@@ -2895,22 +2949,30 @@ app.post("/api/virtual-assistant/chat", async (req, res) => {
           { role: "user", content: message }
         ],
         temperature: 0.4,
-        max_tokens: 750,
+        max_tokens: 2500,
       });
       
-      // Enviar respuesta específica para desarrollo de habilidades
+      // Validar la respuesta
       const botResponse = response.choices[0].message.content;
+      const validatedResponse = await validateAndSanitizeResponse(
+        botResponse, 
+        availableSkills, 
+        formattedAvailableCertifications, 
+        formattedCertifications
+      );
+      
+      // Enviar respuesta específica para desarrollo de habilidades
       return res.json({
         success: true,
         response: {
           sender: "bot",
-          text: botResponse,
+          text: validatedResponse,
           time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         }
       });
     }
     
-    // 11. Para todos los demás tipos de preguntas, usar un prompt general mejorado
+    // 12. Para todos los demás tipos de preguntas, usar un prompt general mejorado
     const contextData = {
       user: {
         name: userData?.name || "User",
@@ -2921,7 +2983,8 @@ app.post("/api/virtual-assistant/chat", async (req, res) => {
         skills: formattedSkills,
         certifications: formattedCertifications
       },
-      availableCertifications: formattedAvailableCertifications,
+      availableCertifications: formattedAvailableCertifications, // Ya filtradas (excluidas las que ya tiene)
+      availableSkills: availableSkills, // Añadir skills disponibles en la base de datos
       intent: intent,
       query: message,
       requestConciseResponse: req.body.requestConciseResponse || false
@@ -2941,18 +3004,26 @@ app.post("/api/virtual-assistant/chat", async (req, res) => {
         { role: "user", content: message }
       ],
       temperature: 0.5,
-      max_tokens: 750,
+      max_tokens: 2500,
     });
     
-    // Enviar respuesta general
+    // Validar la respuesta
     const botResponse = response.choices[0].message.content;
+    const validatedResponse = await validateAndSanitizeResponse(
+      botResponse, 
+      availableSkills, 
+      formattedAvailableCertifications, 
+      formattedCertifications
+    );
+    
+    // Enviar respuesta general validada
     const currentTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     
     return res.json({
       success: true,
       response: {
         sender: "bot",
-        text: botResponse,
+        text: validatedResponse,
         time: currentTime
       }
     });
@@ -3085,8 +3156,30 @@ function detectUserIntent(message) {
  * Ordenar certificaciones por relevancia para el usuario
  * Versión mejorada con mejor detección de skills
  */
-function rankCertificationsByRelevance(certifications, userSkills, userGoals, focusSkill = null) {
-  return certifications.map(cert => {
+function rankCertificationsByRelevance(certifications, userSkills, userGoals, focusSkill = null, userCertifications = []) {
+  // Crear conjunto de títulos e IDs para búsqueda eficiente
+  const userCertIds = new Set();
+  const userCertTitles = new Set();
+  
+  userCertifications.forEach(cert => {
+    if (cert.id) userCertIds.add(cert.id);
+    if (cert.title) userCertTitles.add(cert.title.toLowerCase());
+  });
+  
+  // Filtrado más robusto usando tanto ID como título
+  const filteredCertifications = certifications.filter(cert => {
+    const certTitle = cert.title ? cert.title.toLowerCase() : "";
+    
+    // No recomendar si el usuario ya tiene esta certificación
+    const userHasById = cert.id && userCertIds.has(cert.id);
+    const userHasByTitle = certTitle && userCertTitles.has(certTitle);
+    
+    return !userHasById && !userHasByTitle;
+  });
+  
+  console.log(`After additional filtering in ranking: ${filteredCertifications.length} certifications`);
+  
+  return filteredCertifications.map(cert => {
     let relevanceScore = 0;
     
     // 1. Si se especificó una habilidad de enfoque, priorizar certificaciones relacionadas
@@ -3165,34 +3258,62 @@ function rankCertificationsByRelevance(certifications, userSkills, userGoals, fo
 /**
  * Prompt especializado para recomendaciones de certificaciones
  */
-function createCertificationRecommendationPrompt(userData, userSkills, userGoals, certifications, focusSkill = null) {
+function createCertificationRecommendationPrompt(userData, userSkills, userGoals, certifications, focusSkill = null, userCertifications = [], availableSkills = []) {
+  // Crear una lista explícita de certificaciones que el usuario ya tiene
+  const userCurrentCertsList = userCertifications.map(cert => cert.title).join(', ');
+  
+  // Crear una lista de todas las skills disponibles en la base de datos
+  const availableSkillsList = (availableSkills || [])
+    .map(skill => skill.name || "")
+    .filter(Boolean)
+    .join(', ');
+  
+  // Crear una lista de certificaciones disponibles
+  const availableCertsList = (certifications || [])
+    .map(cert => cert.title || "")
+    .filter(Boolean)
+    .join(', ');
+
   return `You are Accenture Career AI, an assistant specialized in providing personalized certification recommendations.
 
 IMPORTANT INSTRUCTION:
+- ABSOLUTELY NEVER recommend certifications that the user already has. User currently has these certifications: ${userCurrentCertsList || 'None'}.
 - ONLY recommend certifications from the provided list below. Do not invent or suggest certifications not listed.
+- ONLY recommend skills from this explicit list: ${availableSkillsList}
 - Keep your responses concise: 2-4 sentences per certification, max 3 certifications total.
 - Focus on matching the most relevant certifications to the user's needs.
+- Only talk about topics related to Accenture, career development, and professional growth within the company.
+- Do not discuss unrelated topics or provide general advice outside of Accenture's context.
+- If the user asks about something unrelated to Accenture, careers or certifications, politely redirect the conversation back to these topics.
+- If asked about skills, ONLY mention skills from the list of available skills provided above.
+- NEVER invent, create, or suggest skills or certifications that are not in the provided lists, even if they seem relevant.
 
 USER PROFILE:
 - Name: ${userData.name || 'User'}
 - Level: ${userData.level || 1}
 - Current Skills: ${userSkills.map(s => s.name).join(', ')}
 - Goals: ${userGoals.map(g => g.goal || 'Not specified').join(', ')}
+- Current Certifications: ${userCurrentCertsList || 'None'}
 
 ${focusSkill ? `The user is specifically interested in certifications related to ${focusSkill.toUpperCase()}.` : ''}
 
-AVAILABLE CERTIFICATIONS (ONLY recommend from this list):
-${certifications.map((cert, index) => `
+AVAILABLE CERTIFICATIONS (ONLY recommend from this list - these are certifications the user does NOT already have):
+${certifications.length > 0 ? certifications.map((cert, index) => `
 ${index + 1}. ${cert.title} by ${cert.issuer}
    - Skills covered: ${cert.skills.map(s => s.name).join(', ')}
    - Description: ${cert.description || 'Not available'}
-`).join('')}
+`).join('') : 'No suitable certifications found that the user doesn\'t already have.'}
 
 YOUR RESPONSE MUST:
 1. Be brief and direct - focus on 1-3 most relevant certifications
 2. Include certification title, issuer, and briefly why it's relevant
 3. Use concise bullet points instead of lengthy paragraphs
 4. Only recommend certifications from the list above
+5. NEVER recommend any certification the user already has (listed in Current Certifications above)
+6. Only provide information relevant to Accenture and the user's career at Accenture
+7. If asked about topics unrelated to certifications, skills, or career at Accenture, politely redirect to relevant topics
+8. If mentioning skills, ONLY use skills from the available skills list provided above
+9. Never invent or create new certifications or skills not in the provided lists
 
 FORMAT EXAMPLE:
 "Based on your needs, these certifications would be most valuable:
@@ -3203,26 +3324,53 @@ FORMAT EXAMPLE:
 
 **[Certification Name]** by [Issuer]
 - Covers: [key skills]
-- Benefit: [brief value proposition]"`;
+- Benefit: [brief value proposition]"
+
+If no certifications from the list match what the user is looking for, state: "Currently, there are no certifications in our database that match your specific needs. However, I'd be happy to help you explore other career development opportunities within Accenture."`;
 }
 
 /**
  * NUEVO: Prompt especializado para mapeo de skill a certificación
  */
-function createSkillCertificationMatchPrompt(userData, focusSkill, relevantCertifications) {
+function createSkillCertificationMatchPrompt(userData, focusSkill, relevantCertifications, userCertifications = [], availableSkills = []) {
+  // Crear una lista explícita de certificaciones que el usuario ya tiene
+  const userCurrentCertsList = userCertifications.map(cert => cert.title).join(', ');
+  
+  // Crear una lista de todas las skills disponibles en la base de datos
+  const availableSkillsList = (availableSkills || [])
+    .map(skill => skill.name || "")
+    .filter(Boolean)
+    .join(', ');
+  
+  // Crear una lista de certificaciones relevantes disponibles
+  const availableCertsList = (relevantCertifications || [])
+    .map(cert => cert.title || "")
+    .filter(Boolean)
+    .join(', ');
+  
   return `You are Accenture Career AI, an assistant specialized in recommending certifications for specific skills.
 
 IMPORTANT INSTRUCTION: The user is asking about certifications that teach or improve ${focusSkill.toUpperCase()} skills. 
 Your response MUST focus ONLY on listing certifications from our database that specifically teach this skill.
 
-USER QUERY FOCUS: ${focusSkill.toUpperCase()} skill
+CRITICAL RULES:
+- ABSOLUTELY NEVER recommend certifications that the user already has. User currently has these certifications: ${userCurrentCertsList || 'None'}.
+- ONLY recommend skills from this explicit list: ${availableSkillsList}
+- ONLY recommend certifications from this explicit list: ${availableCertsList}
+- Only provide information related to Accenture, career development at Accenture, and certifications available to Accenture employees.
+- Do not discuss topics unrelated to Accenture's professional environment.
+- If asked about topics unrelated to Accenture, certifications, or career development, politely redirect the conversation back to these topics.
+- NEVER invent, create, or suggest skills or certifications that are not in the provided lists, even if they seem relevant.
 
-CERTIFICATIONS AVAILABLE THAT TEACH ${focusSkill.toUpperCase()}:
+USER QUERY FOCUS: ${focusSkill.toUpperCase()} skill
+USER CURRENT CERTIFICATIONS: ${userCurrentCertsList || 'None'}
+
+CERTIFICATIONS AVAILABLE THAT TEACH ${focusSkill.toUpperCase()} (user does NOT already have these):
 ${relevantCertifications.length > 0 ? relevantCertifications.map((cert, index) => `
 ${index + 1}. ${cert.title} by ${cert.issuer}
    - Skills covered: ${cert.skills.map(s => s.name).join(', ')}
    - Description: ${cert.description || 'Not available'}
-`).join('') : 'No specific certifications found for this skill in our database.'}
+`).join('') : 'No specific certifications found for this skill in our database that the user doesn\'t already have.'}
 
 YOUR RESPONSE REQUIREMENTS:
 1. List ONLY the certifications from above that specifically teach ${focusSkill.toUpperCase()} skills
@@ -3231,8 +3379,12 @@ YOUR RESPONSE REQUIREMENTS:
    - Why it's valuable for learning this skill
    - Any prerequisites or difficulty level
 3. List certifications in order of relevance to ${focusSkill}
-4. If no certifications are found, clearly state that we don't currently have certifications specifically for ${focusSkill} in our database
-5. Keep your response concise and focused
+4. NEVER mention or recommend any certification that appears in the USER CURRENT CERTIFICATIONS list
+5. If no certifications are found, clearly state that we don't currently have certifications specifically for ${focusSkill} in our database that the user doesn't already have
+6. Keep your response concise and focused
+7. Only discuss topics related to Accenture, certifications, and career development within Accenture
+8. ONLY mention skills from the AVAILABLE SKILLS list provided above
+9. Never invent new certifications or skills not listed above
 
 FORMAT EXAMPLE:
 "Here are the certifications in our database that specifically teach ${focusSkill} skills:
@@ -3248,57 +3400,108 @@ FORMAT EXAMPLE:
 - **Level**: [Beginner/Intermediate/Advanced]"
 
 If there are no relevant certifications, your response should be:
-"Currently, we don't have specific certifications in our database that focus on teaching ${focusSkill} skills. However, I'd be happy to recommend some alternative learning approaches or related certifications that might partially cover this skill area."`;
+"Currently, we don't have specific certifications in our database that focus on teaching ${focusSkill} skills that you don't already have. However, I'd be happy to help you explore other career development opportunities at Accenture that align with your interests."`;
 }
 
 /**
  * Prompt especializado para desarrollo de habilidades específicas
  * Versión mejorada para enfocarse más en certificaciones
  */
-function createSkillDevelopmentPrompt(userData, userSkills, userGoals, relevantCertifications, focusSkill, userHasSkill) {
-  return `You are Accenture Career AI, an assistant specialized in providing personalized career advice to employees.
+function createSkillDevelopmentPrompt(userData, userSkills, userGoals, relevantCertifications, focusSkill, userHasSkill, userCertifications = [], availableSkills = []) {
+  // Crear una lista explícita de certificaciones que el usuario ya tiene
+  const userCurrentCertsList = userCertifications.map(cert => cert.title).join(', ');
+  
+  // Crear una lista de todas las skills disponibles en la base de datos
+  const availableSkillsList = (availableSkills || [])
+    .map(skill => skill.name || "")
+    .filter(Boolean)
+    .join(', ');
+  
+  // Crear una lista de certificaciones relevantes disponibles
+  const availableCertsList = (relevantCertifications || [])
+    .map(cert => cert.title || "")
+    .filter(Boolean)
+    .join(', ');
+  
+  return `You are Accenture Career AI, an assistant specialized in providing personalized career advice to Accenture employees.
 
 IMPORTANT INSTRUCTION: The user is asking about developing their ${focusSkill.toUpperCase()} skills. Your response should focus primarily on specific certifications that teach this skill.
+
+CRITICAL RULES:
+- ABSOLUTELY NEVER recommend certifications that the user already has. User currently has these certifications: ${userCurrentCertsList || 'None'}.
+- ONLY recommend skills from this explicit list: ${availableSkillsList}
+- ONLY recommend certifications from this explicit list: ${availableCertsList}
+- Only provide information related to Accenture, career development at Accenture, and certifications available to Accenture employees.
+- Do not discuss topics unrelated to Accenture's professional environment.
+- If asked about topics unrelated to Accenture, certifications, or career development, politely redirect the conversation back to these topics.
+- NEVER invent, create, or suggest skills or certifications that are not in the provided lists, even if they seem relevant.
 
 USER PROFILE:
 - Name: ${userData.name || 'User'}
 - Level: ${userData.level || 1}
 - Goals: ${userGoals.map(g => g.goal || 'Not specified').join(', ')}
 - Current Skills: ${userSkills.map(s => s.name).join(', ')}
+- Current Certifications: ${userCurrentCertsList || 'None'}
 - ${userHasSkill ? `The user ALREADY HAS some ${focusSkill} skills` : `The user DOES NOT YET HAVE ${focusSkill} skills`}
 
-CERTIFICATIONS THAT TEACH ${focusSkill.toUpperCase()} SKILLS:
+CERTIFICATIONS THAT TEACH ${focusSkill.toUpperCase()} SKILLS (user does NOT already have these):
 ${relevantCertifications.length > 0 ? relevantCertifications.map((cert, index) => `
 ${index + 1}. ${cert.title} by ${cert.issuer}
    - Skills covered: ${cert.skills.map(s => s.name).join(', ')}
    - Description: ${cert.description || 'Not available'}
-`).join('') : 'No specific certifications found for this skill in our database.'}
+`).join('') : 'No specific certifications found for this skill in our database that the user doesn\'t already have.'}
 
 YOUR PRIMARY TASK:
 1. Recommend the most relevant certifications from the list above that will help the user develop ${focusSkill} skills
-2. For each recommended certification, explain:
+2. NEVER recommend any certification listed in the user's Current Certifications
+3. For each recommended certification, explain:
    - What specific aspects of ${focusSkill} it teaches
    - Why it's particularly valuable for the user's goals and current skill level
    - How it complements their existing skills
+4. Only provide information relevant to Accenture and the user's career at Accenture
+5. If asked about topics unrelated to certifications, skills, or career at Accenture, politely redirect to relevant topics
+6. ONLY mention skills from the AVAILABLE SKILLS list provided above
+7. ONLY recommend certifications from the CERTIFICATIONS list provided above
 
 YOUR RESPONSE STRUCTURE:
 1. Brief introduction to the importance of ${focusSkill} (1-2 sentences only)
 2. List of recommended certifications from our database (2-3 most relevant ones)
 3. Brief learning path suggestion (1-2 sentences)
 
-If no certifications in our database teach this skill, clearly state this fact and suggest alternative approaches to learning.`;
+If no certifications in our database teach this skill that the user doesn't already have, clearly state:
+"Currently, we don't have specific certifications in our database that focus on teaching ${focusSkill} skills that you don't already have. However, I'd be happy to help you explore other career development opportunities at Accenture that align with your interests."`;
 }
 
-/**
- * Prompt general mejorado para otras consultas
- */
 function createGeneralPrompt(contextData) {
   // Determinar si se requieren respuestas más concisas
   const conciseInstruction = contextData.requestConciseResponse ? 
     "IMPORTANT: Keep your response extremely concise. Use 2-3 sentences maximum. Focus on direct answers without elaboration." :
     "Keep your response focused and informative but concise.";
+  
+  // Crear una lista explícita de certificaciones que el usuario ya tiene
+  const userCurrentCertsList = contextData.user.certifications.map(cert => cert.title).join(', ');
+  
+  // Crear una lista de todas las skills disponibles en la base de datos
+  const availableSkillsList = (contextData.availableSkills || [])
+    .map(skill => skill.name || "")
+    .filter(Boolean)
+    .join(', ');
+  
+  // Crear una lista de todas las certificaciones disponibles
+  const availableCertsList = (contextData.availableCertifications || [])
+    .map(cert => cert.title || "")
+    .filter(Boolean)
+    .join(', ');
 
-  return `You are Accenture Career AI, an assistant specialized in providing personalized career advice to employees.
+  return `You are Accenture Career AI, an assistant specialized in providing personalized career advice to Accenture employees.
+
+IMPORTANT RULES:
+- ABSOLUTELY NEVER recommend certifications that the user already has. User currently has these certifications: ${userCurrentCertsList || 'None'}.
+- Only provide information related to Accenture, career development at Accenture, and certifications available to Accenture employees.
+- Do not discuss topics unrelated to Accenture's professional environment.
+- If asked about topics unrelated to Accenture, certifications, or career development, politely redirect the conversation back to these topics.
+- When specifically asked about certifications, ONLY recommend certifications from this explicit list: ${availableCertsList}
+- If no specific certifications are available in our database for this topic, provide general career advice instead.
 
 USER PROFILE:
 - Name: ${contextData.user.name} ${contextData.user.lastName}
@@ -3306,7 +3509,7 @@ USER PROFILE:
 - About: ${contextData.user.about || 'Not specified'}
 - Goals: ${contextData.user.goals.map(g => `${g.timeframe}: ${g.goal || 'Not specified'}`).join(', ')}
 - Current Skills: ${contextData.user.skills.map(s => s.name).join(', ')}
-- Current Certifications: ${contextData.user.certifications.map(c => c.title).join(', ')}
+- Current Certifications: ${userCurrentCertsList || 'None'}
 
 USER QUERY: "${contextData.query}"
 DETECTED INTENT: ${contextData.intent.type}${contextData.intent.focus ? `, Focus: ${contextData.intent.focus}` : ''}
@@ -3316,14 +3519,19 @@ YOUR RESPONSE REQUIREMENTS:
 2. Provide personalized advice based on their profile, skills, and goals
 3. Structure your response with clear sections using markdown (bold, lists, etc.)
 4. ${conciseInstruction}
-5. When mentioning certifications or skills, be specific and explain relevance
-6. ONLY recommend certifications that are in our database, never invent or suggest alternatives
+5. When mentioning certifications, be specific and only reference certifications in our database
+6. NEVER recommend any certification listed in the user's Current Certifications
+7. When asked about skills, provide general skill categories needed for the role or position. Don't worry about exact skill names matching a database.
+8. Only discuss topics related to Accenture, certifications, and career development within Accenture
+9. If asked about topics unrelated to Accenture, politely redirect the conversation
 
 DO NOT:
 - Provide generic career advice that ignores the specific question
-- List skills or certifications without explaining why they're relevant
 - Ignore the specific context of the user's query
 - Present information in vague or overly general terms
+- Discuss topics unrelated to Accenture's professional environment
+- Recommend certifications the user already has
+- Make up specific certification names that are not in the provided certifications list
 
 FORMATTING GUIDELINES:
 - Use **bold** for important terms, skill names, and certification titles
@@ -3334,6 +3542,88 @@ FORMATTING GUIDELINES:
 Remember to be direct, specific, and relevant to the user's actual question.`;
 }
 
+/**
+ * Función para validar y sanitizar respuestas
+ * Verifica que las certificaciones y skills mencionadas existan en la base de datos
+ */
+async function validateAndSanitizeResponse(response, availableSkills, availableCertifications, userCertifications) {
+  let processedResponse = response;
+  
+  try {
+    // Crear conjuntos de nombres para búsquedas eficientes
+    const availableSkillNames = new Set(
+      availableSkills
+        .map(s => s.name ? s.name.toLowerCase() : "")
+        .filter(Boolean)
+    );
+    
+    const availableCertNames = new Set(
+      availableCertifications
+        .map(c => c.title ? c.title.toLowerCase() : "")
+        .filter(Boolean)
+    );
+    
+    const userCertNames = new Set(
+      userCertifications
+        .map(c => c.title ? c.title.toLowerCase() : "")
+        .filter(Boolean)
+    );
+    
+    // Lista de palabras comunes que debemos ignorar en la validación
+    const commonWords = new Set([
+      'essential', 'important', 'relevant', 'crucial', 'technical', 'leadership',
+      'development', 'software', 'architecture', 'system', 'design', 'security',
+      'cloud', 'api', 'skills', 'experience', 'knowledge', 'understanding',
+      'recommended', 'capabilities', 'architect', 'specialty', 'thinking',
+      'concepts', 'principles', 'patterns', 'solutions', 'applications'
+    ]);
+    
+    // Detectar certificaciones recomendadas (buscando patrones específicos de certificaciones en el texto)
+    // Buscamos patrones muy específicos para evitar falsos positivos
+    const certRegex = /certification:?\s+([A-Za-z0-9\s\-]+(?:Architect|Developer|Engineer|Professional|Associate|Certified|Specialist))/gi;
+    let match;
+    
+    // Verificar si alguna certificación mencionada no está en la lista o el usuario ya la tiene
+    let problematicCerts = [];
+    while ((match = certRegex.exec(processedResponse)) !== null) {
+      const certName = match[1].trim();
+      // Verificar si está en las certificaciones disponibles - búsqueda más flexible
+      const isCertAvailable = Array.from(availableCertNames).some(availableCert => 
+        certName.toLowerCase().includes(availableCert) || 
+        availableCert.includes(certName.toLowerCase())
+      );
+      
+      // Verificar si el usuario ya tiene esta certificación
+      const userHasCert = Array.from(userCertNames).some(userCert => 
+        certName.toLowerCase().includes(userCert) || 
+        userCert.includes(certName.toLowerCase())
+      );
+      
+      if (userHasCert || !isCertAvailable) {
+        problematicCerts.push(certName);
+      }
+    }
+    
+    // Si hay certificaciones problemáticas, añadir una única nota al final
+    if (problematicCerts.length > 0) {
+      const certNote = problematicCerts.map(cert => 
+        `- "${cert}" ${userCertNames.has(cert.toLowerCase()) ? 
+          'ya la tienes en tu perfil' : 
+          'no está actualmente en nuestra base de datos'}`
+      ).join('\n');
+      
+      processedResponse += `\n\n**Nota sobre certificaciones mencionadas:**\n${certNote}\n`;
+    }
+    
+    // IMPORTANTE: NO añadimos la línea en español sobre skills
+    // Eliminamos esta parte para que no aparezca el mensaje en español
+    
+    return processedResponse;
+  } catch (error) {
+    console.error("Error validating response:", error);
+    return response; // Devolver la respuesta original en caso de error
+  }
+}
 app.use((err, req, res, next) => {
   console.error("Unhandled error:", err);
   res.status(500).json({ success: false, error: err.message });

@@ -1,4 +1,4 @@
-// src/components/dashboard/MyPathTimeline.jsx
+// src/components/MyPathTimeline.jsx
 import React, { useState, useEffect } from "react";
 import { 
   Box, 
