@@ -11,7 +11,7 @@ import {
 import { Person } from "@mui/icons-material";
 import { ACCENTURE_COLORS } from "../styles/styles";
 
-// Default user info para prevenir errores
+// Default user info just for type safety (won't be displayed)
 const defaultUserInfo = {
   name: "User",
   avatar: "",
@@ -21,8 +21,16 @@ const defaultUserInfo = {
   primarySkills: []
 };
 
-const ProfileSummary = ({ userInfo = defaultUserInfo }) => {
-  // Aseguramos valores consistentes
+const ProfileSummary = ({ userInfo }) => {
+  // Check if we're receiving actual data or just default/empty data
+  const isLoading = !userInfo || Object.keys(userInfo).length === 0;
+  
+  // If loading, return nothing (parent component should render skeleton)
+  if (isLoading) {
+    return null;
+  }
+  
+  // Ensure consistent values with defaults as fallback
   const safeUserInfo = { ...defaultUserInfo, ...userInfo };
   
   return (

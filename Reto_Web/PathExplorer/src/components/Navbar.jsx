@@ -17,6 +17,8 @@ import {
   alpha,
   Drawer,
   SwipeableDrawer,
+  Button,
+  Divider
 } from "@mui/material";
 
 import { NavLink, useNavigate, useLocation } from "react-router-dom";
@@ -49,7 +51,7 @@ import EventIcon from '@mui/icons-material/Event';
 import UpdateIcon from '@mui/icons-material/Update';
 import RateReviewIcon from '@mui/icons-material/RateReview';
 import MessageIcon from '@mui/icons-material/Message';
-import { Popover, Divider, ListItemButton } from "@mui/material";
+import { Popover } from "@mui/material";
 
 const RippleEffect = ({ active }) => {
   return (
@@ -81,8 +83,8 @@ const Navbar = ({ children }) => {
 
   const [prevActiveItem, setPrevActiveItem] = useState(null);
   const [darkMode, setDarkMode] = useState(false);
-  const [expanded, setExpanded] = useState(!isMobile); // Colapsa por defecto en móvil
-  const [mobileOpen, setMobileOpen] = useState(false); // Estado para el drawer móvil
+  const [expanded, setExpanded] = useState(!isMobile); // Collapsed by default on mobile
+  const [mobileOpen, setMobileOpen] = useState(false); // State for mobile drawer
   const [hoveredItem, setHoveredItem] = useState(null);
   const [rippleActive, setRippleActive] = useState(false);
   const [notifications, setNotifications] = useState([]);
@@ -109,18 +111,18 @@ const Navbar = ({ children }) => {
     }
   };
 
-  // Actualizar el estado de expansión cuando cambie el tamaño de la pantalla
+  // Update expansion state when screen size changes
   useEffect(() => {
     if (isMobile && expanded) {
       setExpanded(false);
     } else if (!isMobile && !expanded && !mobileOpen) {
-      // Solo expandir automáticamente si estamos pasando de móvil a desktop
+      // Only auto-expand when switching from mobile to desktop
       setExpanded(true);
     }
   }, [isMobile]);
 
   useEffect(() => {
-    // Obtener información del usuario cuando se carga el componente
+    // Get user info when component loads
     const fetchUserInfo = async () => {
       if (user) {
         const { data, error } = await supabase
@@ -138,106 +140,176 @@ const Navbar = ({ children }) => {
     fetchUserInfo();
   }, [user]);
 
+  // Fetch project notifications - only for projects the user is assigned to
   useEffect(() => {
     const fetchProjectNotifications = async () => {
+      if (!user) return;
+      
+      // First, get the projects the user is assigned to
+      const { data: userRoles, error: userRolesError } = await supabase
+        .from("UserRole")
+        .select("project_id")
+        .eq("user_id", user.id);
+
+      if (userRolesError || !userRoles || userRoles.length === 0) {
+        return;
+      }
+
+      // Extract project IDs the user is assigned to
+      const userProjectIds = userRoles.map(role => role.project_id);
+
+      // Fetch only assigned projects that are active
       const { data: projectsData, error } = await supabase
         .from("Project")
         .select("projectID, title, status, progress, end_date")
+        .in("projectID", userProjectIds)
         .in("status", ["In Progress", "On Hold"]);
-  
+
       if (!error && projectsData) {
         const notifs = projectsData.map((project) => {
-          const isDueSoon = new Date(project.end_date) - new Date() < 7 * 24 * 60 * 60 * 1000;
-  
-          return {
-            id: project.projectID,
-            text: `Proyecto activo: ${project.title}${isDueSoon ? " (fecha límite próxima)" : ""}`,
-            type: "project",
-            read: false,
-          };
+          const endDate = new Date(project.end_date);
+          const timeRemaining = endDate - new Date();
+          const daysRemaining = Math.floor(timeRemaining / (24 * 60 * 60 * 1000));
+          
+          // Create notification only if deadline is within 10 days
+          if (daysRemaining >= 0 && daysRemaining <= 10) {
+            return {
+              id: `project-${project.projectID}`,
+              text: `Project: ${project.title} - ${daysRemaining} days until deadline`,
+              type: "project",
+              read: false,
+              date: new Date(),
+              priority: daysRemaining <= 3 ? "high" : "medium",
+              entityId: project.projectID
+            };
+          }
+          return null;
+        }).filter(Boolean); // Remove null entries
+
+        setNotifications(prev => {
+          // Filter out any existing project notifications to avoid duplicates
+          const filteredPrev = prev.filter(n => !n.id.startsWith('project-'));
+          return [...filteredPrev, ...notifs];
         });
-  
-        setNotifications(notifs);
       }
     };
-  
-    fetchProjectNotifications(); // Primer fetch inmediato
-  
-    const interval = setInterval(fetchProjectNotifications, 60000); // ⏱️ cada 60 segundos
-  
-    return () => clearInterval(interval); // limpiar al desmontar
-  }, []);
 
+    fetchProjectNotifications();
+    const interval = setInterval(fetchProjectNotifications, 60000);
+    return () => clearInterval(interval);
+  }, [user]);
+
+  // Fetch certification notifications - only for certifications about to expire
   useEffect(() => {
-    const fetchExtraNotifications = async () => {
-      let extraNotifs = [];
-  
-      // Certificaciones nuevas
-      const { data: certs } = await supabase
+    const fetchCertificationNotifications = async () => {
+      if (!user) return;
+      
+      // Get the user's certifications that are about to expire
+      const { data: userCerts, error: userCertsError } = await supabase
+        .from("UserCertifications")
+        .select("certification_ID, valid_Until")
+        .eq("user_ID", user.id);
+
+      if (userCertsError || !userCerts || userCerts.length === 0) {
+        return;
+      }
+
+      // Filter for certifications expiring within 30 days
+      const expiringCerts = userCerts.filter(cert => {
+        const validUntil = new Date(cert.valid_Until);
+        const today = new Date();
+        const daysRemaining = Math.floor((validUntil - today) / (24 * 60 * 60 * 1000));
+        return daysRemaining >= 0 && daysRemaining <= 30;
+      });
+
+      if (expiringCerts.length === 0) {
+        return;
+      }
+
+      // Get certification details
+      const { data: certsData } = await supabase
         .from("Certifications")
-        .select("title, created_at")
-        .order("created_at", { ascending: false })
-        .limit(3);
-      if (certs) {
-        extraNotifs.push(
-          ...certs.map((cert) => ({
-            id: `cert-${cert.title}`,
-            text: `Nueva certificación: ${cert.title}`,
+        .select("certification_id, title")
+        .in("certification_id", expiringCerts.map(c => c.certification_ID));
+
+      if (certsData && certsData.length > 0) {
+        const notifs = certsData.map(cert => {
+          const userCert = expiringCerts.find(uc => uc.certification_ID === cert.certification_id);
+          const validUntil = new Date(userCert.valid_Until);
+          const daysRemaining = Math.floor((validUntil - new Date()) / (24 * 60 * 60 * 1000));
+          
+          return {
+            id: `cert-${cert.certification_id}`,
+            text: `Certification: ${cert.title} expires in ${daysRemaining} days`,
             type: "certification",
             read: false,
-          }))
-        );
+            date: new Date(),
+            priority: daysRemaining <= 7 ? "high" : "medium",
+            entityId: cert.certification_id
+          };
+        });
+
+        setNotifications(prev => {
+          // Remove existing certification notifications
+          const filteredPrev = prev.filter(n => !n.id.startsWith('cert-'));
+          return [...filteredPrev, ...notifs];
+        });
       }
-  
-      // Cursos nuevos (tabla: Course)
+    };
+
+    // Initial fetch
+    fetchCertificationNotifications();
+    
+    // Fetch every 6 hours (we don't need to check this as often)
+    const interval = setInterval(fetchCertificationNotifications, 6 * 60 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, [user]);
+
+  // Optional: Add course notifications if needed
+  useEffect(() => {
+    const fetchCourseNotifications = async () => {
+      if (!user) return;
+      
+      // Get recently added courses (last 7 days)
+      const oneWeekAgo = new Date();
+      oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+      
       const { data: courses } = await supabase
         .from("Course")
         .select("title, created_at")
+        .gte("created_at", oneWeekAgo.toISOString())
         .order("created_at", { ascending: false })
         .limit(3);
-      if (courses) {
-        extraNotifs.push(
-          ...courses.map((course) => ({
-            id: `course-${course.title}`,
-            text: `Nuevo curso disponible: ${course.title}`,
-            type: "course",
-            read: false,
-          }))
-        );
+        
+      if (courses && courses.length > 0) {
+        const notifs = courses.map(course => ({
+          id: `course-${course.title}`,
+          text: `New course available: ${course.title}`,
+          type: "course",
+          read: false,
+          date: new Date(course.created_at),
+          priority: "low",
+        }));
+        
+        setNotifications(prev => {
+          // Remove existing course notifications
+          const filteredPrev = prev.filter(n => !n.id.startsWith('course-'));
+          return [...filteredPrev, ...notifs];
+        });
       }
-  
-      // Avances recientes en MyPath
-      const { data: pathEvents } = await supabase
-        .from("Path_Progress")
-        .select("title, updated_at")
-        .order("updated_at", { ascending: false })
-        .limit(3);
-      if (pathEvents) {
-        extraNotifs.push(
-          ...pathEvents.map((event) => ({
-            id: `path-${event.title}`,
-            text: `Avance en tu ruta: ${event.title}`,
-            type: "path",
-            read: false,
-          }))
-        );
-      }
-  
-      // Añadir al estado
-      setNotifications((prev) => [...prev, ...extraNotifs]);
     };
-  
-    fetchExtraNotifications();
-  }, []);
+    
+    fetchCourseNotifications();
+  }, [user]);
 
-  // Determinar el elemento activo basado en la ruta actual
+  // Determine active item based on current route
   useEffect(() => {
     const path = location.pathname;
 
     if (path === "/" || path === "") {
       setActiveItem("Dashboard");
     } else {
-      // Obtener el nombre del elemento del menú basado en la ruta
+      // Get menu item name based on route
       const menuItem = menuItems.find(
         (item) => item.route === path || path.startsWith(item.route + "/")
       );
@@ -270,16 +342,14 @@ const Navbar = ({ children }) => {
     }
   };
 
-  
-
   const handleLogout = async () => {
     await supabase.auth.signOut();
     navigate("/login");
   };
 
-  // Definir items del menú basados en el rol
+  // Define menu items based on role
   const getMenuItems = () => {
-    // Elementos base que todos los usuarios pueden ver
+    // Base items all users can see
     const baseItems = [
       { text: "Dashboard", icon: <DashboardIcon />, route: "/" },
       { text: "Projects", icon: <FolderIcon />, route: "/projects" },
@@ -291,7 +361,7 @@ const Navbar = ({ children }) => {
       },
     ];
 
-    // Elementos adicionales según el rol
+    // Additional items based on role
     if (role === "manager") {
       return [
         ...baseItems,
@@ -305,7 +375,7 @@ const Navbar = ({ children }) => {
       ];
     }
 
-    // Por defecto, devolver solo los elementos base (empleado)
+    // Default, return only base items (employee)
     return baseItems;
   };
 
@@ -323,17 +393,17 @@ const Navbar = ({ children }) => {
     return <Loading />;
   }
 
-  // Lista de navegación que se comparte entre la barra lateral normal y la versión móvil
+  // Navigation list shared between sidebar and mobile version
   const navList = (
     <List
       sx={{
         p: 1.8,
         display: "flex",
         flexDirection: "column",
-        alignItems: "flex-start", // Alineación a la izquierda
+        alignItems: "flex-start", // Left alignment
         height: "100%",
         transition: "all 0.5s cubic-bezier(0.4, 0, 0.2, 1)",
-        position: "relative", // Para que los hijos absolutos se posicionen respecto a esta lista
+        position: "relative", // For absolute child positioning
         width: "100%",
       }}
     >
@@ -360,15 +430,15 @@ const Navbar = ({ children }) => {
             onMouseEnter={() => setHoveredItem(item.text)}
             onMouseLeave={() => setHoveredItem(null)}
             sx={{
-              height: "56px", // Altura fija para items del menú
+              height: "56px", // Fixed height for menu items
               minHeight: "56px",
-              width: expanded || isMobile ? "100%" : "60px", // Ancho del 100% cuando está expandido
+              width: expanded || isMobile ? "100%" : "60px", // 100% width when expanded
               py: 0,
               px: 1,
               mb: 1.8,
               display: "flex",
               alignItems: "center",
-              justifyContent: "flex-start", // Alineación a la izquierda
+              justifyContent: "flex-start", // Left alignment
               borderRadius: "10px",
               bgcolor: activeItem === item.text ? primaryColor : "transparent",
               color: activeItem === item.text ? "white" : "inherit",
@@ -383,7 +453,7 @@ const Navbar = ({ children }) => {
                   ? "translateY(-3px)"
                   : "translateY(0)",
               position: "relative",
-              overflow: "hidden", // Ocultar desbordamiento
+              overflow: "hidden", // Hide overflow
               zIndex: 10,
               "&::before": {
                 content: '""',
@@ -452,7 +522,7 @@ const Navbar = ({ children }) => {
               </Box>
             </ListItemIcon>
 
-            {/* Texto del menú dentro del ListItem */}
+            {/* Menu text within ListItem */}
             <ListItemText
               primary={item.text}
               sx={{
@@ -481,20 +551,20 @@ const Navbar = ({ children }) => {
     </List>
   );
 
-  // Vista para móvil: SwipeableDrawer
+  // Mobile view: SwipeableDrawer
   const mobileDrawer = (
     <SwipeableDrawer
       open={mobileOpen}
       onOpen={() => setMobileOpen(true)}
       onClose={() => setMobileOpen(false)}
       variant="temporary"
-      ModalProps={{ keepMounted: true }} // Mejor rendimiento en móvil
+      ModalProps={{ keepMounted: true }} // Better performance on mobile
       sx={{
         display: { xs: "block", sm: "none" },
         "& .MuiDrawer-paper": {
           width: "230px",
           backgroundColor: navBgColor,
-          pt: "60px", // Espacio para la barra superior
+          pt: "60px", // Space for top bar
           transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
         },
       }}
@@ -514,15 +584,15 @@ const Navbar = ({ children }) => {
         transition: "background-color 0.6s cubic-bezier(0.4, 0, 0.2, 1)",
       }}
     >
-      {/* Barra superior con altura fija */}
+      {/* Top bar with fixed height */}
       <Box
         sx={{
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
           p: 0,
-          px: { xs: 2, sm: 3 }, // Padding horizontal más pequeño en móvil
-          height: "60px", // Altura fija para la barra superior
+          px: { xs: 2, sm: 3 }, // Smaller horizontal padding on mobile
+          height: "60px", // Fixed height for top bar
           position: "fixed",
           top: 0,
           left: 0,
@@ -535,7 +605,7 @@ const Navbar = ({ children }) => {
           transition: "all 0.5s cubic-bezier(0.4, 0, 0.2, 1)",
         }}
       >
-        {/* Lado izquierdo: Logo y botón de expandir */}
+        {/* Left side: Logo and expand button */}
         <Box
           sx={{
             flexShrink: 0,
@@ -549,7 +619,7 @@ const Navbar = ({ children }) => {
             overflow: "visible",
           }}
         >
-          {/* Logo siempre visible */}
+          {/* Always visible logo */}
           <Box
             sx={{
               display: "flex",
@@ -581,7 +651,7 @@ const Navbar = ({ children }) => {
             />
           </Box>
 
-          {/* Título que aparece/desaparece */}
+          {/* Title that appears/disappears */}
           <Typography
             variant="h6"
             sx={{
@@ -590,20 +660,20 @@ const Navbar = ({ children }) => {
               fontFamily: '"Graphik", "Arial", sans-serif',
               whiteSpace: "nowrap",
               opacity: expanded && !isMobile ? 1 : 0,
-              visibility: expanded && !isMobile ? "visible" : "hidden", // Asegura que el texto esté oculto cuando está retraído
+              visibility: expanded && !isMobile ? "visible" : "hidden", // Ensure text is hidden when retracted
               transform:
-                expanded && !isMobile ? "translateX(0)" : "translateX(-20px)", // Animación de movimiento horizontal
+                expanded && !isMobile ? "translateX(0)" : "translateX(-20px)", // Horizontal movement animation
               transition: "opacity 0.2s ease, transform 0.3s ease",
               ml: 3,
               position: "absolute",
-              left: "30px", // Posicionado después del logo
-              display: { xs: "none", sm: "block" }, // Ocultar en móvil
+              left: "30px", // Positioned after logo
+              display: { xs: "none", sm: "block" }, // Hide on mobile
             }}
           >
             PathExplorer
           </Typography>
 
-          {/* Botón para expandir/contraer el menú con tamaño fijo */}
+          {/* Button to expand/collapse menu with fixed size */}
           <IconButton
             onClick={toggleSidebar}
             size="small"
@@ -650,16 +720,16 @@ const Navbar = ({ children }) => {
           </IconButton>
         </Box>
 
-        {/* Lado derecho: acciones (modo oscuro, notificaciones, avatar) */}
+        {/* Right side: actions (dark mode, notifications, avatar) */}
         <Box
           sx={{
             display: "flex",
             alignItems: "center",
-            gap: { xs: 1, sm: 2 }, // Menos espacio entre elementos en móvil
+            gap: { xs: 1, sm: 2 }, // Less space between items on mobile
             height: "60px",
           }}
         >
-          {/* Nombre de usuario - Oculto en pantallas muy pequeñas */}
+          {/* Username - Hidden on very small screens */}
           {userName && (
             <Typography
               variant="body2"
@@ -667,14 +737,14 @@ const Navbar = ({ children }) => {
                 color: textColor,
                 fontWeight: 500,
                 mr: 1,
-                display: { xs: "none", md: "block" }, // Ocultar en pantallas pequeñas y móviles
+                display: { xs: "none", md: "block" }, // Hide on small screens and mobile
               }}
             >
-              Hola, {userName}
+              Hello, {userName}
             </Typography>
           )}
 
-          {/* Botón de modo oscuro/claro - Siempre visible */}
+          {/* Dark mode/light mode button - Always visible */}
           <IconButton
             onClick={toggleThemeMode}
             size="small"
@@ -734,124 +804,213 @@ const Navbar = ({ children }) => {
             </Box>
           </IconButton>
 
-          {/* Notificaciones - Ocultar en pantallas muy pequeñas */}
+          {/* Simplified notification button */}
           <IconButton
-  onClick={(e) => setNotifAnchorEl(e.currentTarget)}
-  size="small"
-  sx={{
-    color: secondaryTextColor,
-    bgcolor: darkMode
-      ? alpha("#ffffff", 0.05)
-      : alpha("#000000", 0.05),
-    width: 36,
-    height: 36,
-    minWidth: 36,
-    minHeight: 36,
-    borderRadius: "8px",
-    transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-    position: "relative",
-    overflow: "hidden",
-    display: { xs: isXsScreen ? 'none' : 'flex', sm: 'flex' },
-    "&:hover": {
-      bgcolor: darkMode
-        ? alpha("#ffffff", 0.1)
-        : alpha("#000000", 0.08),
-      transform: "scale(1.05)",
-    },
-  }}
->
-<Badge
-  badgeContent={unreadCount}
-  color="error"
-  overlap="circular"
-  anchorOrigin={{
-    vertical: "top",
-    horizontal: "right",
-  }}
-  sx={{
-    "& .MuiBadge-badge": {
-      minWidth: 18,
-      height: 18,
-      fontSize: "0.7rem",
-      padding: "0 4px",
-      transform: "scale(1) translate(40%, -40%)",
-      transformOrigin: "100% 0%",
-      animation: unreadCount > 0 ? "pulse 2s infinite" : "none",
-      "@keyframes pulse": {
-        "0%": { boxShadow: "0 0 0 0 rgba(255, 59, 48, 0.7)" },
-        "70%": { boxShadow: "0 0 0 5px rgba(255, 59, 48, 0)" },
-        "100%": { boxShadow: "0 0 0 0 rgba(255, 59, 48, 0)" },
-      },
-    },
-  }}
->
-    <NotificationsIcon fontSize="small" />
-  </Badge>
-</IconButton>
-
-<Popover
-  open={Boolean(notifAnchorEl)}
-  anchorEl={notifAnchorEl}
-  onClose={() => setNotifAnchorEl(null)}
-  anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
-  transformOrigin={{ vertical: "top", horizontal: "right" }}
-  PaperProps={{
-    sx: {
-      mt: 1.5,
-      width: 280,
-      maxHeight: 360,
-      overflowY: "auto",
-      boxShadow: 4,
-      borderRadius: "12px",
-      bgcolor: navBgColor,
-      border: `1px solid ${borderColor}`,
-    },
-  }}
->
-  <Box sx={{ p: 2 }}>
-    <Typography variant="subtitle1" sx={{ fontWeight: 600, color: textColor }}>
-      Notificaciones
-    </Typography>
-  </Box>
-  <Divider />
-  <List disablePadding>
-    {notifications.map((notif) => (
-      <ListItemButton
-        key={notif.id}
-        onClick={() => {
-          navigate("/projects");
-          setNotifications((prev) => prev.filter((n) => n.id !== notif.id));
-          setNotifAnchorEl(null);
-        }}
-      >
-        <Box sx={{ display: "flex", alignItems: "center", gap: 2, width: "100%" }}>
-          <Box
+            onClick={(e) => setNotifAnchorEl(e.currentTarget)}
+            size="small"
             sx={{
+              color: unreadCount > 0 ? primaryColor : secondaryTextColor,
+              bgcolor: darkMode ? alpha("#ffffff", 0.05) : alpha("#000000", 0.05),
               width: 36,
               height: 36,
-              borderRadius: "50%",
-              bgcolor: primaryColor,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "white",
-              flexShrink: 0,
-              boxShadow: `0 0 6px ${alpha(primaryColor, 0.3)}`
+              borderRadius: "8px",
+              "&:hover": {
+                bgcolor: darkMode ? alpha("#ffffff", 0.1) : alpha("#000000", 0.08),
+              },
             }}
           >
-            {getIconByType(notif.type)}
-          </Box>
-          <Typography variant="body2" sx={{ fontSize: '0.9rem', color: textColor, lineHeight: 1.4 }}>
-            {notif.text}
-          </Typography>
-        </Box>
-      </ListItemButton>
-    ))}
-  </List>
-</Popover>
+            <Badge
+              badgeContent={unreadCount}
+              color="error"
+              overlap="circular"
+              anchorOrigin={{
+                vertical: "top",
+                horizontal: "right",
+              }}
+            >
+              <NotificationsIcon fontSize="small" />
+            </Badge>
+          </IconButton>
 
-          {/* Botón de cerrar sesión - Siempre visible */}
-          <Tooltip title="Cerrar sesión" arrow TransitionComponent={Zoom}>
+          {/* Simplified Notification Popover */}
+          <Popover
+            open={Boolean(notifAnchorEl)}
+            anchorEl={notifAnchorEl}
+            onClose={() => setNotifAnchorEl(null)}
+            anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+            transformOrigin={{ vertical: "top", horizontal: "right" }}
+            PaperProps={{
+              sx: {
+                mt: 1.5,
+                width: 320,
+                borderRadius: 2,
+                boxShadow: 3,
+              },
+            }}
+          >
+            {/* Header */}
+            <Box sx={{ 
+              display: "flex", 
+              justifyContent: "space-between", 
+              alignItems: "center", 
+              px: 2, 
+              py: 1.5,
+              borderBottom: 1,
+              borderColor: "divider"
+            }}>
+              <Typography variant="h6" sx={{ fontSize: "1rem", fontWeight: 600 }}>
+                Notifications
+              </Typography>
+              {unreadCount > 0 && (
+                <Box sx={{ 
+                  bgcolor: theme => alpha(theme.palette.primary.main, 0.1),
+                  color: "primary.main",
+                  px: 1.5,
+                  py: 0.5,
+                  borderRadius: 10,
+                  fontSize: "0.75rem",
+                  fontWeight: 500
+                }}>
+                  {unreadCount} unread
+                </Box>
+              )}
+            </Box>
+
+            {/* Notification List */}
+            <Box sx={{ maxHeight: 400, overflow: "auto" }}>
+              {notifications.length > 0 ? (
+                <List disablePadding>
+                  {notifications.map((notif) => (
+                    <ListItem 
+                      key={notif.id}
+                      divider
+                      button
+                      onClick={() => {
+                        // Navigate based on notification type
+                        switch (notif.type) {
+                          case "project":
+                            navigate("/projects");
+                            break;
+                          case "certification":
+                            navigate("/certifications");
+                            break;
+                          case "course":
+                          case "path":
+                            navigate("/mypath");
+                            break;
+                          default:
+                            navigate("/");
+                        }
+                        
+                        // Mark as read
+                        setNotifications(prev => 
+                          prev.map(n => n.id === notif.id ? {...n, read: true} : n)
+                        );
+                        setNotifAnchorEl(null);
+                      }}
+                      sx={{
+                        px: 2,
+                        py: 1.5,
+                        position: "relative",
+                        bgcolor: !notif.read ? alpha(primaryColor, 0.05) : "transparent",
+                      }}
+                    >
+                      {/* Icon */}
+                      <ListItemIcon sx={{ 
+                        minWidth: 42,
+                        color: notif.priority === "high" ? "error.main" : notif.type === "certification" ? "#06D6A0" : primaryColor 
+                      }}>
+                        {getIconByType(notif.type)}
+                      </ListItemIcon>
+
+                      {/* Content */}
+                      <ListItemText
+                        primary={
+                          <Typography 
+                            variant="body2" 
+                            sx={{ 
+                              fontWeight: notif.read ? 400 : 600,
+                            }}
+                          >
+                            {notif.text}
+                          </Typography>
+                        }
+                        secondary={
+                          <Typography
+                            variant="caption"
+                            sx={{ display: "block", mt: 0.5 }}
+                          >
+                            {notif.date ? new Date(notif.date).toLocaleDateString('en-US', { 
+                              month: 'numeric',
+                              day: 'numeric',
+                              year: 'numeric',
+                              hour: '2-digit', 
+                              minute: '2-digit',
+                              hour12: true
+                            }) : 'Now'}
+                          </Typography>
+                        }
+                      />
+                      
+                      {/* Unread indicator - simple dot */}
+                      {!notif.read && (
+                        <Box
+                          sx={{
+                            width: 8,
+                            height: 8,
+                            borderRadius: "50%",
+                            bgcolor: notif.priority === "high" ? "error.main" : primaryColor,
+                            position: "absolute",
+                            right: 16,
+                            top: 16
+                          }}
+                        />
+                      )}
+                    </ListItem>
+                  ))}
+                </List>
+              ) : (
+                <Box sx={{ p: 3, textAlign: "center" }}>
+                  <NotificationsIcon 
+                    sx={{ fontSize: 40, color: "text.secondary", opacity: 0.5, mb: 1 }}
+                  />
+                  <Typography variant="body2" color="text.secondary">
+                    No notifications
+                  </Typography>
+                </Box>
+              )}
+            </Box>
+
+            {/* Footer */}
+            {notifications.length > 0 && (
+              <Box sx={{ 
+                display: "flex", 
+                borderTop: 1,
+                borderColor: "divider"
+              }}>
+                <Button
+                  fullWidth
+                  sx={{ py: 1.5 }}
+                  onClick={() => {
+                    setNotifications(prev => prev.map(n => ({...n, read: true})));
+                  }}
+                >
+                  Mark all as read
+                </Button>
+                <Divider orientation="vertical" flexItem />
+                <Button
+                  fullWidth
+                  sx={{ py: 1.5 }}
+                  onClick={() => setNotifAnchorEl(null)}
+                >
+                  Close
+                </Button>
+              </Box>
+            )}
+          </Popover>
+
+          {/* Logout button - Always visible */}
+          <Tooltip title="Log out" arrow TransitionComponent={Zoom}>
             <IconButton
               onClick={handleLogout}
               size="small"
@@ -881,9 +1040,9 @@ const Navbar = ({ children }) => {
             </IconButton>
           </Tooltip>
 
-          {/* Avatar - Siempre visible */}
+          {/* Avatar - Always visible */}
           <NavLink to="/User" style={{ textDecoration: "none" }}>
-            <Tooltip title="Usuario" arrow TransitionComponent={Zoom}>
+            <Tooltip title="User" arrow TransitionComponent={Zoom}>
               <Avatar
                 sx={{
                   width: 36,
@@ -907,11 +1066,11 @@ const Navbar = ({ children }) => {
         </Box>
       </Box>
 
-      {/* Drawer para móvil */}
+      {/* Drawer for mobile */}
       {mobileDrawer}
 
       <Box sx={{ display: "flex", flexGrow: 1, pt: "60px" }}>
-        {/* Barra lateral con navegación (para tablets y desktop) */}
+        {/* Sidebar with navigation (for tablets and desktop) */}
         <Box
           component="nav"
           sx={{
@@ -926,12 +1085,12 @@ const Navbar = ({ children }) => {
             overflow: "hidden",
             transition: "width 0.5s cubic-bezier(0.4, 0, 0.2, 1)",
             boxShadow: expanded ? `2px 0 15px ${alpha("#000", 0.05)}` : "none",
-            display: { xs: "none", sm: "block" }, // Ocultar en móvil
+            display: { xs: "none", sm: "block" }, // Hide on mobile
             "&:after": {
               content: '""',
               position: "absolute",
               top: 0,
-              left: "80px", // Ancho cuando está retraído
+              left: "80px", // Width when retracted
               bottom: 0,
               width: expanded ? "120px" : 0,
               backgroundColor: "inherit",
@@ -953,7 +1112,7 @@ const Navbar = ({ children }) => {
           {navList}
         </Box>
 
-        {/* Contenido principal */}
+        {/* Main content */}
         <Box
           component="main"
           sx={{
@@ -962,7 +1121,7 @@ const Navbar = ({ children }) => {
             overflow: "auto",
             bgcolor: bgColor,
             color: textColor,
-            p: { xs: 2, sm: 3 }, // Padding más pequeño en móvil
+            p: { xs: 2, sm: 3 }, // Smaller padding on mobile
             transition: "all 0.5s cubic-bezier(0.4, 0, 0.2, 1)",
             "&::-webkit-scrollbar": {
               width: "8px",
