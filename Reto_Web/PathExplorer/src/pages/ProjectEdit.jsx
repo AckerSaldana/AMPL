@@ -21,6 +21,10 @@ import {
   Tooltip,
   alpha,
   CircularProgress,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
   Container,
   IconButton
 } from "@mui/material";
@@ -59,6 +63,14 @@ const ProjectEdit = () => {
     message: "",
     severity: "success",
   });
+
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const [feedbackText, setFeedbackText] = useState("");
+
+
+  const handleOpenFeedback = () => setFeedbackOpen(true);
+  const handleCloseFeedback = () => setFeedbackOpen(false);
+  
 
   // Form data state
   const [previewUrl, setPreviewUrl] = useState(null);
@@ -174,6 +186,42 @@ const ProjectEdit = () => {
     }
   };
 
+  const handleSubmitFeedback = async () => {
+    setSaving(true);
+    try {
+      const updates = {
+        status: "Completed",
+        progress: 100,
+        feedback_text: feedbackText,        // <-- aquí el nuevo campo
+      };
+  
+      const { error } = await supabase
+        .from("Project")
+        .update(updates)
+        .eq("projectID", projectId);
+  
+      if (error) throw error;
+  
+      setSnackbar({
+        open: true,
+        message: "Feedback submitted and project completed!",
+        severity: "success",
+      });
+      setFeedbackOpen(false);
+      // opcional: navegar después de un instante
+      setTimeout(() => navigate(`/project-detail/${projectId}`), 1000);
+    } catch (error) {
+      setSnackbar({
+        open: true,
+        message: `Error: ${error.message}`,
+        severity: "error",
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+  
+
   // Load data on component mount
   useEffect(() => {
     if (projectId) {
@@ -254,6 +302,33 @@ const ProjectEdit = () => {
       setSnackbar({
         open: true,
         message: `Failed to save changes: ${error.message}`,
+        severity: "error",
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+  const handleCompleteProject = async () => {
+    setSaving(true);
+    try {
+      // Marca estado Completed y progreso = 100
+      const { error } = await supabase
+        .from("Project")
+        .update({ status: "Completed", progress: 100 })
+        .eq("projectID", projectId);
+
+      if (error) throw error;
+
+      setSnackbar({
+        open: true,
+        message: "Project marked as completed!",
+        severity: "success",
+      });
+      setTimeout(() => navigate(`/project-detail/${projectId}`), 1500);
+    } catch (error) {
+      setSnackbar({
+        open: true,
+        message: `Error completing project: ${error.message}`,
         severity: "error",
       });
     } finally {
@@ -344,26 +419,49 @@ const ProjectEdit = () => {
               }}
             />
           )}
+          
         </Box>
         
-        <Button
-          variant="contained"
-          startIcon={saving ? <CircularProgress size={20} color="inherit" /> : <SaveIcon />}
-          onClick={handleSave}
-          disabled={saving}
-          sx={{
-            fontWeight: 500,
-            px: 3,
-            py: 1,
-            bgcolor: accenturePurple1,
-            "&:hover": {
-              bgcolor: accenturePurple2,
-            },
-            boxShadow: `0 4px 8px ${alpha(accenturePurple1, 0.25)}`,
-          }}
-        >
-          {saving ? "Saving..." : "Save Changes"}
-        </Button>
+        {progressValue < 100 && (
+            <Button
+              variant="contained"
+              startIcon={saving ? <CircularProgress size={20} color="inherit" /> : <SaveIcon />}
+              onClick={handleSave}
+              disabled={saving}
+              sx={{
+                fontWeight: 500,
+                px: 3,
+                py: 1,
+                bgcolor: accenturePurple1,
+                "&:hover": {
+                  bgcolor: accenturePurple2,
+                },
+                boxShadow: `0 4px 8px ${alpha(accenturePurple1, 0.25)}`,
+              }}
+            >
+              {saving ? "Saving..." : "Save Changes"}
+            </Button>
+          )}
+
+          {progressValue === 100 && (
+            <Button
+              variant="contained"
+              onClick={handleOpenFeedback}
+              disabled={saving}
+              sx={{
+                fontWeight: 500,
+                px: 3,
+                py: 1,
+                bgcolor: accenturePurple1,
+                "&:hover": {
+                  bgcolor: accenturePurple2,
+                },
+                boxShadow: `0 4px 8px ${alpha(accenturePurple1, 0.25)}`,
+              }}
+            >
+              Complete Project
+            </Button>
+          )}
       </Box>
 
       <Box sx={{ 
@@ -964,7 +1062,39 @@ const ProjectEdit = () => {
         </Grid>
       </Grid>
       </Box>
-
+      <Dialog
+        open={feedbackOpen}
+        onClose={handleCloseFeedback}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle sx={{ textAlign: "center", pt: 2 }}>
+          <Typography variant="h5" fontWeight={600}>
+            PROJECT FEEDBACK
+          </Typography>
+        </DialogTitle>
+        <DialogContent>
+        <TextField
+          autoFocus
+          multiline
+          rows={8}
+          placeholder="Escribe tu feedback aquí…"
+          variant="outlined"
+          fullWidth
+          value={feedbackText}                     // <-- valor
+          onChange={(e) => setFeedbackText(e.target.value)}  // <-- onChange
+        />
+        </DialogContent>
+        <DialogActions sx={{ justifyContent: "center", mb: 1 }}>
+          <Button
+            variant="contained"
+            onClick={handleSubmitFeedback}          // <-- aquí
+            disabled={saving}
+          >
+            Submit Feedback & Save changes
+          </Button>
+        </DialogActions>
+      </Dialog>
       <Snackbar
         open={snackbar.open}
         autoHideDuration={6000}
