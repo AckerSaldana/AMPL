@@ -71,17 +71,17 @@ const MyPath = () => {
   return (
     <Box sx={{ 
       width: "100%", 
-      minHeight: "100vh", // Cambiado de height a minHeight
+      minHeight: "100vh", 
       display: "flex",
       flexDirection: "column",
-      overflow: "auto", // Cambiado de "hidden" a "auto" para permitir scroll
+      overflow: "auto", 
       margin: 0,
       padding: 0,
     }}>
       <Box sx={{ 
         p: { xs: 2, md: 3 }, 
         maxWidth: "100%", 
-        flexGrow: 1, // Asegura que tome todo el espacio disponible
+        flexGrow: 1, 
         display: "flex",
         flexDirection: "column"
       }}>
@@ -94,8 +94,8 @@ const MyPath = () => {
           flexGrow: 1, 
           display: "flex", 
           width: "100%",
-          marginBottom: 3, // Añadido para evitar que el contenido se pegue al fondo
-          overflow: "visible", // Cambiado de "hidden" a "visible"
+          marginBottom: 3,
+          overflow: "visible",
         }}>
           <Grid container spacing={3} sx={{ 
             width: "100%", 
@@ -317,11 +317,19 @@ const MyPath = () => {
             <Grid item xs={12} md={6} sx={{ 
               display: "flex",
               pl: { xs: 0, md: 1 },
-              mt: { xs: 3, md: 0 } // Añadir margen superior en móviles
+              mt: { xs: 3, md: 0 }
             }}>
-              <Suspense fallback={<VirtualAssistantSkeleton />}>
-                <VirtualAssistant />
-              </Suspense>
+              {/* Contenedor para el VirtualAssistant con altura controlada */}
+              <Box sx={{ 
+                width: "100%",
+                maxHeight: { xs: "700px", md: "800px" }, // Altura máxima controlada
+                height: "auto", // Altura automática según el contenido
+                display: "flex"
+              }}>
+                <Suspense fallback={<VirtualAssistantSkeleton />}>
+                  <VirtualAssistant />
+                </Suspense>
+              </Box>
             </Grid>
           </Grid>
         </Box>
