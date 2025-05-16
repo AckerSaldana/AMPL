@@ -14,12 +14,10 @@ import {
   IconButton,
   Tooltip,
   Modal,
-  Drawer,
-  Fade,
   ClickAwayListener
 } from '@mui/material';
 
-// Iconos
+// Icons
 import SearchIcon from '@mui/icons-material/Search';
 import FilterAltOutlinedIcon from '@mui/icons-material/FilterAltOutlined';
 import SchoolIcon from '@mui/icons-material/School';
@@ -32,8 +30,9 @@ import AddIcon from '@mui/icons-material/Add';
 import SubmitCertification from './SubmitCertification';
 import { supabase } from '../supabase/supabaseClient';
 import { CertificationCard } from '../components/CertificationCard';
+import { ACCENTURE_COLORS, primaryButtonStyles, outlineButtonStyles } from '../styles/styles';
 
-// Datos fallback - versión reducida
+// Fallback data - reduced version
 const fallbackCertifications = [
   {
     id: "011d0850-533f-44cf-8e1a-3581916b24c",
@@ -75,7 +74,7 @@ const fallbackCertifications = [
 const Certifications = () => {
   const theme = useTheme();
 
-  // Estados
+  // States
   const [searchTerm, setSearchTerm] = useState('');
   const [certifications, setCertifications] = useState([]);
   const [filteredCerts, setFilteredCerts] = useState([]);
@@ -87,12 +86,16 @@ const Certifications = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [openModal, setOpenModal] = useState(false);
+  
+  // Nuevos estados para la mejora de filtros
+  const [skillSearchTerm, setSkillSearchTerm] = useState('');
+  const [filteredSkills, setFilteredSkills] = useState([]);
 
   // Handlers
   const handleOpenModal = () => setOpenModal(true);
   const handleCloseModal = () => setOpenModal(false);
 
-  // Efecto para cargar datos
+  // Effect to load data
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -103,7 +106,7 @@ const Certifications = () => {
           .select('skill_ID, name');
         
         if (skillsError) {
-          throw new Error(`Error al cargar skills: ${skillsError.message}`);
+          throw new Error(`Error loading skills: ${skillsError.message}`);
         }
         
         const skillIdToName = {};
@@ -113,6 +116,7 @@ const Certifications = () => {
           skillsData.forEach(skill => skillIdToName[skill.skill_ID] = skill.name);
           skillNames = skillsData.map(skill => skill.name).sort();
           setAllSkills(skillNames);
+          setFilteredSkills(skillNames); // Inicializa filteredSkills con todas las skills
         }
 
         const { data: certData, error: certError } = await supabase
@@ -120,7 +124,7 @@ const Certifications = () => {
           .select('*');
 
         if (certError) {
-          throw new Error(`Error al cargar certificaciones: ${certError.message}`);
+          throw new Error(`Error loading certifications: ${certError.message}`);
         }
 
         if (!certData?.length) {
@@ -143,7 +147,7 @@ const Certifications = () => {
             }
           }
           
-          // Obtener imagen
+          // Get image
           const backgroundImage = cert.certification_Image || 
             getDefaultImageByType(cert.type);
           
@@ -174,6 +178,7 @@ const Certifications = () => {
             });
           });
           setAllSkills([...allSkillsSet].sort());
+          setFilteredSkills([...allSkillsSet].sort()); // Inicializa filteredSkills
         }
       } catch (error) {
         console.error("Error fetching data:", error);
@@ -184,7 +189,7 @@ const Certifications = () => {
       }
     };
 
-    // Función para obtener una imagen por defecto según el tipo
+    // Function to get a default image by type
     const getDefaultImageByType = (type) => {
       const typeImageMap = {
         'Project Management': 'https://img-c.udemycdn.com/course/750x422/2806490_5db0.jpg',
@@ -197,7 +202,7 @@ const Certifications = () => {
       return typeImageMap[type] || 'https://img-c.udemycdn.com/course/750x422/1650610_2673_6.jpg';
     };
 
-    // Función para usar datos de fallback
+    // Function to use fallback data
     const setupFallbackData = () => {
       console.log("Using fallback certification data");
       setCertifications(fallbackCertifications);
@@ -213,18 +218,36 @@ const Certifications = () => {
         });
       });
       setAllSkills([...allSkillsSet].sort());
+      setFilteredSkills([...allSkillsSet].sort()); // Inicializa filteredSkills
     };
 
     fetchData();
   }, []);
 
-  // Efecto para aplicar filtros
+  // Effect para filtrar las skills basado en el término de búsqueda
+  useEffect(() => {
+    if (!allSkills.length) return;
+    
+    if (!skillSearchTerm) {
+      setFilteredSkills(allSkills);
+      return;
+    }
+    
+    const search = skillSearchTerm.toLowerCase().trim();
+    const filtered = allSkills.filter(skill => 
+      skill.toLowerCase().includes(search)
+    );
+    
+    setFilteredSkills(filtered);
+  }, [skillSearchTerm, allSkills]);
+
+  // Effect to apply filters
   useEffect(() => {
     if (!certifications.length) return;
     
     let filtered = [...certifications];
     
-    // Filtrar por búsqueda
+    // Filter by search
     if (searchTerm) {
       const search = searchTerm.toLowerCase();
       filtered = filtered.filter(cert => 
@@ -234,12 +257,12 @@ const Certifications = () => {
       );
     }
     
-    // Filtrar por categoría
+    // Filter by category
     if (categoryFilter !== 'all') {
       filtered = filtered.filter(cert => cert.type === categoryFilter);
     }
     
-    // Filtrar por habilidades
+    // Filter by skills
     if (skillFilter.length) {
       filtered = filtered.filter(cert => 
         cert.skills?.some(skill => skillFilter.includes(skill))
@@ -249,7 +272,7 @@ const Certifications = () => {
     setFilteredCerts(filtered);
   }, [searchTerm, categoryFilter, skillFilter, certifications]);
 
-  // Funciones para manejar filtros
+  // Functions to handle filters
   const handleSkillToggle = (skill) => {
     setSkillFilter(prev => 
       prev.includes(skill) 
@@ -262,24 +285,39 @@ const Certifications = () => {
     setSearchTerm('');
     setCategoryFilter('all');
     setSkillFilter([]);
+    setSkillSearchTerm('');
   };
 
   const toggleFilters = () => setShowFilters(!showFilters);
   const closeFilters = () => setShowFilters(false);
 
-  // Contador de filtros activos
+  // Función para agrupar skills alfabéticamente
+  const getSkillGroups = () => {
+    if (filteredSkills.length === 0) return [];
+    
+    const groups = {};
+    
+    filteredSkills.forEach(skill => {
+      const firstLetter = skill.charAt(0).toUpperCase();
+      if (!groups[firstLetter]) {
+        groups[firstLetter] = [];
+      }
+      groups[firstLetter].push(skill);
+    });
+    
+    return Object.entries(groups)
+      .map(([letter, skills]) => ({ letter, skills }))
+      .sort((a, b) => a.letter.localeCompare(b.letter));
+  };
+
+  // Count of active filters
   const activeFilterCount = [
     searchTerm ? 1 : 0,
     categoryFilter !== 'all' ? 1 : 0,
     skillFilter.length
   ].reduce((a, b) => a + b, 0);
 
-  // Colores de Accenture
-  const corePurple1 = "#a100ff"; // Core Purple 1
-  const corePurple2 = "#7500c0"; // Core Purple 2
-  const corePurple3 = "#460073"; // Core Purple 3
-
-  // Estados de carga
+  // Loading states
   if (isLoading) {
     return (
       <Box 
@@ -298,7 +336,7 @@ const Certifications = () => {
         <CircularProgress 
           size={48} 
           thickness={4} 
-          sx={{ color: corePurple1 }} 
+          sx={{ color: ACCENTURE_COLORS.corePurple1 }} 
         />
         <Typography variant="subtitle1" color="text.secondary">
           Loading Certifications...
@@ -307,7 +345,7 @@ const Certifications = () => {
     );
   }
 
-  // Vista de error
+  // Error view
   if (error && !certifications.length) {
     return (
       <Box sx={{ width: '100%', p: { xs: 2, md: 4 } }}>
@@ -332,10 +370,8 @@ const Certifications = () => {
             variant="contained" 
             color="primary"
             sx={{ 
-              bgcolor: corePurple1,
-              '&:hover': {
-                bgcolor: corePurple2
-              }
+              ...primaryButtonStyles,
+              bgcolor: ACCENTURE_COLORS.corePurple1
             }}
             onClick={() => window.location.reload()}
           >
@@ -351,11 +387,10 @@ const Certifications = () => {
       sx={{
         width: "100%",
         p: { xs: 2, md: 3 },
-        bgcolor: alpha('#f8f9fa', 0.5),
         position: 'relative'
       }}
     >
-      {/* Encabezado */}
+      {/* Header */}
       <Box 
         sx={{ 
           display: 'flex',
@@ -378,7 +413,7 @@ const Certifications = () => {
           Certifications
         </Typography>
 
-        {/* Búsqueda y acciones */}
+        {/* Search and actions */}
         <Box 
           sx={{ 
             display: 'flex', 
@@ -421,12 +456,12 @@ const Certifications = () => {
                 border: '1px solid',
                 borderColor: alpha('#000', 0.1),
                 '&:hover': {
-                  borderColor: alpha(corePurple1, 0.5),
-                  boxShadow: `0 0 0 1px ${alpha(corePurple1, 0.1)}`
+                  borderColor: alpha(ACCENTURE_COLORS.corePurple1, 0.5),
+                  boxShadow: `0 0 0 1px ${alpha(ACCENTURE_COLORS.corePurple1, 0.1)}`
                 },
                 '&.Mui-focused': {
-                  borderColor: corePurple1,
-                  boxShadow: `0 0 0 1px ${alpha(corePurple1, 0.2)}`,
+                  borderColor: ACCENTURE_COLORS.corePurple1,
+                  boxShadow: `0 0 0 1px ${alpha(ACCENTURE_COLORS.corePurple1, 0.2)}`,
                   '& fieldset': { border: 'none' }
                 },
                 '& fieldset': { border: 'none' }
@@ -439,15 +474,10 @@ const Certifications = () => {
             startIcon={<AddIcon />}
             onClick={handleOpenModal}
             sx={{
+              ...primaryButtonStyles,
               borderRadius: 8,
-              bgcolor: corePurple1,
-              '&:hover': {
-                bgcolor: corePurple2
-              },
+              bgcolor: ACCENTURE_COLORS.corePurple1,
               height: 40,
-              textTransform: 'none',
-              fontWeight: 500,
-              boxShadow: 'none',
               px: { xs: 2, md: 3 }
             }}
           >
@@ -461,11 +491,11 @@ const Certifications = () => {
             sx={{
               borderRadius: 8,
               borderColor: alpha('#000', 0.1),
-              bgcolor: activeFilterCount > 0 ? corePurple1 : 'white',
+              bgcolor: activeFilterCount > 0 ? ACCENTURE_COLORS.corePurple1 : 'white',
               color: activeFilterCount > 0 ? 'white' : alpha('#000', 0.7),
               '&:hover': {
-                borderColor: activeFilterCount > 0 ? 'transparent' : corePurple1,
-                bgcolor: activeFilterCount > 0 ? corePurple2 : alpha(corePurple1, 0.05)
+                borderColor: activeFilterCount > 0 ? 'transparent' : ACCENTURE_COLORS.corePurple1,
+                bgcolor: activeFilterCount > 0 ? ACCENTURE_COLORS.corePurple2 : alpha(ACCENTURE_COLORS.corePurple1, 0.05)
               },
               transition: 'all 0.2s',
               px: 2,
@@ -487,8 +517,8 @@ const Certifications = () => {
                   height: 20,
                   minWidth: 20,
                   fontSize: '0.75rem',
-                  bgcolor: activeFilterCount > 0 ? 'white' : corePurple1,
-                  color: activeFilterCount > 0 ? corePurple1 : 'white',
+                  bgcolor: activeFilterCount > 0 ? 'white' : ACCENTURE_COLORS.corePurple1,
+                  color: activeFilterCount > 0 ? ACCENTURE_COLORS.corePurple1 : 'white',
                   fontWeight: 600
                 }}
               />
@@ -497,11 +527,11 @@ const Certifications = () => {
         </Box>
       </Box>
 
-      {/* Panel de filtros flotante */}
+      {/* Floating filter panel MEJORADO */}
       {showFilters && (
         <ClickAwayListener onClickAway={closeFilters}>
           <Paper
-            elevation={6}
+            elevation={10}
             sx={{
               position: 'absolute',
               top: { xs: '120px', md: '70px' },
@@ -511,7 +541,8 @@ const Certifications = () => {
               borderRadius: 3,
               zIndex: 100,
               overflow: 'hidden',
-              animation: 'slideIn 0.3s ease-out forwards',
+              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.12), 0 0 2px rgba(0, 0, 0, 0.08)',
+              animation: 'slideIn 0.3s cubic-bezier(0.23, 1, 0.32, 1) forwards',
               '@keyframes slideIn': {
                 '0%': {
                   opacity: 0,
@@ -521,25 +552,31 @@ const Certifications = () => {
                   opacity: 1,
                   transform: 'translateY(0)'
                 }
-              }
+              },
+              border: '1px solid',
+              borderColor: alpha('#000', 0.06),
+              backdropFilter: 'blur(2px)'
             }}
           >
-            {/* Cabecera del panel de filtros */}
+            {/* Filter panel header */}
             <Box
               sx={{
                 px: 3,
-                py: 2,
+                py: 2.5,
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
                 borderBottom: '1px solid',
                 borderColor: alpha('#000', 0.06),
-                bgcolor: alpha(corePurple1, 0.03)
+                background: `linear-gradient(145deg, ${alpha(ACCENTURE_COLORS.corePurple1, 0.05)} 0%, ${alpha(ACCENTURE_COLORS.corePurple2, 0.08)} 100%)`,
               }}
             >
-              <Typography variant="subtitle1" fontWeight={600} color={alpha('#000', 0.8)}>
-                Filter Certifications
-              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                <FilterAltOutlinedIcon sx={{ color: ACCENTURE_COLORS.corePurple1, fontSize: 22 }} />
+                <Typography variant="subtitle1" fontWeight={700} color={alpha('#000', 0.8)}>
+                  Filter Certifications
+                </Typography>
+              </Box>
 
               <Box sx={{ display: 'flex', gap: 1 }}>
                 {activeFilterCount > 0 && (
@@ -551,8 +588,11 @@ const Certifications = () => {
                     sx={{
                       color: alpha('#000', 0.6),
                       textTransform: 'none',
-                      fontWeight: 500,
-                      fontSize: '0.875rem'
+                      fontWeight: 600,
+                      fontSize: '0.875rem',
+                      '&:hover': {
+                        backgroundColor: alpha('#000', 0.05),
+                      }
                     }}
                   >
                     Clear filters
@@ -562,17 +602,49 @@ const Certifications = () => {
                 <IconButton
                   size="small"
                   onClick={closeFilters}
-                  sx={{ color: alpha('#000', 0.6) }}
+                  sx={{ 
+                    color: alpha('#000', 0.6),
+                    '&:hover': {
+                      backgroundColor: alpha('#000', 0.05),
+                    }
+                  }}
                 >
                   <CloseIcon fontSize="small" />
                 </IconButton>
               </Box>
             </Box>
 
-            {/* Contenido de los filtros */}
-            <Box sx={{ p: 3, maxHeight: '70vh', overflowY: 'auto' }}>
-              {/* Categorías */}
-              <Box sx={{ mb: 3 }}>
+            {/* Filter content */}
+            <Box 
+              sx={{ 
+                p: 3, 
+                maxHeight: '70vh', 
+                overflowY: 'auto',
+                '&::-webkit-scrollbar': {
+                  width: '6px',
+                },
+                '&::-webkit-scrollbar-track': {
+                  background: 'transparent',
+                },
+                '&::-webkit-scrollbar-thumb': {
+                  background: alpha(ACCENTURE_COLORS.corePurple1, 0.15),
+                  borderRadius: '6px',
+                  '&:hover': {
+                    background: alpha(ACCENTURE_COLORS.corePurple1, 0.25),
+                  }
+                },
+                bgcolor: '#ffffff',
+              }}
+            >
+              {/* Categories */}
+              <Box 
+                sx={{ 
+                  mb: 4,
+                  pb: 3,
+                  borderBottom: '1px solid',
+                  borderColor: alpha('#000', 0.05),
+                }}
+              >
                 <Box
                   sx={{
                     display: 'flex',
@@ -581,7 +653,7 @@ const Certifications = () => {
                     mb: 2,
                   }}
                 >
-                  <CategoryIcon sx={{ color: corePurple1, fontSize: 20 }} />
+                  <CategoryIcon sx={{ color: ACCENTURE_COLORS.corePurple1, fontSize: 20 }} />
                   <Typography variant="subtitle2" fontWeight={600} color={alpha('#000', 0.8)}>
                     Category
                   </Typography>
@@ -595,51 +667,178 @@ const Certifications = () => {
                       onClick={() => setCategoryFilter(category)}
                       sx={{
                         borderRadius: 6,
-                        bgcolor: categoryFilter === category ? corePurple1 : 'transparent',
-                        color: categoryFilter === category ? 'white' : alpha('#000', 0.7),
+                        bgcolor: categoryFilter === category 
+                          ? ACCENTURE_COLORS.corePurple1 
+                          : alpha('#f5f5f5', 0.8),
+                        color: categoryFilter === category 
+                          ? 'white' 
+                          : alpha('#000', 0.75),
                         border: '1px solid',
-                        borderColor: categoryFilter === category ? corePurple1 : alpha('#000', 0.1),
+                        borderColor: categoryFilter === category 
+                          ? ACCENTURE_COLORS.corePurple1 
+                          : alpha('#000', 0.08),
                         '&:hover': {
-                          bgcolor: categoryFilter === category ? corePurple2 : alpha(corePurple1, 0.05),
-                          borderColor: categoryFilter === category ? corePurple2 : corePurple1,
+                          bgcolor: categoryFilter === category 
+                            ? ACCENTURE_COLORS.corePurple2 
+                            : alpha(ACCENTURE_COLORS.corePurple1, 0.08),
+                          borderColor: categoryFilter === category 
+                            ? ACCENTURE_COLORS.corePurple2 
+                            : alpha(ACCENTURE_COLORS.corePurple1, 0.3),
+                          boxShadow: categoryFilter !== category 
+                            ? '0 2px 4px rgba(0,0,0,0.05)' 
+                            : 'none',
                         },
                         fontWeight: 500,
                         px: 1.5,
+                        py: 0.6,
+                        height: 32,
                         transition: 'all 0.2s',
-                        mb: 0.5
+                        mb: 0.5,
+                        boxShadow: categoryFilter === category 
+                          ? '0 2px 5px rgba(0,0,0,0.1)' 
+                          : 'none',
                       }}
                     />
                   ))}
                 </Box>
               </Box>
 
-              {/* Habilidades */}
+              {/* Skills - Mejorado con búsqueda y agrupamiento */}
               <Box sx={{ mb: 3 }}>
                 <Box
                   sx={{
                     display: 'flex',
+                    justifyContent: 'space-between',
                     alignItems: 'center',
-                    gap: 1,
                     mb: 2
                   }}
                 >
-                  <TagIcon sx={{ color: corePurple1, fontSize: 20 }} />
-                  <Typography variant="subtitle2" fontWeight={600} color={alpha('#000', 0.8)}>
-                    Skills
-                  </Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <TagIcon sx={{ color: ACCENTURE_COLORS.corePurple1, fontSize: 20 }} />
+                    <Typography variant="subtitle2" fontWeight={600} color={alpha('#000', 0.8)}>
+                      Skills
+                    </Typography>
+                  </Box>
+                  
+                  {skillFilter.length > 0 && (
+                    <Chip
+                      label={`${skillFilter.length} selected`}
+                      size="small"
+                      sx={{
+                        height: 24,
+                        fontSize: '0.75rem',
+                        fontWeight: 600,
+                        bgcolor: alpha(ACCENTURE_COLORS.corePurple1, 0.1),
+                        color: ACCENTURE_COLORS.corePurple1,
+                        border: '1px solid',
+                        borderColor: alpha(ACCENTURE_COLORS.corePurple1, 0.2),
+                      }}
+                    />
+                  )}
                 </Box>
 
+                {/* Búsqueda de Skills */}
+                <TextField
+                  placeholder="Search skills..."
+                  variant="outlined"
+                  size="small"
+                  fullWidth
+                  value={skillSearchTerm}
+                  onChange={(e) => setSkillSearchTerm(e.target.value)}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <SearchIcon sx={{ color: alpha('#000', 0.4) }} />
+                      </InputAdornment>
+                    ),
+                    endAdornment: skillSearchTerm && (
+                      <InputAdornment position="end">
+                        <IconButton
+                          size="small"
+                          onClick={() => setSkillSearchTerm('')}
+                          sx={{ color: alpha('#000', 0.4) }}
+                        >
+                          <CloseIcon fontSize="small" />
+                        </IconButton>
+                      </InputAdornment>
+                    )
+                  }}
+                  sx={{
+                    mb: 2,
+                    '& .MuiOutlinedInput-root': {
+                      borderRadius: 2,
+                      bgcolor: alpha('#f5f5f5', 0.5),
+                      border: '1px solid',
+                      borderColor: alpha('#000', 0.08),
+                      '&:hover': {
+                        borderColor: alpha(ACCENTURE_COLORS.corePurple1, 0.5),
+                        bgcolor: 'white',
+                      },
+                      '&.Mui-focused': {
+                        borderColor: ACCENTURE_COLORS.corePurple1,
+                        boxShadow: `0 0 0 2px ${alpha(ACCENTURE_COLORS.corePurple1, 0.15)}`,
+                        bgcolor: 'white',
+                        '& fieldset': { border: 'none' }
+                      },
+                      '& fieldset': { border: 'none' }
+                    }
+                  }}
+                />
+
+                {/* Skills seleccionadas */}
+                {skillFilter.length > 0 && (
+                  <Box 
+                    sx={{ 
+                      mb: 2,
+                      p: 1.5,
+                      borderRadius: 2,
+                      bgcolor: alpha(ACCENTURE_COLORS.corePurple1, 0.04),
+                      border: '1px solid',
+                      borderColor: alpha(ACCENTURE_COLORS.corePurple1, 0.1),
+                    }}
+                  >
+                    <Typography variant="caption" fontWeight={600} color={alpha('#000', 0.7)} sx={{ display: 'block', mb: 1 }}>
+                      Selected Skills
+                    </Typography>
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                      {skillFilter.map(skill => (
+                        <Chip
+                          key={`selected-${skill}`}
+                          label={skill}
+                          onDelete={() => handleSkillToggle(skill)}
+                          size="small"
+                          sx={{
+                            borderRadius: 6,
+                            bgcolor: ACCENTURE_COLORS.corePurple1,
+                            color: 'white',
+                            fontWeight: 500,
+                            boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                            '& .MuiChip-deleteIcon': {
+                              color: 'white'
+                            },
+                            '&:hover': {
+                              bgcolor: ACCENTURE_COLORS.corePurple2,
+                            }
+                          }}
+                        />
+                      ))}
+                    </Box>
+                  </Box>
+                )}
+
+                {/* Lista de skills filtrada */}
                 <Box
                   sx={{
                     display: 'flex',
-                    flexWrap: 'wrap',
+                    flexDirection: 'column',
                     gap: 1,
-                    maxHeight: '200px',
+                    maxHeight: '250px',
                     overflowY: 'auto',
                     p: 2,
                     borderRadius: 2,
                     border: '1px solid',
-                    borderColor: alpha('#000', 0.1),
+                    borderColor: alpha('#000', 0.08),
+                    bgcolor: alpha('#f9f9f9', 0.5),
                     '&::-webkit-scrollbar': {
                       width: '4px',
                     },
@@ -647,45 +846,105 @@ const Certifications = () => {
                       background: 'transparent',
                     },
                     '&::-webkit-scrollbar-thumb': {
-                      background: alpha(corePurple1, 0.2),
+                      background: alpha(ACCENTURE_COLORS.corePurple1, 0.2),
                       borderRadius: '4px',
+                      '&:hover': {
+                        background: alpha(ACCENTURE_COLORS.corePurple1, 0.3),
+                      }
                     },
+                    boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.02)'
                   }}
                 >
-                  {allSkills.length > 0 ? (
-                    allSkills.map(skill => (
-                      <Chip
-                        key={skill}
-                        label={skill}
-                        onClick={() => handleSkillToggle(skill)}
-                        size="small"
-                        sx={{
-                          borderRadius: 6,
-                          bgcolor: skillFilter.includes(skill) ? alpha(corePurple1, 0.1) : 'transparent',
-                          color: skillFilter.includes(skill) ? corePurple1 : alpha('#000', 0.7),
-                          border: '1px solid',
-                          borderColor: skillFilter.includes(skill) ? alpha(corePurple1, 0.3) : alpha('#000', 0.1),
-                          '&:hover': {
-                            bgcolor: skillFilter.includes(skill) ? alpha(corePurple1, 0.15) : alpha(corePurple1, 0.05),
-                            borderColor: corePurple1,
-                          },
-                          fontWeight: 500,
-                          transition: 'all 0.2s',
-                          mb: 0.5
-                        }}
-                      />
+                  {filteredSkills.length > 0 ? (
+                    getSkillGroups().map(group => (
+                      <Box key={group.letter} sx={{ mb: 2.5 }}>
+                        <Typography 
+                          variant="caption" 
+                          sx={{ 
+                            display: 'block', 
+                            fontWeight: 700, 
+                            color: ACCENTURE_COLORS.corePurple1,
+                            mb: 0.8,
+                            px: 1,
+                            borderBottom: '1px dashed',
+                            borderColor: alpha(ACCENTURE_COLORS.corePurple1, 0.1),
+                            pb: 0.3
+                          }}
+                        >
+                          {group.letter}
+                        </Typography>
+                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, px: 0.5 }}>
+                          {group.skills.map(skill => (
+                            <Chip
+                              key={skill}
+                              label={skill}
+                              onClick={() => handleSkillToggle(skill)}
+                              size="small"
+                              sx={{
+                                borderRadius: 6,
+                                height: 28,
+                                bgcolor: skillFilter.includes(skill) 
+                                  ? alpha(ACCENTURE_COLORS.corePurple1, 0.1) 
+                                  : 'white',
+                                color: skillFilter.includes(skill) 
+                                  ? ACCENTURE_COLORS.corePurple1 
+                                  : alpha('#000', 0.7),
+                                border: '1px solid',
+                                borderColor: skillFilter.includes(skill) 
+                                  ? alpha(ACCENTURE_COLORS.corePurple1, 0.3) 
+                                  : alpha('#000', 0.08),
+                                '&:hover': {
+                                  bgcolor: skillFilter.includes(skill) 
+                                    ? alpha(ACCENTURE_COLORS.corePurple1, 0.15) 
+                                    : alpha(ACCENTURE_COLORS.corePurple1, 0.05),
+                                  borderColor: ACCENTURE_COLORS.corePurple1,
+                                  boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+                                },
+                                fontWeight: 500,
+                                transition: 'all 0.15s',
+                                boxShadow: skillFilter.includes(skill) 
+                                  ? '0 1px 3px rgba(0,0,0,0.05)' 
+                                  : 'none',
+                              }}
+                            />
+                          ))}
+                        </Box>
+                      </Box>
                     ))
                   ) : (
-                    <Typography variant="body2" color="text.secondary" sx={{ p: 1 }}>
-                      No skills available
-                    </Typography>
+                    <Box
+                      sx={{
+                        p: 3,
+                        textAlign: 'center',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 1,
+                      }}
+                    >
+                      <SearchIcon sx={{ color: alpha('#000', 0.2), fontSize: 32 }} />
+                      <Typography variant="body2" color="text.secondary">
+                        {allSkills.length === 0 ? 'No skills available' : 'No skills match your search'}
+                      </Typography>
+                    </Box>
                   )}
                 </Box>
               </Box>
 
-              {/* Chips de filtros activos */}
+              {/* Active filter chips */}
               {activeFilterCount > 0 && (
-                <Box sx={{ pt: 2, borderTop: `1px solid ${alpha('#000', 0.06)}` }}>
+                <Box 
+                  sx={{ 
+                    pt: 3,
+                    mt: 1,
+                    borderTop: `1px solid ${alpha('#000', 0.05)}`,
+                    bgcolor: alpha('#f5f5f5', 0.5),
+                    mx: -3,
+                    px: 3,
+                    pb: 2
+                  }}
+                >
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
                     <Typography variant="subtitle2" fontWeight={600} color={alpha('#000', 0.7)}>
                       Active filters
@@ -700,13 +959,14 @@ const Certifications = () => {
                         onDelete={() => setSearchTerm('')}
                         sx={{
                           borderRadius: 6,
-                          bgcolor: alpha(corePurple1, 0.05),
-                          color: corePurple3,
+                          bgcolor: alpha(ACCENTURE_COLORS.corePurple1, 0.05),
+                          color: ACCENTURE_COLORS.corePurple3,
                           border: '1px solid',
-                          borderColor: alpha(corePurple1, 0.2),
+                          borderColor: alpha(ACCENTURE_COLORS.corePurple1, 0.2),
                           '& .MuiChip-deleteIcon': {
-                            color: corePurple3
-                          }
+                            color: ACCENTURE_COLORS.corePurple3
+                          },
+                          boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
                         }}
                       />
                     )}
@@ -718,13 +978,14 @@ const Certifications = () => {
                         onDelete={() => setCategoryFilter('all')}
                         sx={{
                           borderRadius: 6,
-                          bgcolor: alpha(corePurple1, 0.05),
-                          color: corePurple3,
+                          bgcolor: alpha(ACCENTURE_COLORS.corePurple1, 0.05),
+                          color: ACCENTURE_COLORS.corePurple3,
                           border: '1px solid',
-                          borderColor: alpha(corePurple1, 0.2),
+                          borderColor: alpha(ACCENTURE_COLORS.corePurple1, 0.2),
                           '& .MuiChip-deleteIcon': {
-                            color: corePurple3
-                          }
+                            color: ACCENTURE_COLORS.corePurple3
+                          },
+                          boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
                         }}
                       />
                     )}
@@ -736,13 +997,14 @@ const Certifications = () => {
                         onDelete={() => setSkillFilter([])}
                         sx={{
                           borderRadius: 6,
-                          bgcolor: alpha(corePurple1, 0.05),
-                          color: corePurple3,
+                          bgcolor: alpha(ACCENTURE_COLORS.corePurple1, 0.05),
+                          color: ACCENTURE_COLORS.corePurple3,
                           border: '1px solid',
-                          borderColor: alpha(corePurple1, 0.2),
+                          borderColor: alpha(ACCENTURE_COLORS.corePurple1, 0.2),
                           '& .MuiChip-deleteIcon': {
-                            color: corePurple3
-                          }
+                            color: ACCENTURE_COLORS.corePurple3
+                          },
+                          boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
                         }}
                       />
                     )}
@@ -754,12 +1016,13 @@ const Certifications = () => {
         </ClickAwayListener>
       )}
 
-      {/* Resultados */}
+      {/* Results */}
       {filteredCerts.length > 0 ? (
         <Grid container spacing={3}>
           {filteredCerts.map((cert) => (
             <Grid item xs={12} sm={6} md={4} lg={3} key={cert.id}>
               <CertificationCard
+                id={cert.id}  
                 title={cert.title}
                 url={cert.url}
                 skills={cert.skills || []}
@@ -793,10 +1056,8 @@ const Certifications = () => {
             startIcon={<ClearIcon />}
             onClick={handleClearFilters}
             sx={{ 
-              bgcolor: corePurple1,
-              '&:hover': {
-                bgcolor: corePurple2
-              },
+              ...primaryButtonStyles,
+              bgcolor: ACCENTURE_COLORS.corePurple1,
               textTransform: 'none',
               fontWeight: 500,
               borderRadius: 8,
@@ -808,7 +1069,7 @@ const Certifications = () => {
         </Paper>
       )}
 
-      {/* Modal para enviar certificación */}
+      {/* Modal for certification submission */}
       <Modal 
         open={openModal} 
         onClose={handleCloseModal}

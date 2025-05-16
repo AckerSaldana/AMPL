@@ -421,8 +421,7 @@ const ProjectDetail = () => {
                 mb: 1,
                 mt: 1,
                 lineHeight: 1.2,
-                wordBreak: "break-word",
-                textShadow: '0 2px 4px rgba(0, 0, 0, 0.2)',
+                wordBreak: "break-word"              
               }}
             >
               {project.title}
