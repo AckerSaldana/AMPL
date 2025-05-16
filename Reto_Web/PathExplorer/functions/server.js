@@ -1780,7 +1780,7 @@ async function analyzeWithOpenAI(cvText, availableSkills = [], availableRoles = 
     
     // Crear prompt optimizado para extraer datos específicos
     const skillsForPrompt = availableSkills.length > 0 
-      ? availableSkills.map(s => s.name || s).slice(0, 100).join(', ') // Limitamos a 50 skills para no sobrecargar
+      ? availableSkills.map(s => s.name || s).slice(0, 300).join(', ') 
       : "JavaScript, HTML, CSS, React, Angular, Node.js, Python, Java, SQL, Scrum, Agile, AWS, Communication, Teamwork";
       
     const rolesForPrompt = availableRoles.length > 0
