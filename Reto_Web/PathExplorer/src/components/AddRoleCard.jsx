@@ -39,7 +39,6 @@ export const AddRoleCard = ({ onRoleCreated, onCancel, initialRole = null }) => 
   const theme = useTheme();
   const navigate = useNavigate();
   
-  // Estado para el rol - Eliminado yearsOfExperience
   const [roleData, setRoleData] = useState({
     id: Date.now(), // ID temporal
     name: "",
