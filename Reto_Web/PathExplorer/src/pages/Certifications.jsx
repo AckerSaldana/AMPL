@@ -26,7 +26,9 @@ import TagIcon from '@mui/icons-material/Tag';
 import ClearIcon from '@mui/icons-material/Clear';
 import CloseIcon from '@mui/icons-material/Close';
 import AddIcon from '@mui/icons-material/Add';
+import BadgeIcon from '@mui/icons-material/Badge';
 
+import { useNavigate } from 'react-router-dom';
 import SubmitCertification from './SubmitCertification';
 import { supabase } from '../supabase/supabaseClient';
 import { CertificationCard } from '../components/CertificationCard';
@@ -73,6 +75,7 @@ const fallbackCertifications = [
 
 const Certifications = () => {
   const theme = useTheme();
+  const navigate = useNavigate();
 
   // States
   const [searchTerm, setSearchTerm] = useState('');
@@ -94,6 +97,11 @@ const Certifications = () => {
   // Handlers
   const handleOpenModal = () => setOpenModal(true);
   const handleCloseModal = () => setOpenModal(false);
+  
+  // Nuevo método para navegar a My Certifications
+  const handleGoToMyCertifications = () => {
+    navigate('/my-certifications');
+  };
 
   // Effect to load data
   useEffect(() => {
@@ -422,6 +430,8 @@ const Certifications = () => {
             width: { xs: '100%', md: 'auto' }
           }}
         >
+          
+
           <TextField
             placeholder="Search certifications..."
             variant="outlined"
@@ -468,6 +478,22 @@ const Certifications = () => {
               }
             }}
           />
+
+          {/* NUEVO BOTÓN para My Certifications */}
+          <Button
+            variant="contained"
+            startIcon={<BadgeIcon />}
+            onClick={handleGoToMyCertifications}
+            sx={{
+              ...primaryButtonStyles,
+              borderRadius: 8,
+              bgcolor: ACCENTURE_COLORS.corePurple1,
+              height: 40,
+              px: { xs: 2, md: 3 }
+            }}
+          >
+            My Certifications
+          </Button>
 
           <Button
             variant="contained"

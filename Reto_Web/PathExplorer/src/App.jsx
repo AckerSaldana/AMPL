@@ -12,6 +12,7 @@ import Analytics from "./pages/Analytics";
 import MyPath from "./pages/MyPath";
 import User from "./pages/User";
 import Certifications from "./pages/Certifications";
+import MyCertifications from "./pages/MyCertifications"; // Importamos la nueva página
 import ProjectDashboard from "./pages/ProjectDashboard.jsx";
 import ProjectDetail from "./pages/ProjectDetail.jsx";
 import EditProfile from "./pages/EditProfile";
@@ -53,6 +54,7 @@ function App() {
             <Route path="add-projects" element={<AddProject />} />
             <Route path="role-assign" element={<RoleAssign />} />
             <Route path="certifications" element={<Certifications />} />
+            <Route path="my-certifications" element={<MyCertifications />} /> {/* Nueva ruta para My Certifications */}
             <Route
               path="submit-certification"
               element={<SubmitCertification />}
