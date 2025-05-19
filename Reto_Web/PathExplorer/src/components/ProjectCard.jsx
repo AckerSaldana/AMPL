@@ -12,15 +12,16 @@ import {
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { alpha } from "@mui/material/styles";
+import { ACCENTURE_COLORS, cardStyles } from "../styles/styles";
 
 const ProjectCard = ({ project }) => {
   const navigate = useNavigate();
 
   const getProgressColor = () => {
-    if (project.status === "Completed") return "success.main";
-    if (project.progress >= 70) return "#8bc34a";
-    if (project.progress >= 30) return "#9c27b0";
-    return "#e0e0e0";
+    if (project.status === "Completed") return "#22A565";
+    if (project.progress >= 70) return ACCENTURE_COLORS.corePurple1;
+    if (project.progress >= 30) return ACCENTURE_COLORS.accentPurple2;
+    return ACCENTURE_COLORS.lightGray;
   };
 
   const formatDate = (dateString) => {
@@ -41,19 +42,19 @@ const ProjectCard = ({ project }) => {
       onClick={() => navigate(`/project-detail/${project.id}`)}
       variant="outlined"
       sx={{
+        ...cardStyles,
         height: "100%",
         display: "flex",
         flexDirection: "column",
         borderRadius: "8px",
         overflow: "hidden",
-        boxShadow: "none",
         border: "1px solid rgba(0,0,0,0.12)",
         transition: "all 0.2s ease-in-out",
         cursor: "pointer",
         "&:hover": {
           transform: "translateY(-1px)",
-          boxShadow: "0 2px 8px rgba(0, 0, 0, 0.05)",
-          borderColor: alpha('#a100ff', 0.3),
+          boxShadow: "0 6px 12px rgba(0, 0, 0, 0.08)",
+          borderColor: alpha(ACCENTURE_COLORS.corePurple1, 0.3),
         },
       }}
     >
@@ -85,16 +86,20 @@ const ProjectCard = ({ project }) => {
               borderRadius: 5,
               backgroundColor:
                 project.status === "In Progress"
-                  ? "rgba(155, 79, 234, 0.1)"
+                  ? alpha(ACCENTURE_COLORS.corePurple1, 0.1)
                   : project.status === "Completed"
-                  ? "rgba(111, 207, 151, 0.1)"
-                  : "rgba(245, 159, 0, 0.1)",
+                  ? alpha("#22A565", 0.1)
+                  : project.status === "On Hold"
+                  ? alpha(ACCENTURE_COLORS.orange, 0.1)
+                  : alpha(ACCENTURE_COLORS.blue, 0.1),
               color:
                 project.status === "In Progress"
-                  ? "rgb(155, 79, 234)"
+                  ? ACCENTURE_COLORS.corePurple1
                   : project.status === "Completed"
-                  ? "rgb(111, 207, 151)"
-                  : "rgb(245, 159, 0)",
+                  ? "#22A565"
+                  : project.status === "On Hold"
+                  ? ACCENTURE_COLORS.orange
+                  : ACCENTURE_COLORS.blue,
               fontWeight: 500,
               fontSize: "0.7rem",
               "& .MuiChip-label": {
@@ -116,8 +121,9 @@ const ProjectCard = ({ project }) => {
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              bgcolor: project.logoBackground || "#f5f5f5",
+              bgcolor: project.logoBackground || alpha(ACCENTURE_COLORS.accentPurple2, 0.1),
               flexShrink: 0,
+              border: `1px solid ${alpha(ACCENTURE_COLORS.corePurple1, 0.1)}`,
             }}
           >
             {project.logo ? (
@@ -131,7 +137,13 @@ const ProjectCard = ({ project }) => {
                 }}
               />
             ) : (
-              <Typography variant="h6" sx={{ color: "#fff" }}>
+              <Typography 
+                variant="h6" 
+                sx={{ 
+                  color: ACCENTURE_COLORS.corePurple1,
+                  fontWeight: 600 
+                }}
+              >
                 {project.title.charAt(0)}
               </Typography>
             )}
@@ -139,14 +151,19 @@ const ProjectCard = ({ project }) => {
           <Box sx={{ width: "100%" }}>
             <Typography
               variant="subtitle1"
-              sx={{ fontWeight: 500, mb: 0.5, fontSize: "0.95rem" }}
+              sx={{ 
+                fontWeight: 600, 
+                mb: 0.5, 
+                fontSize: "0.95rem",
+                color: ACCENTURE_COLORS.black
+              }}
             >
               {project.title}
             </Typography>
             <Tooltip title={project.description} placement="top">
               <Typography
                 variant="body2"
-                color="text.secondary"
+                color={ACCENTURE_COLORS.darkGray}
                 sx={{
                   fontSize: "0.75rem",
                   display: "-webkit-box",
@@ -172,7 +189,12 @@ const ProjectCard = ({ project }) => {
         <Box>
           <Typography
             variant="body2"
-            sx={{ mb: 0.5, fontWeight: 500, fontSize: "0.75rem" }}
+            sx={{ 
+              mb: 0.5, 
+              fontWeight: 600, 
+              fontSize: "0.75rem",
+              color: ACCENTURE_COLORS.corePurple3
+            }}
           >
             Team:
           </Typography>
@@ -203,7 +225,12 @@ const ProjectCard = ({ project }) => {
                   sx={{
                     bgcolor: member.avatar
                       ? "transparent"
-                      : ["#f44336", "#2196f3", "#4caf50", "#ff9800"][index % 4],
+                      : [
+                        ACCENTURE_COLORS.corePurple1, 
+                        ACCENTURE_COLORS.accentPurple3, 
+                        ACCENTURE_COLORS.blue, 
+                        ACCENTURE_COLORS.accentPurple2
+                      ][index % 4],
                   }}
                 >
                   {!member.avatar && member.name
@@ -219,10 +246,11 @@ const ProjectCard = ({ project }) => {
             variant="body2"
             sx={{
               mb: 0.5,
-              fontWeight: 500,
+              fontWeight: 600,
               display: "flex",
               justifyContent: "space-between",
               fontSize: "0.75rem",
+              color: ACCENTURE_COLORS.black,
             }}
           >
             <span>Project Progress:</span>
@@ -235,9 +263,10 @@ const ProjectCard = ({ project }) => {
               height: 8,
               borderRadius: 4,
               mb: 3,
-              bgcolor: "rgba(0,0,0,0.06)",
+              bgcolor: alpha(ACCENTURE_COLORS.corePurple1, 0.08),
               "& .MuiLinearProgress-bar": {
                 bgcolor: getProgressColor(),
+                transition: "transform 0.5s ease-out",
               },
             }}
           />
@@ -249,20 +278,24 @@ const ProjectCard = ({ project }) => {
             display: "flex",
             justifyContent: "space-between",
             pt: 2,
-            borderTop: "1px solid rgba(0,0,0,0.08)",
+            borderTop: `1px solid ${alpha(ACCENTURE_COLORS.corePurple1, 0.08)}`,
           }}
         >
           <Box>
             <Typography
               variant="caption"
-              color="text.secondary"
+              color={ACCENTURE_COLORS.darkGray}
               sx={{ fontSize: "0.65rem" }}
             >
               Assigned Date:
             </Typography>
             <Typography
               variant="body2"
-              sx={{ fontWeight: 500, fontSize: "0.75rem" }}
+              sx={{ 
+                fontWeight: 600, 
+                fontSize: "0.75rem",
+                color: ACCENTURE_COLORS.black
+              }}
             >
               {formatDate(project.assignedDate)}
             </Typography>
@@ -270,14 +303,18 @@ const ProjectCard = ({ project }) => {
           <Box sx={{ textAlign: "right" }}>
             <Typography
               variant="caption"
-              color="text.secondary"
+              color={ACCENTURE_COLORS.darkGray}
               sx={{ fontSize: "0.65rem" }}
             >
               Due Date:
             </Typography>
             <Typography
               variant="body2"
-              sx={{ fontWeight: 500, fontSize: "0.75rem" }}
+              sx={{ 
+                fontWeight: 600, 
+                fontSize: "0.75rem",
+                color: ACCENTURE_COLORS.black
+              }}
             >
               {formatDate(project.dueDate)}
             </Typography>

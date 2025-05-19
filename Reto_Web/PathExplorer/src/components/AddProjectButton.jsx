@@ -2,6 +2,7 @@
 import React from "react";
 import { Button, useTheme } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
+import { ACCENTURE_COLORS, primaryButtonStyles } from "../styles/styles";
 
 /**
  * Botón para agregar un nuevo proyecto
@@ -17,16 +18,21 @@ const AddProjectButton = ({ onClick }) => {
       fullWidth
       onClick={onClick}
       sx={{
+        ...primaryButtonStyles,
         py: 1.5,
-        bgcolor: theme.palette.primary.main,
+        bgcolor: ACCENTURE_COLORS.corePurple1,
         borderRadius: 1.5,
-        textTransform: "none",
+        fontSize: "0.875rem",
         fontWeight: 500,
-        boxShadow: "none",
+        transition: "all 0.2s ease",
         "&:hover": {
-          bgcolor: theme.palette.primary.dark,
-          boxShadow: "none",
+          bgcolor: ACCENTURE_COLORS.corePurple2,
+          boxShadow: "0 4px 10px rgba(161, 0, 255, 0.25)",
         },
+        "&:active": {
+          transform: "translateY(0)",
+          boxShadow: "0 1px 3px rgba(161, 0, 255, 0.15)",
+        }
       }}
     >
       Add Project
