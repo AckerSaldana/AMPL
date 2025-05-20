@@ -53,7 +53,6 @@ const ProjectCard = ({ project }) => {
         cursor: "pointer",
         "&:hover": {
           transform: "translateY(-1px)",
-          boxShadow: "0 6px 12px rgba(0, 0, 0, 0.08)",
           borderColor: alpha(ACCENTURE_COLORS.corePurple1, 0.3),
         },
       }}

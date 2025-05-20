@@ -17,6 +17,8 @@ import {
   Divider,
   LinearProgress,
   Fade,
+  Chip,
+  Avatar,
 } from "@mui/material";
 import ProjectCard from "../components/ProjectCard.jsx";
 import SkeletonProjectCard from "../components/SkeletonProjectCard.jsx";
@@ -222,20 +224,18 @@ const ProjectDashboard = () => {
       </Typography>
 
       <Grid container spacing={3}>
-        <Grid item xs={12} md={3} lg={2.5}>
+        <Grid item xs={12} md={3} lg={2.5} sx={{ position: "relative" }}>
           {/* Add Project Card */}
           {role === "manager" && (
             <Paper 
               elevation={0}
               sx={{ 
-
                 borderRadius: 2,
                 mb: 2,
                 p: 3,
                 border: "1px solid rgba(0,0,0,0.12)",
                 position: 'relative',
                 overflow: 'hidden',
-                height: 'auto', // Asegura que la altura sea automática
                 '&::before': {
                   content: '""',
                   position: 'absolute',
@@ -250,17 +250,14 @@ const ProjectDashboard = () => {
             </Paper>
           )}
 
-          {/* Filter Card */}
+          {/* Filter Card - Will stay in its original position */}
           <Paper 
             elevation={0}
             sx={{ 
               borderRadius: 2,
               overflow: 'hidden',
-              
               border: "1px solid rgba(0,0,0,0.12)",
-              height: 'auto', // Asegura que la altura sea automática
-              position: 'sticky',
-              top: '1rem',
+              position: 'static',  // Stays in normal document flow
             }}
           >
             <Box sx={{ py: 2 }}>
