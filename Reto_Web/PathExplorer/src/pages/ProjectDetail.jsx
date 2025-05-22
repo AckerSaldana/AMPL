@@ -210,19 +210,466 @@ const ProjectDetail = () => {
   // Conditional rendering while loading data
   if (loading) {
     return (
-      <Box sx={{ p: 3, textAlign: "center", minHeight: "50vh", display: "flex", flexDirection: "column", justifyContent: "center" }}>
-        <LinearProgress 
-          color="primary" 
+      <Box sx={{ 
+        p: { xs: 2, sm: 3 }, 
+        minHeight: "80vh", 
+        display: "flex", 
+        flexDirection: "column"
+      }}>
+        {/* Header skeleton */}
+        <Box sx={{ mb: 3, display: 'flex', alignItems: 'center' }}>
+          <Box sx={{ 
+            width: 80, 
+            height: 30, 
+            borderRadius: 1,
+            bgcolor: alpha(ACCENTURE_COLORS.corePurple1, 0.1),
+            animation: "pulse 1.5s ease-in-out infinite",
+            "@keyframes pulse": {
+              "0%, 100%": { opacity: 0.5 },
+              "50%": { opacity: 0.8 }
+            },
+          }} />
+        </Box>
+        
+        <Box sx={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          mb: 4
+        }}>
+          <Box sx={{ 
+            width: 180, 
+            height: 40, 
+            borderRadius: 1,
+            bgcolor: alpha(ACCENTURE_COLORS.corePurple1, 0.15),
+            animation: "pulse 1.5s ease-in-out infinite",
+          }} />
+          
+          <Box sx={{ 
+            display: "flex", 
+            gap: 1 
+          }}>
+            <Box sx={{ 
+              width: 80, 
+              height: 36, 
+              borderRadius: 1.5,
+              bgcolor: alpha(ACCENTURE_COLORS.corePurple1, 0.2),
+              animation: "pulse 1.5s ease-in-out infinite",
+            }} />
+            
+            <Box sx={{ 
+              width: 80, 
+              height: 36, 
+              borderRadius: 1.5,
+              bgcolor: alpha(theme.palette.error.main, 0.1),
+              animation: "pulse 1.5s ease-in-out 0.3s infinite",
+            }} />
+          </Box>
+        </Box>
+
+        {/* Project overview skeleton */}
+        <Paper 
+          elevation={0}
           sx={{ 
-            mb: 3, 
-            height: 6, 
             borderRadius: 3,
-            backgroundColor: alpha(ACCENTURE_COLORS.corePurple1, 0.1)
-          }} 
-        />
-        <Typography variant="h6" color="text.secondary" sx={{ fontWeight: 500 }}>
-          Loading project details...
-        </Typography>
+            mb: 3,
+            overflow: "hidden",
+            border: "1px solid",
+            borderColor: alpha("#000", 0.05),
+            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.03)'
+          }}
+        >
+          <Box sx={{ 
+            p: { xs: 2, sm: 3 }, 
+            display: "flex",
+            flexDirection: { xs: "column", sm: "row" },
+            alignItems: { xs: "center", sm: "flex-start" },
+            gap: { xs: 2, sm: 3 },
+            bgcolor: alpha(ACCENTURE_COLORS.corePurple1, 0.5),
+            position: 'relative',
+            overflow: 'hidden',
+            "&::after": {
+              content: '""',
+              position: 'absolute',
+              top: 0,
+              right: 0,
+              bottom: 0,
+              left: '-100%',
+              background: `linear-gradient(90deg, transparent, ${alpha('#fff', 0.2)}, transparent)`,
+              animation: 'shimmer 2s infinite',
+              "@keyframes shimmer": {
+                "0%": { transform: 'translateX(0%)' },
+                "100%": { transform: 'translateX(200%)' }
+              }
+            }
+          }}>
+            <Box sx={{ 
+              width: { xs: 100, sm: 120, md: 140 }, 
+              height: { xs: 100, sm: 120, md: 140 },
+              borderRadius: 2,
+              bgcolor: alpha('#fff', 0.2),
+              flexShrink: 0,
+            }} />
+            
+            <Box sx={{ 
+              flex: 1,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 2,
+              alignItems: { xs: "center", sm: "flex-start" },
+            }}>
+              <Box sx={{ 
+                height: 32, 
+                width: '60%', 
+                borderRadius: 1,
+                bgcolor: alpha('#fff', 0.3),
+              }} />
+              
+              <Box sx={{ 
+                display: "flex", 
+                gap: 1,
+                justifyContent: { xs: "center", sm: "flex-start" },
+              }}>
+                <Box sx={{ 
+                  width: 80, 
+                  height: 26, 
+                  borderRadius: 1,
+                  bgcolor: alpha('#fff', 0.2),
+                }} />
+                <Box sx={{ 
+                  width: 80, 
+                  height: 26, 
+                  borderRadius: 1,
+                  bgcolor: alpha('#fff', 0.2),
+                }} />
+              </Box>
+              
+              <Box sx={{ 
+                display: "flex",
+                flexDirection: { xs: "column", md: "row" },
+                gap: { xs: 1, md: 3 },
+                alignItems: { xs: "center", sm: "flex-start" },
+              }}>
+                <Box sx={{ 
+                  width: 120, 
+                  height: 20, 
+                  borderRadius: 1,
+                  bgcolor: alpha('#fff', 0.15),
+                }} />
+                <Box sx={{ 
+                  width: 120, 
+                  height: 20, 
+                  borderRadius: 1,
+                  bgcolor: alpha('#fff', 0.15),
+                }} />
+              </Box>
+            </Box>
+          </Box>
+          
+          <Box sx={{ p: { xs: 3, sm: 4 }, display: 'flex', flexDirection: 'column', gap: 2 }}>
+            {[1, 2, 3].map((item) => (
+              <Box 
+                key={item}
+                sx={{ 
+                  height: 16, 
+                  width: `${Math.floor(70 + Math.random() * 30)}%`, 
+                  borderRadius: 0.5,
+                  bgcolor: alpha(ACCENTURE_COLORS.corePurple1, 0.07 + (item * 0.02)),
+                  animation: `pulse 1.5s ease-in-out ${item * 0.3}s infinite`,
+                }} 
+              />
+            ))}
+            
+            <Box sx={{ 
+              mt: 1,
+              height: 26, 
+              width: 120, 
+              borderRadius: 1,
+              bgcolor: alpha(ACCENTURE_COLORS.corePurple1, 0.1),
+              alignSelf: 'flex-start',
+            }} />
+          </Box>
+        </Paper>
+
+        {/* Progress skeleton */}
+        <Paper 
+          elevation={0}
+          sx={{ 
+            p: { xs: 3, sm: 4 }, 
+            borderRadius: 3,
+            mb: 3,
+            border: "1px solid",
+            borderColor: alpha("#000", 0.05),
+            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.03)'
+          }}
+        >
+          <Box sx={{ 
+            display: "flex", 
+            alignItems: "center", 
+            mb: 3,
+            flexWrap: "wrap",
+            gap: 1
+          }}>
+            <Box sx={{ 
+              width: 180, 
+              height: 24, 
+              borderRadius: 1,
+              bgcolor: alpha(ACCENTURE_COLORS.corePurple1, 0.15),
+              animation: "pulse 1.5s ease-in-out infinite",
+            }} />
+            
+            <Box sx={{ flex: 1 }} />
+            
+            <Box sx={{ 
+              width: 100, 
+              height: 26, 
+              borderRadius: 1,
+              bgcolor: alpha(ACCENTURE_COLORS.corePurple1, 0.1),
+              animation: "pulse 1.5s ease-in-out 0.3s infinite",
+            }} />
+          </Box>
+          
+          <Divider sx={{ mb: 3, opacity: 0.6 }} />
+          
+          <Box sx={{ height: 28, borderRadius: 2, bgcolor: alpha(ACCENTURE_COLORS.corePurple1, 0.08), mb: 3, overflow: 'hidden', position: 'relative' }}>
+            <Box 
+              sx={{ 
+                height: '100%', 
+                width: '60%', 
+                bgcolor: alpha(ACCENTURE_COLORS.corePurple1, 0.3),
+                position: 'relative',
+                "&::after": {
+                  content: '""',
+                  position: 'absolute',
+                  top: 0,
+                  right: 0,
+                  bottom: 0,
+                  left: '-100%',
+                  background: `linear-gradient(90deg, transparent, ${alpha('#fff', 0.3)}, transparent)`,
+                  animation: 'shimmer 2s infinite',
+                }
+              }} 
+            />
+          </Box>
+          
+          <Box sx={{ 
+            display: 'flex',
+            justifyContent: 'space-between',
+            mt: 2.5,
+            mb: 3
+          }}>
+            {[0, 1, 2, 3, 4, 5].map((item) => (
+              <Box 
+                key={item}
+                sx={{ 
+                  height: 16, 
+                  width: 24, 
+                  borderRadius: 0.5,
+                  bgcolor: alpha(ACCENTURE_COLORS.corePurple1, 0.1 + (item * 0.03)),
+                }} 
+              />
+            ))}
+          </Box>
+          
+          <Box 
+            sx={{
+              mt: 3,
+              p: 2.5,
+              borderRadius: 2,
+              bgcolor: alpha(ACCENTURE_COLORS.corePurple1, 0.05),
+              border: `1px solid ${alpha(ACCENTURE_COLORS.corePurple1, 0.15)}`,
+              display: "flex",
+              alignItems: "center",
+            }}
+          >
+            <Box
+              sx={{
+                borderRadius: '50%',
+                width: 48,
+                height: 48,
+                bgcolor: alpha(ACCENTURE_COLORS.corePurple1, 0.2),
+                mr: 2.5,
+                animation: "pulse 1.5s ease-in-out infinite",
+              }}
+            />
+            <Box sx={{ flex: 1 }}>
+              <Box sx={{ 
+                height: 24, 
+                width: '40%', 
+                borderRadius: 1,
+                mb: 1,
+                bgcolor: alpha(ACCENTURE_COLORS.corePurple1, 0.15),
+                animation: "pulse 1.5s ease-in-out infinite",
+              }} />
+              <Box sx={{ 
+                height: 16, 
+                width: '70%', 
+                borderRadius: 0.5,
+                bgcolor: alpha(ACCENTURE_COLORS.corePurple1, 0.1),
+                animation: "pulse 1.5s ease-in-out 0.3s infinite",
+              }} />
+            </Box>
+          </Box>
+        </Paper>
+        
+        {/* Team skeleton */}
+        <Paper 
+          elevation={0}
+          sx={{ 
+            p: { xs: 3, sm: 4 }, 
+            borderRadius: 3,
+            mb: 3,
+            border: "1px solid",
+            borderColor: alpha("#000", 0.05),
+            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.03)'
+          }}
+        >
+          <Box sx={{ 
+            display: "flex", 
+            alignItems: "center", 
+            mb: 3,
+            justifyContent: "space-between" 
+          }}>
+            <Box sx={{ display: "flex", alignItems: "center" }}>
+              <Box sx={{ 
+                width: 24, 
+                height: 24, 
+                borderRadius: '50%',
+                mr: 1.5,
+                bgcolor: alpha(ACCENTURE_COLORS.corePurple1, 0.2),
+                animation: "pulse 1.5s ease-in-out infinite",
+              }} />
+              <Box sx={{ 
+                width: 150, 
+                height: 24, 
+                borderRadius: 1,
+                bgcolor: alpha(ACCENTURE_COLORS.corePurple1, 0.15),
+                animation: "pulse 1.5s ease-in-out infinite",
+              }} />
+            </Box>
+            
+            <Box sx={{ 
+              width: 100, 
+              height: 26, 
+              borderRadius: 1,
+              bgcolor: alpha(ACCENTURE_COLORS.corePurple1, 0.1),
+              animation: "pulse 1.5s ease-in-out 0.3s infinite",
+            }} />
+          </Box>
+          
+          <Divider sx={{ mb: 3, opacity: 0.6 }} />
+
+          {/* Team members grid skeleton */}
+          <Grid container spacing={2.5}>
+            {[1, 2, 3, 4].map((item) => (
+              <Grid item xs={12} sm={6} md={4} lg={3} key={item}>
+                <Box 
+                  sx={{ 
+                    display: "flex",
+                    alignItems: "center",
+                    p: 2,
+                    borderRadius: 2,
+                    border: "1px solid",
+                    borderColor: alpha(theme.palette.divider, 0.1),
+                    bgcolor: "white",
+                    height: 80,
+                    boxShadow: "0 4px 10px rgba(0, 0, 0, 0.03)",
+                    animation: `pulse 1.5s ease-in-out ${item * 0.2}s infinite`,
+                  }}
+                >
+                  <Box 
+                    sx={{ 
+                      width: 48, 
+                      height: 48, 
+                      borderRadius: '50%',
+                      mr: 2,
+                      bgcolor: alpha(ACCENTURE_COLORS.corePurple1, 0.15),
+                    }}
+                  />
+                  <Box sx={{ flex: 1 }}>
+                    <Box sx={{ 
+                      height: 18, 
+                      width: '70%', 
+                      borderRadius: 0.5,
+                      mb: 1,
+                      bgcolor: alpha(ACCENTURE_COLORS.corePurple1, 0.15),
+                    }} />
+                    <Box sx={{ 
+                      height: 16, 
+                      width: '40%', 
+                      borderRadius: 4,
+                      bgcolor: alpha(ACCENTURE_COLORS.corePurple1, 0.1),
+                    }} />
+                  </Box>
+                </Box>
+              </Grid>
+            ))}
+          </Grid>
+        </Paper>
+        
+        {/* Accenture Logo Animation */}
+        <Box sx={{ 
+          display: 'flex', 
+          justifyContent: 'center', 
+          alignItems: 'center',
+          position: 'relative',
+          mt: 4
+        }}>
+          <Box sx={{
+            width: 60,
+            height: 60,
+            position: 'relative',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center'
+          }}>
+            {/* Greater-than symbol animation */}
+            <Box component="span" sx={{
+              position: 'absolute',
+              fontSize: '40px',
+              fontWeight: 'bold',
+              color: ACCENTURE_COLORS.corePurple1,
+              animation: 'pulseOpacity 1.5s infinite',
+              "@keyframes pulseOpacity": {
+                "0%, 100%": { opacity: 0.7 },
+                "50%": { opacity: 1 }
+              }
+            }}>
+              &gt;
+            </Box>
+            
+            {/* Circular spinner */}
+            <Box sx={{
+              position: 'absolute',
+              width: '100%',
+              height: '100%',
+              borderRadius: '50%',
+              border: `3px solid ${alpha(ACCENTURE_COLORS.corePurple1, 0.1)}`,
+              borderTopColor: ACCENTURE_COLORS.corePurple1,
+              animation: 'spin 1.5s linear infinite',
+              "@keyframes spin": {
+                "0%": { transform: 'rotate(0deg)' },
+                "100%": { transform: 'rotate(360deg)' }
+              }
+            }} />
+          </Box>
+          
+          <Typography 
+            variant="h6" 
+            color="text.secondary" 
+            sx={{ 
+              fontWeight: 500, 
+              ml: 2,
+              background: `linear-gradient(90deg, ${ACCENTURE_COLORS.corePurple1}, ${ACCENTURE_COLORS.corePurple3})`,
+              backgroundClip: 'text',
+              textFillColor: 'transparent',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+            }}
+          >
+            Loading project details...
+          </Typography>
+        </Box>
       </Box>
     );
   }
@@ -841,8 +1288,7 @@ const ProjectDetail = () => {
                     boxShadow: "0 4px 10px rgba(0, 0, 0, 0.03)",
                     transition: "all 0.3s ease",
                     "&:hover": {
-                      transform: "translateY(-3px)",
-                      boxShadow: `0 8px 15px rgba(0, 0, 0, 0.06)`,
+                      transform: "translateY(-1px)",
                       borderColor: alpha(ACCENTURE_COLORS.corePurple1, 0.3),
                     },
                   }}
