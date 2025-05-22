@@ -18,7 +18,7 @@ import {
   Drawer,
   SwipeableDrawer,
   Button,
-  Divider
+  Divider,
 } from "@mui/material";
 
 import { NavLink, useNavigate, useLocation } from "react-router-dom";
@@ -46,11 +46,11 @@ import { supabase } from "../supabase/supabaseClient";
 import AccentureLogo from "../brand/AccenturePurpleLogo.png";
 import Loading from "./Loading";
 
-import AssignmentIcon from '@mui/icons-material/Assignment';
-import EventIcon from '@mui/icons-material/Event';
-import UpdateIcon from '@mui/icons-material/Update';
-import RateReviewIcon from '@mui/icons-material/RateReview';
-import MessageIcon from '@mui/icons-material/Message';
+import AssignmentIcon from "@mui/icons-material/Assignment";
+import EventIcon from "@mui/icons-material/Event";
+import UpdateIcon from "@mui/icons-material/Update";
+import RateReviewIcon from "@mui/icons-material/RateReview";
+import MessageIcon from "@mui/icons-material/Message";
 import { Popover } from "@mui/material";
 
 const RippleEffect = ({ active }) => {
@@ -94,20 +94,30 @@ const Navbar = ({ children }) => {
   const navBgColor = darkMode ? "#222" : "#fff";
   const [userName, setUserName] = useState("");
 
-  const unreadCount = (notifications || []).filter(n => !n.read).length;
+  const unreadCount = (notifications || []).filter((n) => !n.read).length;
 
   const getIconByType = (type) => {
     switch (type) {
-      case "task": return <AssignmentIcon fontSize="small" />;
-      case "event": return <EventIcon fontSize="small" />;
-      case "update": return <UpdateIcon fontSize="small" />;
-      case "review": return <RateReviewIcon fontSize="small" />;
-      case "message": return <MessageIcon fontSize="small" />;
-      case "project": return <FolderIcon fontSize="small" />;
-      case "certification": return <SchoolIcon fontSize="small" />;
-      case "course": return <WorkspacePremiumIcon fontSize="small" />;
-      case "path": return <ExploreIcon fontSize="small" />;
-      default: return null;
+      case "task":
+        return <AssignmentIcon fontSize="small" />;
+      case "event":
+        return <EventIcon fontSize="small" />;
+      case "update":
+        return <UpdateIcon fontSize="small" />;
+      case "review":
+        return <RateReviewIcon fontSize="small" />;
+      case "message":
+        return <MessageIcon fontSize="small" />;
+      case "project":
+        return <FolderIcon fontSize="small" />;
+      case "certification":
+        return <SchoolIcon fontSize="small" />;
+      case "course":
+        return <WorkspacePremiumIcon fontSize="small" />;
+      case "path":
+        return <ExploreIcon fontSize="small" />;
+      default:
+        return null;
     }
   };
 
@@ -144,7 +154,7 @@ const Navbar = ({ children }) => {
   useEffect(() => {
     const fetchProjectNotifications = async () => {
       if (!user) return;
-      
+
       // First, get the projects the user is assigned to
       const { data: userRoles, error: userRolesError } = await supabase
         .from("UserRole")
@@ -156,7 +166,7 @@ const Navbar = ({ children }) => {
       }
 
       // Extract project IDs the user is assigned to
-      const userProjectIds = userRoles.map(role => role.project_id);
+      const userProjectIds = userRoles.map((role) => role.project_id);
 
       // Fetch only assigned projects that are active
       const { data: projectsData, error } = await supabase
@@ -166,29 +176,33 @@ const Navbar = ({ children }) => {
         .in("status", ["In Progress", "On Hold"]);
 
       if (!error && projectsData) {
-        const notifs = projectsData.map((project) => {
-          const endDate = new Date(project.end_date);
-          const timeRemaining = endDate - new Date();
-          const daysRemaining = Math.floor(timeRemaining / (24 * 60 * 60 * 1000));
-          
-          // Create notification only if deadline is within 10 days
-          if (daysRemaining >= 0 && daysRemaining <= 10) {
-            return {
-              id: `project-${project.projectID}`,
-              text: `Project: ${project.title} - ${daysRemaining} days until deadline`,
-              type: "project",
-              read: false,
-              date: new Date(),
-              priority: daysRemaining <= 3 ? "high" : "medium",
-              entityId: project.projectID
-            };
-          }
-          return null;
-        }).filter(Boolean); // Remove null entries
+        const notifs = projectsData
+          .map((project) => {
+            const endDate = new Date(project.end_date);
+            const timeRemaining = endDate - new Date();
+            const daysRemaining = Math.floor(
+              timeRemaining / (24 * 60 * 60 * 1000)
+            );
 
-        setNotifications(prev => {
+            // Create notification only if deadline is within 10 days
+            if (daysRemaining >= 0 && daysRemaining <= 10) {
+              return {
+                id: `project-${project.projectID}`,
+                text: `Project: ${project.title} - ${daysRemaining} days until deadline`,
+                type: "project",
+                read: false,
+                date: new Date(),
+                priority: daysRemaining <= 3 ? "high" : "medium",
+                entityId: project.projectID,
+              };
+            }
+            return null;
+          })
+          .filter(Boolean); // Remove null entries
+
+        setNotifications((prev) => {
           // Filter out any existing project notifications to avoid duplicates
-          const filteredPrev = prev.filter(n => !n.id.startsWith('project-'));
+          const filteredPrev = prev.filter((n) => !n.id.startsWith("project-"));
           return [...filteredPrev, ...notifs];
         });
       }
@@ -203,7 +217,7 @@ const Navbar = ({ children }) => {
   useEffect(() => {
     const fetchCertificationNotifications = async () => {
       if (!user) return;
-      
+
       // Get the user's certifications that are about to expire
       const { data: userCerts, error: userCertsError } = await supabase
         .from("UserCertifications")
@@ -215,10 +229,12 @@ const Navbar = ({ children }) => {
       }
 
       // Filter for certifications expiring within 30 days
-      const expiringCerts = userCerts.filter(cert => {
+      const expiringCerts = userCerts.filter((cert) => {
         const validUntil = new Date(cert.valid_Until);
         const today = new Date();
-        const daysRemaining = Math.floor((validUntil - today) / (24 * 60 * 60 * 1000));
+        const daysRemaining = Math.floor(
+          (validUntil - today) / (24 * 60 * 60 * 1000)
+        );
         return daysRemaining >= 0 && daysRemaining <= 30;
       });
 
@@ -230,14 +246,21 @@ const Navbar = ({ children }) => {
       const { data: certsData } = await supabase
         .from("Certifications")
         .select("certification_id, title")
-        .in("certification_id", expiringCerts.map(c => c.certification_ID));
+        .in(
+          "certification_id",
+          expiringCerts.map((c) => c.certification_ID)
+        );
 
       if (certsData && certsData.length > 0) {
-        const notifs = certsData.map(cert => {
-          const userCert = expiringCerts.find(uc => uc.certification_ID === cert.certification_id);
+        const notifs = certsData.map((cert) => {
+          const userCert = expiringCerts.find(
+            (uc) => uc.certification_ID === cert.certification_id
+          );
           const validUntil = new Date(userCert.valid_Until);
-          const daysRemaining = Math.floor((validUntil - new Date()) / (24 * 60 * 60 * 1000));
-          
+          const daysRemaining = Math.floor(
+            (validUntil - new Date()) / (24 * 60 * 60 * 1000)
+          );
+
           return {
             id: `cert-${cert.certification_id}`,
             text: `Certification: ${cert.title} expires in ${daysRemaining} days`,
@@ -245,13 +268,13 @@ const Navbar = ({ children }) => {
             read: false,
             date: new Date(),
             priority: daysRemaining <= 7 ? "high" : "medium",
-            entityId: cert.certification_id
+            entityId: cert.certification_id,
           };
         });
 
-        setNotifications(prev => {
+        setNotifications((prev) => {
           // Remove existing certification notifications
-          const filteredPrev = prev.filter(n => !n.id.startsWith('cert-'));
+          const filteredPrev = prev.filter((n) => !n.id.startsWith("cert-"));
           return [...filteredPrev, ...notifs];
         });
       }
@@ -259,9 +282,12 @@ const Navbar = ({ children }) => {
 
     // Initial fetch
     fetchCertificationNotifications();
-    
+
     // Fetch every 6 hours (we don't need to check this as often)
-    const interval = setInterval(fetchCertificationNotifications, 6 * 60 * 60 * 1000);
+    const interval = setInterval(
+      fetchCertificationNotifications,
+      6 * 60 * 60 * 1000
+    );
     return () => clearInterval(interval);
   }, [user]);
 
@@ -269,20 +295,20 @@ const Navbar = ({ children }) => {
   useEffect(() => {
     const fetchCourseNotifications = async () => {
       if (!user) return;
-      
+
       // Get recently added courses (last 7 days)
       const oneWeekAgo = new Date();
       oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-      
+
       const { data: courses } = await supabase
         .from("Course")
         .select("title, created_at")
         .gte("created_at", oneWeekAgo.toISOString())
         .order("created_at", { ascending: false })
         .limit(3);
-        
+
       if (courses && courses.length > 0) {
-        const notifs = courses.map(course => ({
+        const notifs = courses.map((course) => ({
           id: `course-${course.title}`,
           text: `New course available: ${course.title}`,
           type: "course",
@@ -290,15 +316,15 @@ const Navbar = ({ children }) => {
           date: new Date(course.created_at),
           priority: "low",
         }));
-        
-        setNotifications(prev => {
+
+        setNotifications((prev) => {
           // Remove existing course notifications
-          const filteredPrev = prev.filter(n => !n.id.startsWith('course-'));
+          const filteredPrev = prev.filter((n) => !n.id.startsWith("course-"));
           return [...filteredPrev, ...notifs];
         });
       }
     };
-    
+
     fetchCourseNotifications();
   }, [user]);
 
@@ -657,7 +683,7 @@ const Navbar = ({ children }) => {
             sx={{
               fontWeight: 600,
               color: primaryColor,
-              fontFamily: '"Graphik", "Arial", sans-serif',
+              fontFamily: "Graphik-Bold, sans-serif",
               whiteSpace: "nowrap",
               opacity: expanded && !isMobile ? 1 : 0,
               visibility: expanded && !isMobile ? "visible" : "hidden", // Ensure text is hidden when retracted
@@ -810,12 +836,16 @@ const Navbar = ({ children }) => {
             size="small"
             sx={{
               color: unreadCount > 0 ? primaryColor : secondaryTextColor,
-              bgcolor: darkMode ? alpha("#ffffff", 0.05) : alpha("#000000", 0.05),
+              bgcolor: darkMode
+                ? alpha("#ffffff", 0.05)
+                : alpha("#000000", 0.05),
               width: 36,
               height: 36,
               borderRadius: "8px",
               "&:hover": {
-                bgcolor: darkMode ? alpha("#ffffff", 0.1) : alpha("#000000", 0.08),
+                bgcolor: darkMode
+                  ? alpha("#ffffff", 0.1)
+                  : alpha("#000000", 0.08),
               },
             }}
           >
@@ -849,28 +879,35 @@ const Navbar = ({ children }) => {
             }}
           >
             {/* Header */}
-            <Box sx={{ 
-              display: "flex", 
-              justifyContent: "space-between", 
-              alignItems: "center", 
-              px: 2, 
-              py: 1.5,
-              borderBottom: 1,
-              borderColor: "divider"
-            }}>
-              <Typography variant="h6" sx={{ fontSize: "1rem", fontWeight: 600 }}>
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                px: 2,
+                py: 1.5,
+                borderBottom: 1,
+                borderColor: "divider",
+              }}
+            >
+              <Typography
+                variant="h6"
+                sx={{ fontSize: "1rem", fontWeight: 600 }}
+              >
                 Notifications
               </Typography>
               {unreadCount > 0 && (
-                <Box sx={{ 
-                  bgcolor: theme => alpha(theme.palette.primary.main, 0.1),
-                  color: "primary.main",
-                  px: 1.5,
-                  py: 0.5,
-                  borderRadius: 10,
-                  fontSize: "0.75rem",
-                  fontWeight: 500
-                }}>
+                <Box
+                  sx={{
+                    bgcolor: (theme) => alpha(theme.palette.primary.main, 0.1),
+                    color: "primary.main",
+                    px: 1.5,
+                    py: 0.5,
+                    borderRadius: 10,
+                    fontSize: "0.75rem",
+                    fontWeight: 500,
+                  }}
+                >
                   {unreadCount} unread
                 </Box>
               )}
@@ -881,7 +918,7 @@ const Navbar = ({ children }) => {
               {notifications.length > 0 ? (
                 <List disablePadding>
                   {notifications.map((notif) => (
-                    <ListItem 
+                    <ListItem
                       key={notif.id}
                       divider
                       button
@@ -901,10 +938,12 @@ const Navbar = ({ children }) => {
                           default:
                             navigate("/");
                         }
-                        
+
                         // Mark as read
-                        setNotifications(prev => 
-                          prev.map(n => n.id === notif.id ? {...n, read: true} : n)
+                        setNotifications((prev) =>
+                          prev.map((n) =>
+                            n.id === notif.id ? { ...n, read: true } : n
+                          )
                         );
                         setNotifAnchorEl(null);
                       }}
@@ -912,23 +951,32 @@ const Navbar = ({ children }) => {
                         px: 2,
                         py: 1.5,
                         position: "relative",
-                        bgcolor: !notif.read ? alpha(primaryColor, 0.05) : "transparent",
+                        bgcolor: !notif.read
+                          ? alpha(primaryColor, 0.05)
+                          : "transparent",
                       }}
                     >
                       {/* Icon */}
-                      <ListItemIcon sx={{ 
-                        minWidth: 42,
-                        color: notif.priority === "high" ? "error.main" : notif.type === "certification" ? "#06D6A0" : primaryColor 
-                      }}>
+                      <ListItemIcon
+                        sx={{
+                          minWidth: 42,
+                          color:
+                            notif.priority === "high"
+                              ? "error.main"
+                              : notif.type === "certification"
+                              ? "#06D6A0"
+                              : primaryColor,
+                        }}
+                      >
                         {getIconByType(notif.type)}
                       </ListItemIcon>
 
                       {/* Content */}
                       <ListItemText
                         primary={
-                          <Typography 
-                            variant="body2" 
-                            sx={{ 
+                          <Typography
+                            variant="body2"
+                            sx={{
                               fontWeight: notif.read ? 400 : 600,
                             }}
                           >
@@ -940,18 +988,23 @@ const Navbar = ({ children }) => {
                             variant="caption"
                             sx={{ display: "block", mt: 0.5 }}
                           >
-                            {notif.date ? new Date(notif.date).toLocaleDateString('en-US', { 
-                              month: 'numeric',
-                              day: 'numeric',
-                              year: 'numeric',
-                              hour: '2-digit', 
-                              minute: '2-digit',
-                              hour12: true
-                            }) : 'Now'}
+                            {notif.date
+                              ? new Date(notif.date).toLocaleDateString(
+                                  "en-US",
+                                  {
+                                    month: "numeric",
+                                    day: "numeric",
+                                    year: "numeric",
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                    hour12: true,
+                                  }
+                                )
+                              : "Now"}
                           </Typography>
                         }
                       />
-                      
+
                       {/* Unread indicator - simple dot */}
                       {!notif.read && (
                         <Box
@@ -959,10 +1012,13 @@ const Navbar = ({ children }) => {
                             width: 8,
                             height: 8,
                             borderRadius: "50%",
-                            bgcolor: notif.priority === "high" ? "error.main" : primaryColor,
+                            bgcolor:
+                              notif.priority === "high"
+                                ? "error.main"
+                                : primaryColor,
                             position: "absolute",
                             right: 16,
-                            top: 16
+                            top: 16,
                           }}
                         />
                       )}
@@ -971,8 +1027,13 @@ const Navbar = ({ children }) => {
                 </List>
               ) : (
                 <Box sx={{ p: 3, textAlign: "center" }}>
-                  <NotificationsIcon 
-                    sx={{ fontSize: 40, color: "text.secondary", opacity: 0.5, mb: 1 }}
+                  <NotificationsIcon
+                    sx={{
+                      fontSize: 40,
+                      color: "text.secondary",
+                      opacity: 0.5,
+                      mb: 1,
+                    }}
                   />
                   <Typography variant="body2" color="text.secondary">
                     No notifications
@@ -983,16 +1044,20 @@ const Navbar = ({ children }) => {
 
             {/* Footer */}
             {notifications.length > 0 && (
-              <Box sx={{ 
-                display: "flex", 
-                borderTop: 1,
-                borderColor: "divider"
-              }}>
+              <Box
+                sx={{
+                  display: "flex",
+                  borderTop: 1,
+                  borderColor: "divider",
+                }}
+              >
                 <Button
                   fullWidth
                   sx={{ py: 1.5 }}
                   onClick={() => {
-                    setNotifications(prev => prev.map(n => ({...n, read: true})));
+                    setNotifications((prev) =>
+                      prev.map((n) => ({ ...n, read: true }))
+                    );
                   }}
                 >
                   Mark all as read
