@@ -54,14 +54,16 @@ export const PopularCertifications = ({ certifications }) => {
   };
   
   return (
-    <Box sx={{ height: '100%', p: 2 }}>
+    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       {/* Header */}
       <Box 
         sx={{ 
           display: 'flex', 
           alignItems: 'center',
           justifyContent: 'space-between',
-          mb: 3
+          p: 2,
+          borderBottom: '1px solid',
+          borderColor: alpha(profilePurple, 0.1)
         }}
       >
         <Box sx={{ display: 'flex', alignItems: 'center' }}>
@@ -72,7 +74,7 @@ export const PopularCertifications = ({ certifications }) => {
               fontSize: 20
             }} 
           />
-          <Typography variant="h6" fontWeight={500} sx={{ fontSize: '1.125rem' }}>
+          <Typography variant="h6" fontWeight={500} sx={{ fontSize: '1rem' }}>
             Popular Certifications
           </Typography>
         </Box>
@@ -95,8 +97,9 @@ export const PopularCertifications = ({ certifications }) => {
       </Box>
       
       {/* Content - Card Grid Layout */}
-      <Grid container spacing={2}>
-        {certifications.length > 0 ? (
+      <Box sx={{ p: 2, flexGrow: 1, overflow: 'auto' }}>
+        <Grid container spacing={2}>
+          {certifications.length > 0 ? (
           certifications.map((cert, index) => {
             // Calculate star rating (0-5)
             const starRating = calculateStars(cert.popularity);
@@ -244,7 +247,8 @@ export const PopularCertifications = ({ certifications }) => {
             </Box>
           </Grid>
         )}
-      </Grid>
+        </Grid>
+      </Box>
     </Box>
   );
 };

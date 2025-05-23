@@ -337,7 +337,7 @@ export const CalendarCompact = ({ userId }) => {
           }}>
             {weekDays.map((day, index) => (
               <Box key={index} sx={{ 
-                width: 52,
+                width: 58,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center'
@@ -375,8 +375,8 @@ export const CalendarCompact = ({ userId }) => {
                     key={dayIndex}
                     onClick={() => handleDateSelect(day)}
                     sx={{
-                      width: 52,
-                      height: 52,
+                      width: 58,
+                      height: 58,
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -399,15 +399,15 @@ export const CalendarCompact = ({ userId }) => {
                         ? 'text.primary' 
                         : 'text.disabled',
                       fontWeight: day.isToday || day.isSelected ? 600 : 400,
-                      fontSize: '1rem',
+                      fontSize: '0.95rem',
                       '&::after': day.hasDeadline ? {
                         content: '""',
                         position: 'absolute',
-                        bottom: '5px',
+                        bottom: '4px',
                         left: '50%',
                         transform: 'translateX(-50%)',
-                        width: '5px',
-                        height: '5px',
+                        width: '4px',
+                        height: '4px',
                         borderRadius: '50%',
                         bgcolor: day.isSelected ? '#fff' : '#f44336',
                       } : {},

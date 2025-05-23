@@ -15,7 +15,11 @@ import {
   Divider,
   useTheme,
   Chip,
+  Paper,
+  Fade,
+  Grow,
 } from "@mui/material";
+import { alpha } from "@mui/material/styles";
 import SearchIcon from "@mui/icons-material/Search";
 import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import DescriptionIcon from "@mui/icons-material/Description";
@@ -993,51 +997,61 @@ const ReportsSection = () => {
   };
 
   return (
-    <Card
-      sx={{
-        mt: 4,
-        mb: 4,
-        borderRadius: 2,
-        boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
-        overflow: "hidden",
-        border: "none",
-      }}
-    >
-      <CardContent sx={{ p: 0 }}>
-        {/* Header with title */}
-        <Box
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            p: { xs: 2.5, md: 3 },
-            borderBottom: '1px solid rgba(0,0,0,0.03)',
-            position: 'relative',
-          }}
-        >
-          <DescriptionIcon
+    <Fade in={true} timeout={2400}>
+      <Paper
+        elevation={0}
+        sx={{
+          mt: 4,
+          mb: 4,
+          borderRadius: 3,
+          background: '#fff',
+          border: `1px solid ${alpha(ACCENTURE_COLORS.corePurple1, 0.08)}`,
+          overflow: "hidden",
+          transition: "all 0.3s ease",
+          "&:hover": {
+            boxShadow: `0 8px 24px ${alpha(ACCENTURE_COLORS.corePurple1, 0.08)}`,
+          }
+        }}
+      >
+        <CardContent sx={{ p: 0 }}>
+          {/* Header with title */}
+          <Box
             sx={{
-              fontSize: 24,
-              color: ACCENTURE_COLORS.corePurple1,
-              mr: 2,
-            }}
-          />
-          <Typography
-            variant="h6"
-            sx={{
-              fontWeight: 500,
-              fontSize: { xs: "1rem", sm: "1.1rem" },
-              color: theme.palette.text.primary,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              p: { xs: 2.5, md: 3 },
+              borderBottom: `1px solid ${alpha(ACCENTURE_COLORS.corePurple1, 0.05)}`,
+              background: `linear-gradient(135deg, ${alpha(ACCENTURE_COLORS.corePurple1, 0.02)}, transparent)`,
             }}
           >
-            Project Reports
-          </Typography>
-        </Box>
+            <Box sx={{ display: "flex", alignItems: "center" }}>
+              <DescriptionIcon
+                sx={{
+                  fontSize: 24,
+                  color: ACCENTURE_COLORS.corePurple1,
+                  mr: 2,
+                }}
+              />
+              <Typography
+                variant="h6"
+                sx={{
+                  fontWeight: 600,
+                  fontSize: { xs: "1rem", sm: "1.1rem" },
+                  color: theme.palette.text.primary,
+                }}
+              >
+                Project Reports
+              </Typography>
+            </Box>
+            <TuneIcon sx={{ color: alpha(ACCENTURE_COLORS.corePurple1, 0.6), fontSize: 24 }} />
+          </Box>
 
         {/* Search and filter controls - Redesigned for better aesthetics */}
         <Box sx={{ 
           p: { xs: 2.5, md: 3 },
-          borderBottom: '1px solid rgba(0,0,0,0.03)',
-          backgroundColor: 'rgba(0,0,0,0.01)',
+          borderBottom: `1px solid ${alpha(ACCENTURE_COLORS.corePurple1, 0.05)}`,
+          backgroundColor: alpha(ACCENTURE_COLORS.corePurple1, 0.01),
         }}>
           <Grid container spacing={2}>
             <Grid item xs={12} sm={7}>
@@ -1046,6 +1060,18 @@ const ReportsSection = () => {
                 variant="outlined"
                 placeholder="Search projects by title or client..."
                 size="small"
+                sx={{
+                  "& .MuiOutlinedInput-root": {
+                    borderRadius: 2,
+                    transition: "all 0.2s",
+                    "&:hover fieldset": {
+                      borderColor: ACCENTURE_COLORS.corePurple1,
+                    },
+                    "&.Mui-focused fieldset": {
+                      borderColor: ACCENTURE_COLORS.corePurple1,
+                    },
+                  },
+                }}
                 InputProps={{
                   startAdornment: (
                     <SearchIcon
@@ -1278,7 +1304,8 @@ const ReportsSection = () => {
           )}
         </Box>
       </CardContent>
-    </Card>
+    </Paper>
+    </Fade>
   );
 };
 

@@ -964,7 +964,6 @@ const Navbar = ({ children }) => {
                   borderRadius: 20,
                   fontSize: "0.75rem",
                   fontWeight: 600,
-                  boxShadow: `0 4px 12px ${alpha(primaryColor, 0.2)}`,
                   border: `1px solid ${alpha(primaryColor, 0.2)}`,
                 }}>
                   {unreadCount} new
