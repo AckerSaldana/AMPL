@@ -13,8 +13,11 @@ import {
   CircularProgress,
   IconButton,
   Tooltip,
-  Modal,
-  ClickAwayListener
+  ClickAwayListener,
+  Fade,
+  Grow,
+  Slide,
+  Zoom
 } from '@mui/material';
 
 // Icons
@@ -25,11 +28,9 @@ import CategoryIcon from '@mui/icons-material/Category';
 import TagIcon from '@mui/icons-material/Tag';
 import ClearIcon from '@mui/icons-material/Clear';
 import CloseIcon from '@mui/icons-material/Close';
-import AddIcon from '@mui/icons-material/Add';
 import BadgeIcon from '@mui/icons-material/Badge';
 
 import { useNavigate } from 'react-router-dom';
-import SubmitCertification from './SubmitCertification';
 import { supabase } from '../supabase/supabaseClient';
 import { CertificationCard } from '../components/CertificationCard';
 import { ACCENTURE_COLORS, primaryButtonStyles, outlineButtonStyles } from '../styles/styles';
@@ -88,16 +89,14 @@ const Certifications = () => {
   const [allSkills, setAllSkills] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [openModal, setOpenModal] = useState(false);
   
   // Nuevos estados para la mejora de filtros
   const [skillSearchTerm, setSkillSearchTerm] = useState('');
   const [filteredSkills, setFilteredSkills] = useState([]);
-
-  // Handlers
-  const handleOpenModal = () => setOpenModal(true);
-  const handleCloseModal = () => setOpenModal(false);
   
+  // Animation state
+  const [animationReady, setAnimationReady] = useState(false);
+
   // Nuevo método para navegar a My Certifications
   const handleGoToMyCertifications = () => {
     navigate('/my-certifications');
@@ -194,6 +193,8 @@ const Certifications = () => {
         setupFallbackData();
       } finally {
         setIsLoading(false);
+        // Trigger animations after a short delay
+        setTimeout(() => setAnimationReady(true), 100);
       }
     };
 
@@ -249,9 +250,12 @@ const Certifications = () => {
     setFilteredSkills(filtered);
   }, [skillSearchTerm, allSkills]);
 
-  // Effect to apply filters
+  // Effect to apply filters with animation reset
   useEffect(() => {
     if (!certifications.length) return;
+    
+    // Reset animation for smooth transitions
+    setAnimationReady(false);
     
     let filtered = [...certifications];
     
@@ -278,6 +282,9 @@ const Certifications = () => {
     }
     
     setFilteredCerts(filtered);
+    
+    // Trigger animations after filtering
+    setTimeout(() => setAnimationReady(true), 100);
   }, [searchTerm, categoryFilter, skillFilter, certifications]);
 
   // Functions to handle filters
@@ -341,14 +348,47 @@ const Certifications = () => {
           width: '100%'
         }}
       >
-        <CircularProgress 
-          size={48} 
-          thickness={4} 
-          sx={{ color: ACCENTURE_COLORS.corePurple1 }} 
-        />
-        <Typography variant="subtitle1" color="text.secondary">
-          Loading Certifications...
-        </Typography>
+        <Box sx={{ position: 'relative' }}>
+          <CircularProgress 
+            size={60} 
+            thickness={3} 
+            sx={{ 
+              color: alpha(ACCENTURE_COLORS.corePurple1, 0.1)
+            }} 
+          />
+          <CircularProgress 
+            size={60} 
+            thickness={3} 
+            variant="indeterminate"
+            sx={{ 
+              color: ACCENTURE_COLORS.corePurple1,
+              position: 'absolute',
+              left: 0,
+              animationDuration: '1.5s',
+              '& .MuiCircularProgress-circle': {
+                strokeLinecap: 'round',
+              }
+            }} 
+          />
+        </Box>
+        <Fade in={true} timeout={1000}>
+          <Typography 
+            variant="subtitle1" 
+            sx={{
+              color: alpha('#000', 0.6),
+              fontWeight: 500,
+              letterSpacing: 0.5,
+              animation: 'pulse 2s ease-in-out infinite',
+              '@keyframes pulse': {
+                '0%': { opacity: 0.6 },
+                '50%': { opacity: 1 },
+                '100%': { opacity: 0.6 }
+              }
+            }}
+          >
+            Loading Certifications...
+          </Typography>
+        </Fade>
       </Box>
     );
   }
@@ -395,7 +435,35 @@ const Certifications = () => {
       sx={{
         width: "100%",
         p: { xs: 2, md: 3 },
-        position: 'relative'
+        position: 'relative',
+        '@keyframes fadeInUp': {
+          from: {
+            opacity: 0,
+            transform: 'translateY(30px)'
+          },
+          to: {
+            opacity: 1,
+            transform: 'translateY(0)'
+          }
+        },
+        '@keyframes scaleIn': {
+          from: {
+            opacity: 0,
+            transform: 'scale(0.9)'
+          },
+          to: {
+            opacity: 1,
+            transform: 'scale(1)'
+          }
+        },
+        '@keyframes shimmer': {
+          '0%': {
+            backgroundPosition: '-1000px 0'
+          },
+          '100%': {
+            backgroundPosition: '1000px 0'
+          }
+        }
       }}
     >
       {/* Header */}
@@ -430,8 +498,6 @@ const Certifications = () => {
             width: { xs: '100%', md: 'auto' }
           }}
         >
-          
-
           <TextField
             placeholder="Search certifications..."
             variant="outlined"
@@ -493,21 +559,6 @@ const Certifications = () => {
             }}
           >
             My Certifications
-          </Button>
-
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={handleOpenModal}
-            sx={{
-              ...primaryButtonStyles,
-              borderRadius: 8,
-              bgcolor: ACCENTURE_COLORS.corePurple1,
-              height: 40,
-              px: { xs: 2, md: 3 }
-            }}
-          >
-            Submit
           </Button>
 
           <Button
@@ -1044,81 +1095,90 @@ const Certifications = () => {
 
       {/* Results */}
       {filteredCerts.length > 0 ? (
-        <Grid container spacing={3}>
-          {filteredCerts.map((cert) => (
-            <Grid item xs={12} sm={6} md={4} lg={3} key={cert.id}>
-              <CertificationCard
-                id={cert.id}  
-                title={cert.title}
-                url={cert.url}
-                skills={cert.skills || []}
-                backgroundImage={cert.backgroundImage}
-                duration={cert.issuer}
-              />
-            </Grid>
-          ))}
-        </Grid>
+        <Fade in={animationReady} timeout={600}>
+          <Grid container spacing={3}>
+            {filteredCerts.map((cert, index) => (
+              <Grid item xs={12} sm={6} md={4} lg={3} key={cert.id}>
+                <Grow 
+                  in={animationReady} 
+                  timeout={800 + index * 100}
+                  style={{ 
+                    transformOrigin: '0 0 0',
+                    transitionDelay: `${index * 50}ms`
+                  }}
+                >
+                  <Box
+                    sx={{
+                      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                      '&:hover': {
+                        transform: 'translateY(-8px) scale(1.02)',
+                      }
+                    }}
+                  >
+                    <CertificationCard
+                      id={cert.id}  
+                      title={cert.title}
+                      url={cert.url}
+                      skills={cert.skills || []}
+                      backgroundImage={cert.backgroundImage}
+                      duration={cert.issuer}
+                    />
+                  </Box>
+                </Grow>
+              </Grid>
+            ))}
+          </Grid>
+        </Fade>
       ) : (
-        <Paper 
-          elevation={0}
-          sx={{ 
-            p: 4, 
-            textAlign: 'center', 
-            borderRadius: 2,
-            border: '1px dashed',
-            borderColor: alpha('#000', 0.12),
-            bgcolor: '#fff'
-          }}
-        >
-          <SchoolIcon sx={{ fontSize: 48, color: alpha('#000', 0.2), mb: 2 }} />
-          <Typography variant="h6" color="text.secondary" gutterBottom>
-            No certifications found
-          </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-            Try adjusting your filters or search criteria
-          </Typography>
-          <Button 
-            variant="contained"
-            startIcon={<ClearIcon />}
-            onClick={handleClearFilters}
+        <Fade in={animationReady} timeout={600}>
+          <Paper 
+            elevation={0}
             sx={{ 
-              ...primaryButtonStyles,
-              bgcolor: ACCENTURE_COLORS.corePurple1,
-              textTransform: 'none',
-              fontWeight: 500,
-              borderRadius: 8,
-              boxShadow: 'none'
+              p: 4, 
+              textAlign: 'center', 
+              borderRadius: 2,
+              border: '1px dashed',
+              borderColor: alpha('#000', 0.12),
+              bgcolor: '#fff',
+              transition: 'all 0.3s ease',
+              '&:hover': {
+                borderColor: alpha(ACCENTURE_COLORS.corePurple1, 0.3),
+                boxShadow: `0 4px 20px ${alpha(ACCENTURE_COLORS.corePurple1, 0.1)}`
+              }
             }}
           >
-            Clear all filters
-          </Button>
-        </Paper>
+            <SchoolIcon sx={{ fontSize: 48, color: alpha('#000', 0.2), mb: 2 }} />
+            <Box>
+              <Typography variant="h6" color="text.secondary" gutterBottom>
+                No certifications found
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                Try adjusting your filters or search criteria
+              </Typography>
+            </Box>
+            <Button 
+              variant="contained"
+              startIcon={<ClearIcon />}
+              onClick={handleClearFilters}
+              sx={{ 
+                ...primaryButtonStyles,
+                bgcolor: ACCENTURE_COLORS.corePurple1,
+                textTransform: 'none',
+                fontWeight: 500,
+                borderRadius: 8,
+                boxShadow: 'none',
+                transition: 'all 0.3s ease',
+                '&:hover': {
+                  transform: 'scale(1.05)',
+                  boxShadow: '0 4px 20px rgba(161, 0, 255, 0.3)'
+                }
+              }}
+            >
+              Clear all filters
+            </Button>
+          </Paper>
+        </Fade>
       )}
-
-      {/* Modal for certification submission */}
-      <Modal 
-        open={openModal} 
-        onClose={handleCloseModal}
-        aria-labelledby="modal-submit-certification"
-      >
-        <Box
-          sx={{
-            position: 'absolute',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            width: { xs: '90%', sm: 600 },
-            bgcolor: 'background.paper',
-            borderRadius: 2,
-            boxShadow: 24,
-            p: 0,
-            maxHeight: '90vh',
-            overflowY: 'auto',
-          }}
-        >
-          <SubmitCertification onClose={handleCloseModal} />
-        </Box>
-      </Modal>
     </Box>
   );
 };
