@@ -685,7 +685,7 @@ const Navbar = ({ children }) => {
               minWidth: 36,
               minHeight: 36,
               borderRadius: "8px",
-              transition: "all 1.2s cubic-bezier(0.34, 1.56, 0.64, 1)",
+              transition: "all 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
               position: "relative",
               overflow: "hidden",
               ml: expanded && !isMobile ? 2 : 2,
@@ -697,7 +697,7 @@ const Navbar = ({ children }) => {
                   expanded && !isMobile
                     ? "translateX(0) scale(1.05)"
                     : "translateX(-8px) scale(1.05)",
-                transition: "all 1.2s cubic-bezier(0.34, 1.56, 0.64, 1)",
+                transition: "all 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
               },
             }}
           >
@@ -708,7 +708,7 @@ const Navbar = ({ children }) => {
                   (expanded && !isMobile) || mobileOpen
                     ? "rotate(-180deg)"
                     : "rotate(0deg)",
-                transition: "transform 1.2s cubic-bezier(0.34, 1.56, 0.64, 1)",
+                transition: "transform 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
               }}
             >
               {(expanded && !isMobile) || mobileOpen ? (
