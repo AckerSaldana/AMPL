@@ -770,38 +770,60 @@ const Dashboard = () => {
 
       {/* Main Content Grid */}
       <Grid container spacing={3}>
-        {/* Column 1: Skills y Calendar */}
-        <Grid item xs={12} md={8}>
+        {/* Row 1: Timeline across full width */}
+        <Grid item xs={12}>
+          {timelineLoading ? (
+            <TimelineSkeleton profilePurple={profilePurple} />
+          ) : (
+            <DashboardTimeline 
+              items={timelineItems || DEFAULT_TIMELINE_ITEMS} 
+              profilePurple={profilePurple}
+            />
+          )}
+          {!timelineLoading && usingMockTimeline && (
+            <Box sx={{ 
+              mt: -2, 
+              mb: 2, 
+              px: 2, 
+              display: 'flex', 
+              alignItems: 'center', 
+              color: alpha(profilePurple, 0.7),
+              fontSize: '0.75rem'
+            }}>
+              <Typography variant="caption" sx={{ fontStyle: 'italic' }}>
+                Mostrando datos de ejemplo. Los datos reales aparecerán cuando estén disponibles.
+              </Typography>
+            </Box>
+          )}
+        </Grid>
+
+        {/* Row 2: Calendar and Skills side by side */}
+        <Grid item xs={12} lg={8}>
           <Grid container spacing={3}>
-            {/* MyPath Timeline con el nuevo componente */}
-            <Grid item xs={12}>
-              {timelineLoading ? (
-                <TimelineSkeleton profilePurple={profilePurple} />
-              ) : (
-                <DashboardTimeline 
-                  items={timelineItems || DEFAULT_TIMELINE_ITEMS} 
-                  profilePurple={profilePurple}
-                />
-              )}
-              {!timelineLoading && usingMockTimeline && (
-                <Box sx={{ 
-                  mt: -2, 
-                  mb: 3, 
-                  px: 2, 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  color: alpha(profilePurple, 0.7),
-                  fontSize: '0.75rem'
-                }}>
-                  <Typography variant="caption" sx={{ fontStyle: 'italic' }}>
-                    Mostrando datos de ejemplo. Los datos reales aparecerán cuando estén disponibles.
-                  </Typography>
-                </Box>
-              )}
+            {/* Calendar Component - Compact size */}
+            <Grid item xs={12} md={6}>
+              <Box sx={{ 
+                display: 'flex',
+                justifyContent: { xs: 'center', md: 'flex-start' }
+              }}>
+                <Paper
+                  elevation={0}
+                  sx={{
+                    borderRadius: 2,
+                    bgcolor: '#ffffff',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.03)',
+                    overflow: 'hidden',
+                    border: `1px solid ${alpha(profilePurple, 0.15)}`,
+                    width: 'fit-content',
+                  }}
+                >
+                  <CalendarCompact userId={user?.id} />
+                </Paper>
+              </Box>
             </Grid>
-          
-            {/* Calendar Component */}
-            <Grid item xs={12}>
+
+            {/* Popular Skills - Larger to fill space */}
+            <Grid item xs={12} md={6}>
               <Paper
                 elevation={0}
                 sx={{
@@ -809,28 +831,9 @@ const Dashboard = () => {
                   bgcolor: '#ffffff',
                   boxShadow: '0 2px 8px rgba(0,0,0,0.03)',
                   overflow: 'hidden',
-                  border: `1px solid ${alpha(profilePurple, 0.15)}`
-                }}
-              >
-                <CalendarCompact userId={user?.id} />
-              </Paper>
-            </Grid>
-          </Grid>
-        </Grid>
-
-        {/* Column 2: Skills y Certifications */}
-        <Grid item xs={12} md={4}>
-          <Grid container spacing={3}>
-            {/* Popular Skills Section */}
-            <Grid item xs={12}>
-              <Paper
-                elevation={0}
-                sx={{
-                  borderRadius: 2,
-                  bgcolor: '#ffffff',
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.03)',
-                  mb: 3,
-                  overflow: 'hidden'
+                  border: `1px solid ${alpha(profilePurple, 0.15)}`,
+                  height: '100%',
+                  minHeight: 400
                 }}
               >
                 <Box 
@@ -838,7 +841,7 @@ const Dashboard = () => {
                     display: 'flex', 
                     alignItems: 'center', 
                     justifyContent: 'space-between',
-                    p: 2,
+                    p: 2.5,
                     borderBottom: '1px solid',
                     borderColor: alpha(profilePurple, 0.1)
                   }}
@@ -847,51 +850,50 @@ const Dashboard = () => {
                     <TrendingUpIcon 
                       sx={{ 
                         color: profilePurple, 
-                        mr: 1.5,
-                        fontSize: 20
+                        mr: 2,
+                        fontSize: 24
                       }} 
                     />
-                    <Typography variant="h6" fontWeight={500} sx={{ fontSize: '1.125rem' }}>
+                    <Typography variant="h6" fontWeight={500} sx={{ fontSize: '1.25rem' }}>
                       Most Popular Skills
                     </Typography>
                   </Box>
                 </Box>
                 
-                <Box sx={{ p: 2 }}>
-                  {/* Lista de Skills más Populares con barras de progreso pero diseño mejorado */}
-                  <Stack spacing={3}>
+                <Box sx={{ p: 3 }}>
+                  <Stack spacing={4}>
                     {popularSkills.map((skill) => (
                       <Box key={skill.id || skill.name}>
                         <Box sx={{ 
                           display: 'flex', 
                           alignItems: 'center', 
                           justifyContent: 'space-between', 
-                          mb: 1 
+                          mb: 1.5 
                         }}>
-                          <Typography variant="subtitle1" fontWeight={600} sx={{ color: 'text.primary' }}>
+                          <Typography variant="subtitle1" fontWeight={600} sx={{ color: 'text.primary', fontSize: '1rem' }}>
                             {skill.name}
                           </Typography>
                           <Tooltip title={`${skill.userCount} users have this skill`}>
                             <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                              <GroupIcon sx={{ fontSize: 16, color: profilePurple, mr: 0.5 }} />
-                              <Typography variant="caption" fontWeight="medium">
-                                {skill.userCount}
+                              <GroupIcon sx={{ fontSize: 18, color: profilePurple, mr: 0.75 }} />
+                              <Typography variant="body2" fontWeight="medium">
+                                {skill.userCount} users
                               </Typography>
                             </Box>
                           </Tooltip>
                         </Box>
                         
-                        <Box sx={{ mb: 0.5 }}>
+                        <Box sx={{ mb: 1 }}>
                           <LinearProgress
                             variant="determinate"
                             value={skill.popularityPercentage}
                             sx={{
-                              height: 8,
-                              borderRadius: 4,
+                              height: 10,
+                              borderRadius: 5,
                               bgcolor: alpha(profilePurple, 0.1),
                               '& .MuiLinearProgress-bar': {
-                                bgcolor: `linear-gradient(90deg, ${profilePurple}, ${alpha(profilePurple, 0.7)})`,
-                                borderRadius: 4
+                                bgcolor: profilePurple,
+                                borderRadius: 5
                               }
                             }}
                           />
@@ -903,11 +905,11 @@ const Dashboard = () => {
                               label={skill.category}
                               size="small"
                               sx={{ 
-                                height: 20,
-                                fontSize: '0.65rem',
+                                height: 24,
+                                fontSize: '0.75rem',
                                 fontWeight: 500,
                                 bgcolor: alpha(profilePurple, 0.08),
-                                color: alpha(profilePurple, 0.8)
+                                color: profilePurple
                               }}
                             />
                             <Chip
@@ -915,8 +917,8 @@ const Dashboard = () => {
                               size="small"
                               variant="outlined"
                               sx={{ 
-                                height: 20,
-                                fontSize: '0.65rem',
+                                height: 24,
+                                fontSize: '0.75rem',
                                 fontWeight: 500,
                                 borderColor: alpha(profilePurple, 0.2),
                                 color: 'text.secondary'
@@ -925,10 +927,11 @@ const Dashboard = () => {
                           </Box>
                           
                           <Typography 
-                            variant="caption" 
+                            variant="body2" 
                             sx={{ 
                               color: profilePurple,
-                              fontWeight: 600
+                              fontWeight: 600,
+                              fontSize: '0.875rem'
                             }}
                           >
                             {skill.popularityPercentage}%
@@ -940,23 +943,52 @@ const Dashboard = () => {
                 </Box>
               </Paper>
             </Grid>
-            
-            {/* Popular Certifications */}
-            <Grid item xs={12}>
-              <Paper
-                elevation={0}
-                sx={{
-                  borderRadius: 2,
-                  bgcolor: '#ffffff',
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.03)',
-                  overflow: 'hidden',
-                  height: '100%'
+          </Grid>
+        </Grid>
+
+        {/* Popular Certifications - Separate column on the right */}
+        <Grid item xs={12} lg={4}>
+          <Paper
+            elevation={0}
+            sx={{
+              borderRadius: 2,
+              bgcolor: '#ffffff',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.03)',
+              overflow: 'hidden',
+              border: `1px solid ${alpha(profilePurple, 0.15)}`,
+              height: '100%',
+              minHeight: 400
+            }}
+          >
+            <Box>
+              <Box 
+                sx={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'space-between',
+                  p: 2.5,
+                  borderBottom: '1px solid',
+                  borderColor: alpha(profilePurple, 0.1)
                 }}
               >
+                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                  <SchoolIcon 
+                    sx={{ 
+                      color: profilePurple, 
+                      mr: 2,
+                      fontSize: 24
+                    }} 
+                  />
+                  <Typography variant="h6" fontWeight={500} sx={{ fontSize: '1.25rem' }}>
+                    Popular Certifications
+                  </Typography>
+                </Box>
+              </Box>
+              <Box sx={{ p: 3 }}>
                 <PopularCertifications certifications={popularCertifications} />
-              </Paper>
-            </Grid>
-          </Grid>
+              </Box>
+            </Box>
+          </Paper>
         </Grid>
       </Grid>
     </Box>
