@@ -267,39 +267,40 @@ const Navbar = ({ children }) => {
 
   // Optional: Add course notifications if needed
   useEffect(() => {
-    const fetchCourseNotifications = async () => {
-      if (!user) return;
+    // Commenting out Course notifications as the table doesn't exist
+    // const fetchCourseNotifications = async () => {
+    //   if (!user) return;
       
-      // Get recently added courses (last 7 days)
-      const oneWeekAgo = new Date();
-      oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+    //   // Get recently added courses (last 7 days)
+    //   const oneWeekAgo = new Date();
+    //   oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
       
-      const { data: courses } = await supabase
-        .from("Course")
-        .select("title, created_at")
-        .gte("created_at", oneWeekAgo.toISOString())
-        .order("created_at", { ascending: false })
-        .limit(3);
+    //   const { data: courses } = await supabase
+    //     .from("Course")
+    //     .select("title, created_at")
+    //     .gte("created_at", oneWeekAgo.toISOString())
+    //     .order("created_at", { ascending: false })
+    //     .limit(3);
         
-      if (courses && courses.length > 0) {
-        const notifs = courses.map(course => ({
-          id: `course-${course.title}`,
-          text: `New course available: ${course.title}`,
-          type: "course",
-          read: false,
-          date: new Date(course.created_at),
-          priority: "low",
-        }));
+    //   if (courses && courses.length > 0) {
+    //     const notifs = courses.map(course => ({
+    //       id: `course-${course.title}`,
+    //       text: `New course available: ${course.title}`,
+    //       type: "course",
+    //       read: false,
+    //       date: new Date(course.created_at),
+    //       priority: "low",
+    //     }));
         
-        setNotifications(prev => {
-          // Remove existing course notifications
-          const filteredPrev = prev.filter(n => !n.id.startsWith('course-'));
-          return [...filteredPrev, ...notifs];
-        });
-      }
-    };
+    //     setNotifications(prev => {
+    //       // Remove existing course notifications
+    //       const filteredPrev = prev.filter(n => !n.id.startsWith('course-'));
+    //       return [...filteredPrev, ...notifs];
+    //     });
+    //   }
+    // };
     
-    fetchCourseNotifications();
+    // fetchCourseNotifications();
   }, [user]);
 
   // Determine active item based on current route
@@ -416,7 +417,6 @@ const Navbar = ({ children }) => {
           key={item.text}
         >
           <ListItem
-            button
             component={NavLink}
             to={item.route}
             selected={activeItem === item.text}

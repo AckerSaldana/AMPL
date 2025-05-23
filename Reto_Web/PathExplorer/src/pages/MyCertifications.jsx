@@ -21,6 +21,7 @@ import {
   Fade,
   Divider,
   Avatar,
+  Modal,
 } from '@mui/material';
 
 // Icons
@@ -44,6 +45,7 @@ import AddIcon from '@mui/icons-material/Add';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabase/supabaseClient';
 import { ACCENTURE_COLORS } from '../styles/styles';
+import SubmitCertification from './SubmitCertification';
 
 // Enhanced color palette with elegant variations
 const ELEGANT_COLORS = {
@@ -131,54 +133,8 @@ const elegantChipStyles = {
   },
 };
 
-// Fallback data if needed
-const fallbackUserCertifications = [
-  {
-    id: "0c4ba71c-82ca-4f6a-8b9c-3a8c33f7",
-    certification_id: "011d0850-533f-44cf-8e1a-3581916b24c",
-    user_id: "current-user-id", 
-    status: "approved",
-    score: 92,
-    evidence: "https://example.com/certificates/pmp-certification.pdf",
-    completed_Date: "2024-02-15",
-    valid_Until: "2027-02-15",
-    certification: {
-      title: "Project Management Professional (PMP)",
-      issuer: "Project Management Institute (PMI)",
-      type: "Project Management",
-      certification_Image: "https://img-c.udemycdn.com/course/750x422/2806490_5db0.jpg",
-    }
-  },
-  {
-    id: "1d5eb82d-93db-5g7b-9c0d-4b9d44f8",
-    certification_id: "338cce1c-eef2-4391-9ff8-fb9fa20820a3",
-    user_id: "current-user-id",
-    status: "pending",
-    evidence: "https://example.com/certificates/aws-submission.pdf",
-    completed_Date: "2025-04-01",
-    certification: {
-      title: "AWS Certified Solutions Architect – Associate",
-      issuer: "Amazon Web Services (AWS)",
-      type: "Cloud Computing",
-      certification_Image: "https://d1.awsstatic.com/training-and-certification/certification-badges/AWS-Certified-Solutions-Architect-Associate_badge.3419559c4ef4d0693bff300b6e5fb80f4f8e7c48.png",
-    }
-  },
-  {
-    id: "2e6fc93e-04ec-6h8c-0d1e-5c0e55f9",
-    certification_id: "4cdad98b-6466-4691-bc90-b5e346636e8",
-    user_id: "current-user-id",
-    status: "rejected",
-    rejection_reason: "Submitted evidence does not match the certification requirements. Please provide the official certificate from Coursera.",
-    evidence: "https://example.com/certificates/leadership-submission.pdf",
-    completed_Date: "2025-03-10",
-    certification: {
-      title: "Leading People and Teams Specialization",
-      issuer: "Coursera (University of Michigan)",
-      type: "Leadership",
-      certification_Image: "https://d3njjcbhbojbot.cloudfront.net/adobe/dynamicmedia/deliver/dm-aid--f30d95fb-cf54-463f-8557-eb68a1b0065a/shrm-cp-badge.png",
-    }
-  }
-];
+// Fallback data - no longer used
+// const fallbackUserCertifications = [];
 
 const MyCertifications = () => {
   const theme = useTheme();
@@ -194,6 +150,7 @@ const MyCertifications = () => {
   const [sortAnchorEl, setSortAnchorEl] = useState(null);
   const [sortBy, setSortBy] = useState('newest');
   const [searchTerm, setSearchTerm] = useState('');
+  const [openModal, setOpenModal] = useState(false);
 
   // Get the current user ID (you may have to adjust this based on your auth implementation)
   const getCurrentUserId = () => {
@@ -229,8 +186,8 @@ const MyCertifications = () => {
         }
         
         if (!data || data.length === 0) {
-          console.log("No user certifications found, using fallback data");
-          processCertifications(fallbackUserCertifications);
+          console.log("No user certifications found");
+          processCertifications([]);
           return;
         }
         
@@ -238,7 +195,8 @@ const MyCertifications = () => {
       } catch (error) {
         console.error("Error fetching user certifications:", error);
         setError(error.message);
-        processCertifications(fallbackUserCertifications);
+        // Don't use fallback data on error, just show empty state
+        processCertifications([]);
       } finally {
         setIsLoading(false);
       }
@@ -348,6 +306,14 @@ const MyCertifications = () => {
   // Navigate back to Certifications page
   const handleGoBack = () => {
     navigate('/certifications');
+  };
+
+  // Handlers for modal
+  const handleOpenModal = () => setOpenModal(true);
+  const handleCloseModal = () => {
+    setOpenModal(false);
+    // Refetch user certifications after closing modal
+    window.location.reload();
   };
 
   // Handle opening sort menu
@@ -630,16 +596,19 @@ const MyCertifications = () => {
         {/* Actions area */}
         <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
           <Button
-            variant="outlined"
+            variant="contained"
             startIcon={<AddIcon />}
             sx={{
-              ...elegantButtonStyles.outline,
-              borderColor: alpha(ELEGANT_COLORS.primary, 0.3),
+              ...elegantButtonStyles.primary,
+              bgcolor: ELEGANT_COLORS.primary,
               height: 44,
+              '&:hover': {
+                bgcolor: ELEGANT_COLORS.primaryDark,
+              },
             }}
-            onClick={() => navigate('/certifications')}
+            onClick={handleOpenModal}
           >
-            Add New
+            Add Certification
           </Button>
           
           <Tooltip title="Sort" arrow>
@@ -1363,13 +1332,13 @@ const MyCertifications = () => {
               }}
             >
               {activeTab === 'all'
-                ? "You haven't submitted any certifications yet. Browse our certification catalog to get started." 
+                ? "You haven't submitted any certifications yet. Start building your professional profile by adding your first certification." 
                 : `You don't have any ${activeTab} certifications. Check other categories or add new ones.`
               }
             </Typography>
             <Button 
               variant="contained"
-              onClick={handleGoBack}
+              onClick={handleOpenModal}
               sx={{ 
                 ...elegantButtonStyles.primary,
                 bgcolor: ELEGANT_COLORS.primary,
@@ -1378,11 +1347,36 @@ const MyCertifications = () => {
               }}
               startIcon={<AddIcon />}
             >
-              Browse Certifications
+              Add Your First Certification
             </Button>
           </Paper>
         </Fade>
       )}
+
+      {/* Modal for certification submission */}
+      <Modal 
+        open={openModal} 
+        onClose={handleCloseModal}
+        aria-labelledby="modal-submit-certification"
+      >
+        <Box
+          sx={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: { xs: '90%', sm: 600 },
+            bgcolor: 'background.paper',
+            borderRadius: 2,
+            boxShadow: 24,
+            p: 0,
+            maxHeight: '90vh',
+            overflowY: 'auto',
+          }}
+        >
+          <SubmitCertification onClose={handleCloseModal} />
+        </Box>
+      </Modal>
     </Box>
   );
 };

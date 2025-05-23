@@ -14,10 +14,12 @@ import {
   Timeline,
 } from "@mui/icons-material";
 
+// Direct import for ProfileSummary to avoid loading delay
+import ProfileSummary from "../components/ProfileSummary";
+
 // Component imports with lazy loading
 const ProjectCard = lazy(() => import("../components/ProjectPathCard"));
 const CertificationCard = lazy(() => import("../components/CertificationPathCard"));
-const ProfileSummary = lazy(() => import("../components/ProfileSummary"));
 const CareerTimeline = lazy(() => import("../components/CareerTimeline"));
 const VirtualAssistant = lazy(() => import("../components/VirtualAssistant"));
 
@@ -29,6 +31,7 @@ import CertificationsGridSkeleton from "../components/CertificationsGridSkeleton
 import VirtualAssistantSkeleton from "../components/VirtualAssistantSkeleton";
 
 // Custom hooks
+import useAuth from "../hooks/useAuth";
 import useUserProfile from "../hooks/useUserProfile";
 import useUserProjects from "../hooks/useUserProjects";
 import useUserCertifications from "../hooks/useUserCertifications";
@@ -40,10 +43,22 @@ import { ACCENTURE_COLORS } from "../styles/styles";
 // Main component
 const MyPath = () => {
   const [activeTab, setActiveTab] = useState(0);
+  const { loading: authLoading } = useAuth();
   const { userProfile, loading: profileLoading } = useUserProfile();
   const { projects, loading: projectsLoading, useMockData: usingMockProjects } = useUserProjects();
   const { certifications, loading: certificationsLoading, useMockData: usingMockCerts } = useUserCertifications();
   const { timelineItems, loading: timelineLoading, useMockData: usingMockTimeline } = useUserTimeline();
+  
+  // Provide default profile data structure to avoid empty renders
+  const defaultProfile = {
+    name: "Loading...",
+    avatar: "",
+    currentRole: "Professional",
+    projectsCount: 0,
+    certificationsCount: 0,
+    primarySkills: [],
+    about: "Loading profile..."
+  };
 
   const handleTabChange = (event, newValue) => {
     setActiveTab(newValue);
@@ -101,21 +116,40 @@ const MyPath = () => {
             width: "100%", 
             margin: 0,
           }}>
-            {/* Left column: Career profile content */}
+            {/* Left column: Virtual Assistant */}
+            <Grid item xs={12} md={6} sx={{ 
+              display: "flex",
+              pr: { xs: 0, md: 1 },
+              mt: { xs: 3, md: 0 },
+              order: { xs: 2, md: 1 } // On mobile, show after content
+            }}>
+              {/* Contenedor para el VirtualAssistant con altura controlada */}
+              <Box sx={{ 
+                width: "100%",
+                maxHeight: { xs: "700px", md: "800px" }, // Altura máxima controlada
+                height: "auto", // Altura automática según el contenido
+                display: "flex"
+              }}>
+                <Suspense fallback={<VirtualAssistantSkeleton />}>
+                  <VirtualAssistant />
+                </Suspense>
+              </Box>
+            </Grid>
+            
+            {/* Right column: Career profile content */}
             <Grid item xs={12} md={6} sx={{ 
               display: "flex", 
               flexDirection: "column",
-              pr: { xs: 0, md: 1 },
+              pl: { xs: 0, md: 1 },
+              order: { xs: 1, md: 2 } // On mobile, show first
             }}>
               {/* Profile Summary */}
               <Box sx={{ mb: 2 }}>
-                <Suspense fallback={<ProfileSummarySkeleton />}>
-                  {profileLoading ? (
-                    <ProfileSummarySkeleton />
-                  ) : (
-                    <ProfileSummary userInfo={userProfile} />
-                  )}
-                </Suspense>
+                {authLoading ? (
+                  <ProfileSummarySkeleton />
+                ) : (
+                  <ProfileSummary userInfo={userProfile || defaultProfile} />
+                )}
               </Box>
 
               {/* Tabs Navigation */}
@@ -310,25 +344,6 @@ const MyPath = () => {
                     </Suspense>
                   </>
                 )}
-              </Box>
-            </Grid>
-            
-            {/* Right column: Chat interface */}
-            <Grid item xs={12} md={6} sx={{ 
-              display: "flex",
-              pl: { xs: 0, md: 1 },
-              mt: { xs: 3, md: 0 }
-            }}>
-              {/* Contenedor para el VirtualAssistant con altura controlada */}
-              <Box sx={{ 
-                width: "100%",
-                maxHeight: { xs: "700px", md: "800px" }, // Altura máxima controlada
-                height: "auto", // Altura automática según el contenido
-                display: "flex"
-              }}>
-                <Suspense fallback={<VirtualAssistantSkeleton />}>
-                  <VirtualAssistant />
-                </Suspense>
               </Box>
             </Grid>
           </Grid>
