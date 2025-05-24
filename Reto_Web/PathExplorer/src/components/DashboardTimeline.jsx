@@ -9,7 +9,8 @@ import {
   Chip,
   Avatar,
   Fade,
-  Grow
+  Grow,
+  Skeleton
 } from "@mui/material";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
@@ -23,6 +24,9 @@ import { ACCENTURE_COLORS } from "../styles/styles";
 
 // Componente que muestra un elemento de la timeline
 const DashboardTimelineItem = ({ item, isLast = false, profilePurple, index }) => {
+  // Verificamos que item existe
+  if (!item) return null;
+  
   // Determinamos el tipo (certification o project)
   const isProject = item.type === "Project";
   
@@ -52,7 +56,7 @@ const DashboardTimelineItem = ({ item, isLast = false, profilePurple, index }) =
         sx={{
           display: "flex",
           position: "relative",
-          mb: isLast ? 0 : { xs: 3, sm: 4, md: 5, lg: 6 },
+          mb: isLast ? 0 : { xs: 2, sm: 2.5, md: 3, lg: 3.5 },
           ml: { xs: 3, sm: 4 },
           transition: 'all 0.3s ease',
           '&:hover': {
@@ -101,19 +105,9 @@ const DashboardTimelineItem = ({ item, isLast = false, profilePurple, index }) =
             border: `1px solid ${alpha(profilePurple, 0.15)}`,
             boxShadow: '0 4px 12px rgba(0,0,0,0.04)',
             transition: 'all 0.3s ease',
-            height: 100, // Fixed height for all items
+            height: 80, // Reduced fixed height for all items
             display: 'flex',
             alignItems: 'center',
-            '&::before': {
-              content: '""',
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              height: 3,
-              backgroundColor: getTypeColor(),
-              borderRadius: '8px 8px 0 0', // Match parent border radius
-            }
           }}
         >
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
@@ -230,7 +224,7 @@ const DashboardTimelineItem = ({ item, isLast = false, profilePurple, index }) =
 };
 
 // Componente principal de Timeline
-const DashboardTimeline = ({ items = [], profilePurple }) => {
+const DashboardTimeline = ({ items = [], profilePurple = ACCENTURE_COLORS.corePurple1, loading = false }) => {
   const navigate = useNavigate();
   
   // Si no hay items o no es un array, usamos datos de respaldo
@@ -240,13 +234,12 @@ const DashboardTimeline = ({ items = [], profilePurple }) => {
     { id: 3, type: "Course", name: "Advanced React Patterns", displayDate: "July 2025", status: "Planned" }
   ];
   
-  // Nos aseguramos de que items sea un array y limitamos a 3 elementos
-  const safeItems = Array.isArray(items) && items.length > 0 
-    ? items.slice(0, 3) 
-    : fallbackItems;
-
-  // Debug - imprimimos en consola para ver los datos
-  console.log("Timeline items:", safeItems);
+  // Nos aseguramos de que items sea un array válido y filtramos elementos undefined/null
+  const safeItems = loading 
+    ? [] 
+    : Array.isArray(items) && items.length > 0 
+      ? items.filter(item => item != null).slice(0, 3) 
+      : fallbackItems;
 
   return (
     <Paper
@@ -257,7 +250,7 @@ const DashboardTimeline = ({ items = [], profilePurple }) => {
         boxShadow: '0 2px 12px rgba(0,0,0,0.03)',
         overflow: 'hidden',
         border: `1px solid ${alpha(profilePurple, 0.15)}`,
-        minHeight: { xs: 350, sm: 400, md: 450, lg: 500 }, // Responsive height
+        minHeight: { xs: 280, sm: 300, md: 320, lg: 340 }, // Reduced responsive height
         height: '100%',
         display: 'flex',
         flexDirection: 'column',
@@ -326,7 +319,7 @@ const DashboardTimeline = ({ items = [], profilePurple }) => {
           position: "relative",
           ml: { xs: 2, sm: 3 },
           p: { xs: 2, sm: 3, md: 4 },
-          py: { xs: 3, sm: 4, md: 5 },
+          py: { xs: 2, sm: 2.5, md: 3 },
           flexGrow: 1,
           display: 'flex',
           flexDirection: 'column',
@@ -344,15 +337,67 @@ const DashboardTimeline = ({ items = [], profilePurple }) => {
           }
         }}
       >
-        {safeItems.map((item, index) => (
-          <DashboardTimelineItem 
-            key={index}
-            item={item}
-            index={index}
-            isLast={index === safeItems.length - 1}
-            profilePurple={profilePurple}
-          />
-        ))}
+        {loading ? (
+          // Skeleton loading state
+          Array.from({ length: 3 }).map((_, index) => (
+            <Box
+              key={index}
+              sx={{
+                display: "flex",
+                position: "relative",
+                mb: index === 2 ? 0 : { xs: 2, sm: 2.5, md: 3, lg: 3.5 },
+                ml: { xs: 3, sm: 4 },
+              }}
+            >
+              <Skeleton
+                variant="circular"
+                sx={{
+                  width: 16,
+                  height: 16,
+                  position: "absolute",
+                  left: { xs: -36, sm: -40, md: -46.5 },
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                }}
+              />
+              <Paper
+                elevation={0}
+                sx={{
+                  flex: 1,
+                  p: { xs: 2, sm: 2.5 },
+                  backgroundColor: '#ffffff',
+                  borderRadius: 2,
+                  border: `1px solid ${alpha(profilePurple, 0.15)}`,
+                  height: 80,
+                  display: 'flex',
+                  alignItems: 'center',
+                }}
+              >
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, width: '100%' }}>
+                  <Skeleton variant="circular" width={40} height={40} />
+                  <Box sx={{ flex: 1 }}>
+                    <Skeleton variant="text" width="60%" height={24} sx={{ mb: 1 }} />
+                    <Box sx={{ display: 'flex', gap: 1 }}>
+                      <Skeleton variant="rectangular" width={80} height={22} sx={{ borderRadius: 1 }} />
+                      <Skeleton variant="text" width={60} height={20} />
+                    </Box>
+                  </Box>
+                  <Skeleton variant="rectangular" width={100} height={24} sx={{ borderRadius: 1 }} />
+                </Box>
+              </Paper>
+            </Box>
+          ))
+        ) : (
+          safeItems.map((item, index) => (
+            <DashboardTimelineItem 
+              key={item?.id || index}
+              item={item}
+              index={index}
+              isLast={index === safeItems.length - 1}
+              profilePurple={profilePurple}
+            />
+          ))
+        )}
       </Box>
     </Paper>
   );

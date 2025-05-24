@@ -48,14 +48,9 @@ const VirtualAssistant = () => {
   const [chatHistory, setChatHistory] = useState([
     {
       sender: "bot",
-      text: "Hello! I'm your Accenture Career AI Assistant. I can help with skill development and recommend certifications from our database.",
+      text: "Hello! I'm your Accenture Career AI Assistant. I can help with skill development and recommend certifications from our database. What would you like to know today?",
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       isWelcome: true
-    },
-    {
-      sender: "bot",
-      text: "What would you like to know today?",
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     }
   ]);
   const [isLoading, setIsLoading] = useState(false);
@@ -116,18 +111,6 @@ const VirtualAssistant = () => {
         }
         
         setDataLoaded(true);
-        
-        // 4. Mensaje personalizado de bienvenida
-        if (userData && chatHistory.length === 2) {
-          setChatHistory(prev => [
-            ...prev,
-            {
-              sender: "bot",
-              text: `Welcome, ${userData.name || 'there'}! I can provide personalized recommendations based on your specific needs.`,
-              time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-            }
-          ]);
-        }
       } catch (err) {
         console.error("Error al cargar datos:", err);
       } finally {
@@ -523,18 +506,7 @@ const VirtualAssistant = () => {
                             ? `0 4px 12px ${alpha(ACCENTURE_COLORS.corePurple1, 0.1)}`
                             : '0 2px 8px rgba(0, 0, 0, 0.04)',
                         position: 'relative',
-                        overflow: 'visible',
-                        '&::after': chat.isWelcome ? {
-                          content: '""',
-                          position: 'absolute',
-                          top: -8,
-                          left: 20,
-                          width: 16,
-                          height: 16,
-                          background: ACCENTURE_COLORS.corePurple1,
-                          borderRadius: '50%',
-                          opacity: 0.6
-                        } : {}
+                        overflow: 'visible'
                       }}
                     >
                       <MessageContent 

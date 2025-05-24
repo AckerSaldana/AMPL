@@ -54,7 +54,29 @@ export const CalendarCompact = ({ userId }) => {
         setIsLoading(true);
         
         if (!userId) {
-          throw new Error("User ID is required");
+          // If no userId yet, show example data
+          setProjectReminders([
+            {
+              id: 1,
+              title: "Wellness platform for employees",
+              endDate: dayjs().add(14, 'day').format('YYYY-MM-DD'),
+              formattedDate: dayjs().add(14, 'day').format('MMM DD, YYYY'),
+              priority: "High",
+              role: "Behavioral Health Expert",
+              status: "In Progress"
+            },
+            {
+              id: 2,
+              title: "Mobile App Development",
+              endDate: dayjs().add(30, 'day').format('YYYY-MM-DD'),
+              formattedDate: dayjs().add(30, 'day').format('MMM DD, YYYY'),
+              priority: "Medium",
+              role: "UI Designer",
+              status: "Planning"
+            }
+          ]);
+          setIsLoading(false);
+          return;
         }
 
         // Obtener roles del usuario actual
@@ -260,15 +282,18 @@ export const CalendarCompact = ({ userId }) => {
   }
   
   return (
-    <Box sx={{ pt: 0, pb: 0 }}>
+    <Box sx={{ pt: 0, pb: 0, height: '100%', display: 'flex', flexDirection: 'column' }}>
       {/* Enhanced Calendar Container */}
       <Paper elevation={0} sx={{ 
         mb: 0,
         borderRadius: 2,
         bgcolor: '#ffffff',
-        border: 'none',
-        boxShadow: 'none',
+        border: `1px solid ${alpha(profilePurple, 0.1)}`,
+        boxShadow: '0 2px 12px rgba(0,0,0,0.03)',
         overflow: 'visible',
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column'
       }}>
         {/* Header */}
         <Box sx={{ 
@@ -330,14 +355,13 @@ export const CalendarCompact = ({ userId }) => {
         <Box sx={{ px: 2.5, py: 2.5 }}>
           {/* Weekday Headers */}
           <Box sx={{ 
-            display: 'flex',
-            gap: 0.75,
-            justifyContent: 'center',
+            display: 'grid',
+            gridTemplateColumns: 'repeat(7, 1fr)',
+            gap: { xs: 0.5, sm: 0.75 },
             mb: 1.5 
           }}>
             {weekDays.map((day, index) => (
               <Box key={index} sx={{ 
-                width: 58,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center'
@@ -346,7 +370,7 @@ export const CalendarCompact = ({ userId }) => {
                   variant="caption" 
                   sx={{ 
                     fontWeight: 600,
-                    fontSize: '0.875rem',
+                    fontSize: { xs: '0.75rem', sm: '0.875rem' },
                     color: (index === 0 || index === 6) 
                       ? profilePurple 
                       : 'text.secondary',
@@ -360,23 +384,18 @@ export const CalendarCompact = ({ userId }) => {
           
           {/* Calendar Days */}
           <Box sx={{ 
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 0.75
+            display: 'grid',
+            gridTemplateColumns: 'repeat(7, 1fr)',
+            gap: { xs: 0.5, sm: 0.75 },
+            gridAutoRows: '1fr'
           }}>
-            {Array(6).fill(null).map((_, weekIndex) => (
-              <Box key={weekIndex} sx={{ 
-                display: 'flex',
-                gap: 0.75,
-                justifyContent: 'center'
-              }}>
-                {calendarDays.slice(weekIndex * 7, (weekIndex + 1) * 7).map((day, dayIndex) => (
-                  <Box 
-                    key={dayIndex}
-                    onClick={() => handleDateSelect(day)}
-                    sx={{
-                      width: 58,
-                      height: 58,
+            {calendarDays.map((day, index) => (
+              <Box 
+                key={index}
+                onClick={() => handleDateSelect(day)}
+                sx={{
+                  aspectRatio: '1',
+                  minHeight: { xs: 40, sm: 50, md: 60, lg: 70 },
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -399,7 +418,7 @@ export const CalendarCompact = ({ userId }) => {
                         ? 'text.primary' 
                         : 'text.disabled',
                       fontWeight: day.isToday || day.isSelected ? 600 : 400,
-                      fontSize: '0.95rem',
+                      fontSize: { xs: '0.75rem', sm: '0.875rem', md: '0.95rem' },
                       '&::after': day.hasDeadline ? {
                         content: '""',
                         position: 'absolute',
@@ -421,8 +440,6 @@ export const CalendarCompact = ({ userId }) => {
                   >
                     {day.date}
                   </Box>
-                ))}
-              </Box>
             ))}
           </Box>
         </Box>
@@ -432,6 +449,10 @@ export const CalendarCompact = ({ userId }) => {
           px: 2.5, 
           py: 2.5,
           borderTop: `1px solid ${alpha(profilePurple, 0.08)}`,
+          flexGrow: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          minHeight: 0
         }}>
           <Typography 
             variant="subtitle2" 
@@ -442,7 +463,8 @@ export const CalendarCompact = ({ userId }) => {
               color: 'text.primary',
               display: 'flex',
               alignItems: 'center',
-              gap: 1.25
+              gap: 1.25,
+              flexShrink: 0
             }}
           >
             <AccessTimeIcon sx={{ fontSize: 20, color: profilePurple }} />
@@ -453,7 +475,22 @@ export const CalendarCompact = ({ userId }) => {
             <Box sx={{ 
               display: 'flex', 
               flexDirection: 'column', 
-              gap: 1.25
+              gap: 1.25,
+              overflowY: 'auto',
+              flexGrow: 1,
+              '&::-webkit-scrollbar': {
+                width: '6px',
+              },
+              '&::-webkit-scrollbar-track': {
+                background: alpha('#000', 0.03),
+              },
+              '&::-webkit-scrollbar-thumb': {
+                background: alpha(profilePurple, 0.3),
+                borderRadius: '10px',
+                '&:hover': {
+                  background: alpha(profilePurple, 0.5),
+                },
+              },
             }}>
               {projectReminders.map((project, index) => (
                 <Paper
