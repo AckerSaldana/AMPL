@@ -126,8 +126,8 @@ const MyPath = () => {
               {/* Contenedor para el VirtualAssistant con altura controlada */}
               <Box sx={{ 
                 width: "100%",
-                maxHeight: { xs: "700px", md: "800px" }, // Altura máxima controlada
-                height: "auto", // Altura automática según el contenido
+                maxHeight: { xs: "800px", md: "900px" }, // Altura máxima controlada
+                height: { xs: "900px", md: "1000px" }, // Altura fija más alta
                 display: "flex"
               }}>
                 <Suspense fallback={<VirtualAssistantSkeleton />}>
@@ -282,9 +282,9 @@ const MyPath = () => {
                       ) : (
                         <Grid container spacing={2}>
                           {projects.length > 0 ? (
-                            projects.map((project) => (
+                            projects.map((project, index) => (
                               <Grid item xs={12} sm={6} key={project.id}>
-                                <ProjectCard project={project} />
+                                <ProjectCard project={project} index={index} />
                               </Grid>
                             ))
                           ) : (
@@ -319,9 +319,9 @@ const MyPath = () => {
                       ) : (
                         <Grid container spacing={2}>
                           {certifications.length > 0 ? (
-                            certifications.map((cert) => (
+                            certifications.map((cert, index) => (
                               <Grid item xs={12} sm={6} key={cert.id}>
-                                <CertificationCard certification={cert} />
+                                <CertificationCard certification={cert} index={index} />
                               </Grid>
                             ))
                           ) : (

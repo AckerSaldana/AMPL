@@ -18,7 +18,9 @@ import {
   Paper,
   useMediaQuery,
   Tooltip,
+  Fade,
 } from "@mui/material";
+import { alpha } from "@mui/material/styles";
 import SearchIcon from "@mui/icons-material/Search";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import DownloadIcon from "@mui/icons-material/Download";
@@ -1430,23 +1432,30 @@ const handleDownloadAnalytics = async (userId) => {
 
   return (
     <Grid item xs={12} lg={6}>
-      <Card
-        sx={{
-          borderRadius: 2,
-          boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
-          height: "100%",
-          display: "flex",
-          flexDirection: "column",
-          overflow: "hidden",
-          border: "none",
-        }}
-      >
-        <CardContent sx={{ p: 0, flexGrow: 0, width: "100%" }}>
-          <Box 
-            sx={{ 
-              p: { xs: 2.5, md: 3 }, 
-              borderBottom: '1px solid rgba(0,0,0,0.03)' 
-            }}
+      <Fade in={true} timeout={2200}>
+        <Paper
+          elevation={0}
+          sx={{
+            borderRadius: 3,
+            background: '#fff',
+            border: `1px solid ${alpha(ACCENTURE_COLORS.accentPurple1, 0.08)}`,
+            height: "100%",
+            display: "flex",
+            flexDirection: "column",
+            overflow: "hidden",
+            transition: "all 0.3s ease",
+            "&:hover": {
+              boxShadow: `0 8px 24px ${alpha(ACCENTURE_COLORS.accentPurple1, 0.08)}`,
+            }
+          }}
+        >
+          <CardContent sx={{ p: 0, flexGrow: 0, width: "100%" }}>
+            <Box 
+              sx={{ 
+                p: { xs: 2.5, md: 3 }, 
+                borderBottom: `1px solid ${alpha(ACCENTURE_COLORS.accentPurple1, 0.05)}`,
+                background: `linear-gradient(135deg, ${alpha(ACCENTURE_COLORS.accentPurple1, 0.02)}, transparent)`,
+              }}
           >
             <Typography
               variant="h6"
@@ -1801,7 +1810,8 @@ const handleDownloadAnalytics = async (userId) => {
             </Box>
           )}
         </Box>
-      </Card>
+      </Paper>
+      </Fade>
     </Grid>
   );
 };

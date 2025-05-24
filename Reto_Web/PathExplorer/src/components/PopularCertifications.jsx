@@ -10,7 +10,8 @@ import {
   Stack,
   Grid,
   Divider,
-  Tooltip
+  Tooltip,
+  Skeleton
 } from "@mui/material";
 
 // Iconos
@@ -27,7 +28,7 @@ import StarIcon from "@mui/icons-material/Star";
 import PeopleAltOutlinedIcon from "@mui/icons-material/PeopleAltOutlined";
 import { useNavigate } from "react-router-dom";
 
-export const PopularCertifications = ({ certifications }) => {
+export const PopularCertifications = ({ certifications, loading = false }) => {
   const navigate = useNavigate();
   
   // Match Dashboard profile color
@@ -54,14 +55,16 @@ export const PopularCertifications = ({ certifications }) => {
   };
   
   return (
-    <Box sx={{ height: '100%', p: 2 }}>
+    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       {/* Header */}
       <Box 
         sx={{ 
           display: 'flex', 
           alignItems: 'center',
           justifyContent: 'space-between',
-          mb: 3
+          p: 2,
+          borderBottom: '1px solid',
+          borderColor: alpha(profilePurple, 0.1)
         }}
       >
         <Box sx={{ display: 'flex', alignItems: 'center' }}>
@@ -72,7 +75,7 @@ export const PopularCertifications = ({ certifications }) => {
               fontSize: 20
             }} 
           />
-          <Typography variant="h6" fontWeight={500} sx={{ fontSize: '1.125rem' }}>
+          <Typography variant="h6" fontWeight={500} sx={{ fontSize: '1rem' }}>
             Popular Certifications
           </Typography>
         </Box>
@@ -95,8 +98,25 @@ export const PopularCertifications = ({ certifications }) => {
       </Box>
       
       {/* Content - Card Grid Layout */}
-      <Grid container spacing={2}>
-        {certifications.length > 0 ? (
+      <Box sx={{ p: 2, flexGrow: 1, overflow: 'auto' }}>
+        <Grid container spacing={2}>
+          {loading ? (
+            // Skeleton loading
+            Array.from({ length: 3 }).map((_, index) => (
+              <Grid item xs={12} key={index}>
+                <Card elevation={0} sx={{ p: 2, borderRadius: 2, border: `1px solid ${alpha(profilePurple, 0.1)}` }}>
+                  <Stack direction="row" spacing={2} alignItems="center">
+                    <Skeleton variant="circular" width={40} height={40} />
+                    <Box sx={{ flex: 1 }}>
+                      <Skeleton variant="text" width="60%" height={24} />
+                      <Skeleton variant="text" width="40%" height={20} />
+                    </Box>
+                    <Skeleton variant="rectangular" width={60} height={30} sx={{ borderRadius: 1 }} />
+                  </Stack>
+                </Card>
+              </Grid>
+            ))
+          ) : certifications.length > 0 ? (
           certifications.map((cert, index) => {
             // Calculate star rating (0-5)
             const starRating = calculateStars(cert.popularity);
@@ -244,7 +264,8 @@ export const PopularCertifications = ({ certifications }) => {
             </Box>
           </Grid>
         )}
-      </Grid>
+        </Grid>
+      </Box>
     </Box>
   );
 };

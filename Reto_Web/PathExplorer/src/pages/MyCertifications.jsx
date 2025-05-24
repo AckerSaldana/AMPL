@@ -22,6 +22,8 @@ import {
   Divider,
   Avatar,
   Modal,
+  Backdrop,
+  Link,
 } from '@mui/material';
 
 // Icons
@@ -41,6 +43,8 @@ import MoreVertIcon from '@mui/icons-material/MoreVert';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import WorkspacePremiumIcon from '@mui/icons-material/WorkspacePremium';
 import AddIcon from '@mui/icons-material/Add';
+import CloseIcon from '@mui/icons-material/Close';
+import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
 
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabase/supabaseClient';
@@ -151,6 +155,9 @@ const MyCertifications = () => {
   const [sortBy, setSortBy] = useState('newest');
   const [searchTerm, setSearchTerm] = useState('');
   const [openModal, setOpenModal] = useState(false);
+  const [evidenceModalOpen, setEvidenceModalOpen] = useState(false);
+  const [selectedEvidence, setSelectedEvidence] = useState(null);
+  const [selectedCertName, setSelectedCertName] = useState('');
 
   // Get the current user ID (you may have to adjust this based on your auth implementation)
   const getCurrentUserId = () => {
@@ -333,10 +340,19 @@ const MyCertifications = () => {
   };
 
   // Handle viewing evidence for a certification
-  const handleViewEvidence = (evidence) => {
+  const handleViewEvidence = (evidence, certName) => {
     if (evidence) {
-      window.open(evidence, '_blank');
+      setSelectedEvidence(evidence);
+      setSelectedCertName(certName);
+      setEvidenceModalOpen(true);
     }
+  };
+
+  // Handle closing evidence modal
+  const handleCloseEvidence = () => {
+    setEvidenceModalOpen(false);
+    setSelectedEvidence(null);
+    setSelectedCertName('');
   };
 
   // Format date helper
@@ -1225,7 +1241,7 @@ const MyCertifications = () => {
                         {cert.evidence && (
                           <Tooltip title="View Evidence" arrow>
                             <IconButton
-                              onClick={() => handleViewEvidence(cert.evidence)}
+                              onClick={() => handleViewEvidence(cert.evidence, cert.certification.title)}
                               size="small"
                               sx={{ 
                                 color: ELEGANT_COLORS.primary,
@@ -1376,6 +1392,182 @@ const MyCertifications = () => {
         >
           <SubmitCertification onClose={handleCloseModal} />
         </Box>
+      </Modal>
+
+      {/* Evidence Modal */}
+      <Modal
+        open={evidenceModalOpen}
+        onClose={handleCloseEvidence}
+        closeAfterTransition
+        BackdropComponent={Backdrop}
+        BackdropProps={{
+          timeout: 500,
+          sx: { 
+            backgroundColor: alpha('#000', 0.6),
+            backdropFilter: 'blur(8px)'
+          }
+        }}
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <Fade in={evidenceModalOpen}>
+          <Paper
+            elevation={0}
+            sx={{
+              width: { xs: '90%', sm: '80%', md: '900px' },
+              height: { xs: '90vh', sm: '85vh' },
+              overflow: 'hidden',
+              borderRadius: 3,
+              backgroundColor: '#ffffff',
+              position: 'relative',
+              boxShadow: `0 20px 80px -12px ${alpha(ELEGANT_COLORS.primary, 0.35)}`,
+              display: 'flex',
+              flexDirection: 'column',
+              '&:focus': { outline: 'none' },
+            }}
+          >
+            {/* Modal Header */}
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                p: 2.5,
+                borderBottom: `1px solid ${alpha(ELEGANT_COLORS.primary, 0.1)}`,
+                background: `linear-gradient(135deg, ${alpha(ELEGANT_COLORS.primary, 0.03)} 0%, ${alpha(ELEGANT_COLORS.primary, 0.01)} 100%)`,
+              }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <Box
+                  sx={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    bgcolor: alpha(ELEGANT_COLORS.primary, 0.1),
+                    color: ELEGANT_COLORS.primary,
+                  }}
+                >
+                  <PictureAsPdfIcon />
+                </Box>
+                <Box>
+                  <Typography variant="h6" sx={{ 
+                    fontWeight: 600, 
+                    color: ELEGANT_COLORS.textPrimary,
+                    fontSize: '1.1rem'
+                  }}>
+                    Certification Evidence
+                  </Typography>
+                  <Typography variant="caption" sx={{ 
+                    color: alpha(ELEGANT_COLORS.textPrimary, 0.6),
+                    fontSize: '0.75rem'
+                  }}>
+                    {selectedCertName}
+                  </Typography>
+                </Box>
+              </Box>
+              <IconButton
+                onClick={handleCloseEvidence}
+                sx={{
+                  color: alpha(ELEGANT_COLORS.textPrimary, 0.6),
+                  '&:hover': {
+                    bgcolor: alpha(ELEGANT_COLORS.primary, 0.08),
+                    color: ELEGANT_COLORS.primary,
+                  },
+                  transition: 'all 0.2s ease',
+                }}
+              >
+                <CloseIcon />
+              </IconButton>
+            </Box>
+
+            {/* Modal Content */}
+            <Box sx={{ 
+              flex: 1, 
+              overflow: 'hidden',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              bgcolor: alpha(ELEGANT_COLORS.primary, 0.02),
+            }}>
+              {selectedEvidence && selectedEvidence.endsWith('.pdf') ? (
+                <iframe
+                  src={selectedEvidence}
+                  width="100%"
+                  height="100%"
+                  style={{ border: 'none' }}
+                  title="Certification Evidence"
+                />
+              ) : (
+                <Box sx={{ 
+                  textAlign: 'center', 
+                  p: 4,
+                  maxWidth: 500,
+                  margin: '0 auto',
+                }}>
+                  <Box
+                    sx={{
+                      width: 80,
+                      height: 80,
+                      borderRadius: '50%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      bgcolor: alpha(ELEGANT_COLORS.primary, 0.1),
+                      color: ELEGANT_COLORS.primary,
+                      margin: '0 auto',
+                      mb: 3,
+                    }}
+                  >
+                    <VerifiedIcon sx={{ fontSize: 40 }} />
+                  </Box>
+                  <Typography variant="h6" sx={{ mb: 2, color: ELEGANT_COLORS.textPrimary }}>
+                    Evidence Available
+                  </Typography>
+                  <Typography variant="body2" sx={{ 
+                    color: alpha(ELEGANT_COLORS.textPrimary, 0.7),
+                    mb: 3,
+                    lineHeight: 1.6
+                  }}>
+                    The evidence for this certification is available at the following URL:
+                  </Typography>
+                  <Link
+                    href={selectedEvidence}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    sx={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 1,
+                      px: 3,
+                      py: 1.5,
+                      borderRadius: 2,
+                      bgcolor: ELEGANT_COLORS.primary,
+                      color: 'white',
+                      textDecoration: 'none',
+                      fontSize: '0.875rem',
+                      fontWeight: 500,
+                      transition: 'all 0.2s ease',
+                      '&:hover': {
+                        bgcolor: ELEGANT_COLORS.primaryDark,
+                        transform: 'translateY(-2px)',
+                        boxShadow: `0 4px 12px ${alpha(ELEGANT_COLORS.primary, 0.3)}`,
+                      }
+                    }}
+                  >
+                    Open in New Tab
+                    <VisibilityIcon fontSize="small" />
+                  </Link>
+                </Box>
+              )}
+            </Box>
+          </Paper>
+        </Fade>
       </Modal>
     </Box>
   );
