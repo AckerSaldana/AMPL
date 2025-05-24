@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   Box,
   Typography,
@@ -53,39 +53,46 @@ const ProjectDashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
 
-  const fetchProjects = async () => {
+  const fetchProjects = useCallback(async () => {
     setIsLoading(true);
     
     try {
-      const { data: projectsData, error: projectsError } = await supabase
-        .from("Project")
-        .select(
-          "projectID, title, description, status, logo, progress, start_date, end_date, priority"
-        );
+      // Fetch both queries in parallel for better performance
+      const [projectsResult, userRolesResult] = await Promise.allSettled([
+        supabase
+          .from("Project")
+          .select(
+            "projectID, title, description, status, logo, progress, start_date, end_date, priority"
+          ),
+        supabase
+          .from("UserRole")
+          .select("project_id, user_id, User:User(user_id, name, profile_pic)")
+      ]);
 
-      if (projectsError) {
-        console.error("Error fetching projects:", projectsError.message);
+      // Handle projects data
+      if (projectsResult.status === 'rejected' || projectsResult.value.error) {
+        const error = projectsResult.status === 'rejected' ? projectsResult.reason : projectsResult.value.error;
+        console.error("Error fetching projects:", error.message);
         setSnackbar({
           open: true,
-          message: `Error al cargar los proyectos: ${projectsError.message}`,
+          message: `Error al cargar los proyectos: ${error.message}`,
           severity: "error",
         });
         return;
       }
 
-      const { data: userRolesData, error: rolesError } = await supabase
-        .from("UserRole")
-        .select("project_id, user_id, User:User(user_id, name, profile_pic)");
+      const projectsData = projectsResult.value.data;
 
-      if (rolesError) {
-        console.error("Error fetching user roles:", rolesError.message);
-        setSnackbar({
-          open: true,
-          message: `Error al cargar los equipos: ${rolesError.message}`,
-          severity: "error",
-        });
-        return;
+      // Handle user roles data
+      if (userRolesResult.status === 'rejected' || userRolesResult.value.error) {
+        const error = userRolesResult.status === 'rejected' ? userRolesResult.reason : userRolesResult.value.error;
+        console.error("Error fetching user roles:", error.message);
+        // Continue without team data rather than failing completely
       }
+
+      const userRolesData = userRolesResult.status === 'fulfilled' && !userRolesResult.value.error 
+        ? userRolesResult.value.data 
+        : [];
 
       const teamByProject = {};
       userRolesData.forEach(({ project_id, User }) => {
@@ -129,44 +136,41 @@ const ProjectDashboard = () => {
         severity: "error",
       });
     } finally {
-      // Simulate loading for demo purposes (remove in production)
-      setTimeout(() => {
-        setIsLoading(false);
-      }, 1000);
+      setIsLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchProjects();
-  }, []);
+  }, [fetchProjects]);
 
-  const handleAddProject = () => {
+  const handleAddProject = useCallback(() => {
     navigate("/add-projects");
-  };
+  }, [navigate]);
 
-  const handleEditProject = (project) => {
+  const handleEditProject = useCallback((project) => {
     setSelectedProject(project);
     setDialogAction("edit");
     setOpenDialog(true);
-  };
+  }, []);
 
-  const handleDeleteProject = async (project) => {
+  const handleDeleteProject = useCallback(async (project) => {
     setSelectedProject(project);
     setDialogAction("delete");
     setOpenDialog(true);
-  };
+  }, []);
 
-  const handleViewDetails = (project) => {
+  const handleViewDetails = useCallback((project) => {
     setSelectedProject(project);
     setDialogAction("view");
     setOpenDialog(true);
-  };
+  }, []);
 
-  const handleCloseDialog = () => {
+  const handleCloseDialog = useCallback(() => {
     setOpenDialog(false);
-  };
+  }, []);
 
-  const handleConfirmAction = async () => {
+  const handleConfirmAction = useCallback(async () => {
     if (dialogAction === "delete" && selectedProject) {
       try {
         const { error } = await supabase
@@ -192,23 +196,26 @@ const ProjectDashboard = () => {
       }
     }
     setOpenDialog(false);
-  };
+  }, [dialogAction, selectedProject, projects]);
 
-  const handleCloseSnackbar = () => {
-    setSnackbar({ ...snackbar, open: false });
-  };
+  const handleCloseSnackbar = useCallback(() => {
+    setSnackbar(prev => ({ ...prev, open: false }));
+  }, []);
 
-  const filteredProjects = projects.filter((project) => {
-    if (activeFilter.toLowerCase() === "all") return true;
-    return project.status?.toLowerCase() === activeFilter.toLowerCase();
-  });
+  const filteredProjects = useMemo(() => {
+    return projects.filter((project) => {
+      if (activeFilter.toLowerCase() === "all") return true;
+      return project.status?.toLowerCase() === activeFilter.toLowerCase();
+    });
+  }, [projects, activeFilter]);
 
-  // Create an array of skeleton cards for loading state
-  const skeletonCards = Array(6).fill(0).map((_, index) => (
-    <Grid item xs={12} sm={6} lg={4} key={`skeleton-${index}`}>
-      <SkeletonProjectCard />
-    </Grid>
-  ));
+  // Create an array of skeleton cards for loading state - memoized
+  const skeletonCards = useMemo(() => 
+    Array(6).fill(0).map((_, index) => (
+      <Grid item xs={12} sm={6} lg={4} key={`skeleton-${index}`}>
+        <SkeletonProjectCard />
+      </Grid>
+    )), []);
 
   return (
     <Box sx={{ p: { xs: 2, md: 3 }, maxWidth: "100%"}}>
@@ -281,8 +288,8 @@ const ProjectDashboard = () => {
                 <Fade 
                   in={true} 
                   key={project.id}
-                  timeout={300 + index * 50} 
-                  style={{ transitionDelay: `${index * 30}ms` }}
+                  timeout={300} 
+                  style={{ transitionDelay: `${Math.min(index * 30, 150)}ms` }}
                 >
                   <Grid item xs={12} sm={6} lg={4}>
                     <ProjectCard
