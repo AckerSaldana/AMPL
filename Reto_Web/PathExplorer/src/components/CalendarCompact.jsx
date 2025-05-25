@@ -253,15 +253,16 @@ export const CalendarCompact = ({ userId }) => {
 
   // Get priority icon based on priority level
   const getPriorityIcon = (priority) => {
+    const iconSize = { xs: 16, sm: 18, md: 20 };
     switch(priority.toLowerCase()) {
       case 'high':
-        return <PriorityHighIcon sx={{ fontSize: 20, color: '#f44336' }} />;
+        return <PriorityHighIcon sx={{ fontSize: iconSize, color: '#f44336' }} />;
       case 'medium':
-        return <FlagIcon sx={{ fontSize: 20, color: '#ff9800' }} />;
+        return <FlagIcon sx={{ fontSize: iconSize, color: '#ff9800' }} />;
       case 'low':
-        return <LowPriorityIcon sx={{ fontSize: 20, color: '#4caf50' }} />;
+        return <LowPriorityIcon sx={{ fontSize: iconSize, color: '#4caf50' }} />;
       default:
-        return <FlagIcon sx={{ fontSize: 20, color: '#9e9e9e' }} />;
+        return <FlagIcon sx={{ fontSize: iconSize, color: '#9e9e9e' }} />;
     }
   };
 
@@ -297,8 +298,8 @@ export const CalendarCompact = ({ userId }) => {
       }}>
         {/* Header */}
         <Box sx={{ 
-          px: 2.5,
-          py: 2.5,
+          px: { xs: 1.5, sm: 2, md: 2.5 },
+          py: { xs: 1.5, sm: 2, md: 2.5 },
           bgcolor: alpha(profilePurple, 0.04),
           borderBottom: `1px solid ${alpha(profilePurple, 0.1)}`,
         }}>
@@ -307,14 +308,14 @@ export const CalendarCompact = ({ userId }) => {
             justifyContent: 'space-between', 
             alignItems: 'center' 
           }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.75 }}>
-              <CalendarTodayIcon sx={{ color: profilePurple, fontSize: 28 }} />
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, sm: 1.5, md: 1.75 } }}>
+              <CalendarTodayIcon sx={{ color: profilePurple, fontSize: { xs: 20, sm: 24, md: 28 } }} />
               <Typography 
                 variant="h6" 
                 sx={{ 
                   fontWeight: 600,
                   color: 'text.primary',
-                  fontSize: '1.125rem',
+                  fontSize: { xs: '0.875rem', sm: '1rem', md: '1.125rem' },
                 }}
               >
                 {currentMonth.format('MMMM YYYY')}
@@ -325,52 +326,60 @@ export const CalendarCompact = ({ userId }) => {
               <IconButton 
                 onClick={() => handleMonthChange('prev')}
                 sx={{ 
-                  p: 1,
+                  p: { xs: 0.5, sm: 0.75, md: 1 },
                   color: profilePurple,
                   '&:hover': {
                     bgcolor: alpha(profilePurple, 0.08),
                   }
                 }}
               >
-                <ArrowBackIosNewIcon sx={{ fontSize: 20 }} />
+                <ArrowBackIosNewIcon sx={{ fontSize: { xs: 16, sm: 18, md: 20 } }} />
               </IconButton>
               
               <IconButton 
                 onClick={() => handleMonthChange('next')}
                 sx={{ 
-                  p: 1,
+                  p: { xs: 0.5, sm: 0.75, md: 1 },
                   color: profilePurple,
                   '&:hover': {
                     bgcolor: alpha(profilePurple, 0.08),
                   }
                 }}
               >
-                <ArrowForwardIosIcon sx={{ fontSize: 20 }} />
+                <ArrowForwardIosIcon sx={{ fontSize: { xs: 16, sm: 18, md: 20 } }} />
               </IconButton>
             </Box>
           </Box>
         </Box>
         
         {/* Calendar Grid */}
-        <Box sx={{ px: 2.5, py: 2.5 }}>
+        <Box sx={{ 
+          px: { xs: 1.5, sm: 2, md: 2.5 }, 
+          py: { xs: 1.5, sm: 2, md: 2.5 },
+          width: '100%',
+          boxSizing: 'border-box'
+        }}>
           {/* Weekday Headers */}
           <Box sx={{ 
             display: 'grid',
             gridTemplateColumns: 'repeat(7, 1fr)',
-            gap: { xs: 0.5, sm: 0.75 },
-            mb: 1.5 
+            gap: { xs: 0.25, sm: 0.5, md: 0.75 },
+            mb: { xs: 1, sm: 1.25, md: 1.5 },
+            width: '100%'
           }}>
             {weekDays.map((day, index) => (
               <Box key={index} sx={{ 
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center'
+                justifyContent: 'center',
+                width: '100%',
+                maxWidth: { xs: 45, sm: 60, md: 70, lg: 80 }
               }}>
                 <Typography 
                   variant="caption" 
                   sx={{ 
                     fontWeight: 600,
-                    fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                    fontSize: { xs: '0.65rem', sm: '0.75rem', md: '0.875rem' },
                     color: (index === 0 || index === 6) 
                       ? profilePurple 
                       : 'text.secondary',
@@ -386,8 +395,9 @@ export const CalendarCompact = ({ userId }) => {
           <Box sx={{ 
             display: 'grid',
             gridTemplateColumns: 'repeat(7, 1fr)',
-            gap: { xs: 0.5, sm: 0.75 },
-            gridAutoRows: '1fr'
+            gap: { xs: 0.25, sm: 0.5, md: 0.75 },
+            gridAutoRows: '1fr',
+            width: '100%'
           }}>
             {calendarDays.map((day, index) => (
               <Box 
@@ -395,59 +405,60 @@ export const CalendarCompact = ({ userId }) => {
                 onClick={() => handleDateSelect(day)}
                 sx={{
                   aspectRatio: '1',
-                  minHeight: { xs: 40, sm: 50, md: 60, lg: 70 },
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      position: 'relative',
-                      borderRadius: 1.5,
-                      cursor: 'pointer',
-                      transition: 'all 0.2s ease',
-                      bgcolor: day.isSelected 
-                        ? profilePurple 
-                        : day.isToday 
-                        ? alpha(profilePurple, 0.1)
-                        : day.hasDeadline && day.isCurrentMonth
-                        ? alpha(profilePurple, 0.05)
-                        : 'transparent',
-                      color: day.isSelected 
-                        ? '#fff' 
-                        : day.isToday 
-                        ? profilePurple 
-                        : day.isCurrentMonth 
-                        ? 'text.primary' 
-                        : 'text.disabled',
-                      fontWeight: day.isToday || day.isSelected ? 600 : 400,
-                      fontSize: { xs: '0.75rem', sm: '0.875rem', md: '0.95rem' },
-                      '&::after': day.hasDeadline ? {
-                        content: '""',
-                        position: 'absolute',
-                        bottom: '4px',
-                        left: '50%',
-                        transform: 'translateX(-50%)',
-                        width: '4px',
-                        height: '4px',
-                        borderRadius: '50%',
-                        bgcolor: day.isSelected ? '#fff' : '#f44336',
-                      } : {},
-                      '&:hover': {
-                        bgcolor: day.isSelected 
-                          ? profilePurple 
-                          : alpha(profilePurple, 0.12),
-                        transform: 'scale(1.05)'
-                      }
-                    }}
-                  >
-                    {day.date}
-                  </Box>
+                  width: '100%',
+                  maxWidth: { xs: 45, sm: 60, md: 70, lg: 80 },
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  position: 'relative',
+                  borderRadius: { xs: 1, sm: 1.5 },
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  bgcolor: day.isSelected 
+                    ? profilePurple 
+                    : day.isToday 
+                    ? alpha(profilePurple, 0.1)
+                    : day.hasDeadline && day.isCurrentMonth
+                    ? alpha(profilePurple, 0.05)
+                    : 'transparent',
+                  color: day.isSelected 
+                    ? '#fff' 
+                    : day.isToday 
+                    ? profilePurple 
+                    : day.isCurrentMonth 
+                    ? 'text.primary' 
+                    : 'text.disabled',
+                  fontWeight: day.isToday || day.isSelected ? 600 : 400,
+                  fontSize: { xs: '0.65rem', sm: '0.75rem', md: '0.875rem', lg: '0.95rem' },
+                  '&::after': day.hasDeadline ? {
+                    content: '""',
+                    position: 'absolute',
+                    bottom: { xs: '2px', sm: '3px', md: '4px' },
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    width: { xs: '3px', sm: '4px' },
+                    height: { xs: '3px', sm: '4px' },
+                    borderRadius: '50%',
+                    bgcolor: day.isSelected ? '#fff' : '#f44336',
+                  } : {},
+                  '&:hover': {
+                    bgcolor: day.isSelected 
+                      ? profilePurple 
+                      : alpha(profilePurple, 0.12),
+                    transform: 'scale(1.05)'
+                  }
+                }}
+              >
+                {day.date}
+              </Box>
             ))}
           </Box>
         </Box>
 
         {/* Deadlines Section */}
         <Box sx={{ 
-          px: 2.5, 
-          py: 2.5,
+          px: { xs: 1.5, sm: 2, md: 2.5 }, 
+          py: { xs: 1.5, sm: 2, md: 2.5 },
           borderTop: `1px solid ${alpha(profilePurple, 0.08)}`,
           flexGrow: 1,
           display: 'flex',
@@ -458,16 +469,16 @@ export const CalendarCompact = ({ userId }) => {
             variant="subtitle2" 
             sx={{ 
               fontWeight: 600,
-              fontSize: '1rem',
-              mb: 1.75,
+              fontSize: { xs: '0.875rem', sm: '0.95rem', md: '1rem' },
+              mb: { xs: 1.25, sm: 1.5, md: 1.75 },
               color: 'text.primary',
               display: 'flex',
               alignItems: 'center',
-              gap: 1.25,
+              gap: { xs: 0.75, sm: 1, md: 1.25 },
               flexShrink: 0
             }}
           >
-            <AccessTimeIcon sx={{ fontSize: 20, color: profilePurple }} />
+            <AccessTimeIcon sx={{ fontSize: { xs: 16, sm: 18, md: 20 }, color: profilePurple }} />
             Upcoming Deadlines ({projectReminders.length})
           </Typography>
           
@@ -524,17 +535,17 @@ export const CalendarCompact = ({ userId }) => {
                       : '#4caf50'
                   }} />
                     
-                  <Box sx={{ p: 2 }}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Box sx={{ p: { xs: 1.5, sm: 1.75, md: 2 } }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                       <Box sx={{ flex: 1, mr: 1 }}>
                         <Typography 
                           variant="body2" 
                           sx={{ 
                             fontWeight: 600,
-                            fontSize: '0.9375rem',
+                            fontSize: { xs: '0.8125rem', sm: '0.875rem', md: '0.9375rem' },
                             color: 'text.primary',
                             lineHeight: 1.3,
-                            mb: 0.75
+                            mb: { xs: 0.5, sm: 0.75 }
                           }}
                         >
                           {project.title}
@@ -543,10 +554,10 @@ export const CalendarCompact = ({ userId }) => {
                         <Box sx={{ 
                           display: 'flex', 
                           alignItems: 'center', 
-                          gap: 1.75,
+                          gap: { xs: 1, sm: 1.5, md: 1.75 },
                           flexWrap: 'wrap'
                         }}>
-                          <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.8125rem' }}>
+                          <Typography variant="caption" color="text.secondary" sx={{ fontSize: { xs: '0.7rem', sm: '0.75rem', md: '0.8125rem' } }}>
                             {project.formattedDate}
                           </Typography>
                           
@@ -554,8 +565,8 @@ export const CalendarCompact = ({ userId }) => {
                             label={project.status}
                             size="small"
                             sx={{
-                              height: 22,
-                              fontSize: '0.75rem',
+                              height: { xs: 18, sm: 20, md: 22 },
+                              fontSize: { xs: '0.65rem', sm: '0.7rem', md: '0.75rem' },
                               fontWeight: 600,
                               bgcolor: project.status === 'In Progress' 
                                 ? alpha('#2196f3', 0.1) 
@@ -568,7 +579,7 @@ export const CalendarCompact = ({ userId }) => {
                                 ? '#ff9800'
                                 : '#4caf50',
                               '& .MuiChip-label': {
-                                px: 1
+                                px: { xs: 0.75, sm: 1 }
                               }
                             }}
                           />
@@ -576,7 +587,7 @@ export const CalendarCompact = ({ userId }) => {
                           <Typography 
                             variant="caption" 
                             sx={{ 
-                              fontSize: '0.8125rem', 
+                              fontSize: { xs: '0.7rem', sm: '0.75rem', md: '0.8125rem' }, 
                               fontWeight: 600, 
                               color: project.progress >= 70 
                                 ? '#4caf50' 
@@ -591,7 +602,7 @@ export const CalendarCompact = ({ userId }) => {
                       </Box>
                       
                       <Tooltip title={`${project.priority} Priority`}>
-                        <Box>
+                        <Box sx={{ flexShrink: 0 }}>
                           {getPriorityIcon(project.priority)}
                         </Box>
                       </Tooltip>

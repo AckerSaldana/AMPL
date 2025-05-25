@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { 
   Box, 
   Typography, 
@@ -14,11 +14,11 @@ import {
   IconButton,
   Tooltip,
   ClickAwayListener,
+  Skeleton,
   Fade,
-  Grow,
-  Slide,
-  Zoom
+  Grow
 } from '@mui/material';
+import { motion, AnimatePresence } from 'framer-motion';
 
 // Icons
 import SearchIcon from '@mui/icons-material/Search';
@@ -34,6 +34,13 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabase/supabaseClient';
 import { CertificationCard } from '../components/CertificationCard';
 import { ACCENTURE_COLORS, primaryButtonStyles, outlineButtonStyles } from '../styles/styles';
+
+// Cache for certifications data
+const certificationsCache = {
+  data: null,
+  timestamp: null,
+  CACHE_DURATION: 10 * 60 * 1000 // 10 minutes
+};
 
 // Fallback data - reduced version
 const fallbackCertifications = [
@@ -74,6 +81,50 @@ const fallbackCertifications = [
   }
 ];
 
+// Type to image mapping
+const typeImageMap = {
+  'Project Management': 'https://img-c.udemycdn.com/course/750x422/2806490_5db0.jpg',
+  'Cloud Computing': 'https://d1.awsstatic.com/training-and-certification/certification-badges/AWS-Certified-Cloud-Practitioner_badge.634f8a21af2e0e956ed8905a72366146ba22b74c.png',
+  'Leadership': 'https://media.licdn.com/dms/image/D5612AQEZ9MmzDX0Quw/article-cover_image-shrink_600_2000/0/1655660612362?e=2147483647&v=beta&t=HANgb1jU-vKOK4L_fUDFPqz_FVjNg-8XKY3BONvObs4',
+  'Cybersecurity': 'https://img-c.udemycdn.com/course/750x422/614772_233b_9.jpg',
+  'Human Resources': 'https://www.shrm.org/adobe/dynamicmedia/deliver/dm-aid--f30d95fb-cf54-463f-8557-eb68a1b0065a/shrm-cp-badge.png'
+};
+
+// Motion components
+const MotionGrid = motion(Grid);
+const MotionBox = motion(Box);
+
+// Skeleton component for loading state with animation
+const CertificationSkeleton = ({ index }) => (
+  <Fade in={true} timeout={300 + index * 50}>
+    <Paper 
+      elevation={0}
+      sx={{ 
+        p: 0, 
+        borderRadius: 2, 
+        overflow: 'hidden',
+        height: 280
+      }}
+    >
+      <Skeleton 
+        variant="rectangular" 
+        height={160} 
+        animation="wave"
+        sx={{ animationDelay: `${index * 0.1}s` }}
+      />
+      <Box sx={{ p: 2 }}>
+        <Skeleton variant="text" width="80%" height={28} animation="wave" />
+        <Skeleton variant="text" width="60%" height={20} sx={{ mt: 1 }} animation="wave" />
+        <Box sx={{ display: 'flex', gap: 1, mt: 2 }}>
+          <Skeleton variant="rounded" width={60} height={24} animation="wave" />
+          <Skeleton variant="rounded" width={80} height={24} animation="wave" />
+          <Skeleton variant="rounded" width={50} height={24} animation="wave" />
+        </Box>
+      </Box>
+    </Paper>
+  </Fade>
+);
+
 const Certifications = () => {
   const theme = useTheme();
   const navigate = useNavigate();
@@ -81,7 +132,6 @@ const Certifications = () => {
   // States
   const [searchTerm, setSearchTerm] = useState('');
   const [certifications, setCertifications] = useState([]);
-  const [filteredCerts, setFilteredCerts] = useState([]);
   const [showFilters, setShowFilters] = useState(false);
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [skillFilter, setSkillFilter] = useState([]);
@@ -89,52 +139,59 @@ const Certifications = () => {
   const [allSkills, setAllSkills] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
-  
-  // Nuevos estados para la mejora de filtros
   const [skillSearchTerm, setSkillSearchTerm] = useState('');
-  const [filteredSkills, setFilteredSkills] = useState([]);
-  
-  // Animation state
   const [animationReady, setAnimationReady] = useState(false);
 
-  // Nuevo método para navegar a My Certifications
-  const handleGoToMyCertifications = () => {
+  // Navigate to My Certifications
+  const handleGoToMyCertifications = useCallback(() => {
     navigate('/my-certifications');
-  };
+  }, [navigate]);
 
-  // Effect to load data
+  // Optimized data fetching with caching
   useEffect(() => {
     const fetchData = async () => {
       try {
         setIsLoading(true);
         
-        const { data: skillsData, error: skillsError } = await supabase
-          .from('Skill')
-          .select('skill_ID, name');
-        
-        if (skillsError) {
-          throw new Error(`Error loading skills: ${skillsError.message}`);
-        }
-        
-        const skillIdToName = {};
-        let skillNames = [];
-        
-        if (skillsData?.length > 0) {
-          skillsData.forEach(skill => skillIdToName[skill.skill_ID] = skill.name);
-          skillNames = skillsData.map(skill => skill.name).sort();
+        // Check cache first
+        if (certificationsCache.data && 
+            certificationsCache.timestamp && 
+            Date.now() - certificationsCache.timestamp < certificationsCache.CACHE_DURATION) {
+          
+          const { processedCerts, skillNames, uniqueTypes } = certificationsCache.data;
+          setCertifications(processedCerts);
+          setCategories(uniqueTypes);
           setAllSkills(skillNames);
-          setFilteredSkills(skillNames); // Inicializa filteredSkills con todas las skills
+          setIsLoading(false);
+          return;
         }
 
-        const { data: certData, error: certError } = await supabase
-          .from('Certifications')
-          .select('*');
+        // Parallel fetching of skills and certifications
+        const [skillsResponse, certsResponse] = await Promise.all([
+          supabase.from('Skill').select('skill_ID, name'),
+          supabase.from('Certifications').select('*')
+        ]);
 
-        if (certError) {
-          throw new Error(`Error loading certifications: ${certError.message}`);
+        if (skillsResponse.error) throw new Error(`Error loading skills: ${skillsResponse.error.message}`);
+        if (certsResponse.error) throw new Error(`Error loading certifications: ${certsResponse.error.message}`);
+
+        const skillsData = skillsResponse.data || [];
+        const certData = certsResponse.data || [];
+
+        // Process skills
+        const skillIdToName = {};
+        const skillNames = [];
+        
+        if (skillsData.length > 0) {
+          skillsData.forEach(skill => {
+            skillIdToName[skill.skill_ID] = skill.name;
+            skillNames.push(skill.name);
+          });
+          skillNames.sort();
         }
 
-        if (!certData?.length) {
+        // Process certifications
+        if (!certData.length) {
           console.log("No certification data found, using fallback");
           setupFallbackData();
           return;
@@ -154,9 +211,9 @@ const Certifications = () => {
             }
           }
           
-          // Get image
           const backgroundImage = cert.certification_Image || 
-            getDefaultImageByType(cert.type);
+            typeImageMap[cert.type] || 
+            'https://img-c.udemycdn.com/course/750x422/1650610_2673_6.jpg';
           
           return {
             id: cert.certification_id,
@@ -169,14 +226,11 @@ const Certifications = () => {
           };
         });
         
-        setCertifications(processedCerts);
-        setFilteredCerts(processedCerts);
-        
         const uniqueTypes = ['all', ...new Set(
           processedCerts.map(cert => cert.type).filter(Boolean)
         )];
-        setCategories(uniqueTypes);
         
+        // If no skills from DB, extract from certifications
         if (!skillNames.length) {
           const allSkillsSet = new Set();
           processedCerts.forEach(cert => {
@@ -184,38 +238,37 @@ const Certifications = () => {
               if (skill) allSkillsSet.add(skill);
             });
           });
-          setAllSkills([...allSkillsSet].sort());
-          setFilteredSkills([...allSkillsSet].sort()); // Inicializa filteredSkills
+          skillNames.push(...[...allSkillsSet].sort());
         }
+
+        // Cache the processed data
+        certificationsCache.data = {
+          processedCerts,
+          skillNames,
+          uniqueTypes
+        };
+        certificationsCache.timestamp = Date.now();
+
+        setCertifications(processedCerts);
+        setCategories(uniqueTypes);
+        setAllSkills(skillNames);
+        
       } catch (error) {
         console.error("Error fetching data:", error);
         setError(error.message);
         setupFallbackData();
       } finally {
         setIsLoading(false);
-        // Trigger animations after a short delay
-        setTimeout(() => setAnimationReady(true), 100);
+        // Trigger animations after data is ready
+        requestAnimationFrame(() => {
+          setAnimationReady(true);
+        });
       }
     };
 
-    // Function to get a default image by type
-    const getDefaultImageByType = (type) => {
-      const typeImageMap = {
-        'Project Management': 'https://img-c.udemycdn.com/course/750x422/2806490_5db0.jpg',
-        'Cloud Computing': 'https://d1.awsstatic.com/training-and-certification/certification-badges/AWS-Certified-Cloud-Practitioner_badge.634f8a21af2e0e956ed8905a72366146ba22b74c.png',
-        'Leadership': 'https://media.licdn.com/dms/image/D5612AQEZ9MmzDX0Quw/article-cover_image-shrink_600_2000/0/1655660612362?e=2147483647&v=beta&t=HANgb1jU-vKOK4L_fUDFPqz_FVjNg-8XKY3BONvObs4',
-        'Cybersecurity': 'https://img-c.udemycdn.com/course/750x422/614772_233b_9.jpg',
-        'Human Resources': 'https://www.shrm.org/adobe/dynamicmedia/deliver/dm-aid--f30d95fb-cf54-463f-8557-eb68a1b0065a/shrm-cp-badge.png'
-      };
-      
-      return typeImageMap[type] || 'https://img-c.udemycdn.com/course/750x422/1650610_2673_6.jpg';
-    };
-
-    // Function to use fallback data
     const setupFallbackData = () => {
       console.log("Using fallback certification data");
       setCertifications(fallbackCertifications);
-      setFilteredCerts(fallbackCertifications);
       
       const uniqueTypes = ['all', ...new Set(fallbackCertifications.map(cert => cert.type))];
       setCategories(uniqueTypes);
@@ -227,35 +280,26 @@ const Certifications = () => {
         });
       });
       setAllSkills([...allSkillsSet].sort());
-      setFilteredSkills([...allSkillsSet].sort()); // Inicializa filteredSkills
     };
 
     fetchData();
   }, []);
 
-  // Effect para filtrar las skills basado en el término de búsqueda
-  useEffect(() => {
-    if (!allSkills.length) return;
+  // Memoized filtered skills
+  const filteredSkills = useMemo(() => {
+    if (!allSkills.length) return [];
     
-    if (!skillSearchTerm) {
-      setFilteredSkills(allSkills);
-      return;
-    }
+    if (!skillSearchTerm) return allSkills;
     
     const search = skillSearchTerm.toLowerCase().trim();
-    const filtered = allSkills.filter(skill => 
+    return allSkills.filter(skill => 
       skill.toLowerCase().includes(search)
     );
-    
-    setFilteredSkills(filtered);
   }, [skillSearchTerm, allSkills]);
 
-  // Effect to apply filters with animation reset
-  useEffect(() => {
-    if (!certifications.length) return;
-    
-    // Reset animation for smooth transitions
-    setAnimationReady(false);
+  // Memoized filtered certifications
+  const filteredCerts = useMemo(() => {
+    if (!certifications.length) return [];
     
     let filtered = [...certifications];
     
@@ -281,33 +325,11 @@ const Certifications = () => {
       );
     }
     
-    setFilteredCerts(filtered);
-    
-    // Trigger animations after filtering
-    setTimeout(() => setAnimationReady(true), 100);
+    return filtered;
   }, [searchTerm, categoryFilter, skillFilter, certifications]);
 
-  // Functions to handle filters
-  const handleSkillToggle = (skill) => {
-    setSkillFilter(prev => 
-      prev.includes(skill) 
-        ? prev.filter(s => s !== skill)
-        : [...prev, skill]
-    );
-  };
-
-  const handleClearFilters = () => {
-    setSearchTerm('');
-    setCategoryFilter('all');
-    setSkillFilter([]);
-    setSkillSearchTerm('');
-  };
-
-  const toggleFilters = () => setShowFilters(!showFilters);
-  const closeFilters = () => setShowFilters(false);
-
-  // Función para agrupar skills alfabéticamente
-  const getSkillGroups = () => {
+  // Memoized skill groups
+  const skillGroups = useMemo(() => {
     if (filteredSkills.length === 0) return [];
     
     const groups = {};
@@ -323,149 +345,137 @@ const Certifications = () => {
     return Object.entries(groups)
       .map(([letter, skills]) => ({ letter, skills }))
       .sort((a, b) => a.letter.localeCompare(b.letter));
-  };
+  }, [filteredSkills]);
+
+  // Callbacks
+  const handleSkillToggle = useCallback((skill) => {
+    setSkillFilter(prev => 
+      prev.includes(skill) 
+        ? prev.filter(s => s !== skill)
+        : [...prev, skill]
+    );
+  }, []);
+
+  const handleClearFilters = useCallback(() => {
+    setSearchTerm('');
+    setCategoryFilter('all');
+    setSkillFilter([]);
+    setSkillSearchTerm('');
+  }, []);
+
+  const toggleFilters = useCallback(() => setShowFilters(!showFilters), [showFilters]);
+  const closeFilters = useCallback(() => setShowFilters(false), []);
 
   // Count of active filters
-  const activeFilterCount = [
-    searchTerm ? 1 : 0,
-    categoryFilter !== 'all' ? 1 : 0,
-    skillFilter.length
-  ].reduce((a, b) => a + b, 0);
+  const activeFilterCount = useMemo(() => 
+    [
+      searchTerm ? 1 : 0,
+      categoryFilter !== 'all' ? 1 : 0,
+      skillFilter.length
+    ].reduce((a, b) => a + b, 0),
+    [searchTerm, categoryFilter, skillFilter]
+  );
 
-  // Loading states
+  // Loading state with animated skeletons
   if (isLoading) {
     return (
-      <Box 
-        sx={{ 
-          display: 'flex', 
-          flexDirection: 'column',
-          justifyContent: 'center', 
-          alignItems: 'center',
-          minHeight: '200px',
-          height: '30vh',
-          gap: 3,
-          p: 4,
-          width: '100%'
-        }}
-      >
-        <Box sx={{ position: 'relative' }}>
-          <CircularProgress 
-            size={60} 
-            thickness={3} 
-            sx={{ 
-              color: alpha(ACCENTURE_COLORS.corePurple1, 0.1)
-            }} 
-          />
-          <CircularProgress 
-            size={60} 
-            thickness={3} 
-            variant="indeterminate"
-            sx={{ 
-              color: ACCENTURE_COLORS.corePurple1,
-              position: 'absolute',
-              left: 0,
-              animationDuration: '1.5s',
-              '& .MuiCircularProgress-circle': {
-                strokeLinecap: 'round',
-              }
-            }} 
-          />
-        </Box>
-        <Fade in={true} timeout={1000}>
-          <Typography 
-            variant="subtitle1" 
-            sx={{
-              color: alpha('#000', 0.6),
-              fontWeight: 500,
-              letterSpacing: 0.5,
-              animation: 'pulse 2s ease-in-out infinite',
-              '@keyframes pulse': {
-                '0%': { opacity: 0.6 },
-                '50%': { opacity: 1 },
-                '100%': { opacity: 0.6 }
-              }
-            }}
-          >
-            Loading Certifications...
-          </Typography>
+      <Box sx={{ width: "100%", p: { xs: 2, md: 3 } }}>
+        {/* Header skeleton */}
+        <Fade in={true} timeout={400}>
+          <Box sx={{ mb: 4 }}>
+            <Skeleton variant="text" width={200} height={40} animation="wave" />
+            <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
+              <Skeleton variant="rounded" width={240} height={40} animation="wave" />
+              <Skeleton variant="rounded" width={150} height={40} animation="wave" />
+              <Skeleton variant="rounded" width={100} height={40} animation="wave" />
+            </Box>
+          </Box>
         </Fade>
+        
+        {/* Certification cards skeleton */}
+        <Grid container spacing={3}>
+          {[...Array(8)].map((_, index) => (
+            <Grid item xs={12} sm={6} md={4} lg={3} key={index}>
+              <CertificationSkeleton index={index} />
+            </Grid>
+          ))}
+        </Grid>
       </Box>
     );
   }
 
-  // Error view
+  // Error view with animation
   if (error && !certifications.length) {
     return (
-      <Box sx={{ width: '100%', p: { xs: 2, md: 4 } }}>
-        <Paper 
-          elevation={0}
-          sx={{ 
-            p: 4, 
-            textAlign: 'center',
-            borderRadius: 2,
-            border: '1px solid',
-            borderColor: alpha('#000', 0.08),
-          }}
-        >
-          <SchoolIcon sx={{ fontSize: 48, color: theme.palette.error.main, mb: 2 }} />
-          <Typography variant="h6" color="error" gutterBottom>
-            Error Loading Certifications
-          </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-            {error}
-          </Typography>
-          <Button 
-            variant="contained" 
-            color="primary"
+      <Fade in={true} timeout={600}>
+        <Box sx={{ width: '100%', p: { xs: 2, md: 4 } }}>
+          <Paper 
+            elevation={0}
             sx={{ 
-              ...primaryButtonStyles,
-              bgcolor: ACCENTURE_COLORS.corePurple1
+              p: 4, 
+              textAlign: 'center',
+              borderRadius: 2,
+              border: '1px solid',
+              borderColor: alpha('#000', 0.08),
             }}
-            onClick={() => window.location.reload()}
           >
-            Try Again
-          </Button>
-        </Paper>
-      </Box>
+            <motion.div
+              initial={{ rotate: 0 }}
+              animate={{ rotate: [0, -5, 5, -5, 0] }}
+              transition={{ duration: 0.5 }}
+            >
+              <SchoolIcon sx={{ fontSize: 48, color: theme.palette.error.main, mb: 2 }} />
+            </motion.div>
+            <Typography variant="h6" color="error" gutterBottom>
+              Error Loading Certifications
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+              {error}
+            </Typography>
+            <Button 
+              variant="contained" 
+              color="primary"
+              sx={{ 
+                ...primaryButtonStyles,
+                bgcolor: ACCENTURE_COLORS.corePurple1
+              }}
+              onClick={() => window.location.reload()}
+            >
+              Try Again
+            </Button>
+          </Paper>
+        </Box>
+      </Fade>
     );
   }
 
+  // Animation variants for optimized performance
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.05,
+        when: "beforeChildren"
+      }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        type: "spring",
+        stiffness: 100,
+        damping: 15
+      }
+    }
+  };
+
   return (
-    <Box
-      sx={{
-        width: "100%",
-        p: { xs: 2, md: 3 },
-        position: 'relative',
-        '@keyframes fadeInUp': {
-          from: {
-            opacity: 0,
-            transform: 'translateY(30px)'
-          },
-          to: {
-            opacity: 1,
-            transform: 'translateY(0)'
-          }
-        },
-        '@keyframes scaleIn': {
-          from: {
-            opacity: 0,
-            transform: 'scale(0.9)'
-          },
-          to: {
-            opacity: 1,
-            transform: 'scale(1)'
-          }
-        },
-        '@keyframes shimmer': {
-          '0%': {
-            backgroundPosition: '-1000px 0'
-          },
-          '100%': {
-            backgroundPosition: '1000px 0'
-          }
-        }
-      }}
-    >
+    <Box sx={{ width: "100%", p: { xs: 2, md: 3 } }}>
       {/* Header */}
       <Box 
         sx={{ 
@@ -545,7 +555,6 @@ const Certifications = () => {
             }}
           />
 
-          {/* NUEVO BOTÓN para My Certifications */}
           <Button
             variant="contained"
             startIcon={<BadgeIcon />}
@@ -604,37 +613,37 @@ const Certifications = () => {
         </Box>
       </Box>
 
-      {/* Floating filter panel MEJORADO */}
-      {showFilters && (
-        <ClickAwayListener onClickAway={closeFilters}>
-          <Paper
-            elevation={10}
-            sx={{
-              position: 'absolute',
-              top: { xs: '120px', md: '70px' },
-              right: { xs: '16px', md: '24px' },
-              width: { xs: 'calc(100% - 32px)', sm: '450px', md: '400px' },
-              maxWidth: '100%',
-              borderRadius: 3,
-              zIndex: 100,
-              overflow: 'hidden',
-              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.12), 0 0 2px rgba(0, 0, 0, 0.08)',
-              animation: 'slideIn 0.3s cubic-bezier(0.23, 1, 0.32, 1) forwards',
-              '@keyframes slideIn': {
-                '0%': {
-                  opacity: 0,
-                  transform: 'translateY(-20px)'
-                },
-                '100%': {
-                  opacity: 1,
-                  transform: 'translateY(0)'
-                }
-              },
-              border: '1px solid',
-              borderColor: alpha('#000', 0.06),
-              backdropFilter: 'blur(2px)'
-            }}
-          >
+      {/* Floating filter panel with animation */}
+      <AnimatePresence>
+        {showFilters && (
+          <ClickAwayListener onClickAway={closeFilters}>
+            <MotionBox
+              initial={{ opacity: 0, y: -20, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -20, scale: 0.95 }}
+              transition={{ 
+                type: "spring", 
+                stiffness: 300, 
+                damping: 25,
+                duration: 0.3
+              }}
+              component={Paper}
+              elevation={10}
+              sx={{
+                position: 'absolute',
+                top: { xs: '120px', md: '70px' },
+                right: { xs: '16px', md: '24px' },
+                width: { xs: 'calc(100% - 32px)', sm: '450px', md: '400px' },
+                maxWidth: '100%',
+                borderRadius: 3,
+                zIndex: 100,
+                overflow: 'hidden',
+                boxShadow: '0 8px 32px rgba(0, 0, 0, 0.12), 0 0 2px rgba(0, 0, 0, 0.08)',
+                border: '1px solid',
+                borderColor: alpha('#000', 0.06),
+                backdropFilter: 'blur(2px)'
+              }}
+            >
             {/* Filter panel header */}
             <Box
               sx={{
@@ -780,7 +789,7 @@ const Certifications = () => {
                 </Box>
               </Box>
 
-              {/* Skills - Mejorado con búsqueda y agrupamiento */}
+              {/* Skills */}
               <Box sx={{ mb: 3 }}>
                 <Box
                   sx={{
@@ -814,7 +823,7 @@ const Certifications = () => {
                   )}
                 </Box>
 
-                {/* Búsqueda de Skills */}
+                {/* Skills search */}
                 <TextField
                   placeholder="Search skills..."
                   variant="outlined"
@@ -862,7 +871,7 @@ const Certifications = () => {
                   }}
                 />
 
-                {/* Skills seleccionadas */}
+                {/* Selected skills */}
                 {skillFilter.length > 0 && (
                   <Box 
                     sx={{ 
@@ -903,7 +912,7 @@ const Certifications = () => {
                   </Box>
                 )}
 
-                {/* Lista de skills filtrada */}
+                {/* Skills list */}
                 <Box
                   sx={{
                     display: 'flex',
@@ -933,7 +942,7 @@ const Certifications = () => {
                   }}
                 >
                   {filteredSkills.length > 0 ? (
-                    getSkillGroups().map(group => (
+                    skillGroups.map(group => (
                       <Box key={group.letter} sx={{ mb: 2.5 }}>
                         <Typography 
                           variant="caption" 
@@ -1089,96 +1098,118 @@ const Certifications = () => {
                 </Box>
               )}
             </Box>
-          </Paper>
-        </ClickAwayListener>
-      )}
+            </MotionBox>
+          </ClickAwayListener>
+        )}
+      </AnimatePresence>
 
-      {/* Results */}
-      {filteredCerts.length > 0 ? (
-        <Fade in={animationReady} timeout={600}>
-          <Grid container spacing={3}>
-            {filteredCerts.map((cert, index) => (
-              <Grid item xs={12} sm={6} md={4} lg={3} key={cert.id}>
-                <Grow 
-                  in={animationReady} 
-                  timeout={800 + index * 100}
-                  style={{ 
-                    transformOrigin: '0 0 0',
-                    transitionDelay: `${index * 50}ms`
+      {/* Results with optimized animations */}
+      <AnimatePresence mode="wait">
+        {filteredCerts.length > 0 ? (
+          <MotionBox
+            key="results"
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
+            exit="hidden"
+          >
+            <Grid container spacing={3}>
+              {filteredCerts.map((cert, index) => (
+                <MotionGrid
+                  item 
+                  xs={12} 
+                  sm={6} 
+                  md={4} 
+                  lg={3} 
+                  key={cert.id}
+                  variants={itemVariants}
+                  layout
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ 
+                    opacity: 1, 
+                    y: 0,
+                    transition: {
+                      delay: Math.min(index * 0.05, 0.3), // Cap the delay to prevent long waits
+                      type: "spring",
+                      stiffness: 100,
+                      damping: 15
+                    }
+                  }}
+                  exit={{ opacity: 0, y: -20 }}
+                  whileHover={{ 
+                    y: -8,
+                    transition: { duration: 0.2 }
                   }}
                 >
-                  <Box
-                    sx={{
-                      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                      '&:hover': {
-                        transform: 'translateY(-8px) scale(1.02)',
-                      }
-                    }}
-                  >
-                    <CertificationCard
-                      id={cert.id}  
-                      title={cert.title}
-                      url={cert.url}
-                      skills={cert.skills || []}
-                      backgroundImage={cert.backgroundImage}
-                      duration={cert.issuer}
-                    />
-                  </Box>
-                </Grow>
-              </Grid>
-            ))}
-          </Grid>
-        </Fade>
-      ) : (
-        <Fade in={animationReady} timeout={600}>
-          <Paper 
-            elevation={0}
-            sx={{ 
-              p: 4, 
-              textAlign: 'center', 
-              borderRadius: 2,
-              border: '1px dashed',
-              borderColor: alpha('#000', 0.12),
-              bgcolor: '#fff',
-              transition: 'all 0.3s ease',
-              '&:hover': {
-                borderColor: alpha(ACCENTURE_COLORS.corePurple1, 0.3),
-                boxShadow: `0 4px 20px ${alpha(ACCENTURE_COLORS.corePurple1, 0.1)}`
-              }
-            }}
-          >
-            <SchoolIcon sx={{ fontSize: 48, color: alpha('#000', 0.2), mb: 2 }} />
-            <Box>
-              <Typography variant="h6" color="text.secondary" gutterBottom>
-                No certifications found
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                Try adjusting your filters or search criteria
-              </Typography>
-            </Box>
-            <Button 
-              variant="contained"
-              startIcon={<ClearIcon />}
-              onClick={handleClearFilters}
+                  <CertificationCard
+                    id={cert.id}  
+                    title={cert.title}
+                    url={cert.url}
+                    skills={cert.skills || []}
+                    backgroundImage={cert.backgroundImage}
+                    duration={cert.issuer}
+                  />
+                </MotionGrid>
+              ))}
+            </Grid>
+          </MotionBox>
+        ) : (
+          <Fade in={animationReady} timeout={600}>
+            <Paper 
+              elevation={0}
               sx={{ 
-                ...primaryButtonStyles,
-                bgcolor: ACCENTURE_COLORS.corePurple1,
-                textTransform: 'none',
-                fontWeight: 500,
-                borderRadius: 8,
-                boxShadow: 'none',
+                p: 4, 
+                textAlign: 'center', 
+                borderRadius: 2,
+                border: '1px dashed',
+                borderColor: alpha('#000', 0.12),
+                bgcolor: '#fff',
                 transition: 'all 0.3s ease',
                 '&:hover': {
-                  transform: 'scale(1.05)',
-                  boxShadow: '0 4px 20px rgba(161, 0, 255, 0.3)'
+                  borderColor: alpha(ACCENTURE_COLORS.corePurple1, 0.3),
+                  boxShadow: `0 4px 20px ${alpha(ACCENTURE_COLORS.corePurple1, 0.1)}`
                 }
               }}
             >
-              Clear all filters
-            </Button>
-          </Paper>
-        </Fade>
-      )}
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ type: "spring", duration: 0.5 }}
+              >
+                <SchoolIcon sx={{ fontSize: 48, color: alpha('#000', 0.2), mb: 2 }} />
+              </motion.div>
+              <Box>
+                <Typography variant="h6" color="text.secondary" gutterBottom>
+                  No certifications found
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                  Try adjusting your filters or search criteria
+                </Typography>
+              </Box>
+              <Button 
+                variant="contained"
+                startIcon={<ClearIcon />}
+                onClick={handleClearFilters}
+                sx={{ 
+                  ...primaryButtonStyles,
+                  bgcolor: ACCENTURE_COLORS.corePurple1,
+                  textTransform: 'none',
+                  fontWeight: 500,
+                  borderRadius: 8,
+                  boxShadow: 'none',
+                  transition: 'all 0.3s ease',
+                  '&:hover': {
+                    transform: 'scale(1.05)',
+                    boxShadow: '0 4px 20px rgba(161, 0, 255, 0.3)'
+                  }
+                }}
+              >
+                Clear all filters
+              </Button>
+            </Paper>
+          </Fade>
+        )}
+      </AnimatePresence>
     </Box>
   );
 };
