@@ -392,7 +392,7 @@ const Dashboard = () => {
               Welcome back!
             </Typography>
             <Typography variant="body1" sx={{ color: alpha('#ffffff', 0.9) }}>
-              {formattedDate} • {userRole || "Professional"}
+              Today is {formattedDate}
             </Typography>
           </Grid>
           {/* Icons removed as requested */}
