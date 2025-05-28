@@ -1,5 +1,5 @@
-import React from "react";
-import { Box, Typography, Paper, Avatar, useMediaQuery } from "@mui/material";
+import React, { useEffect, useState } from "react";
+import { Box, Typography, Paper, Avatar, useMediaQuery, Fade, Grow } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import {
   WorkspacePremium,
@@ -28,6 +28,14 @@ const TimelineItem = ({ item = defaultItem, isLast = false, index = 0 }) => {
   
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsVisible(true);
+    }, index * 150); // Staggered animation delay
+    return () => clearTimeout(timer);
+  }, [index]);
 
   const getColor = () => {
     return safeItem.type === "project" 
@@ -38,13 +46,14 @@ const TimelineItem = ({ item = defaultItem, isLast = false, index = 0 }) => {
   const Icon = safeItem.type === "project" ? Code : WorkspacePremium;
 
   return (
-    <Box
-      sx={{
-        display: "flex",
-        position: "relative",
-        mb: isLast ? 0 : 5,
-      }}
-    >
+    <Fade in={isVisible} timeout={1000}>
+      <Box
+        sx={{
+          display: "flex",
+          position: "relative",
+          mb: isLast ? 0 : 5,
+        }}
+      >
       {/* Left column with timeline element */}
       <Box
         sx={{
@@ -66,6 +75,11 @@ const TimelineItem = ({ item = defaultItem, isLast = false, index = 0 }) => {
             border: `2px solid ${getColor()}`,
             boxShadow: `0 0 0 4px ${getColor()}10`,
             zIndex: 2,
+            transition: 'all 0.3s ease',
+            '&:hover': {
+              transform: 'scale(1.1)',
+              boxShadow: `0 0 0 6px ${getColor()}20`,
+            },
           }}
         >
           <Icon fontSize="small" />
@@ -74,11 +88,30 @@ const TimelineItem = ({ item = defaultItem, isLast = false, index = 0 }) => {
           <Box
             sx={{
               width: 2,
-              height: "calc(100% + 40px)", // Extend to connect with next icon
+              height: "calc(100% + 40px)",
               position: "absolute",
               top: { xs: 36, md: 44 },
-              bgcolor: ACCENTURE_COLORS.corePurple1, // Using Accenture's primary purple
+              background: `linear-gradient(to bottom, ${ACCENTURE_COLORS.corePurple1}40, ${ACCENTURE_COLORS.corePurple1}20)`,
               zIndex: 1,
+              opacity: isVisible ? 1 : 0,
+              transform: isVisible ? 'scaleY(1)' : 'scaleY(0)',
+              transformOrigin: 'top',
+              transition: 'all 0.8s cubic-bezier(0.4, 0, 0.2, 1)',
+              transitionDelay: `${index * 150 + 300}ms`,
+              '&::after': {
+                content: '""',
+                position: 'absolute',
+                top: '-2px',
+                left: '50%',
+                width: 6,
+                height: 6,
+                bgcolor: ACCENTURE_COLORS.corePurple1,
+                borderRadius: '50%',
+                transform: 'translate(-50%, -50%)',
+                opacity: isVisible ? 0.6 : 0,
+                transition: 'opacity 0.5s ease',
+                transitionDelay: `${index * 150 + 800}ms`,
+              },
             }}
           />
         )}
@@ -95,10 +128,11 @@ const TimelineItem = ({ item = defaultItem, isLast = false, index = 0 }) => {
             boxShadow: "0 2px 12px rgba(0, 0, 0, 0.03)",
             border: `1px solid ${getColor()}10`,
             position: "relative",
+            transition: 'all 0.3s ease',
             "&:hover": {
-              boxShadow: "0 4px 16px rgba(0, 0, 0, 0.06)",
+              boxShadow: "0 4px 20px rgba(0, 0, 0, 0.08)",
               transform: "translateY(-2px)",
-              transition: "all 0.2s ease",
+              borderColor: `${getColor()}20`,
             },
           }}
         >
@@ -189,12 +223,20 @@ const TimelineItem = ({ item = defaultItem, isLast = false, index = 0 }) => {
         </Paper>
       </Box>
     </Box>
+    </Fade>
   );
 };
 
 const CareerTimeline = ({ timelineItems = [] }) => {
   // Ensure timelineItems is an array
   const safeTimelineItems = Array.isArray(timelineItems) ? timelineItems : [];
+  const [showLine, setShowLine] = useState(false);
+
+  useEffect(() => {
+    if (safeTimelineItems.length > 0) {
+      setTimeout(() => setShowLine(true), 100);
+    }
+  }, [safeTimelineItems.length]);
 
   return (
     <Box
@@ -205,21 +247,6 @@ const CareerTimeline = ({ timelineItems = [] }) => {
         pr: { xs: 0, sm: 2 },
       }}
     >
-      {/* Only show the line if there are items */}
-      {safeTimelineItems.length > 0 && (
-        <Box
-          sx={{
-            position: "absolute",
-            left: { xs: 38, md: 53 },
-            width: 6,  // Thinner line for a more elegant look
-            top: 22,
-            bottom: 22,
-            bgcolor: `${ACCENTURE_COLORS.corePurple1}20`,  // More subtle
-            borderRadius: 4,
-            zIndex: 1,
-          }}
-        />
-      )}
       
       {safeTimelineItems.map((item, index) => (
         <TimelineItem

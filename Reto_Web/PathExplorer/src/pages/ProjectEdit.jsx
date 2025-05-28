@@ -232,7 +232,7 @@ const ProjectEdit = () => {
 
       setSnackbar({
         open: true,
-        message: "Proyecto y feedback guardados exitosamente!",
+        message: "Proyecto & feedback saved succesfully!",
         severity: "success",
       });
       setFeedbackOpen(false);
