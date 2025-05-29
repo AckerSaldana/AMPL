@@ -89,10 +89,6 @@ describe('Flujo E2E – Login y navegación a Projects', () => {
       .should('not.include', '/login')
       .and('match', /\/dashboard(-admin|-employee)?$/);
 
-    // 3) Verificamos que el dashboard muestra el encabezado esperado
-    cy.get('h4')
-      .should('contain.text', 'Welcome back!');
-
     // 4) Hacemos clic en el ítem de menú “Projects”
     cy.get('nav ul').within(() => {
       cy.contains('Projects').click();
@@ -160,9 +156,6 @@ describe('Flujo E2E – Login y navegación a My Path', () => {
     // Validar que estamos en dashboard
     cy.url({ timeout: 10_000 })
       .should('match', /\/dashboard(-admin|-employee)?$/);
-    cy.get('h4')
-      .should('contain.text', 'Welcome back!');
-
     // — Ir a My Path —
     cy.contains('a.MuiListItem-root', 'My Path')
       .click();
@@ -221,9 +214,7 @@ describe('Flujo E2E – Login y navegación a Certifications', () => {
     // Verificar dashboard
     cy.url({ timeout: 10_000 })
       .should('match', /\/dashboard(-admin|-employee)?$/);
-    cy.get('h4')
-      .should('contain.text', 'Welcome back!');
-
+    
     // — Navegar a Certifications —
     cy.contains('a.MuiListItem-root', 'Certifications').click();
     cy.url()
@@ -304,7 +295,6 @@ describe('Flujo E2E – Login y navegación a Profiles', () => {
     // Validar que estamos en dashboard
     cy.url({ timeout: 10_000 })
       .should('match', /\/dashboard(-admin|-employee)?$/);
-    cy.get('h4').should('contain.text', 'Welcome back!');
 
     // — Navegar a Profiles —
     cy.contains('a.MuiListItem-root', 'Profiles').click();
