@@ -40,7 +40,8 @@ describe('Flujo de autenticación – Login', () => {
       .and('match', /\/dashboard(-admin|-employee)?$/)
 
     // 3) Verificamos que el dashboard muestra algo esperable
-    cy.get('h4').should('contain.text', 'Welcome back!')
+    cy.contains(/h[1-6]/, 'Welcome back!').should('be.visible');
+
 
     
   })
@@ -453,7 +454,7 @@ describe('E2E – User Profile y Edit Profile', () => {
     cy.wait('@updateUser').its('response.statusCode').should('eq', 200);
 
     // Comprobar snackbar de éxito
-    cy.contains('Profile updated successfully').should('be.visible');
+    cy.contains('Profile updated successfully!').should('be.visible');
     // Y la redirección de vuelta al perfil
     cy.url({ timeout: 10_000 }).should('include', '/user');
   });
