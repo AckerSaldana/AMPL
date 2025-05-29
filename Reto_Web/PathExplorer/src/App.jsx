@@ -12,6 +12,7 @@ import Analytics from "./pages/Analytics";
 import MyPath from "./pages/MyPath";
 import User from "./pages/User";
 import Certifications from "./pages/Certifications";
+import MyCertifications from "./pages/MyCertifications"; // Importamos la nueva página
 import ProjectDashboard from "./pages/ProjectDashboard.jsx";
 import ProjectDetail from "./pages/ProjectDetail.jsx";
 import EditProfile from "./pages/EditProfile";
@@ -49,18 +50,14 @@ function App() {
             <Route index element={<Dashboard />} />
             <Route path="projects" element={<ProjectDashboard />} />
             <Route path="project-detail/:id" element={<ProjectDetail />} />
-            <Route path="project-edit/:id" element={<ProjectEdit />} />
-            <Route path="add-projects" element={<AddProject />} />
-            <Route path="role-assign" element={<RoleAssign />} />
             <Route path="certifications" element={<Certifications />} />
+            <Route path="my-certifications" element={<MyCertifications />} /> {/* Nueva ruta para My Certifications */}
             <Route
               path="submit-certification"
               element={<SubmitCertification />}
             />
             <Route path="mypath" element={<MyPath />} />
             <Route path="user" element={<User />} />
-            {/* Nueva ruta para ver detalle de usuario por ID */}
-            <Route path="user/:id" element={<UserProfileDetail />} />
             <Route path="edit-profile" element={<EditProfile />} />
             {/* Nueva ruta para editar perfil de un usuario específico */}
             <Route path="edit-profile/:id" element={<EditProfile />} />
@@ -69,6 +66,11 @@ function App() {
           {/* Rutas accesibles solo para TFS y manager */}
           <Route element={<ProtectedRoute allowedRoles={["TFS", "manager"]} />}>
             <Route path="profiles" element={<Profiles />} />
+            <Route path="project-edit/:id" element={<ProjectEdit />} />
+            <Route path="add-projects" element={<AddProject />} />
+            <Route path="role-assign" element={<RoleAssign />} />
+            {/* Nueva ruta para ver detalle de usuario por ID */}
+            <Route path="user/:id" element={<UserProfileDetail />} />
           </Route>
 
           {/* Rutas accesibles solo para manager */}

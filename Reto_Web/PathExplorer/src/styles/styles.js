@@ -16,6 +16,9 @@ export const ACCENTURE_COLORS = {
   accentPurple4: "#dcafff", // Accent Purple 4
   accentPurple5: "#e6dcff", // Accent Purple 5
   
+  // Custom Purple
+  accenturePurple: "#9c27b0", // Profile purple used in dashboard
+  
   // Secondary Colors
   blue: "#0041f0",        // Blue
   lightBlue: "#00ffff",   // Light Blue

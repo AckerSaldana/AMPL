@@ -22,15 +22,7 @@ const defaultUserInfo = {
 };
 
 const ProfileSummary = ({ userInfo }) => {
-  // Check if we're receiving actual data or just default/empty data
-  const isLoading = !userInfo || Object.keys(userInfo).length === 0;
-  
-  // If loading, return nothing (parent component should render skeleton)
-  if (isLoading) {
-    return null;
-  }
-  
-  // Ensure consistent values with defaults as fallback
+  // Always render the component with either provided data or defaults
   const safeUserInfo = { ...defaultUserInfo, ...userInfo };
   
   return (

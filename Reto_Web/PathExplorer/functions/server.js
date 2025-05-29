@@ -117,6 +117,41 @@ const getOpenAIApiKey = () => {
   return apiKey;
 };
 
+// ======== AGREGAR AL INICIO DEL ARCHIVO (DESPUÉS DE LOS IMPORTS) ========
+
+// Caché avanzada para matching con timestamp awareness
+const matchingCache = new NodeCache({ stdTTL: 300 }); // 5 minutos por defecto
+
+// Función para generar clave de caché para matching con información de timestamp
+function generateMatchingCacheKey(role, employees) {
+  if (!role || !employees || !employees.length) return null;
+  
+  // Extraer solo los IDs de empleados y ordenarlos para consistencia
+  const employeeIds = employees
+    .map(e => e.id)
+    .filter(Boolean)
+    .sort();
+  
+  if (!employeeIds.length) return null;
+  
+  // Generar hash reducido del rol para identificarlo de manera única
+  const roleId = role.id || 'unknown';
+  const roleHash = generateCacheKey(JSON.stringify({
+    id: role.id,
+    name: role.name || role.role,
+    skills: (role.skills || []).map(s => s.id)
+  })).substring(0, 10);
+  
+  // Obtener la última fecha de actualización entre todos los empleados
+  const latestUpdate = employees.reduce((latest, employee) => {
+    const empDate = employee.updated_at || employee.updatedAt || '2000-01-01';
+    return new Date(empDate) > new Date(latest) ? empDate : latest;
+  }, '2000-01-01');
+  
+  // Crear una clave que incorpore el timestamp para invalidación automática
+  return `match_${roleId}_${roleHash}_${latestUpdate.substring(0, 10)}`;
+}
+
 if (!supabaseUrl || !supabaseServiceRoleKey) {
   console.warn("Advertencia: Variables de entorno de Supabase no configuradas en las fuentes primarias");
   console.warn("URL:", supabaseUrl ? "Configurada" : "No configurada");
@@ -202,6 +237,132 @@ export async function testAPIKey() {
     return false;
   }
 }
+
+/**
+ * Función de pre-filtrado para descartar candidatos sin skills relevantes
+ * @returns {Object} resultado con calificaciones y explicación
+ */
+function preEvaluateCandidate(roleSkills, employeeSkills) {
+  if (!roleSkills || !roleSkills.length || !employeeSkills || !employeeSkills.length) {
+    return {
+      qualified: false,
+      technicalScore: 0,
+      contextualScore: 50, // Neutral
+      combinedScore: 5, // Muy bajo pero no cero
+      reason: "El candidato no tiene habilidades registradas o el rol no especifica habilidades requeridas"
+    };
+  }
+  
+  // Convertir arrays a maps para búsqueda rápida
+  const roleSkillIds = new Set(roleSkills.map(skill => String(skill.id || skill.skill_ID)));
+  const employeeSkillIds = new Set(employeeSkills.map(skill => String(skill.skill_ID || skill.id)));
+  
+  // Verificar si hay alguna coincidencia de habilidades
+  let matchingSkills = 0;
+  for (const skillId of employeeSkillIds) {
+    if (roleSkillIds.has(skillId)) {
+      matchingSkills++;
+    }
+  }
+  
+  // Calcular porcentaje de coincidencia
+  const matchPercentage = (matchingSkills / roleSkillIds.size) * 100;
+  
+  // Verificar si tiene TODAS las habilidades requeridas
+  const hasAllSkills = matchingSkills >= roleSkillIds.size;
+  
+  // Criterios de descalificación más generosos
+  if (matchingSkills === 0) {
+    return {
+      qualified: false,
+      technicalScore: 0,
+      contextualScore: 50, // Neutral
+      combinedScore: 5, // Muy bajo pero no cero
+      reason: "El candidato no tiene ninguna de las habilidades requeridas para el rol"
+    };
+  }
+  
+  // Candidatos con muy pocas habilidades relevantes también reciben puntuaciones muy bajas
+  // Pero ahora somos más generosos - solo descalificamos si tiene menos del 10% (antes era 15%)
+  if (matchPercentage < 10) {
+    return {
+      qualified: false,
+      technicalScore: 10,
+      contextualScore: 50, // Neutral
+      combinedScore: 15,
+      reason: `El candidato solo tiene ${matchingSkills} de ${roleSkillIds.size} habilidades requeridas (${matchPercentage.toFixed(1)}%)`
+    };
+  }
+  
+  // Si tiene todas las habilidades, nota especial
+  if (hasAllSkills) {
+    return {
+      qualified: true,
+      matchingSkills,
+      totalRequired: roleSkillIds.size,
+      matchPercentage,
+      completeMatch: true,
+      note: "El candidato tiene TODAS las habilidades requeridas"
+    };
+  }
+  
+  // Si pasa las verificaciones mínimas, entonces es elegible para evaluación completa
+  return {
+    qualified: true,
+    matchingSkills,
+    totalRequired: roleSkillIds.size,
+    matchPercentage
+  };
+}
+
+  // ======== FUNCIÓN PARA PROCESAMIENTO EN PARALELO ========
+
+/**
+ * Procesa lotes de empleados en paralelo para obtener resultados más rápido
+ */
+async function parallelBatchProcessWithGPT(role, employees, skillMap) {
+  const BATCH_SIZE = 8; // Tamaño óptimo de lote para balance rendimiento/precisión
+  
+  // 1. Calcular pesos dinámicos una sola vez (más eficiente)
+  const { alpha, beta } = calculateDynamicWeights(role.description, role.skills, skillMap);
+  console.log(`Pesos para todos los lotes - Técnico: ${Math.round(alpha * 100)}%, Contextual: ${Math.round(beta * 100)}%`);
+  
+  // 2. Dividir empleados en lotes de tamaño fijo
+  const batches = [];
+  for (let i = 0; i < employees.length; i += BATCH_SIZE) {
+    batches.push(employees.slice(i, i + BATCH_SIZE));
+  }
+  
+  console.log(`Procesando ${employees.length} candidatos en ${batches.length} lotes en paralelo`);
+  
+  try {
+    // 3. Procesar todos los lotes en paralelo usando Promise.all
+    const startTime = Date.now();
+    
+    // Esta es la parte clave: procesamiento paralelo
+    const batchResultsPromises = batches.map(batch => 
+      matchCandidatesWithGPT(role, batch, skillMap)
+    );
+    
+    const batchResults = await Promise.all(batchResultsPromises);
+    
+    // 4. Consolidar resultados
+    const allResults = batchResults.flat();
+    
+    // 5. Ordenar por puntuación
+    allResults.sort((a, b) => b.combinedScore - a.combinedScore);
+    
+    const endTime = Date.now();
+    console.log(`Procesamiento en paralelo completado en ${endTime - startTime}ms`);
+    
+    return allResults;
+  } catch (error) {
+    console.error(`Error en procesamiento paralelo: ${error.message}`);
+    // En caso de error, usar método fallback
+    return fallbackExperienceMatching(role, employees, alpha, beta);
+  }
+}
+
 
 // Preprocesamiento del texto
 export function preprocessText(text, maxLength = 1000) {
@@ -591,8 +752,8 @@ function ensureSkillMap(skillMapInput, role, employees) {
 
 // Función de pesos dinámicos basada en la descripción y skills del rol
 export function calculateDynamicWeights(roleDescription = "", roleSkills = [], skillMap = {}) {
-  // Default weights with new specific limits: technical between 85-95%, contextual between 5-15%
-  let alpha = 0.90, beta = 0.10; 
+  // Default weights with new specific limits: technical between 90-95%, contextual between 5-10%
+  let alpha = 0.92, beta = 0.08; 
   console.log("Calculating dynamic weights based on skills and role description");
   
   // Validación adicional de skillMap
@@ -829,26 +990,26 @@ export function calculateDynamicWeights(roleDescription = "", roleSkills = [], s
     }
   }
   
-  // Calculate dynamic weights based on importance, with new stricter limits
+  // Calculate dynamic weights based on importance, with new stricter limits (90-95% for technical)
   const totalImportance = technicalImportance + softImportance;
   if (totalImportance > 0) {
     // Calculate initial proportion based on importance
     let rawRatio = technicalImportance / totalImportance;
     
-    // Map this ratio to the new range (85-95% for technical)
+    // Map this ratio to the new range (90-95% for technical)
     // Higher rawRatio means more technical weighting
-    alpha = 0.85 + (rawRatio * 0.10); // Ajustado para el rango 85-95%
+    alpha = 0.90 + (rawRatio * 0.05); // Ajustado para el rango 90-95%
     
     // Beta is simply the complement to make sure they sum to 1
     beta = 1 - alpha;
     
-    // Apply hard limits to ensure we're always in the 5-15% range for contextual
+    // Apply hard limits to ensure we're always in the 5-10% range for contextual
     if (beta < 0.05) {  // Mínimo 5% contextual
       beta = 0.05;
       alpha = 0.95;     // Máximo 95% técnico
-    } else if (beta > 0.15) {  // Máximo 15% contextual
-      beta = 0.15;
-      alpha = 0.85;     // Mínimo 85% técnico
+    } else if (beta > 0.10) {  // Máximo 10% contextual
+      beta = 0.10;
+      alpha = 0.90;     // Mínimo 90% técnico
     }
   }
   
@@ -868,22 +1029,22 @@ export function calculateDynamicWeights(roleDescription = "", roleSkills = [], s
     else if ((descLower.includes("culture") || descLower.includes("cultural fit")) && 
              (descLower.includes("soft skills")) ||
              (descLower.includes("client") && descLower.includes("relationship"))) {
-      alpha = 0.85;
-      beta = 0.15;
+      alpha = 0.90;
+      beta = 0.10;
       console.log("Special adjustment: Role focused on soft skills/culture");
     }
     // Detect technical leadership roles - moderate technical focus
     else if ((descLower.includes("technical lead")) && 
              (descLower.includes("team"))) {
-      alpha = 0.90;
-      beta = 0.10;
+      alpha = 0.92;
+      beta = 0.08;
       console.log("Special adjustment: Technical leadership role");
     }
     // Detect project management roles - balance towards more contextual
     else if ((descLower.includes("project manager")) &&
              (descLower.includes("management"))) {
-      alpha = 0.85;
-      beta = 0.15;
+      alpha = 0.90;
+      beta = 0.10;
       console.log("Special adjustment: Project management role");
     }
   }
@@ -904,7 +1065,6 @@ export function calculateDynamicWeights(roleDescription = "", roleSkills = [], s
   return { alpha, beta };
 }
 
-// Modified function to emphasize years of experience and use proficiency as a bonus
 export function calculateSkillMatch(employeeSkills, roleSkills, employeeName = "Employee", roleName = "Role") {
   console.log(`Calculating skill compatibility for ${employeeName} with role ${roleName}`);
   
@@ -913,12 +1073,14 @@ export function calculateSkillMatch(employeeSkills, roleSkills, employeeName = "
     return 0;
   }
   
+  // Mapas para búsqueda rápida
   const roleSkillsMap = {};
   roleSkills.forEach((skill) => {
     const skillId = skill.id || skill.skill_ID;
     if (skillId) {
       roleSkillsMap[skillId] = { 
-        importance: skill.importance || 1
+        importance: skill.importance || 1,
+        years: skill.years || 0
       };
     }
   });
@@ -937,72 +1099,131 @@ export function calculateSkillMatch(employeeSkills, roleSkills, employeeName = "
   console.log(`The role requires ${Object.keys(roleSkillsMap).length} skills`);
   console.log(`The employee has ${Object.keys(employeeSkillsMap).length} skills`);
   
-  // Adjust weights: emphasize years of experience more, treat proficiency as a bonus
-  const YEARS_WEIGHT = 0.8;      // Increased from 0.4 to 0.8
-  const PROFICIENCY_BONUS = 0.2; // Reduced to be a bonus factor
+  // Verificar si tiene todas las habilidades requeridas
+  const totalRequiredSkills = Object.keys(roleSkillsMap).length;
+  const matchedRequiredSkills = Object.keys(roleSkillsMap).filter(skillId => 
+    employeeSkillsMap[skillId]
+  ).length;
+  const hasAllSkills = matchedRequiredSkills === totalRequiredSkills;
   
-  let totalImportance = 0;
-  let matchScore = 0;
-  let matchedSkills = 0;
+  console.log(`Employee has ${matchedRequiredSkills}/${totalRequiredSkills} required skills`);
+  
+  // Verificar cumplimiento exquisito (todas las habilidades con años iguales o superiores)
+  const exactYearsMatch = hasAllSkills && Object.keys(roleSkillsMap).every(skillId => {
+    const requiredYears = roleSkillsMap[skillId].years || 0;
+    const actualYears = employeeSkillsMap[skillId]?.yearExp || 0;
+    return actualYears >= requiredYears;
+  });
+  
+  if (exactYearsMatch) {
+    console.log("⭐ MATCH PERFECTO: Tiene todas las habilidades con años iguales/superiores");
+  }
+  
+  // Cálculo base por habilidad individual
+  let basicScore = 0;
+  let totalWeightedImportance = 0;
+  
+  // Detalles para logging
+  const skillDetails = [];
   
   for (const skillId in roleSkillsMap) {
     const roleSkill = roleSkillsMap[skillId];
-    const skillImportance = roleSkill.importance || 1;
-    totalImportance += skillImportance;
+    const importance = roleSkill.importance || 1;
+    totalWeightedImportance += importance;
     
     if (employeeSkillsMap[skillId]) {
-      matchedSkills++;
       const employeeSkill = employeeSkillsMap[skillId];
+      const requiredYears = roleSkill.years || 0;
+      const actualYears = employeeSkill.yearExp || 0;
       
-      // Calculate years match score - this is now the primary factor
-      // Each year of experience is worth 10% of the maximum score
-      // Up to a maximum of 100% for 10+ years
-      const yearsOfExperience = employeeSkill.yearExp || 0;
-      const yearsMatchScore = Math.min(yearsOfExperience * 0.1, 1.0);
-      
-      // Proficiency is now a bonus on top of years
-      let proficiencyBonus = 0;
-      switch (employeeSkill.proficiency) {
-        case "Expert":
-          proficiencyBonus = 1.0;
-          break;
-        case "Advanced":
-          proficiencyBonus = 0.75;
-          break;
-        case "Intermediate":
-          proficiencyBonus = 0.5;
-          break;
-        case "Medium":
-          proficiencyBonus = 0.5;
-          break;
-        case "High":
-          proficiencyBonus = 0.75;
-          break;
-        case "Low":
-          proficiencyBonus = 0.25;
-          break;
-        default:
-          proficiencyBonus = 0.25;
+      // Base por años requeridos (sin importar proficiency)
+      let yearScore;
+      if (requiredYears === 0 || actualYears >= requiredYears) {
+        // Cumple o excede los años requeridos
+        const extraYears = Math.max(0, actualYears - requiredYears);
+        yearScore = 90 + Math.min(extraYears * 2, 10); // 90-100% basado en años extra
+      } else {
+        // Tiene menos años de los requeridos
+        yearScore = Math.max(70, Math.round((actualYears / requiredYears) * 90)); // Mínimo 70%
       }
       
-      // Combine years score and proficiency bonus
-      const skillScore = (yearsMatchScore * YEARS_WEIGHT + proficiencyBonus * PROFICIENCY_BONUS) * skillImportance;
-      matchScore += skillScore;
+      // Bonus por proficiency
+      let proficiencyBonus = 0;
+      switch (employeeSkill.proficiency) {
+        case "High":
+          proficiencyBonus = 8; // +8%
+          break;
+        case "Medium":
+          proficiencyBonus = 5; // +5%
+          break;
+        case "Low":
+          proficiencyBonus = 3; // +3%
+          break;
+        case "Basic":
+        default:
+          proficiencyBonus = 0; // Sin bonus
+      }
+      
+      // Limitar la puntuación total a 100
+      const skillScore = Math.min(100, yearScore + proficiencyBonus);
+      
+      // Aplicar importancia
+      basicScore += skillScore * importance;
+      
+      skillDetails.push({
+        id: skillId,
+        yearScore,
+        proficiencyBonus,
+        skillScore,
+        importance
+      });
     }
   }
   
-  // Calculate percentage of matching skills (with reduced weight)
-  const skillCoveragePercent = (matchedSkills / Math.max(Object.keys(roleSkillsMap).length, 1)) * 100;
+  // Cálculo del score base (porcentaje del máximo posible)
+  let finalScore = totalWeightedImportance > 0 
+                   ? Math.round((basicScore / (totalWeightedImportance * 100)) * 100) 
+                   : 0;
   
-  // Calculate final score - years now have much more importance
-  let finalScore = totalImportance > 0 ? (matchScore / totalImportance) * 95 + (skillCoveragePercent * 0.05) : 0;
+  // LÓGICA MEJORADA PARA PUNTUACIONES FINALES:
   
-  // Limit to 100%
-  finalScore = Math.min(Math.floor(finalScore), 100);
+  // 1. Si tiene TODAS las habilidades con años exactos/superiores: mínimo 90%
+  if (exactYearsMatch) {
+    finalScore = Math.max(finalScore, 90);
+    console.log("Aplicando puntuación mínima de 90% por match perfecto");
+  }
+  // 2. Si tiene TODAS las habilidades (independiente de años): mínimo 85%
+  else if (hasAllSkills) {
+    finalScore = Math.max(finalScore, 85);
+    console.log("Aplicando puntuación mínima de 85% por tener todas las habilidades");
+  }
   
-  console.log(`Matched skills: ${matchedSkills}/${Object.keys(roleSkillsMap).length} (${skillCoveragePercent.toFixed(1)}%)`);
+  // 3. Bonus por cobertura de habilidades (relativo a cuántas tiene)
+  if (matchedRequiredSkills > 0 && !hasAllSkills) {
+    const coverageRatio = matchedRequiredSkills / totalRequiredSkills;
+    
+    // Asignar puntuación más realista basada en la cobertura
+    if (coverageRatio >= 0.8) {
+      finalScore = Math.max(finalScore, 80); // Al menos 80% con 80%+ de habilidades
+      console.log(`Bonus por tener ${Math.round(coverageRatio * 100)}% de las habilidades: mínimo 80%`);
+    } else if (coverageRatio >= 0.5) {
+      finalScore = Math.max(finalScore, 65); // Al menos 65% con 50%+ de habilidades
+      console.log(`Bonus por tener ${Math.round(coverageRatio * 100)}% de las habilidades: mínimo 65%`);
+    } else {
+      finalScore = Math.min(finalScore, 40); // Máximo 40% con menos del 50% de habilidades
+      console.log(`Penalización por tener menos del 50% de habilidades: máximo 40%`);
+    }
+  }
+  
+  // Mostrar detalles de cálculo
+  if (skillDetails.length > 0) {
+    console.log("Detalles de skills evaluadas:");
+    skillDetails.forEach(detail => {
+      console.log(`- Skill ${detail.id}: Años ${detail.yearScore}% + Proficiency ${detail.proficiencyBonus}% = ${detail.skillScore}% (Importancia: ${detail.importance})`);
+    });
+  }
+  
   console.log(`Technical score calculated: ${finalScore}%`);
-  
   return finalScore;
 }
 
@@ -1072,29 +1293,57 @@ ${JSON.stringify(roleData, null, 2)}
 CANDIDATOS:
 ${JSON.stringify(candidatesToProcess, null, 2)}
 
+REQUISITO CRÍTICO DE CALIDAD: 
+- Sé MUY GENEROSO con candidatos que tienen TODAS las habilidades requeridas, incluso si tienen poca experiencia.
+- Un candidato con TODAS las habilidades requeridas debe recibir un mínimo de 85% en score técnico - ESTO ES OBLIGATORIO.
+- NUNCA asignes una puntuación técnica alta (>30) a un candidato que tenga MENOS DEL 50% de las habilidades requeridas.
+- Las coincidencias parciales de habilidades deben recibir puntuaciones proporcionales a cuántas habilidades tienen.
+- Cada candidato enviado ya ha sido pre-filtrado para garantizar que tiene al menos algunas habilidades requeridas.
+
 INSTRUCCIONES:
 
 PARA EVALUACIÓN TÉCNICA (${technicalWeight}%):
-1. Para cada candidato, evalúa si tiene las habilidades requeridas por el rol.
-2. PRIORIZA ESPECIALMENTE candidatos que tengan mas habilidades o todas las habilidades requeridas por el rol.
-3. Compara los años de experiencia del candidato con los años requeridos para cada habilidad.
-4. Asigna puntuaciones siguiendo estas reglas MEJORADAS:
+1. Para cada candidato, evalúa cada habilidad requerida por el rol de forma individual.
+2. Antes de evaluar, determina la IMPORTANCIA RELATIVA de cada habilidad requerida:
+   - Analiza la descripción del rol para identificar qué habilidades se mencionan primero o con más énfasis
+   - Considera que habilidades con más años de experiencia requeridos son más importantes
+   - Habilidades mencionadas explícitamente en la descripción son más importantes que las que no se mencionan
+   - Asigna valores de importancia de 1-5 a cada habilidad (5 para las más críticas)
+3. PRIORIZA ESPECIALMENTE las habilidades más importantes para el rol según tu análisis
+4. Asigna puntuaciones siguiendo estas reglas MEJORADAS para cada habilidad:
    - Si el candidato tiene exactamente los años requeridos: 100%
-   - Si el candidato tiene más años: 100% + bonus de 5% por cada año adicional (máximo 20% extra)
-   - Si el candidato tiene menos años: Porcentaje más generoso (ej: 2 años de 3 requeridos = 75%)
-5. Calcula un score técnico (0-100) para cada candidato.
+   - Si el candidato tiene más años: 100% + bonus de 5% por cada año adicional (máximo 30% extra)
+   - Si el candidato tiene menos años: Sé GENEROSO - asigna al menos 70% si tiene al menos 1 año (incluso si se requieren más)
+   - Si el candidato no tiene la habilidad: 0% para esa habilidad
+5. AÑADE BONUS POR PROFICIENCY:
+   - High: +8% adicional
+   - Medium: +5% adicional
+   - Low: +3% adicional
+   - Basic: sin bonus adicional
+6. Calcula un score técnico global (0-100) ponderando adecuadamente las habilidades
+
+7. CRUCIAL - SISTEMA DE BONUS ACUMULATIVO:
+   - PRIMERO: Si el candidato tiene TODAS las habilidades requeridas, debes asignar un mínimo de 85% de score técnico
+   - SEGUNDO: Si el candidato tiene TODAS las habilidades requeridas Y cumple o excede los años requeridos, 
+     debes asignar un mínimo de 90% de score técnico
+   - SIEMPRE RESPETA ESTAS PUNTUACIONES MÍNIMAS - son obligatorias y no negociables
 
 PARA EVALUACIÓN CONTEXTUAL (${contextualWeight}%):
 1. Analiza ÚNICAMENTE la bio/about del candidato para evaluar alineación con la descripción del rol.
 2. Identifica palabras clave, experiencia indicada, intereses y valores mencionados en la bio.
 3. No inventes ni asumas experiencia que no esté mencionada explícitamente en la bio.
-4. Sé GENEROSO en la evaluación contextual cuando veas términos relacionados con la descripción del rol.
-5. Asigna un score contextual (0-100) basado en esta alineación.
-6. Si la bio está vacía o es muy limitada, asigna un valor de 70 (más generoso).
+4. Asigna un score contextual (0-100) basado en esta alineación.
+5. Si la bio está vacía o es muy limitada, asigna un valor de 50 (neutral, ni positivo ni negativo).
 
 PARA SCORE FINAL:
 1. Combina ambos scores usando las ponderaciones exactas: (${technicalWeight}% × Score Técnico) + (${contextualWeight}% × Score Contextual)
-2. El score final debe estar entre 65 y 100, con un mínimo de 65 para cualquier candidato que tenga al menos una habilidad relevante.
+2. El score final debe seguir estas reglas OBLIGATORIAS:
+   - Si el candidato tiene TODAS las habilidades requeridas: mínimo 85% para el score técnico
+   - Si tiene TODAS las habilidades Y los años requeridos: mínimo 90% para el score técnico
+   - Si tiene más del 80% de las habilidades: 50-85%
+   - Si tiene entre 50-80% de las habilidades: 30-65%
+   - Si tiene menos del 50% de las habilidades: 10-30%
+3. RECUERDA: Un candidato perfecto (todas las habilidades y años requeridos) SIEMPRE debe tener un score técnico de al menos 90%.
 
 FORMATO DE RESPUESTA:
 Responde con un objeto JSON con esta estructura exacta:
@@ -1107,7 +1356,7 @@ Responde con un objeto JSON con esta estructura exacta:
       "contextualScore": 70,
       "combinedScore": 82,
       "matchDetails": [
-        {"skillId": "id_habilidad", "skillName": "nombre_habilidad", "required": 3, "actual": 5, "score": 108}
+        {"skillId": "id_habilidad", "skillName": "nombre_habilidad", "required": 3, "actual": 5, "score": 108, "importance": 4, "proficiency": "High"}
       ]
     }
   ]
@@ -1115,11 +1364,12 @@ Responde con un objeto JSON con esta estructura exacta:
 
 IMPORTANTE: 
 - Aplica los pesos exactamente como se indica (${technicalWeight}% técnico, ${contextualWeight}% contextual).
-- Sé generoso en tus evaluaciones para dar puntuaciones más altas.
-- El score técnico debe basarse ÚNICAMENTE en los años de experiencia de las habilidades coincidentes.
+- Sé EXTREMADAMENTE GENEROSO con candidatos que tienen TODAS las habilidades requeridas.
+- NUNCA asignes menos de 85% de score técnico a un candidato con todas las habilidades requeridas.
+- NUNCA asignes menos de 90% de score técnico a un candidato con todas las habilidades y años requeridos.
+- El score técnico debe basarse en las habilidades coincidentes con sus años de experiencia Y proficiency.
 - El score contextual debe basarse ÚNICAMENTE en el contenido del campo "bio" del candidato.
-- Incluye el nombre de la habilidad en los detalles del match para mejorar la explicabilidad.
-- Asigna scores que reflejen un rango más generoso entre 65-100 para candidatos con al menos algunas habilidades relevantes.
+- Incluye el nombre de la habilidad, importancia y proficiency en los detalles del match para mejorar la explicabilidad.
 `;
 }
 
@@ -1246,8 +1496,39 @@ function processComprehensiveResults(gptCandidates, originalEmployees, alpha, be
     const originalEmployee = originalEmployees.find(emp => emp.id === candidate.id);
     
     // Verificar y normalizar puntuaciones
-    const technicalScore = Math.min(Math.round(candidate.technicalScore || 0), 100);
+    let technicalScore = Math.min(Math.round(candidate.technicalScore || 0), 100);
     const contextualScore = Math.min(Math.round(candidate.contextualScore || 0), 100);
+    
+    // Determinar si el candidato tiene todas las habilidades requeridas verificando matchDetails
+    let hasAllRequiredSkills = false;
+    
+    if (candidate.matchDetails && candidate.matchDetails.length > 0) {
+      // Para determinar esto correctamente, necesitamos comparar con las habilidades del rol
+      // Como aproximación, verificamos si tiene alguna habilidad crítica con baja puntuación
+      const hasCriticalSkillsMissing = candidate.matchDetails.some(detail => 
+        (detail.importance >= 4) && (detail.score < 50)
+      );
+      
+      // Si no faltan habilidades críticas, consideramos que posiblemente tiene todas las importantes
+      if (!hasCriticalSkillsMissing && technicalScore >= 65) {
+        hasAllRequiredSkills = true;
+        console.log(`Candidato ${candidate.name || candidate.id} tiene todas o casi todas las habilidades requeridas`);
+        
+        // Asegurar un mínimo de 65% para candidatos con todas las habilidades
+        if (technicalScore < 65) {
+          console.log(`Ajustando score técnico de ${technicalScore} a 65 como mínimo para candidato con todas las habilidades`);
+          technicalScore = 65;
+        }
+      }
+      
+      // Aplicar penalización más suave si faltan habilidades críticas
+      if (hasCriticalSkillsMissing && !hasAllRequiredSkills) {
+        const penaltyFactor = 0.2; // Reducido del 0.3 anterior para ser más generoso
+        const originalScore = technicalScore;
+        technicalScore = Math.max(Math.round(technicalScore * (1 - penaltyFactor)), 10);
+        console.log(`Aplicando penalización reducida por habilidades críticas faltantes: ${penaltyFactor * 100}% (${originalScore} → ${technicalScore})`);
+      }
+    }
     
     // Recalcular el score combinado para asegurar que se usan los pesos correctos
     const combinedScore = Math.min(
@@ -1278,6 +1559,37 @@ function processComprehensiveResults(gptCandidates, originalEmployees, alpha, be
 export async function matchCandidatesWithGPT(role, employees, skillMap = {}) {
   console.log(`Iniciando matching con GPT-4o-mini para ${employees.length} candidatos...`);
   
+  // NUEVO: Validación inicial de candidatos
+  const preFilteredCandidates = [];
+  const disqualifiedCandidates = [];
+  
+  for (const employee of employees) {
+    const evaluation = preEvaluateCandidate(role.skills, employee.skills);
+    
+    if (evaluation.qualified) {
+      preFilteredCandidates.push(employee);
+    } else {
+      disqualifiedCandidates.push({
+        id: employee.id,
+        name: employee.name || "Candidato sin nombre",
+        avatar: employee.avatar || null,
+        technicalScore: evaluation.technicalScore,
+        contextualScore: evaluation.contextualScore,
+        combinedScore: evaluation.combinedScore,
+        disqualified: true,
+        reason: evaluation.reason
+      });
+    }
+  }
+  
+  console.log(`Pre-filtrado completado: ${preFilteredCandidates.length} candidatos calificados, ${disqualifiedCandidates.length} descalificados`);
+  
+  // Si no hay candidatos calificados, devolver solo los descalificados
+  if (preFilteredCandidates.length === 0) {
+    console.log("No hay candidatos calificados, omitiendo llamada a GPT");
+    return disqualifiedCandidates;
+  }
+  
   // Verificar si hay una clave de API válida
   const apiKey = getOpenAIApiKey();
   if (apiKey === 'dummy-key-for-deployment') {
@@ -1286,18 +1598,21 @@ export async function matchCandidatesWithGPT(role, employees, skillMap = {}) {
     const { alpha, beta } = calculateDynamicWeights(role.description, role.skills, skillMap);
     console.log(`Pesos calculados en modo fallback - Técnico: ${Math.round(alpha * 100)}%, Contextual: ${Math.round(beta * 100)}%`);
     
-    // Fallback a método basado en reglas
-    return fallbackExperienceMatching(role, employees, alpha, beta);
+    // Fallback a método basado en reglas (solo para candidatos pre-filtrados)
+    const matchedCandidates = fallbackExperienceMatching(role, preFilteredCandidates, alpha, beta);
+    
+    // Combinar con candidatos descalificados
+    return [...matchedCandidates, ...disqualifiedCandidates].sort((a, b) => b.combinedScore - a.combinedScore);
   }
   
   try {
-    // 1. Calcular pesos dinámicos primero (asegurando límites: técnico 80-90%, contextual 10-20%)
+    // 1. Calcular pesos dinámicos primero (asegurando límites: técnico 90-95%, contextual 5-10%)
     const { alpha, beta } = calculateDynamicWeights(role.description, role.skills, skillMap);
     console.log(`Pesos calculados - Técnico: ${Math.round(alpha * 100)}%, Contextual: ${Math.round(beta * 100)}%`);
     
     // 2. Preparar datos para el análisis
     const roleData = prepareRoleData(role);
-    const candidatesData = prepareCandidatesData(employees);
+    const candidatesData = prepareCandidatesData(preFilteredCandidates);
     
     // 3. Crear prompt optimizado para análisis (basando lo contextual solo en about)
     const prompt = createComprehensiveMatchingPrompt(roleData, candidatesData, alpha, beta);
@@ -1332,17 +1647,23 @@ export async function matchCandidatesWithGPT(role, employees, skillMap = {}) {
     }
     
     // 7. Mapear resultados a formato esperado por el frontend y asegurar los pesos correctos
-    const processedResults = processComprehensiveResults(matchResults.candidates, employees, alpha, beta);
+    const processedResults = processComprehensiveResults(matchResults.candidates, preFilteredCandidates, alpha, beta);
     
-    // 8. Ordenar por puntuación
-    processedResults.sort((a, b) => b.combinedScore - a.combinedScore);
+    // 8. Combinar con candidatos descalificados
+    const finalResults = [...processedResults, ...disqualifiedCandidates];
     
-    return processedResults;
+    // 9. Ordenar por puntuación
+    finalResults.sort((a, b) => b.combinedScore - a.combinedScore);
+    
+    return finalResults;
   } catch (error) {
     console.error("Error en el matching con GPT:", error);
-    // En caso de error, usar método fallback
+    // En caso de error, usar método fallback solo con candidatos pre-filtrados
     const { alpha, beta } = calculateDynamicWeights(role.description, role.skills, skillMap);
-    return fallbackExperienceMatching(role, employees, alpha, beta);
+    const matchedCandidates = fallbackExperienceMatching(role, preFilteredCandidates, alpha, beta);
+    
+    // Combinar con candidatos descalificados
+    return [...matchedCandidates, ...disqualifiedCandidates].sort((a, b) => b.combinedScore - a.combinedScore);
   }
 }
 
@@ -1404,75 +1725,196 @@ function ensureDiverseSelection(similarities, employees, baseTopN) {
   return selectedCandidates;
 }
 
+// ======== FUNCIÓN OPTIMIZADA DE FILTRADO Y MATCHING ========
+
 /**
- * Proceso optimizado de matching usando embeddings para filtrar candidatos
- * @param {Object} role - Rol a cubrir
- * @param {Array} employees - Lista completa de empleados
- * @param {Object} skillMap - Mapa de habilidades (opcional)
- * @param {Number} topN - Número de candidatos a filtrar (opcional)
- * @returns {Promise<Array>} - Resultados de matching completos
+ * Versión optimizada del filtrado GPT con consciencia de caché y procesamiento en paralelo
  */
-export async function filteredGPTMatching(role, employees, skillMap = {}, topN = 15) {
+export async function optimizedFilteredGPTMatching(role, employees, skillMap = {}, topN = 15) {
   console.log(`Iniciando proceso de matching optimizado para ${employees.length} candidatos...`);
   const startTime = Date.now();
   
-  // FASE 1: Filtrado con embeddings (solo para selección)
-  console.log(`Fase 1: Preseleccionando candidatos con embeddings...`);
-  const roleText = role.description || `Role: ${role.role || role.name}`;
-  const employeeTexts = employees.map(emp => emp.bio || emp.about || `Employee: ${emp.name}`);
+  // PASO 1: Verificar caché primero
+  const cacheKey = generateMatchingCacheKey(role, employees);
   
-  // Obtener embeddings
-  const allTexts = [roleText, ...employeeTexts];
-  const allEmbeddings = await getBatchEmbeddings(allTexts);
-  const roleEmbedding = allEmbeddings[0];
-  const employeeEmbeddings = allEmbeddings.slice(1);
+  if (cacheKey) {
+    const cachedResults = matchingCache.get(cacheKey);
+    if (cachedResults) {
+      console.log(`Cache hit! Resultados recuperados de caché con clave ${cacheKey}`);
+      return cachedResults;
+    }
+    console.log(`Cache miss. Procesando matching completo para clave ${cacheKey}`);
+  }
   
-  // Calcular similitudes para rankear candidatos
-  const similarities = [];
-  for (let i = 0; i < employeeEmbeddings.length; i++) {
-    const similarity = cosineSimilarity(roleEmbedding, employeeEmbeddings[i]);
-    similarities.push({
-      id: employees[i].id,
-      index: i,
-      similarity: similarity
+  // NUEVO PASO: Pre-filtrado estricto para descalificar candidatos sin skills relevantes
+  console.log("Pre-filtrado de candidatos basado en habilidades requeridas...");
+  const preEvaluationResults = [];
+  const qualifiedCandidates = [];
+  const disqualifiedCandidates = [];
+  
+  for (const employee of employees) {
+    const evaluation = preEvaluateCandidate(role.skills, employee.skills);
+    
+    if (evaluation.qualified) {
+      qualifiedCandidates.push(employee);
+      console.log(`✓ Candidato ${employee.name || employee.id} calificado con ${evaluation.matchingSkills}/${evaluation.totalRequired} habilidades coincidentes (${evaluation.matchPercentage.toFixed(1)}%)`);
+    } else {
+      disqualifiedCandidates.push({
+        ...employee,
+        preEvaluation: evaluation
+      });
+      console.log(`✗ Candidato ${employee.name || employee.id} descalificado: ${evaluation.reason}`);
+    }
+    
+    preEvaluationResults.push({
+      id: employee.id,
+      name: employee.name,
+      evaluation
     });
   }
   
-  // Ordenar por similitud y seleccionar los mejores
+  console.log(`Pre-filtrado completado: ${qualifiedCandidates.length} candidatos calificados, ${disqualifiedCandidates.length} descalificados`);
+  
+  // Si no hay candidatos calificados, devolver resultados del pre-filtrado
+  if (qualifiedCandidates.length === 0) {
+    console.log("No hay candidatos calificados, devolviendo resultados del pre-filtrado");
+    const finalResults = disqualifiedCandidates.map(candidate => ({
+      id: candidate.id,
+      name: candidate.name || "Candidato sin nombre",
+      avatar: candidate.avatar || null,
+      technicalScore: candidate.preEvaluation.technicalScore,
+      contextualScore: candidate.preEvaluation.contextualScore,
+      combinedScore: candidate.preEvaluation.combinedScore,
+      matchDetails: [{
+        skillId: "N/A",
+        skillName: "Habilidades faltantes",
+        required: role.skills.length,
+        actual: 0,
+        score: 0,
+        importance: 5
+      }]
+    }));
+    
+    // Ordenar de mayor a menor, aunque todos tendrán puntuaciones muy bajas
+    finalResults.sort((a, b) => b.combinedScore - a.combinedScore);
+    
+    // Guardar en caché para futuras consultas
+    if (cacheKey) {
+      matchingCache.set(cacheKey, finalResults);
+      console.log(`Resultados guardados en caché con clave ${cacheKey}`);
+    }
+    
+    return finalResults;
+  }
+  
+  // PASO 2: Filtrado rápido con embeddings en lotes paralelos
+  console.log(`Fase 1: Preseleccionando candidatos con embeddings...`);
+  const roleText = role.description || `Role: ${role.role || role.name}`;
+  
+  // Dividir en lotes para procesar embeddings en paralelo
+  const EMBEDDING_BATCH_SIZE = 50;
+  const embeddingBatches = [];
+  
+  for (let i = 0; i < qualifiedCandidates.length; i += EMBEDDING_BATCH_SIZE) {
+    embeddingBatches.push(qualifiedCandidates.slice(i, i + EMBEDDING_BATCH_SIZE));
+  }
+  
+  // Crear función para procesar un lote de embeddings
+  const processEmbeddingBatch = async (batch) => {
+    const batchTexts = batch.map(emp => emp.bio || emp.about || `Employee: ${emp.name}`);
+    const allTexts = [roleText, ...batchTexts];
+    const allEmbeddings = await getBatchEmbeddings(allTexts);
+    
+    // El primer embedding corresponde al rol
+    const roleEmbedding = allEmbeddings[0];
+    const employeeEmbeddings = allEmbeddings.slice(1);
+    
+    // Calcular similitudes
+    return batch.map((employee, i) => ({
+      id: employee.id,
+      similarity: cosineSimilarity(roleEmbedding, employeeEmbeddings[i])
+    }));
+  };
+  
+  // Procesar todos los lotes en paralelo
+  const embeddingResults = await Promise.all(
+    embeddingBatches.map(batch => processEmbeddingBatch(batch))
+  );
+  
+  // Consolidar resultados
+  const similarities = embeddingResults.flat();
+  
+  // Ordenar por similitud
   similarities.sort((a, b) => b.similarity - a.similarity);
   
-  // Determinar número óptimo de candidatos con valores aumentados
-  const baseTopN = employees.length <= 5 ? employees.length : 
-                   employees.length <= 30 ? Math.ceil(employees.length * 0.7) : 15; // Aumentado a 25
+  // Seleccionar de forma adaptativa (más inteligente)
+  const optimalTopN = qualifiedCandidates.length <= 5 ? qualifiedCandidates.length : 
+                      qualifiedCandidates.length <= 20 ? Math.ceil(qualifiedCandidates.length * 0.8) :
+                      qualifiedCandidates.length <= 50 ? Math.ceil(qualifiedCandidates.length * 0.6) : 
+                      Math.min(25, Math.ceil(qualifiedCandidates.length * 0.3)); // No más de 25
   
-  // Selección mejorada con diversidad
-  const topCandidates = ensureDiverseSelection(similarities, employees, baseTopN);
+  // Tomar los mejores candidatos
+  const topCandidates = similarities.slice(0, optimalTopN);
   
-  console.log(`Fase 1 completada: ${topCandidates.length} candidatos preseleccionados`);
+  // Seleccionar empleados correspondientes
+  const selectedEmployees = topCandidates
+    .map(candidate => qualifiedCandidates.find(emp => emp.id === candidate.id))
+    .filter(Boolean);
   
-  // FASE 2: Evaluación detallada SOLO con GPT (sin influencia de embeddings)
-  console.log(`Fase 2: Evaluación detallada con GPT-4o-mini...`);
+  console.log(`Fase 1 completada: ${selectedEmployees.length} candidatos preseleccionados`);
   
-  // Seleccionar solo los candidatos preseleccionados
-  const selectedEmployees = topCandidates.map(candidate => 
-    employees.find(emp => emp.id === candidate.id)
-  ).filter(emp => emp !== undefined);
+  // PASO 3: Procesamiento paralelo con GPT en lotes
+  console.log(`Fase 2: Evaluación detallada con procesamiento paralelo...`);
   
-  // Verificar API Key
+  // Verificar si tenemos API Key para GPT
   const apiKey = getOpenAIApiKey();
+  let results;
+  
   if (apiKey === 'dummy-key-for-deployment') {
     console.warn('No hay API Key válida, usando evaluación basada en reglas...');
     const { alpha, beta } = calculateDynamicWeights(role.description, role.skills, skillMap);
-    return fallbackExperienceMatching(role, selectedEmployees, alpha, beta);
+    results = fallbackExperienceMatching(role, selectedEmployees, alpha, beta);
   } else {
-    // Usar el procesamiento por lotes para evaluar candidatos
-    const results = await batchProcessWithGPT(role, selectedEmployees, skillMap);
-    
-    const endTime = Date.now();
-    console.log(`Proceso completo realizado en ${endTime - startTime}ms`);
-    
-    return results;
+    // Usar el procesamiento en paralelo para evaluar candidatos
+    results = await parallelBatchProcessWithGPT(role, selectedEmployees, skillMap);
   }
+  
+  // PASO ADICIONAL: Combinar resultados del GPT con candidatos descalificados
+  const combinedResults = [
+    ...results, // Resultados del procesamiento GPT para candidatos calificados
+    
+    // Añadir candidatos descalificados con puntuación mínima
+    ...disqualifiedCandidates.map(candidate => ({
+      id: candidate.id,
+      name: candidate.name || "Candidato sin nombre",
+      avatar: candidate.avatar || null,
+      technicalScore: candidate.preEvaluation.technicalScore,
+      contextualScore: candidate.preEvaluation.contextualScore,
+      combinedScore: candidate.preEvaluation.combinedScore,
+      matchDetails: [{
+        skillId: "N/A",
+        skillName: "Habilidades faltantes",
+        required: role.skills.length,
+        actual: 0,
+        score: 0,
+        importance: 5
+      }]
+    }))
+  ];
+  
+  // Ordenar resultados finales
+  combinedResults.sort((a, b) => b.combinedScore - a.combinedScore);
+  
+  // Guardar resultados en caché con la clave que incluye timestamp
+  if (cacheKey) {
+    matchingCache.set(cacheKey, combinedResults);
+    console.log(`Resultados guardados en caché con clave ${cacheKey}`);
+  }
+  
+  const endTime = Date.now();
+  console.log(`Proceso completo realizado en ${endTime - startTime}ms`);
+  
+  return combinedResults;
 }
 
 //==============================================================================
@@ -1780,7 +2222,7 @@ async function analyzeWithOpenAI(cvText, availableSkills = [], availableRoles = 
     
     // Crear prompt optimizado para extraer datos específicos
     const skillsForPrompt = availableSkills.length > 0 
-      ? availableSkills.map(s => s.name || s).slice(0, 100).join(', ') // Limitamos a 50 skills para no sobrecargar
+      ? availableSkills.map(s => s.name || s).slice(0, 300).join(', ') 
       : "JavaScript, HTML, CSS, React, Angular, Node.js, Python, Java, SQL, Scrum, Agile, AWS, Communication, Teamwork";
       
     const rolesForPrompt = availableRoles.length > 0
@@ -2155,10 +2597,12 @@ Habilidades: JavaScript, React, Node.js, HTML, CSS`;
 app.use(express.json());
 
 
-// Endpoint para matching: Procesa la solicitud y devuelve los resultados
+// ======== ENDPOINT ACTUALIZADO DE MATCHING ========
+
+// Reemplazar ambas versiones del endpoint /api/getMatches con esta versión optimizada
 app.post("/getMatches", async (req, res) => {
   try {
-    console.log("Solicitud POST recibida en /getMatches");
+    console.log("Solicitud POST recibida en /api/getMatches");
     
     const { role, employees, skillMap: rawSkillMap } = req.body;
     if (!role || !employees || !Array.isArray(employees) || employees.length === 0) {
@@ -2169,46 +2613,25 @@ app.post("/getMatches", async (req, res) => {
     console.log(`Procesando matching para rol: ${role.role || 'sin nombre'}`);
     console.log(`Candidatos a procesar: ${employees.length}`);
     
+    // Normalizar timestamps de actualización para el sistema de caché
+    const employeesWithNormalizedTimestamps = employees.map(emp => ({
+      ...emp,
+      // Asegurar que todos tengan una fecha de actualización para el sistema de caché
+      updatedAt: emp.updated_at || emp.updatedAt || new Date().toISOString()
+    }));
+    
     // Asegurar que el skillMap sea válido
-    const skillMap = ensureSkillMap(rawSkillMap, role, employees);
+    const skillMap = ensureSkillMap(rawSkillMap, role, employeesWithNormalizedTimestamps);
     console.log(`Mapa de skills: ${Object.keys(skillMap).length} skills disponibles`);
     
     // Calcular pesos dinámicos con los límites especificados (técnico: 85-95%, contextual: 5-15%)
     const { alpha, beta } = calculateDynamicWeights(role.description, role.skills, skillMap);
     console.log(`Pesos calculados - Técnico: ${Math.round(alpha * 100)}%, Contextual: ${Math.round(beta * 100)}%`);
     
-    // Comprobar que los pesos están dentro de los rangos especificados
-    let technicalWeight = Math.round(alpha * 100);
-    let contextualWeight = Math.round(beta * 100);
-    let adjustedAlpha = alpha;
-    let adjustedBeta = beta;
+    // Usar la versión optimizada del filtrado con consciencia de actualizaciones
+    const matches = await optimizedFilteredGPTMatching(role, employeesWithNormalizedTimestamps, skillMap);
     
-    if (technicalWeight < 85 || technicalWeight > 95 || contextualWeight < 5 || contextualWeight > 15) {
-      console.warn("Pesos fuera de rango, ajustando a los límites especificados");
-      // Ajuste forzado a los límites
-      adjustedAlpha = Math.min(Math.max(alpha, 0.85), 0.95);
-      adjustedBeta = 1 - adjustedAlpha;
-      
-      // Actualizar para logs
-      technicalWeight = Math.round(adjustedAlpha * 100);
-      contextualWeight = Math.round(adjustedBeta * 100);
-      console.log(`Pesos ajustados - Técnico: ${technicalWeight}%, Contextual: ${contextualWeight}%`);
-    }
-    
-    // Determinar número óptimo de candidatos para filtrado
-    const topN = employees.length <= 5 ? employees.length : 
-               employees.length <= 30 ? Math.ceil(employees.length * 0.7) : 25;
-    
-    // Usar el nuevo método optimizado
-    console.log(`Iniciando filtrado y evaluación de candidatos...`);
-    const startTime = Date.now();
-    
-    const matches = await filteredGPTMatching(role, employees, skillMap, topN);
-    
-    const endTime = Date.now();
-    console.log(`Procesamiento completado en ${endTime - startTime}ms`);
-    
-    // Agregar explicabilidad a los primeros 5 candidatos
+    // Agregar explicabilidad a los primeros 10 candidatos
     const matchesWithExplanations = matches.slice(0, 10).map(match => {
       // Generar explicaciones por candidato
       const explanation = {
@@ -2233,19 +2656,19 @@ app.post("/getMatches", async (req, res) => {
     res.json({
       matches: matchesWithExplanations,
       weights: {
-        technical: technicalWeight,
-        contextual: contextualWeight
+        technical: Math.round(alpha * 100),
+        contextual: Math.round(beta * 100)
       },
       totalCandidates: employees.length,
-      message: "Matching procesado exitosamente con enfoque optimizado"
+      message: "Matching procesado exitosamente con enfoque optimizado y consciente de actualizaciones"
     });
   } catch (error) {
-    console.error("Error en /getMatches:", error);
+    console.error("Error en /api/getMatches:", error);
     res.status(500).json({ error: error.message });
   }
 });
 
-// Duplicar para /api/getMatches con el mismo código
+// Reemplazar ambas versiones del endpoint /api/getMatches con esta versión optimizada
 app.post("/api/getMatches", async (req, res) => {
   try {
     console.log("Solicitud POST recibida en /api/getMatches");
@@ -2259,46 +2682,25 @@ app.post("/api/getMatches", async (req, res) => {
     console.log(`Procesando matching para rol: ${role.role || 'sin nombre'}`);
     console.log(`Candidatos a procesar: ${employees.length}`);
     
+    // Normalizar timestamps de actualización para el sistema de caché
+    const employeesWithNormalizedTimestamps = employees.map(emp => ({
+      ...emp,
+      // Asegurar que todos tengan una fecha de actualización para el sistema de caché
+      updatedAt: emp.updated_at || emp.updatedAt || new Date().toISOString()
+    }));
+    
     // Asegurar que el skillMap sea válido
-    const skillMap = ensureSkillMap(rawSkillMap, role, employees);
+    const skillMap = ensureSkillMap(rawSkillMap, role, employeesWithNormalizedTimestamps);
     console.log(`Mapa de skills: ${Object.keys(skillMap).length} skills disponibles`);
     
     // Calcular pesos dinámicos con los límites especificados (técnico: 85-95%, contextual: 5-15%)
     const { alpha, beta } = calculateDynamicWeights(role.description, role.skills, skillMap);
     console.log(`Pesos calculados - Técnico: ${Math.round(alpha * 100)}%, Contextual: ${Math.round(beta * 100)}%`);
     
-    // Comprobar que los pesos están dentro de los rangos especificados
-    let technicalWeight = Math.round(alpha * 100);
-    let contextualWeight = Math.round(beta * 100);
-    let adjustedAlpha = alpha;
-    let adjustedBeta = beta;
+    // Usar la versión optimizada del filtrado con consciencia de actualizaciones
+    const matches = await optimizedFilteredGPTMatching(role, employeesWithNormalizedTimestamps, skillMap);
     
-    if (technicalWeight < 85 || technicalWeight > 95 || contextualWeight < 5 || contextualWeight > 15) {
-      console.warn("Pesos fuera de rango, ajustando a los límites especificados");
-      // Ajuste forzado a los límites
-      adjustedAlpha = Math.min(Math.max(alpha, 0.85), 0.95);
-      adjustedBeta = 1 - adjustedAlpha;
-      
-      // Actualizar para logs
-      technicalWeight = Math.round(adjustedAlpha * 100);
-      contextualWeight = Math.round(adjustedBeta * 100);
-      console.log(`Pesos ajustados - Técnico: ${technicalWeight}%, Contextual: ${contextualWeight}%`);
-    }
-    
-    // Determinar número óptimo de candidatos para filtrado
-    const topN = employees.length <= 5 ? employees.length : 
-               employees.length <= 30 ? Math.ceil(employees.length * 0.7) : 25;
-    
-    // Usar el nuevo método optimizado
-    console.log(`Iniciando filtrado y evaluación de candidatos...`);
-    const startTime = Date.now();
-    
-    const matches = await filteredGPTMatching(role, employees, skillMap, topN);
-    
-    const endTime = Date.now();
-    console.log(`Procesamiento completado en ${endTime - startTime}ms`);
-    
-    // Agregar explicabilidad a los primeros 5 candidatos
+    // Agregar explicabilidad a los primeros 10 candidatos
     const matchesWithExplanations = matches.slice(0, 10).map(match => {
       // Generar explicaciones por candidato
       const explanation = {
@@ -2323,11 +2725,11 @@ app.post("/api/getMatches", async (req, res) => {
     res.json({
       matches: matchesWithExplanations,
       weights: {
-        technical: technicalWeight,
-        contextual: contextualWeight
+        technical: Math.round(alpha * 100),
+        contextual: Math.round(beta * 100)
       },
       totalCandidates: employees.length,
-      message: "Matching procesado exitosamente con enfoque optimizado"
+      message: "Matching procesado exitosamente con enfoque optimizado y consciente de actualizaciones"
     });
   } catch (error) {
     console.error("Error en /api/getMatches:", error);

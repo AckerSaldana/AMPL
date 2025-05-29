@@ -28,7 +28,16 @@ import {
   FormControl,
   Select,
   Checkbox,
-  Avatar
+  Avatar,
+  Fade,
+  Grow,
+  Slide,
+  Zoom,
+  Skeleton,
+  Card,
+  CardContent,
+  Divider,
+  Badge
 } from '@mui/material';
 import {
   Visibility as VisibilityIcon,
@@ -39,20 +48,36 @@ import {
   Close as CloseIcon,
   FilterList as FilterListIcon,
   Assignment as AssignmentIcon,
-  ArrowBack as ArrowBackIcon
+  ArrowBack as ArrowBackIcon,
+  School as SchoolIcon,
+  WorkspacePremium as WorkspacePremiumIcon,
+  CalendarToday as CalendarTodayIcon,
+  Score as ScoreIcon,
+  PersonAdd as PersonAddIcon,
+  Verified as VerifiedIcon,
+  HourglassEmpty as HourglassEmptyIcon,
+  BlockRounded as BlockIcon,
+  TrendingUp as TrendingUpIcon,
+  Psychology as PsychologyIcon,
+  EmojiEvents as EmojiEventsIcon,
+  AccessTime as AccessTimeIcon,
+  Warning as WarningIcon,
+  Info as InfoIcon,
+  Star as StarIcon,
+  AutoAwesome as AutoAwesomeIcon
 } from '@mui/icons-material';
 import { supabase } from '../supabase/supabaseClient';
 
-// Accenture Colors - Version más tenue/minimalista
+// Enhanced Accenture Colors with gradient variations
 const ACCENTURE_COLORS = {
-  corePurple1: "#a873e8", // Versión más tenue del Core Purple 1
-  corePurple2: "#8a60b0", // Versión más tenue del Core Purple 2
-  corePurple3: "#6a4b87", // Versión más tenue del Core Purple 3
-  accentPurple1: "#c99fd1", // Versión más tenue del Accent Purple 1
-  accentPurple2: "#c8a4f2", // Versión más tenue del Accent Purple 2
-  accentPurple3: "#d4b6f7", // Versión más tenue del Accent Purple 3
-  accentPurple4: "#e7d6f9", // Versión más tenue del Accent Purple 4
-  accentPurple5: "#f0e9fa", // Versión más tenue del Accent Purple 5
+  corePurple1: "#a873e8",
+  corePurple2: "#8a60b0",
+  corePurple3: "#6a4b87",
+  accentPurple1: "#c99fd1",
+  accentPurple2: "#c8a4f2",
+  accentPurple3: "#d4b6f7",
+  accentPurple4: "#e7d6f9",
+  accentPurple5: "#f0e9fa",
   blue: "#6b89e3",
   lightBlue: "#9fe0e0",
   green: "#a3d9a3",
@@ -64,15 +89,83 @@ const ACCENTURE_COLORS = {
   black: "#333333",
   darkGray: "#696964",
   lightGray: "#e6e6dc",
-  white: "#ffffff"
+  white: "#ffffff",
+  // Gradient definitions
+  gradients: {
+    purple: 'linear-gradient(135deg, #a873e8 0%, #8a60b0 100%)',
+    purpleLight: 'linear-gradient(135deg, #c8a4f2 0%, #d4b6f7 100%)',
+    success: 'linear-gradient(135deg, #a3d9a3 0%, #a0e0cc 100%)',
+    error: 'linear-gradient(135deg, #e88a8a 0%, #f0a0cc 100%)',
+    warning: 'linear-gradient(135deg, #f2bb80 0%, #f2eaaa 100%)',
+    info: 'linear-gradient(135deg, #6b89e3 0%, #9fe0e0 100%)',
+    neutral: 'linear-gradient(135deg, #696964 0%, #333333 100%)'
+  }
 };
 
 const PROFICIENCY_LEVELS = [
-  { value: "Basic", label: "Basic", color: ACCENTURE_COLORS.lightBlue },
-  { value: "Low", label: "Low", color: ACCENTURE_COLORS.green },
-  { value: "Medium", label: "Medium", color: ACCENTURE_COLORS.orange },
-  { value: "High", label: "High", color: ACCENTURE_COLORS.red }
+  { value: "Basic", label: "Basic", color: ACCENTURE_COLORS.lightBlue, icon: <StarIcon /> },
+  { value: "Low", label: "Low", color: ACCENTURE_COLORS.green, icon: <StarIcon /> },
+  { value: "Medium", label: "Medium", color: ACCENTURE_COLORS.orange, icon: <StarIcon /> },
+  { value: "High", label: "High", color: ACCENTURE_COLORS.red, icon: <StarIcon /> }
 ];
+
+// Styled components for glassmorphism and modern design
+const GlassCard = ({ children, sx, ...props }) => (
+  <Card
+    elevation={0}
+    sx={{
+      background: alpha(ACCENTURE_COLORS.white, 0.7),
+      backdropFilter: 'blur(20px)',
+      border: `1px solid ${alpha(ACCENTURE_COLORS.corePurple1, 0.1)}`,
+      borderRadius: 2,
+      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+      ...sx
+    }}
+    {...props}
+  >
+    {children}
+  </Card>
+);
+
+const AnimatedChip = ({ children, sx, ...props }) => (
+  <Chip
+    sx={{
+      transition: 'all 0.2s ease',
+      '&:hover': {
+        transform: 'translateY(-2px)',
+        boxShadow: `0 4px 12px ${alpha(ACCENTURE_COLORS.corePurple1, 0.2)}`,
+      },
+      ...sx
+    }}
+    {...props}
+  >
+    {children}
+  </Chip>
+);
+
+const StyledButton = ({ children, variant = 'contained', sx, ...props }) => (
+  <Button
+    variant={variant}
+    sx={{
+      borderRadius: 2,
+      textTransform: 'none',
+      fontWeight: 500,
+      boxShadow: 'none',
+      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+      ...(variant === 'contained' && {
+        background: ACCENTURE_COLORS.gradients.purple,
+        '&:hover': {
+          transform: 'translateY(-2px)',
+          boxShadow: `0 8px 24px ${alpha(ACCENTURE_COLORS.corePurple1, 0.3)}`,
+        }
+      }),
+      ...sx
+    }}
+    {...props}
+  >
+    {children}
+  </Button>
+);
 
 const ReviewCertifications = ({ open, onClose }) => {
   const theme = useTheme();
@@ -821,380 +914,509 @@ const handleConfirmApproval = async () => {
       onClose={onClose}
       fullWidth
       maxWidth="xl"
+      TransitionComponent={Fade}
+      transitionDuration={400}
       PaperProps={{
         sx: { 
-          height: { xs: '100vh', sm: '90vh' },
-          maxHeight: { xs: '100vh', sm: '90vh' },
-          borderRadius: 1,
-          overflow: 'hidden'
+          height: { xs: '100vh', sm: '95vh' },
+          maxHeight: { xs: '100vh', sm: '95vh' },
+          borderRadius: 3,
+          overflow: 'hidden',
+          background: alpha(ACCENTURE_COLORS.white, 0.98),
+          backdropFilter: 'blur(10px)',
+          boxShadow: `0 25px 50px -12px ${alpha(ACCENTURE_COLORS.black, 0.25)}`
         }
       }}
     >
-      {/* Header - versión minimalista */}
+      {/* Enhanced Header with Gradient */}
       <Box
         sx={{
-          bgcolor: alpha(ACCENTURE_COLORS.corePurple1, 0.15), 
-          color: ACCENTURE_COLORS.black,
-          py: 2,
-          px: 3,
-          borderBottom: `1px solid ${alpha(ACCENTURE_COLORS.black, 0.1)}`
+          background: ACCENTURE_COLORS.gradients.purple,
+          position: 'relative',
+          overflow: 'hidden',
+          '&::before': {
+            content: '""',
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: `radial-gradient(circle at 20% 50%, ${alpha(ACCENTURE_COLORS.accentPurple2, 0.3)} 0%, transparent 50%)`,
+          },
+          '&::after': {
+            content: '""',
+            position: 'absolute',
+            top: 0,
+            right: 0,
+            width: '200px',
+            height: '200px',
+            background: `radial-gradient(circle, ${alpha(ACCENTURE_COLORS.accentPurple3, 0.2)} 0%, transparent 70%)`,
+            transform: 'translate(50%, -50%)',
+          }
         }}
       >
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-            <AssignmentIcon sx={{ fontSize: 24, color: ACCENTURE_COLORS.corePurple2 }} />
-            <Typography variant="h6" fontWeight={500}>
-              Check certifications
-            </Typography>
-          </Box>
-          <IconButton 
-            onClick={onClose}
-            size="small"
-            sx={{ 
-              color: ACCENTURE_COLORS.darkGray,
-              '&:hover': { 
-                bgcolor: alpha(ACCENTURE_COLORS.black, 0.05)
-              }
-            }}
-          >
-            <CloseIcon />
-          </IconButton>
+        <Box sx={{ 
+          position: 'relative', 
+          zIndex: 1,
+          py: 3.5,
+          px: 4,
+          color: ACCENTURE_COLORS.white,
+          display: 'flex',
+          alignItems: 'center',
+          minHeight: 100
+        }}>
+          <Fade in={open} timeout={600}>
+            <Box sx={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center',
+              width: '100%'
+            }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <Box
+                  sx={{
+                    width: 48,
+                    height: 48,
+                    borderRadius: 2,
+                    background: alpha(ACCENTURE_COLORS.white, 0.15),
+                    backdropFilter: 'blur(10px)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: `0 8px 32px ${alpha(ACCENTURE_COLORS.black, 0.1)}`,
+                  }}
+                >
+                  <WorkspacePremiumIcon sx={{ fontSize: 28, color: ACCENTURE_COLORS.white }} />
+                </Box>
+                <Box>
+                  <Typography variant="h5" fontWeight={600} sx={{ letterSpacing: '-0.02em' }}>
+                    Certification Review Center
+                  </Typography>
+                  <Typography variant="body2" sx={{ opacity: 0.9, mt: 0.5 }}>
+                    Manage and approve employee certifications
+                  </Typography>
+                </Box>
+              </Box>
+              <IconButton 
+                onClick={onClose}
+                sx={{ 
+                  color: ACCENTURE_COLORS.white,
+                  bgcolor: alpha(ACCENTURE_COLORS.white, 0.1),
+                  backdropFilter: 'blur(10px)',
+                  '&:hover': { 
+                    bgcolor: alpha(ACCENTURE_COLORS.white, 0.2),
+                    transform: 'rotate(90deg)'
+                  },
+                  transition: 'all 0.3s ease',
+                  alignSelf: 'center'
+                }}
+              >
+                <CloseIcon />
+              </IconButton>
+            </Box>
+          </Fade>
         </Box>
       </Box>
       
-      <DialogContent sx={{ p: 0, display: 'flex', flexDirection: 'column', height: '100%', bgcolor: alpha(ACCENTURE_COLORS.accentPurple5, 0.1) }}>
-        {/* Filters and Search */}
-        <Box sx={{ 
-          display: 'flex', 
-          flexWrap: 'wrap',
-          gap: 2, 
-          p: 2,
-          pb: 2,
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          bgcolor: ACCENTURE_COLORS.white,
-          borderBottom: `1px solid ${alpha(ACCENTURE_COLORS.black, 0.06)}`
+      <DialogContent sx={{ p: 0, display: 'flex', flexDirection: 'column', height: '100%', bgcolor: '#f8f9fc' }}>
+        {/* Enhanced Filters Section */}
+        <GlassCard sx={{ 
+          m: 3,
+          mb: 2,
+          borderRadius: 3,
+          background: alpha(ACCENTURE_COLORS.white, 0.9),
+          backdropFilter: 'blur(20px)',
+          boxShadow: `0 4px 20px ${alpha(ACCENTURE_COLORS.corePurple1, 0.08)}`
         }}>
-          <Box sx={{ 
-            display: 'flex', 
-            alignItems: 'center',
-            gap: 2,
-            flexWrap: 'wrap'
-          }}>
-            <TextField
-              placeholder="Search by employee or certification"
-              size="small"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              sx={{ 
-                minWidth: { xs: 200, sm: 300 },
-                '& .MuiOutlinedInput-root': {
-                  borderRadius: 1,
-                  bgcolor: ACCENTURE_COLORS.white,
-                  border: `1px solid ${alpha(ACCENTURE_COLORS.black, 0.12)}`,
-                  '&:hover': {
-                    borderColor: alpha(ACCENTURE_COLORS.black, 0.3)
-                  },
-                  '&.Mui-focused': {
-                    borderColor: ACCENTURE_COLORS.corePurple1,
-                    boxShadow: `0 0 0 2px ${alpha(ACCENTURE_COLORS.accentPurple4, 0.25)}`
-                  }
-                }
-              }}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon sx={{ color: alpha(ACCENTURE_COLORS.black, 0.4), fontSize: 20 }} />
-                  </InputAdornment>
-                ),
-              }}
-            />
-            
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Typography variant="body2" fontWeight={400} color="text.secondary">
-                Status:
-              </Typography>
-            </Box>
-            
-            {['all', 'pending', 'approved', 'rejected'].map((status) => (
-              <Chip
-                key={status}
-                label={
-                  status === 'all' ? 'All' :
-                  status === 'pending' ? 'Pending' :
-                  status === 'approved' ? 'Approved' :
-                  'Rejected'
-                }
-                variant={statusFilter === status ? "filled" : "outlined"}
-                onClick={() => setStatusFilter(status)}
-                sx={{
-                  fontSize: '0.75rem',
-                  height: 28,
-                  fontWeight: 400,
-                  borderRadius: 1,
-                  bgcolor: statusFilter === status ? alpha(ACCENTURE_COLORS.corePurple1, 0.08) : 'transparent',
-                  borderColor: statusFilter === status ? 'transparent' : alpha(ACCENTURE_COLORS.black, 0.15),
-                  color: statusFilter === status ? ACCENTURE_COLORS.corePurple2 : ACCENTURE_COLORS.darkGray,
-                  '&:hover': {
-                    bgcolor: statusFilter === status ? alpha(ACCENTURE_COLORS.corePurple1, 0.12) : alpha(ACCENTURE_COLORS.black, 0.03),
-                  }
-                }}
-              />
-            ))}
-          </Box>
-          
-          <Typography variant="caption" color="text.secondary">
-            <Box component="span" sx={{ fontWeight: 500 }}>
-              {filteredCertifications.length}
-            </Box> of {certifications.length} certifications
-          </Typography>
-        </Box>
+          <CardContent sx={{ p: 3 }}>
+            <Fade in={open} timeout={800}>
+              <Box>
+                <Box sx={{ 
+                  display: 'flex', 
+                  flexWrap: 'wrap',
+                  gap: 2.5, 
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  mb: 2
+                }}>
+                  <Box sx={{ 
+                    display: 'flex', 
+                    alignItems: 'center',
+                    gap: 2.5,
+                    flexWrap: 'wrap',
+                    flex: 1
+                  }}>
+                    <TextField
+                      placeholder="Search certifications..."
+                      size="medium"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      sx={{ 
+                        minWidth: { xs: 250, sm: 350 },
+                        '& .MuiOutlinedInput-root': {
+                          borderRadius: 2,
+                          bgcolor: alpha(ACCENTURE_COLORS.white, 0.8),
+                          backdropFilter: 'blur(10px)',
+                          border: `1px solid ${alpha(ACCENTURE_COLORS.corePurple1, 0.1)}`,
+                          transition: 'all 0.3s ease',
+                          '&:hover': {
+                            borderColor: alpha(ACCENTURE_COLORS.corePurple1, 0.3),
+                            bgcolor: ACCENTURE_COLORS.white,
+                            transform: 'translateY(-1px)',
+                            boxShadow: `0 4px 12px ${alpha(ACCENTURE_COLORS.corePurple1, 0.1)}`
+                          },
+                          '&.Mui-focused': {
+                            borderColor: ACCENTURE_COLORS.corePurple1,
+                            boxShadow: `0 0 0 3px ${alpha(ACCENTURE_COLORS.accentPurple4, 0.2)}`,
+                            bgcolor: ACCENTURE_COLORS.white
+                          },
+                          '& input': {
+                            fontWeight: 500,
+                            '&::placeholder': {
+                              color: alpha(ACCENTURE_COLORS.darkGray, 0.6)
+                            }
+                          }
+                        }
+                      }}
+                      InputProps={{
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <SearchIcon sx={{ 
+                              color: ACCENTURE_COLORS.corePurple2, 
+                              fontSize: 22 
+                            }} />
+                          </InputAdornment>
+                        ),
+                      }}
+                    />
+                  </Box>
+                  
+                  <Box sx={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: 1.5,
+                    px: 2.5,
+                    py: 1,
+                    borderRadius: 2,
+                    bgcolor: alpha(ACCENTURE_COLORS.corePurple1, 0.05),
+                    border: `1px solid ${alpha(ACCENTURE_COLORS.corePurple1, 0.1)}`
+                  }}>
+                    <Typography variant="body2" fontWeight={600} color={ACCENTURE_COLORS.corePurple2}>
+                      {filteredCertifications.length}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      of {certifications.length} certifications
+                    </Typography>
+                  </Box>
+                </Box>
+
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <FilterListIcon sx={{ fontSize: 18, color: ACCENTURE_COLORS.darkGray }} />
+                    <Typography variant="body2" fontWeight={500} color="text.secondary">
+                      Filter by status:
+                    </Typography>
+                  </Box>
+                  
+                  <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                    {[
+                      { value: 'all', label: 'All', icon: <AutoAwesomeIcon />, color: ACCENTURE_COLORS.corePurple1 },
+                      { value: 'pending', label: 'Pending', icon: <HourglassEmptyIcon />, color: ACCENTURE_COLORS.blue },
+                      { value: 'approved', label: 'Approved', icon: <VerifiedIcon />, color: ACCENTURE_COLORS.green },
+                      { value: 'rejected', label: 'Rejected', icon: <BlockIcon />, color: ACCENTURE_COLORS.red }
+                    ].map((status) => (
+                      <AnimatedChip
+                        key={status.value}
+                        label={status.label}
+                        icon={status.icon}
+                        variant={statusFilter === status.value ? "filled" : "outlined"}
+                        onClick={() => setStatusFilter(status.value)}
+                        sx={{
+                          fontSize: '0.875rem',
+                          fontWeight: statusFilter === status.value ? 600 : 400,
+                          borderRadius: 2,
+                          px: 1,
+                          bgcolor: statusFilter === status.value 
+                            ? alpha(status.color, 0.15) 
+                            : 'transparent',
+                          borderColor: statusFilter === status.value 
+                            ? 'transparent' 
+                            : alpha(status.color, 0.3),
+                          color: statusFilter === status.value 
+                            ? status.color 
+                            : alpha(status.color, 0.8),
+                          '& .MuiChip-icon': {
+                            fontSize: 16,
+                            color: status.color
+                          },
+                          '&:hover': {
+                            bgcolor: alpha(status.color, statusFilter === status.value ? 0.2 : 0.05),
+                            borderColor: status.color,
+                          }
+                        }}
+                      />
+                    ))}
+                  </Box>
+                </Box>
+              </Box>
+            </Fade>
+          </CardContent>
+        </GlassCard>
         
-        {/* Certifications Table */}
+        {/* Enhanced Certifications Display */}
         {loading ? (
-          <Box sx={{ 
-            display: 'flex', 
-            flexDirection: 'column',
-            justifyContent: 'center', 
-            alignItems: 'center',
-            flexGrow: 1,
-            p: 5 
-          }}>
-            <CircularProgress 
-              sx={{ 
-                color: ACCENTURE_COLORS.corePurple2,
-                mb: 2 
-              }} 
-              size={32}
-            />
-            <Typography variant="body2" color="text.secondary">
-              Loading certifications...
-            </Typography>
+          <Box sx={{ px: 3, pb: 3 }}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              {[1, 2, 3].map((index) => (
+                <Grow in={loading} key={index} timeout={index * 200}>
+                  <GlassCard sx={{ p: 3 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                      <Skeleton variant="circular" width={48} height={48} />
+                      <Box sx={{ flex: 1 }}>
+                        <Skeleton variant="text" width="30%" height={24} />
+                        <Skeleton variant="text" width="50%" height={20} />
+                      </Box>
+                      <Box sx={{ display: 'flex', gap: 1 }}>
+                        <Skeleton variant="rounded" width={80} height={32} />
+                        <Skeleton variant="rounded" width={80} height={32} />
+                      </Box>
+                    </Box>
+                  </GlassCard>
+                </Grow>
+              ))}
+            </Box>
           </Box>
         ) : filteredCertifications.length > 0 ? (
-          <TableContainer 
-            sx={{ 
-              flexGrow: 1,
-              maxHeight: 'unset',
-              overflow: 'auto'
-            }}
-          >
-            <Table stickyHeader size="small">
-              <TableHead>
-                <TableRow>
-                  <TableCell 
+          <Box sx={{ 
+            px: 3, 
+            pb: 3,
+            flex: 1,
+            overflow: 'auto',
+            '&::-webkit-scrollbar': {
+              width: 8,
+            },
+            '&::-webkit-scrollbar-track': {
+              bgcolor: alpha(ACCENTURE_COLORS.lightGray, 0.3),
+              borderRadius: 4,
+            },
+            '&::-webkit-scrollbar-thumb': {
+              bgcolor: alpha(ACCENTURE_COLORS.corePurple1, 0.3),
+              borderRadius: 4,
+              '&:hover': {
+                bgcolor: alpha(ACCENTURE_COLORS.corePurple1, 0.5),
+              }
+            }
+          }}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              {filteredCertifications.map((cert, index) => (
+                <Zoom in key={cert.uniqueId} timeout={300 + index * 50}>
+                  <GlassCard 
                     sx={{ 
-                      fontWeight: 500, 
-                      fontSize: '0.75rem',
-                      bgcolor: ACCENTURE_COLORS.white,
-                      color: ACCENTURE_COLORS.black,
-                      borderBottom: `1px solid ${alpha(ACCENTURE_COLORS.black, 0.12)}`
-                    }}
-                  >
-                    Employee
-                  </TableCell>
-                  <TableCell 
-                    sx={{ 
-                      fontWeight: 500, 
-                      fontSize: '0.75rem',
-                      bgcolor: ACCENTURE_COLORS.white,
-                      color: ACCENTURE_COLORS.black,
-                      borderBottom: `1px solid ${alpha(ACCENTURE_COLORS.black, 0.12)}`
-                    }}
-                  >
-                    Certification
-                  </TableCell>
-                  <TableCell 
-                    sx={{ 
-                      fontWeight: 500, 
-                      fontSize: '0.75rem',
-                      bgcolor: ACCENTURE_COLORS.white,
-                      color: ACCENTURE_COLORS.black,
-                      borderBottom: `1px solid ${alpha(ACCENTURE_COLORS.black, 0.12)}`
-                    }}
-                  >
-                    Completed
-                  </TableCell>
-                  <TableCell 
-                    sx={{ 
-                      fontWeight: 500, 
-                      fontSize: '0.75rem',
-                      bgcolor: ACCENTURE_COLORS.white,
-                      color: ACCENTURE_COLORS.black,
-                      borderBottom: `1px solid ${alpha(ACCENTURE_COLORS.black, 0.12)}`
-                    }}
-                  >
-                    Valid until
-                  </TableCell>
-                  <TableCell 
-                    sx={{ 
-                      fontWeight: 500, 
-                      fontSize: '0.75rem',
-                      bgcolor: ACCENTURE_COLORS.white,
-                      color: ACCENTURE_COLORS.black,
-                      borderBottom: `1px solid ${alpha(ACCENTURE_COLORS.black, 0.12)}`
-                    }}
-                  >
-                    Score
-                  </TableCell>
-                  <TableCell 
-                    sx={{ 
-                      fontWeight: 500, 
-                      fontSize: '0.75rem',
-                      bgcolor: ACCENTURE_COLORS.white,
-                      color: ACCENTURE_COLORS.black,
-                      borderBottom: `1px solid ${alpha(ACCENTURE_COLORS.black, 0.12)}`
-                    }}
-                  >
-                    Status
-                  </TableCell>
-                  <TableCell 
-                    align="center"
-                    sx={{ 
-                      fontWeight: 500, 
-                      fontSize: '0.75rem',
-                      bgcolor: ACCENTURE_COLORS.white,
-                      color: ACCENTURE_COLORS.black,
-                      borderBottom: `1px solid ${alpha(ACCENTURE_COLORS.black, 0.12)}`
-                    }}
-                  >
-                    Actions
-                  </TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {filteredCertifications.map((cert) => (
-                  <TableRow 
-                    key={cert.uniqueId} 
-                    sx={{
-                      '&:hover': { bgcolor: alpha(ACCENTURE_COLORS.corePurple1, 0.02) },
-                      transition: 'background-color 0.2s ease',
-                      '&:nth-of-type(odd)': {
-                        bgcolor: alpha(ACCENTURE_COLORS.lightGray, 0.2),
+                      p: 3,
+                      cursor: 'pointer',
+                      position: 'relative',
+                      overflow: 'hidden',
+                      '&:hover': {
+                        transform: 'translateY(-2px)',
+                        boxShadow: `0 12px 40px ${alpha(ACCENTURE_COLORS.corePurple1, 0.15)}`,
+                        '& .action-buttons': {
+                          opacity: 1,
+                          transform: 'translateX(0)'
+                        }
                       },
-                      '&:nth-of-type(even)': {
-                        bgcolor: ACCENTURE_COLORS.white,
-                      },
+                      '&::before': {
+                        content: '""',
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        height: '4px',
+                        background: cert.status === 'approved' 
+                          ? ACCENTURE_COLORS.gradients.success
+                          : cert.status === 'pending'
+                          ? ACCENTURE_COLORS.gradients.info
+                          : ACCENTURE_COLORS.gradients.error,
+                        opacity: 0.8
+                      }
                     }}
                   >
-                    <TableCell>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                        <Avatar 
-                          src={cert.userProfilePic} 
-                          sx={{ 
-                            width: 32, 
-                            height: 32,
-                            bgcolor: alpha(getAvatarColor(cert.userName), 0.85),
-                            color: ACCENTURE_COLORS.white,
-                            fontWeight: 400,
-                            fontSize: 12
-                          }}
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                      {/* Employee Info */}
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flex: 1 }}>
+                        <Badge
+                          overlap="circular"
+                          anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                          badgeContent={
+                            <Box sx={{
+                              width: 12,
+                              height: 12,
+                              borderRadius: '50%',
+                              bgcolor: cert.status === 'approved' 
+                                ? ACCENTURE_COLORS.green
+                                : cert.status === 'pending'
+                                ? ACCENTURE_COLORS.blue
+                                : ACCENTURE_COLORS.red,
+                              border: `2px solid ${ACCENTURE_COLORS.white}`
+                            }} />
+                          }
                         >
-                          {getUserInitials(cert.userName)}
-                        </Avatar>
-                        <Box>
-                          <Typography variant="body2" sx={{ color: ACCENTURE_COLORS.black }}>
+                          <Avatar 
+                            src={cert.userProfilePic} 
+                            sx={{ 
+                              width: 56, 
+                              height: 56,
+                              bgcolor: getAvatarColor(cert.userName),
+                              color: ACCENTURE_COLORS.white,
+                              fontSize: 20,
+                              fontWeight: 600,
+                              boxShadow: `0 4px 12px ${alpha(getAvatarColor(cert.userName), 0.3)}`
+                            }}
+                          >
+                            {getUserInitials(cert.userName)}
+                          </Avatar>
+                        </Badge>
+                        
+                        <Box sx={{ flex: 1 }}>
+                          <Typography variant="h6" sx={{ 
+                            fontWeight: 600, 
+                            color: ACCENTURE_COLORS.black,
+                            letterSpacing: '-0.01em'
+                          }}>
                             {cert.userName}
                           </Typography>
-                          <Typography variant="caption" sx={{ color: ACCENTURE_COLORS.darkGray }}>
+                          <Typography variant="body2" sx={{ 
+                            color: ACCENTURE_COLORS.darkGray,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 0.5,
+                            mt: 0.25
+                          }}>
                             {cert.userEmail}
                           </Typography>
                         </Box>
                       </Box>
-                    </TableCell>
-                    <TableCell>
-                      <Tooltip title={cert.certificationDesc || ''} arrow placement="top">
-                        <Typography 
-                          variant="body2" 
-                          sx={{ 
-                            color: ACCENTURE_COLORS.corePurple2,
-                            maxWidth: 200,
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap'
-                          }}
-                        >
-                          {cert.certificationName}
-                        </Typography>
-                      </Tooltip>
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2">
-                        {cert.completedDate}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2">
-                        {cert.validUntil}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Chip 
-                        label={`${cert.score}%`}
-                        size="small"
-                        sx={{ 
-                          height: 20,
-                          borderRadius: 1,
-                          fontSize: '0.7rem',
-                          bgcolor: 
-                            cert.score >= 90 ? alpha(ACCENTURE_COLORS.green, 0.1) :
-                            cert.score >= 70 ? alpha(ACCENTURE_COLORS.orange, 0.1) :
-                                              alpha(ACCENTURE_COLORS.red, 0.1),
-                          color: 
+
+                      {/* Certification Info */}
+                      <Box sx={{ flex: 1.5 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                          <SchoolIcon sx={{ fontSize: 18, color: ACCENTURE_COLORS.corePurple2 }} />
+                          <Typography variant="subtitle1" sx={{ 
+                            fontWeight: 600,
+                            color: ACCENTURE_COLORS.corePurple2
+                          }}>
+                            {cert.certificationName}
+                          </Typography>
+                        </Box>
+                        <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                            <CalendarTodayIcon sx={{ fontSize: 14, color: ACCENTURE_COLORS.darkGray }} />
+                            <Typography variant="caption" color="text.secondary">
+                              Completed: {cert.completedDate}
+                            </Typography>
+                          </Box>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                            <AccessTimeIcon sx={{ fontSize: 14, color: ACCENTURE_COLORS.darkGray }} />
+                            <Typography variant="caption" color="text.secondary">
+                              Valid until: {cert.validUntil}
+                            </Typography>
+                          </Box>
+                        </Box>
+                      </Box>
+
+                      {/* Score and Status */}
+                      <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+                        <Box sx={{ 
+                          textAlign: 'center',
+                          px: 1.5,
+                          py: 0.75,
+                          borderRadius: 1.5,
+                          bgcolor: alpha(
                             cert.score >= 90 ? ACCENTURE_COLORS.green :
                             cert.score >= 70 ? ACCENTURE_COLORS.orange :
-                                              ACCENTURE_COLORS.red
-                        }}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                        <Chip 
+                            ACCENTURE_COLORS.red, 
+                            0.1
+                          ),
+                          border: `1px solid ${alpha(
+                            cert.score >= 90 ? ACCENTURE_COLORS.green :
+                            cert.score >= 70 ? ACCENTURE_COLORS.orange :
+                            ACCENTURE_COLORS.red, 
+                            0.2
+                          )}`,
+                          minWidth: 65
+                        }}>
+                          <Typography variant="body1" sx={{ 
+                            fontWeight: 700,
+                            fontSize: '1.1rem',
+                            lineHeight: 1.5,
+                            color: cert.score >= 90 ? ACCENTURE_COLORS.green :
+                                  cert.score >= 70 ? ACCENTURE_COLORS.orange :
+                                  ACCENTURE_COLORS.red
+                          }}>
+                            {cert.score}%
+                          </Typography>
+                          <Typography variant="caption" sx={{ fontSize: '0.7rem' }} color="text.secondary">
+                            Score
+                          </Typography>
+                        </Box>
+
+                        <AnimatedChip
+                          icon={
+                            cert.status === 'approved' ? <VerifiedIcon /> :
+                            cert.status === 'pending' ? <HourglassEmptyIcon /> :
+                            <BlockIcon />
+                          }
                           label={
                             cert.status === 'approved' ? 'Approved' :
                             cert.status === 'pending' ? 'Pending' :
-                                                      'Rejected'
+                            'Rejected'
                           }
-                          size="small"
-                          sx={{ 
-                            height: 20,
-                            fontSize: '0.7rem',
-                            borderRadius: 1,
-                            bgcolor: getStatusBgColor(cert.status),
-                            color: getStatusTextColor(cert.status)
+                          sx={{
+                            px: 2,
+                            height: 36,
+                            fontSize: '0.875rem',
+                            fontWeight: 600,
+                            bgcolor: cert.status === 'approved' 
+                              ? alpha(ACCENTURE_COLORS.green, 0.15)
+                              : cert.status === 'pending'
+                              ? alpha(ACCENTURE_COLORS.blue, 0.15)
+                              : alpha(ACCENTURE_COLORS.red, 0.15),
+                            color: cert.status === 'approved' 
+                              ? ACCENTURE_COLORS.green
+                              : cert.status === 'pending'
+                              ? ACCENTURE_COLORS.blue
+                              : ACCENTURE_COLORS.red,
+                            '& .MuiChip-icon': {
+                              color: 'inherit'
+                            }
                           }}
                         />
-                        {cert.status === 'rejected' && cert.rejectionReason && (
-                          <Tooltip title={cert.rejectionReason} arrow placement="top">
-                            <Typography 
-                              variant="caption" 
-                              color="error" 
-                              sx={{ 
-                                display: 'block', 
-                                cursor: 'pointer',
-                                fontSize: '0.7rem',
-                                '&:hover': { textDecoration: 'underline' }
-                              }}
-                            >
-                              See reason
-                            </Typography>
-                          </Tooltip>
-                        )}
                       </Box>
-                    </TableCell>
-                    <TableCell align="center">
-                      <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'center' }}>
+
+                      {/* Action Buttons */}
+                      <Box 
+                        className="action-buttons"
+                        sx={{ 
+                          display: 'flex', 
+                          gap: 1,
+                          opacity: 0,
+                          transform: 'translateX(20px)',
+                          transition: 'all 0.3s ease'
+                        }}
+                      >
                         {cert.evidence && (
-                          <Tooltip title="See evidence" arrow placement="top">
+                          <Tooltip title="View Evidence" arrow placement="top">
                             <IconButton 
-                              size="small"
                               onClick={() => handleViewEvidence(cert)}
                               sx={{ 
+                                bgcolor: alpha(ACCENTURE_COLORS.blue, 0.1),
                                 color: ACCENTURE_COLORS.blue,
-                                p: 0.5
+                                '&:hover': {
+                                  bgcolor: alpha(ACCENTURE_COLORS.blue, 0.2),
+                                  transform: 'scale(1.1)'
+                                }
                               }}
                             >
-                              <VisibilityIcon sx={{ fontSize: 16 }} />
+                              <VisibilityIcon />
                             </IconButton>
                           </Tooltip>
                         )}
@@ -1203,700 +1425,1088 @@ const handleConfirmApproval = async () => {
                           <>
                             <Tooltip title="Approve" arrow placement="top">
                               <IconButton 
-                                size="small"
                                 onClick={() => handleApprove(cert)}
                                 sx={{ 
+                                  bgcolor: alpha(ACCENTURE_COLORS.green, 0.1),
                                   color: ACCENTURE_COLORS.green,
-                                  p: 0.5
+                                  '&:hover': {
+                                    bgcolor: alpha(ACCENTURE_COLORS.green, 0.2),
+                                    transform: 'scale(1.1)'
+                                  }
                                 }}
                               >
-                                <CheckCircleIcon sx={{ fontSize: 16 }} />
+                                <CheckCircleIcon />
                               </IconButton>
                             </Tooltip>
                             
                             <Tooltip title="Reject" arrow placement="top">
                               <IconButton 
-                                size="small"
                                 onClick={() => handleReject(cert)}
                                 sx={{ 
+                                  bgcolor: alpha(ACCENTURE_COLORS.red, 0.1),
                                   color: ACCENTURE_COLORS.red,
-                                  p: 0.5
+                                  '&:hover': {
+                                    bgcolor: alpha(ACCENTURE_COLORS.red, 0.2),
+                                    transform: 'scale(1.1)'
+                                  }
                                 }}
                               >
-                                <CancelIcon sx={{ fontSize: 16 }} />
+                                <CancelIcon />
                               </IconButton>
                             </Tooltip>
                           </>
                         )}
                       </Box>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
+                    </Box>
+
+                    {/* Rejection Reason */}
+                    {cert.status === 'rejected' && cert.rejectionReason && (
+                      <Box sx={{ 
+                        mt: 2, 
+                        p: 2, 
+                        borderRadius: 2,
+                        bgcolor: alpha(ACCENTURE_COLORS.red, 0.05),
+                        border: `1px solid ${alpha(ACCENTURE_COLORS.red, 0.1)}`
+                      }}>
+                        <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
+                          <WarningIcon sx={{ fontSize: 18, color: ACCENTURE_COLORS.red, mt: 0.25 }} />
+                          <Box>
+                            <Typography variant="body2" fontWeight={600} color={ACCENTURE_COLORS.red} gutterBottom>
+                              Rejection Reason
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary">
+                              {cert.rejectionReason}
+                            </Typography>
+                          </Box>
+                        </Box>
+                      </Box>
+                    )}
+                  </GlassCard>
+                </Zoom>
+              ))}
+            </Box>
+          </Box>
         ) : (
-          <Box 
-            sx={{ 
-              display: 'flex', 
-              flexDirection: 'column',
-              justifyContent: 'center', 
-              alignItems: 'center',
-              flexGrow: 1,
-              p: 5
-            }}
-          >
-            <Box
-              sx={{
-                width: 80,
-                height: 80,
-                display: 'flex',
+          <Fade in timeout={500}>
+            <Box 
+              sx={{ 
+                display: 'flex', 
+                flexDirection: 'column',
+                justifyContent: 'center', 
                 alignItems: 'center',
-                justifyContent: 'center',
-                borderRadius: '50%',
-                bgcolor: alpha(ACCENTURE_COLORS.corePurple1, 0.08),
-                mb: 2
+                flexGrow: 1,
+                p: 5
               }}
             >
-              <AssignmentIcon 
-                sx={{ 
-                  fontSize: 36, 
-                  color: ACCENTURE_COLORS.corePurple2,
-                  opacity: 0.7
-                }} 
-              />
+              <Box
+                sx={{
+                  width: 120,
+                  height: 120,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderRadius: '50%',
+                  background: ACCENTURE_COLORS.gradients.purpleLight,
+                  mb: 3,
+                  position: 'relative',
+                  boxShadow: `0 20px 40px ${alpha(ACCENTURE_COLORS.corePurple1, 0.2)}`,
+                  '&::before': {
+                    content: '""',
+                    position: 'absolute',
+                    inset: -10,
+                    borderRadius: '50%',
+                    background: `radial-gradient(circle, ${alpha(ACCENTURE_COLORS.accentPurple3, 0.4)} 0%, transparent 70%)`,
+                    animation: 'pulse 2s ease-in-out infinite'
+                  },
+                  '@keyframes pulse': {
+                    '0%': { transform: 'scale(1)', opacity: 1 },
+                    '50%': { transform: 'scale(1.1)', opacity: 0.5 },
+                    '100%': { transform: 'scale(1)', opacity: 1 }
+                  }
+                }}
+              >
+                <WorkspacePremiumIcon 
+                  sx={{ 
+                    fontSize: 56, 
+                    color: ACCENTURE_COLORS.white,
+                    filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.1))'
+                  }} 
+                />
+              </Box>
+              <Typography variant="h5" sx={{ 
+                fontWeight: 600,
+                background: ACCENTURE_COLORS.gradients.purple,
+                backgroundClip: 'text',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                mb: 1
+              }}>
+                No certifications found
+              </Typography>
+              <Typography variant="body1" color="text.secondary" align="center" sx={{ 
+                maxWidth: 400,
+                lineHeight: 1.6
+              }}>
+                Try adjusting your filters or search terms to find the certifications you're looking for.
+              </Typography>
             </Box>
-            <Typography variant="subtitle1" color={ACCENTURE_COLORS.corePurple2} gutterBottom>
-              No certifications found
-            </Typography>
-            <Typography variant="body2" color="text.secondary" align="center" sx={{ maxWidth: 400 }}>
-              Try filtering by status or searching for a specific employee or certification name.
-            </Typography>
-          </Box>
+          </Fade>
         )}
       </DialogContent>
       
+      {/* Enhanced Footer */}
       <Box 
         sx={{ 
-          p: 2, 
-          borderTop: `1px solid ${alpha(ACCENTURE_COLORS.black, 0.08)}`,
+          p: 3,
+          background: `linear-gradient(180deg, transparent 0%, ${alpha(ACCENTURE_COLORS.accentPurple5, 0.3)} 100%)`,
+          borderTop: `1px solid ${alpha(ACCENTURE_COLORS.corePurple1, 0.1)}`,
           display: 'flex',
-          justifyContent: 'flex-end',
-          bgcolor: ACCENTURE_COLORS.white
+          justifyContent: 'space-between',
+          alignItems: 'center'
         }}
       >
-        <Button
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Box sx={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: 1,
+            px: 2,
+            py: 1,
+            borderRadius: 2,
+            bgcolor: alpha(ACCENTURE_COLORS.corePurple1, 0.05),
+            border: `1px solid ${alpha(ACCENTURE_COLORS.corePurple1, 0.1)}`
+          }}>
+            <InfoIcon sx={{ fontSize: 18, color: ACCENTURE_COLORS.corePurple2 }} />
+            <Typography variant="caption" color="text.secondary">
+              Review and manage employee certification requests
+            </Typography>
+          </Box>
+        </Box>
+
+        <StyledButton
           variant="outlined"
           onClick={onClose}
+          startIcon={<ArrowBackIcon />}
           sx={{
-            borderRadius: 1,
-            px: 3,
-            py: 0.75,
-            borderColor: alpha(ACCENTURE_COLORS.corePurple1, 0.5),
+            borderColor: alpha(ACCENTURE_COLORS.corePurple1, 0.3),
             color: ACCENTURE_COLORS.corePurple2,
             '&:hover': {
               borderColor: ACCENTURE_COLORS.corePurple1,
-              bgcolor: alpha(ACCENTURE_COLORS.corePurple1, 0.03)
-            },
-            textTransform: 'none'
+              bgcolor: alpha(ACCENTURE_COLORS.corePurple1, 0.05)
+            }
           }}
-          startIcon={<ArrowBackIcon sx={{ fontSize: 18 }} />}
         >
-          Back
-        </Button>
+          Close
+        </StyledButton>
       </Box>
       
-      {/* PDF Preview Dialog */}
+      {/* Enhanced PDF Preview Dialog */}
       <Dialog
         open={previewOpen}
         onClose={() => setPreviewOpen(false)}
         fullWidth
         maxWidth="lg"
+        TransitionComponent={Zoom}
+        transitionDuration={300}
         PaperProps={{
           sx: { 
             height: '90vh',
-            borderRadius: 1,
-            overflow: 'hidden'
+            borderRadius: 3,
+            overflow: 'hidden',
+            background: alpha(ACCENTURE_COLORS.white, 0.98),
+            backdropFilter: 'blur(10px)',
+            boxShadow: `0 25px 50px -12px ${alpha(ACCENTURE_COLORS.black, 0.25)}`
           }
         }}
       >
         <Box
           sx={{
-            p: 1.5, 
+            p: 2.5, 
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
-            borderBottom: `1px solid ${alpha(ACCENTURE_COLORS.black, 0.08)}`,
-            bgcolor: ACCENTURE_COLORS.white
+            background: `linear-gradient(135deg, ${alpha(ACCENTURE_COLORS.corePurple1, 0.05)} 0%, ${alpha(ACCENTURE_COLORS.accentPurple2, 0.05)} 100%)`,
+            borderBottom: `1px solid ${alpha(ACCENTURE_COLORS.corePurple1, 0.1)}`
           }}
         >
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-            <PdfIcon sx={{ color: ACCENTURE_COLORS.red, fontSize: 20 }} />
-            <Typography variant="subtitle1">
-              Certification Evidence
-            </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Box sx={{
+              width: 40,
+              height: 40,
+              borderRadius: 2,
+              background: ACCENTURE_COLORS.gradients.error,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: `0 4px 12px ${alpha(ACCENTURE_COLORS.red, 0.3)}`
+            }}>
+              <PdfIcon sx={{ color: ACCENTURE_COLORS.white, fontSize: 24 }} />
+            </Box>
+            <Box>
+              <Typography variant="h6" fontWeight={600}>
+                Certification Evidence
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                Review the submitted documentation
+              </Typography>
+            </Box>
           </Box>
           <IconButton 
             onClick={() => setPreviewOpen(false)}
-            size="small"
             sx={{
-              color: ACCENTURE_COLORS.darkGray
+              color: ACCENTURE_COLORS.darkGray,
+              bgcolor: alpha(ACCENTURE_COLORS.black, 0.05),
+              '&:hover': {
+                bgcolor: alpha(ACCENTURE_COLORS.black, 0.1),
+                transform: 'rotate(90deg)'
+              },
+              transition: 'all 0.3s ease'
             }}
           >
-            <CloseIcon fontSize="small" />
+            <CloseIcon />
           </IconButton>
         </Box>
-        <Box sx={{ height: 'calc(90vh - 54px)', bgcolor: alpha(ACCENTURE_COLORS.black, 0.03) }}>
-          <iframe
-            src={previewFile}
-            width="100%"
-            height="100%"
-            style={{ border: 'none' }}
-            title="PDF Preview"
-          />
+        <Box sx={{ 
+          height: 'calc(90vh - 100px)', 
+          bgcolor: '#f8f9fc',
+          p: 2
+        }}>
+          <Box sx={{
+            height: '100%',
+            borderRadius: 2,
+            overflow: 'hidden',
+            boxShadow: `0 4px 20px ${alpha(ACCENTURE_COLORS.black, 0.1)}`,
+            bgcolor: ACCENTURE_COLORS.white
+          }}>
+            <iframe
+              src={previewFile}
+              width="100%"
+              height="100%"
+              style={{ border: 'none' }}
+              title="PDF Preview"
+            />
+          </Box>
         </Box>
       </Dialog>
       
-      {/* Approval Dialog with Skills Update UI */}
+      {/* Enhanced Approval Dialog with Skills Update */}
       <Dialog
         open={skillsDialogOpen}
         onClose={() => setSkillsDialogOpen(false)}
         fullWidth
         maxWidth="lg"
+        TransitionComponent={Slide}
+        transitionDuration={400}
         PaperProps={{
           sx: { 
             maxHeight: '90vh',
-            borderRadius: 1,
-            overflow: 'hidden'
+            borderRadius: 3,
+            overflow: 'hidden',
+            background: alpha(ACCENTURE_COLORS.white, 0.98),
+            backdropFilter: 'blur(10px)',
+            boxShadow: `0 25px 50px -12px ${alpha(ACCENTURE_COLORS.black, 0.25)}`
           }
         }}
       >
         <Box
           sx={{
-            bgcolor: alpha(ACCENTURE_COLORS.corePurple1, 0.08), 
-            color: ACCENTURE_COLORS.black,
-            py: 1.5,
-            px: 2.5,
-            borderBottom: `1px solid ${alpha(ACCENTURE_COLORS.black, 0.06)}`
+            background: ACCENTURE_COLORS.gradients.success,
+            position: 'relative',
+            overflow: 'hidden',
+            '&::before': {
+              content: '""',
+              position: 'absolute',
+              top: 0,
+              right: 0,
+              width: '300px',
+              height: '300px',
+              background: `radial-gradient(circle, ${alpha(ACCENTURE_COLORS.white, 0.1)} 0%, transparent 70%)`,
+              transform: 'translate(50%, -50%)',
+            }
           }}
         >
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <CheckCircleIcon sx={{ color: ACCENTURE_COLORS.corePurple2, fontSize: 20 }} />
-              <Typography variant="subtitle1">
-              Approve certifiations and update skills
-              </Typography>
+          <Box sx={{ 
+            position: 'relative',
+            zIndex: 1,
+            py: 2.5,
+            px: 3.5,
+            color: ACCENTURE_COLORS.white
+          }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <Box sx={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: 2,
+                  background: alpha(ACCENTURE_COLORS.white, 0.2),
+                  backdropFilter: 'blur(10px)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <VerifiedIcon sx={{ fontSize: 26, color: ACCENTURE_COLORS.white }} />
+                </Box>
+                <Box>
+                  <Typography variant="h6" fontWeight={600}>
+                    Approve Certification & Update Skills
+                  </Typography>
+                  <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                    Select skills to be added or updated for this employee
+                  </Typography>
+                </Box>
+              </Box>
+              <IconButton 
+                onClick={() => setSkillsDialogOpen(false)}
+                sx={{ 
+                  color: ACCENTURE_COLORS.white,
+                  bgcolor: alpha(ACCENTURE_COLORS.white, 0.1),
+                  '&:hover': {
+                    bgcolor: alpha(ACCENTURE_COLORS.white, 0.2),
+                    transform: 'rotate(90deg)'
+                  },
+                  transition: 'all 0.3s ease'
+                }}
+              >
+                <CloseIcon />
+              </IconButton>
             </Box>
-            <IconButton 
-              onClick={() => setSkillsDialogOpen(false)}
-              size="small"
-              sx={{ 
-                color: ACCENTURE_COLORS.darkGray
-              }}
-            >
-              <CloseIcon fontSize="small" />
-            </IconButton>
           </Box>
         </Box>
         
-        <DialogContent sx={{ pb: 2, pt: 2 }}>
+        <DialogContent sx={{ p: 3, bgcolor: '#f8f9fc' }}>
           {selectedCertification && (
-            <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
-              <Avatar 
-                src={selectedCertification.userProfilePic} 
-                sx={{ 
-                  width: 40, 
-                  height: 40,
-                  bgcolor: alpha(getAvatarColor(selectedCertification.userName), 0.85),
-                  color: ACCENTURE_COLORS.white,
-                  fontSize: 16
-                }}
-              >
-                {getUserInitials(selectedCertification.userName)}
-              </Avatar>
-              <Box>
-                <Typography variant="subtitle1" color={ACCENTURE_COLORS.black}>
-                  {selectedCertification.userName}
-                </Typography>
-                <Typography variant="body2" color={ACCENTURE_COLORS.darkGray}>
-                  {selectedCertification.certificationName}
-                </Typography>
-              </Box>
-            </Box>
+            <Fade in timeout={300}>
+              <GlassCard sx={{ mb: 3, p: 2.5 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2.5 }}>
+                  <Avatar 
+                    src={selectedCertification.userProfilePic} 
+                    sx={{ 
+                      width: 64, 
+                      height: 64,
+                      bgcolor: getAvatarColor(selectedCertification.userName),
+                      color: ACCENTURE_COLORS.white,
+                      fontSize: 24,
+                      fontWeight: 600,
+                      boxShadow: `0 8px 24px ${alpha(getAvatarColor(selectedCertification.userName), 0.3)}`
+                    }}
+                  >
+                    {getUserInitials(selectedCertification.userName)}
+                  </Avatar>
+                  <Box sx={{ flex: 1 }}>
+                    <Typography variant="h6" fontWeight={600} color={ACCENTURE_COLORS.black}>
+                      {selectedCertification.userName}
+                    </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
+                      <SchoolIcon sx={{ fontSize: 16, color: ACCENTURE_COLORS.corePurple2 }} />
+                      <Typography variant="body2" color={ACCENTURE_COLORS.corePurple2} fontWeight={500}>
+                        {selectedCertification.certificationName}
+                      </Typography>
+                    </Box>
+                  </Box>
+                  <Box sx={{ 
+                    display: 'flex', 
+                    flexDirection: 'column', 
+                    alignItems: 'center',
+                    p: 2,
+                    borderRadius: 2,
+                    bgcolor: alpha(ACCENTURE_COLORS.green, 0.05),
+                    border: `1px solid ${alpha(ACCENTURE_COLORS.green, 0.2)}`
+                  }}>
+                    <EmojiEventsIcon sx={{ fontSize: 32, color: ACCENTURE_COLORS.green, mb: 0.5 }} />
+                    <Typography variant="h6" fontWeight={700} color={ACCENTURE_COLORS.green}>
+                      {selectedCertification.score}%
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      Score
+                    </Typography>
+                  </Box>
+                </Box>
+              </GlassCard>
+            </Fade>
           )}
           
           <Box
             sx={{
-              bgcolor: alpha(ACCENTURE_COLORS.accentPurple5, 0.3),
-              borderRadius: 1,
-              p: 1.5,
-              mb: 2,
-              border: `1px solid ${alpha(ACCENTURE_COLORS.corePurple1, 0.1)}`
+              background: `linear-gradient(135deg, ${alpha(ACCENTURE_COLORS.corePurple1, 0.05)} 0%, ${alpha(ACCENTURE_COLORS.accentPurple2, 0.05)} 100%)`,
+              borderRadius: 2,
+              p: 2.5,
+              mb: 3,
+              border: `1px solid ${alpha(ACCENTURE_COLORS.corePurple1, 0.1)}`,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 2
             }}
           >
-            <Typography variant="body2">
-              Select the skills to update and their proficiency levels. You can also add new skills if needed.
+            <InfoIcon sx={{ fontSize: 20, color: ACCENTURE_COLORS.corePurple2, flexShrink: 0 }} />
+            <Typography variant="body2" color="text.secondary" lineHeight={1.6}>
+              Select the skills to update based on this certification. The system will automatically 
+              add new skills or update existing ones with improved proficiency levels.
             </Typography>
           </Box>
           
-          <TableContainer 
-            component={Paper} 
-            variant="outlined" 
+          <GlassCard
             sx={{ 
               mb: 3,
-              maxHeight: '50vh',
-              overflow: 'auto',
-              borderRadius: 1,
-              borderColor: alpha(ACCENTURE_COLORS.black, 0.08),
-              boxShadow: 'none'
+              maxHeight: '45vh',
+              overflow: 'hidden',
+              p: 0
             }}
           >
-            <Table stickyHeader size="small">
-              <TableHead>
-                <TableRow>
-                  <TableCell 
-                    sx={{ 
-                      fontWeight: 500,
-                      fontSize: '0.75rem', 
-                      width: '15%',
-                      bgcolor: alpha(ACCENTURE_COLORS.accentPurple5, 0.5),
-                      color: ACCENTURE_COLORS.black,
-                      borderBottom: `1px solid ${alpha(ACCENTURE_COLORS.black, 0.08)}`
-                    }}
-                  >
-                    Skill
-                  </TableCell>
-                  <TableCell 
-                    sx={{ 
-                      fontWeight: 500, 
-                      fontSize: '0.75rem',
-                      width: '10%',
-                      bgcolor: alpha(ACCENTURE_COLORS.accentPurple5, 0.5),
-                      color: ACCENTURE_COLORS.black,
-                      borderBottom: `1px solid ${alpha(ACCENTURE_COLORS.black, 0.08)}`
-                    }}
-                  >
-                    Type
-                  </TableCell>
-                  <TableCell 
-                    sx={{ 
-                      fontWeight: 500, 
-                      fontSize: '0.75rem',
-                      width: '20%',
-                      bgcolor: alpha(ACCENTURE_COLORS.accentPurple5, 0.5),
-                      color: ACCENTURE_COLORS.black,
-                      borderBottom: `1px solid ${alpha(ACCENTURE_COLORS.black, 0.08)}`
-                    }}
-                  >
-                    Description
-                  </TableCell>
-                  <TableCell 
-                    sx={{ 
-                      fontWeight: 500, 
-                      fontSize: '0.75rem',
-                      width: '10%', 
-                      textAlign: 'center',
-                      bgcolor: alpha(ACCENTURE_COLORS.accentPurple5, 0.5),
-                      color: ACCENTURE_COLORS.black,
-                      borderBottom: `1px solid ${alpha(ACCENTURE_COLORS.black, 0.08)}`
-                    }}
-                  >
-                    Include
-                  </TableCell>
-                  <TableCell 
-                    sx={{ 
-                      fontWeight: 500, 
-                      fontSize: '0.75rem',
-                      width: '15%',
-                      bgcolor: alpha(ACCENTURE_COLORS.accentPurple5, 0.5),
-                      color: ACCENTURE_COLORS.black,
-                      borderBottom: `1px solid ${alpha(ACCENTURE_COLORS.black, 0.08)}`
-                    }}
-                  >
-                    Level of proficiency
-                  </TableCell>
-                  <TableCell 
-                    sx={{ 
-                      fontWeight: 500, 
-                      fontSize: '0.75rem',
-                      width: '15%',
-                      bgcolor: alpha(ACCENTURE_COLORS.accentPurple5, 0.5),
-                      color: ACCENTURE_COLORS.black,
-                      borderBottom: `1px solid ${alpha(ACCENTURE_COLORS.black, 0.08)}`
-                    }}
-                  >
-                    Experience (Years)
-                  </TableCell>
-                  <TableCell 
-                    sx={{ 
-                      fontWeight: 500, 
-                      fontSize: '0.75rem',
-                      width: '15%',
-                      bgcolor: alpha(ACCENTURE_COLORS.accentPurple5, 0.5),
-                      color: ACCENTURE_COLORS.black,
-                      borderBottom: `1px solid ${alpha(ACCENTURE_COLORS.black, 0.08)}`
-                    }}
-                  >
-                    Progress
-                  </TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {availableSkills.length > 0 ? (
-                  availableSkills.map((skill) => {
-                    const isSelected = selectedSkills.includes(skill.skill_ID);
-                    return (
-                      <TableRow key={skill.skill_ID} sx={{
-                        bgcolor: isSelected ? alpha(ACCENTURE_COLORS.corePurple1, 0.03) : 'inherit',
-                        '&:hover': { 
-                          bgcolor: isSelected ? alpha(ACCENTURE_COLORS.corePurple1, 0.05) : alpha(ACCENTURE_COLORS.black, 0.01) 
-                        }
-                      }}>
-                        <TableCell>
-                          <Typography 
-                            variant="body2" 
-                            sx={{ color: isSelected ? ACCENTURE_COLORS.corePurple2 : ACCENTURE_COLORS.black }}
-                          >
-                            {skill.name}
-                          </Typography>
-                        </TableCell>
-                        <TableCell>
-                          <Chip
-                            label={skill.type}
-                            size="small"
-                            sx={{ 
-                              borderRadius: 1,
-                              height: 20,
-                              fontSize: '0.7rem',
-                              bgcolor: skill.type === 'Soft Skill' ? 
-                                alpha(ACCENTURE_COLORS.blue, 0.05) : alpha(ACCENTURE_COLORS.red, 0.05),
-                              color: skill.type === 'Soft Skill' ? 
-                                ACCENTURE_COLORS.blue : ACCENTURE_COLORS.red
-                            }}
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <Tooltip title={skill.description || ''} arrow placement="top">
-                            <Typography 
-                              variant="body2" 
-                              sx={{ 
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                                whiteSpace: 'nowrap',
-                                maxWidth: 250,
-                                fontSize: '0.8rem',
-                                color: ACCENTURE_COLORS.darkGray
-                              }}
-                            >
-                              {skill.description}
-                            </Typography>
-                          </Tooltip>
-                        </TableCell>
-                        <TableCell align="center">
-                        <Checkbox
-                            checked={isSelected}
-                            onChange={() => handleToggleSkill(skill.skill_ID)}
-                            sx={{
-                              color: alpha(ACCENTURE_COLORS.corePurple1, 0.3),
-                              padding: 0.5,
-                              '&.Mui-checked': { color: ACCENTURE_COLORS.corePurple2 }
-                            }}
-                          />
-                        </TableCell>
-                        <TableCell>
-                          {isSelected && (
-                            <FormControl fullWidth size="small">
-                              <Select
-                                value={proficiencyLevels[skill.skill_ID] || "Basic"}
-                                onChange={(e) => handleProficiencyChange(skill.skill_ID, e.target.value)}
-                                sx={{
-                                  height: 32,
-                                  fontSize: '0.8rem',
-                                  borderRadius: 1,
-                                  '& .MuiOutlinedInput-notchedOutline': {
-                                    borderColor: alpha(getProficiencyColor(proficiencyLevels[skill.skill_ID] || "Basic"), 0.5),
-                                    borderWidth: 1
-                                  },
-                                  '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                                    borderColor: getProficiencyColor(proficiencyLevels[skill.skill_ID] || "Basic"),
-                                    borderWidth: 1
-                                  },
-                                  '&:hover .MuiOutlinedInput-notchedOutline': {
-                                    borderColor: getProficiencyColor(proficiencyLevels[skill.skill_ID] || "Basic"),
-                                  },
-                                  color: getProficiencyColor(proficiencyLevels[skill.skill_ID] || "Basic"),
-                                  '.MuiSelect-select': {
-                                    py: 0.5
-                                  }
-                                }}
-                              >
-                                {PROFICIENCY_LEVELS.map((level) => (
-                                  <MenuItem key={level.value} value={level.value}>
-                                    {level.label}
-                                  </MenuItem>
-                                ))}
-                              </Select>
-                            </FormControl>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          {isSelected && (
-                            <TextField
-                              type="number"
-                              size="small"
-                              value={experienceYears[skill.skill_ID] || 1}
-                              onChange={(e) => handleExperienceChange(skill.skill_ID, e.target.value)}
-                              InputProps={{ 
-                                inputProps: { min: 1, max: 10 },
-                                sx: {
-                                  height: 32,
-                                  fontSize: '0.8rem',
-                                  p: 0
-                                }
-                              }}
-                              sx={{ 
-                                width: '70px',
-                                '& .MuiOutlinedInput-root': {
-                                  borderRadius: 1,
-                                  '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                                    borderColor: alpha(ACCENTURE_COLORS.corePurple1, 0.7),
-                                    borderWidth: 1
-                                  }
-                                }
-                              }}
-                            />
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          {isSelected && (
-                            <Typography 
-                              variant="caption" 
-                              sx={{ 
-                                bgcolor: alpha(ACCENTURE_COLORS.corePurple1, 0.05),
-                                color: ACCENTURE_COLORS.corePurple2,
-                                py: 0.5,
-                                px: 1,
-                                borderRadius: 1,
-                                display: 'inline-block',
-                                fontSize: '0.7rem'
-                              }}
-                            >
-                              {getProgressionMessage(skill.skill_ID)}
-                            </Typography>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })
-                ) : (
+            <TableContainer sx={{ 
+              maxHeight: '45vh',
+              overflow: 'auto',
+              '&::-webkit-scrollbar': {
+                width: 8,
+              },
+              '&::-webkit-scrollbar-track': {
+                bgcolor: alpha(ACCENTURE_COLORS.lightGray, 0.3),
+                borderRadius: 4,
+              },
+              '&::-webkit-scrollbar-thumb': {
+                bgcolor: alpha(ACCENTURE_COLORS.corePurple1, 0.3),
+                borderRadius: 4,
+                '&:hover': {
+                  bgcolor: alpha(ACCENTURE_COLORS.corePurple1, 0.5),
+                }
+              }
+            }}>
+              <Table stickyHeader>
+                <TableHead>
                   <TableRow>
-                    <TableCell colSpan={7} align="center">
-                      <Box sx={{ py: 3, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
-                        <AssignmentIcon sx={{ fontSize: 24, color: alpha(ACCENTURE_COLORS.corePurple1, 0.5), mb: 1 }} />
-                        <Typography variant="body1" color={ACCENTURE_COLORS.corePurple2}>
-                          No selected skills available
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary" fontSize="0.8rem">
-                          This certification does not have any skills to update.
-                        </Typography>
+                    <TableCell 
+                      sx={{ 
+                        fontWeight: 600,
+                        fontSize: '0.875rem', 
+                        width: '20%',
+                        background: `linear-gradient(180deg, ${alpha(ACCENTURE_COLORS.white, 0.9)} 0%, ${alpha(ACCENTURE_COLORS.accentPurple5, 0.5)} 100%)`,
+                        backdropFilter: 'blur(10px)',
+                        color: ACCENTURE_COLORS.black,
+                        borderBottom: `2px solid ${alpha(ACCENTURE_COLORS.corePurple1, 0.1)}`
+                      }}
+                    >
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <PsychologyIcon sx={{ fontSize: 18, color: ACCENTURE_COLORS.corePurple2 }} />
+                        Skill
+                      </Box>
+                    </TableCell>
+                    <TableCell 
+                      sx={{ 
+                        fontWeight: 600, 
+                        fontSize: '0.875rem',
+                        width: '12%',
+                        background: `linear-gradient(180deg, ${alpha(ACCENTURE_COLORS.white, 0.9)} 0%, ${alpha(ACCENTURE_COLORS.accentPurple5, 0.5)} 100%)`,
+                        backdropFilter: 'blur(10px)',
+                        color: ACCENTURE_COLORS.black,
+                        borderBottom: `2px solid ${alpha(ACCENTURE_COLORS.corePurple1, 0.1)}`
+                      }}
+                    >
+                      Type
+                    </TableCell>
+                    <TableCell 
+                      sx={{ 
+                        fontWeight: 600, 
+                        fontSize: '0.875rem',
+                        width: '25%',
+                        background: `linear-gradient(180deg, ${alpha(ACCENTURE_COLORS.white, 0.9)} 0%, ${alpha(ACCENTURE_COLORS.accentPurple5, 0.5)} 100%)`,
+                        backdropFilter: 'blur(10px)',
+                        color: ACCENTURE_COLORS.black,
+                        borderBottom: `2px solid ${alpha(ACCENTURE_COLORS.corePurple1, 0.1)}`
+                      }}
+                    >
+                      Description
+                    </TableCell>
+                    <TableCell 
+                      sx={{ 
+                        fontWeight: 600, 
+                        fontSize: '0.875rem',
+                        width: '8%', 
+                        textAlign: 'center',
+                        background: `linear-gradient(180deg, ${alpha(ACCENTURE_COLORS.white, 0.9)} 0%, ${alpha(ACCENTURE_COLORS.accentPurple5, 0.5)} 100%)`,
+                        backdropFilter: 'blur(10px)',
+                        color: ACCENTURE_COLORS.black,
+                        borderBottom: `2px solid ${alpha(ACCENTURE_COLORS.corePurple1, 0.1)}`
+                      }}
+                    >
+                      Select
+                    </TableCell>
+                    <TableCell 
+                      sx={{ 
+                        fontWeight: 600, 
+                        fontSize: '0.875rem',
+                        width: '15%',
+                        background: `linear-gradient(180deg, ${alpha(ACCENTURE_COLORS.white, 0.9)} 0%, ${alpha(ACCENTURE_COLORS.accentPurple5, 0.5)} 100%)`,
+                        backdropFilter: 'blur(10px)',
+                        color: ACCENTURE_COLORS.black,
+                        borderBottom: `2px solid ${alpha(ACCENTURE_COLORS.corePurple1, 0.1)}`
+                      }}
+                    >
+                      Proficiency
+                    </TableCell>
+                    <TableCell 
+                      sx={{ 
+                        fontWeight: 600, 
+                        fontSize: '0.875rem',
+                        width: '10%',
+                        background: `linear-gradient(180deg, ${alpha(ACCENTURE_COLORS.white, 0.9)} 0%, ${alpha(ACCENTURE_COLORS.accentPurple5, 0.5)} 100%)`,
+                        backdropFilter: 'blur(10px)',
+                        color: ACCENTURE_COLORS.black,
+                        borderBottom: `2px solid ${alpha(ACCENTURE_COLORS.corePurple1, 0.1)}`
+                      }}
+                    >
+                      Years
+                    </TableCell>
+                    <TableCell 
+                      sx={{ 
+                        fontWeight: 600, 
+                        fontSize: '0.875rem',
+                        width: '10%',
+                        background: `linear-gradient(180deg, ${alpha(ACCENTURE_COLORS.white, 0.9)} 0%, ${alpha(ACCENTURE_COLORS.accentPurple5, 0.5)} 100%)`,
+                        backdropFilter: 'blur(10px)',
+                        color: ACCENTURE_COLORS.black,
+                        borderBottom: `2px solid ${alpha(ACCENTURE_COLORS.corePurple1, 0.1)}`
+                      }}
+                    >
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <TrendingUpIcon sx={{ fontSize: 18, color: ACCENTURE_COLORS.corePurple2 }} />
+                        Progress
                       </Box>
                     </TableCell>
                   </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </TableContainer>
+                </TableHead>
+                <TableBody>
+                  {availableSkills.length > 0 ? (
+                    availableSkills.map((skill, index) => {
+                      const isSelected = selectedSkills.includes(skill.skill_ID);
+                      return (
+                        <Zoom in key={skill.skill_ID} timeout={200 + index * 50}>
+                          <TableRow sx={{
+                            position: 'relative',
+                            bgcolor: isSelected ? alpha(ACCENTURE_COLORS.corePurple1, 0.05) : 'transparent',
+                            transition: 'all 0.3s ease',
+                            '&:hover': { 
+                              bgcolor: isSelected 
+                                ? alpha(ACCENTURE_COLORS.corePurple1, 0.08) 
+                                : alpha(ACCENTURE_COLORS.lightGray, 0.3),
+                              transform: 'translateX(4px)'
+                            },
+                            '&::before': {
+                              content: '""',
+                              position: 'absolute',
+                              left: 0,
+                              top: 0,
+                              bottom: 0,
+                              width: '3px',
+                              background: isSelected ? ACCENTURE_COLORS.gradients.purple : 'transparent',
+                              transition: 'all 0.3s ease'
+                            }
+                          }}>
+                            <TableCell>
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                <Box sx={{
+                                  width: 8,
+                                  height: 8,
+                                  borderRadius: '50%',
+                                  bgcolor: isSelected ? ACCENTURE_COLORS.corePurple2 : ACCENTURE_COLORS.lightGray,
+                                  transition: 'all 0.3s ease'
+                                }} />
+                                <Typography 
+                                  variant="body2" 
+                                  fontWeight={isSelected ? 600 : 400}
+                                  sx={{ 
+                                    color: isSelected ? ACCENTURE_COLORS.corePurple2 : ACCENTURE_COLORS.black,
+                                    transition: 'all 0.3s ease'
+                                  }}
+                                >
+                                  {skill.name}
+                                </Typography>
+                              </Box>
+                            </TableCell>
+                            <TableCell>
+                              <AnimatedChip
+                                label={skill.type}
+                                size="small"
+                                icon={skill.type === 'Soft Skill' ? <PsychologyIcon /> : <SchoolIcon />}
+                                sx={{ 
+                                  borderRadius: 2,
+                                  height: 28,
+                                  fontSize: '0.75rem',
+                                  fontWeight: 500,
+                                  bgcolor: skill.type === 'Soft Skill' 
+                                    ? alpha(ACCENTURE_COLORS.blue, 0.1) 
+                                    : alpha(ACCENTURE_COLORS.corePurple1, 0.1),
+                                  color: skill.type === 'Soft Skill' 
+                                    ? ACCENTURE_COLORS.blue 
+                                    : ACCENTURE_COLORS.corePurple2,
+                                  '& .MuiChip-icon': {
+                                    fontSize: 16,
+                                    color: 'inherit'
+                                  }
+                                }}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <Tooltip title={skill.description || ''} arrow placement="top">
+                                <Typography 
+                                  variant="body2" 
+                                  sx={{ 
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    whiteSpace: 'nowrap',
+                                    maxWidth: 300,
+                                    fontSize: '0.875rem',
+                                    color: alpha(ACCENTURE_COLORS.darkGray, 0.8),
+                                    lineHeight: 1.5
+                                  }}
+                                >
+                                  {skill.description}
+                                </Typography>
+                              </Tooltip>
+                            </TableCell>
+                            <TableCell align="center">
+                              <Checkbox
+                                checked={isSelected}
+                                onChange={() => handleToggleSkill(skill.skill_ID)}
+                                sx={{
+                                  color: alpha(ACCENTURE_COLORS.corePurple1, 0.4),
+                                  '&.Mui-checked': { 
+                                    color: ACCENTURE_COLORS.corePurple2,
+                                    transform: 'scale(1.1)'
+                                  },
+                                  '&:hover': {
+                                    bgcolor: alpha(ACCENTURE_COLORS.corePurple1, 0.08)
+                                  },
+                                  transition: 'all 0.2s ease'
+                                }}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              {isSelected && (
+                                <Fade in timeout={300}>
+                                  <FormControl fullWidth size="small">
+                                    <Select
+                                      value={proficiencyLevels[skill.skill_ID] || "Basic"}
+                                      onChange={(e) => handleProficiencyChange(skill.skill_ID, e.target.value)}
+                                      sx={{
+                                        height: 36,
+                                        fontSize: '0.875rem',
+                                        borderRadius: 2,
+                                        bgcolor: alpha(getProficiencyColor(proficiencyLevels[skill.skill_ID] || "Basic"), 0.08),
+                                        '& .MuiOutlinedInput-notchedOutline': {
+                                          borderColor: alpha(getProficiencyColor(proficiencyLevels[skill.skill_ID] || "Basic"), 0.3),
+                                          borderWidth: 1.5
+                                        },
+                                        '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                                          borderColor: getProficiencyColor(proficiencyLevels[skill.skill_ID] || "Basic"),
+                                          borderWidth: 2
+                                        },
+                                        '&:hover .MuiOutlinedInput-notchedOutline': {
+                                          borderColor: getProficiencyColor(proficiencyLevels[skill.skill_ID] || "Basic"),
+                                        },
+                                        color: getProficiencyColor(proficiencyLevels[skill.skill_ID] || "Basic"),
+                                        fontWeight: 600,
+                                        '.MuiSelect-select': {
+                                          py: 0.75,
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          gap: 1
+                                        },
+                                        transition: 'all 0.3s ease'
+                                      }}
+                                    >
+                                      {PROFICIENCY_LEVELS.map((level) => (
+                                        <MenuItem 
+                                          key={level.value} 
+                                          value={level.value}
+                                          sx={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: 1,
+                                            py: 1
+                                          }}
+                                        >
+                                          <Box sx={{ 
+                                            display: 'flex', 
+                                            alignItems: 'center', 
+                                            gap: 1,
+                                            color: level.color
+                                          }}>
+                                            <StarIcon sx={{ fontSize: 18 }} />
+                                            {level.label}
+                                          </Box>
+                                        </MenuItem>
+                                      ))}
+                                    </Select>
+                                  </FormControl>
+                                </Fade>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              {isSelected && (
+                                <Fade in timeout={400}>
+                                  <TextField
+                                    type="number"
+                                    size="small"
+                                    value={experienceYears[skill.skill_ID] || 1}
+                                    onChange={(e) => handleExperienceChange(skill.skill_ID, e.target.value)}
+                                    InputProps={{ 
+                                      inputProps: { min: 1, max: 10 },
+                                      sx: {
+                                        height: 36,
+                                        fontSize: '0.875rem',
+                                        fontWeight: 600
+                                      }
+                                    }}
+                                    sx={{ 
+                                      width: '80px',
+                                      '& .MuiOutlinedInput-root': {
+                                        borderRadius: 2,
+                                        bgcolor: alpha(ACCENTURE_COLORS.corePurple1, 0.05),
+                                        '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                                          borderColor: ACCENTURE_COLORS.corePurple1,
+                                          borderWidth: 2
+                                        },
+                                        '&:hover': {
+                                          bgcolor: alpha(ACCENTURE_COLORS.corePurple1, 0.08)
+                                        },
+                                        transition: 'all 0.3s ease'
+                                      }
+                                    }}
+                                  />
+                                </Fade>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              {isSelected && (
+                                <Zoom in timeout={500}>
+                                  <Box sx={{ 
+                                    background: ACCENTURE_COLORS.gradients.purpleLight,
+                                    color: ACCENTURE_COLORS.white,
+                                    py: 0.75,
+                                    px: 1.5,
+                                    borderRadius: 2,
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: 1,
+                                    fontSize: '0.75rem',
+                                    fontWeight: 600,
+                                    boxShadow: `0 4px 12px ${alpha(ACCENTURE_COLORS.corePurple1, 0.2)}`,
+                                    whiteSpace: 'nowrap'
+                                  }}>
+                                    <TrendingUpIcon sx={{ fontSize: 14 }} />
+                                    {getProgressionMessage(skill.skill_ID)}
+                                  </Box>
+                                </Zoom>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        </Zoom>
+                      );
+                    })
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={7} align="center">
+                        <Box sx={{ py: 6, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+                          <Box sx={{
+                            width: 80,
+                            height: 80,
+                            borderRadius: '50%',
+                            background: alpha(ACCENTURE_COLORS.corePurple1, 0.08),
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            position: 'relative'
+                          }}>
+                            <PsychologyIcon sx={{ fontSize: 40, color: ACCENTURE_COLORS.corePurple2 }} />
+                            <Box sx={{
+                              position: 'absolute',
+                              bottom: -5,
+                              right: -5,
+                              width: 24,
+                              height: 24,
+                              borderRadius: '50%',
+                              bgcolor: ACCENTURE_COLORS.orange,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center'
+                            }}>
+                              <WarningIcon sx={{ fontSize: 16, color: ACCENTURE_COLORS.white }} />
+                            </Box>
+                          </Box>
+                          <Typography variant="h6" color={ACCENTURE_COLORS.corePurple2} fontWeight={600}>
+                            No skills available
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary" textAlign="center" maxWidth={300}>
+                            This certification does not have any associated skills to update.
+                          </Typography>
+                        </Box>
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </GlassCard>
           
           {selectedSkills.length === 0 && availableSkills.length > 0 && (
-            <Box 
-              sx={{ 
-                mt: 1, 
-                mb: 2,
-                p: 1.5,
-                borderRadius: 1,
-                bgcolor: alpha(ACCENTURE_COLORS.red, 0.05),
-                display: 'flex',
-                alignItems: 'center',
-                gap: 1,
-                border: `1px solid ${alpha(ACCENTURE_COLORS.red, 0.1)}`
-              }}
-            >
-              <CancelIcon sx={{ color: ACCENTURE_COLORS.red, fontSize: 18 }} />
-              <Typography variant="body2" color={ACCENTURE_COLORS.red} fontSize="0.8rem">
-                Please select at least one skill to update.
-              </Typography>
-            </Box>
+            <Fade in timeout={300}>
+              <Box 
+                sx={{ 
+                  mt: 2, 
+                  mb: 2,
+                  p: 2,
+                  borderRadius: 2,
+                  background: `linear-gradient(135deg, ${alpha(ACCENTURE_COLORS.red, 0.05)} 0%, ${alpha(ACCENTURE_COLORS.orange, 0.05)} 100%)`,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 2,
+                  border: `1px solid ${alpha(ACCENTURE_COLORS.red, 0.2)}`
+                }}
+              >
+                <Box sx={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 2,
+                  bgcolor: alpha(ACCENTURE_COLORS.red, 0.1),
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <WarningIcon sx={{ color: ACCENTURE_COLORS.red, fontSize: 20 }} />
+                </Box>
+                <Typography variant="body2" color={ACCENTURE_COLORS.red} fontWeight={500}>
+                  Please select at least one skill to continue with the approval process.
+                </Typography>
+              </Box>
+            </Fade>
           )}
         </DialogContent>
         
         <Box 
           sx={{ 
-            p: 2, 
-            borderTop: `1px solid ${alpha(ACCENTURE_COLORS.black, 0.08)}`,
+            p: 3,
+            background: `linear-gradient(180deg, transparent 0%, ${alpha(ACCENTURE_COLORS.green, 0.05)} 100%)`,
+            borderTop: `1px solid ${alpha(ACCENTURE_COLORS.green, 0.1)}`,
             display: 'flex',
             justifyContent: 'space-between',
-            alignItems: 'center',
-            bgcolor: ACCENTURE_COLORS.white
+            alignItems: 'center'
           }}
         >
-          <Button 
-            variant="text"
+          <StyledButton 
+            variant="outlined"
             onClick={() => setSkillsDialogOpen(false)}
             sx={{
-              px: 2,
-              py: 0.75,
+              borderColor: alpha(ACCENTURE_COLORS.darkGray, 0.3),
               color: ACCENTURE_COLORS.darkGray,
               '&:hover': {
-                bgcolor: alpha(ACCENTURE_COLORS.black, 0.03)
-              },
-              textTransform: 'none'
+                borderColor: ACCENTURE_COLORS.darkGray,
+                bgcolor: alpha(ACCENTURE_COLORS.darkGray, 0.05)
+              }
             }}
           >
             Cancel
-          </Button>
+          </StyledButton>
           
-          <Button 
+          <StyledButton 
             variant="contained"
             onClick={handleConfirmApproval}
             disabled={selectedSkills.length === 0 || loading}
+            startIcon={loading ? <CircularProgress size={18} sx={{ color: 'inherit' }} /> : <VerifiedIcon />}
             sx={{
-              borderRadius: 1,
-              px: 3,
-              py: 0.75,
-              bgcolor: ACCENTURE_COLORS.corePurple1,
+              background: selectedSkills.length > 0 ? ACCENTURE_COLORS.gradients.success : undefined,
               '&:hover': {
-                bgcolor: ACCENTURE_COLORS.corePurple2
+                background: selectedSkills.length > 0 ? ACCENTURE_COLORS.gradients.success : undefined,
+                filter: 'brightness(0.95)'
               },
               '&:disabled': {
-                bgcolor: alpha(ACCENTURE_COLORS.corePurple1, 0.2)
-              },
-              textTransform: 'none',
-              boxShadow: 'none'
+                background: 'none',
+                bgcolor: alpha(ACCENTURE_COLORS.darkGray, 0.1)
+              }
             }}
           >
-            {loading ? (
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <CircularProgress size={14} sx={{ color: ACCENTURE_COLORS.white }} />
-                <span>Processing...</span>
-              </Box>
-            ) : (
-              'Approve and Update Skills'
-            )}
-          </Button>
+            {loading ? 'Processing...' : 'Approve & Update Skills'}
+          </StyledButton>
         </Box>
       </Dialog>
       
-      {/* Rejection Dialog */}
+      {/* Enhanced Rejection Dialog */}
       <Dialog
         open={rejectDialogOpen}
         onClose={() => setRejectDialogOpen(false)}
         fullWidth
         maxWidth="sm"
+        TransitionComponent={Slide}
+        transitionDuration={400}
         PaperProps={{
           sx: { 
-            borderRadius: 1,
-            overflow: 'hidden'
+            borderRadius: 3,
+            overflow: 'hidden',
+            background: alpha(ACCENTURE_COLORS.white, 0.98),
+            backdropFilter: 'blur(10px)',
+            boxShadow: `0 25px 50px -12px ${alpha(ACCENTURE_COLORS.black, 0.25)}`
           }
         }}
       >
         <Box
           sx={{
-            bgcolor: alpha(ACCENTURE_COLORS.red, 0.08), 
-            color: ACCENTURE_COLORS.black,
-            py: 1.5,
-            px: 2.5,
-            borderBottom: `1px solid ${alpha(ACCENTURE_COLORS.black, 0.06)}`
+            background: ACCENTURE_COLORS.gradients.error,
+            position: 'relative',
+            overflow: 'hidden',
+            '&::before': {
+              content: '""',
+              position: 'absolute',
+              top: -50,
+              right: -50,
+              width: '200px',
+              height: '200px',
+              borderRadius: '50%',
+              background: alpha(ACCENTURE_COLORS.white, 0.1),
+            }
           }}
         >
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <CancelIcon sx={{ color: ACCENTURE_COLORS.red, fontSize: 20 }} />
-              <Typography variant="subtitle1">
-                Reject certification
-              </Typography>
+          <Box sx={{ 
+            position: 'relative',
+            zIndex: 1,
+            py: 2.5,
+            px: 3.5,
+            color: ACCENTURE_COLORS.white
+          }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <Box sx={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: 2,
+                  background: alpha(ACCENTURE_COLORS.white, 0.2),
+                  backdropFilter: 'blur(10px)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <BlockIcon sx={{ fontSize: 26, color: ACCENTURE_COLORS.white }} />
+                </Box>
+                <Box>
+                  <Typography variant="h6" fontWeight={600}>
+                    Reject Certification
+                  </Typography>
+                  <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                    Provide a reason for rejection
+                  </Typography>
+                </Box>
+              </Box>
+              <IconButton 
+                onClick={() => setRejectDialogOpen(false)}
+                sx={{ 
+                  color: ACCENTURE_COLORS.white,
+                  bgcolor: alpha(ACCENTURE_COLORS.white, 0.1),
+                  '&:hover': {
+                    bgcolor: alpha(ACCENTURE_COLORS.white, 0.2),
+                    transform: 'rotate(90deg)'
+                  },
+                  transition: 'all 0.3s ease'
+                }}
+              >
+                <CloseIcon />
+              </IconButton>
             </Box>
-            <IconButton 
-              onClick={() => setRejectDialogOpen(false)}
-              size="small"
-              sx={{ 
-                color: ACCENTURE_COLORS.darkGray
-              }}
-            >
-              <CloseIcon fontSize="small" />
-            </IconButton>
           </Box>
         </Box>
         
-        <DialogContent sx={{ py: 2 }}>
+        <DialogContent sx={{ p: 3, bgcolor: '#f8f9fc' }}>
           {selectedCertification && (
-            <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1.5 }}>
-              <Avatar 
-                src={selectedCertification.userProfilePic} 
-                sx={{ 
-                  width: 36, 
-                  height: 36,
-                  bgcolor: alpha(getAvatarColor(selectedCertification.userName), 0.85),
-                  color: ACCENTURE_COLORS.white,
-                  fontSize: 14
-                }}
-              >
-                {getUserInitials(selectedCertification.userName)}
-              </Avatar>
-              <Box>
-                <Typography variant="subtitle2" color={ACCENTURE_COLORS.black}>
-                  {selectedCertification.userName}
-                </Typography>
-                <Typography variant="body2" color={ACCENTURE_COLORS.darkGray} fontSize="0.8rem">
-                  {selectedCertification.certificationName}
-                </Typography>
-              </Box>
-            </Box>
+            <Fade in timeout={300}>
+              <GlassCard sx={{ mb: 3, p: 2 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  <Avatar 
+                    src={selectedCertification.userProfilePic} 
+                    sx={{ 
+                      width: 56, 
+                      height: 56,
+                      bgcolor: getAvatarColor(selectedCertification.userName),
+                      color: ACCENTURE_COLORS.white,
+                      fontSize: 20,
+                      fontWeight: 600,
+                      boxShadow: `0 4px 12px ${alpha(getAvatarColor(selectedCertification.userName), 0.3)}`
+                    }}
+                  >
+                    {getUserInitials(selectedCertification.userName)}
+                  </Avatar>
+                  <Box sx={{ flex: 1 }}>
+                    <Typography variant="subtitle1" fontWeight={600} color={ACCENTURE_COLORS.black}>
+                      {selectedCertification.userName}
+                    </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
+                      <SchoolIcon sx={{ fontSize: 16, color: ACCENTURE_COLORS.red }} />
+                      <Typography variant="body2" color={ACCENTURE_COLORS.red} fontWeight={500}>
+                        {selectedCertification.certificationName}
+                      </Typography>
+                    </Box>
+                  </Box>
+                </Box>
+              </GlassCard>
+            </Fade>
           )}
           
           <Box
             sx={{
-              bgcolor: alpha(ACCENTURE_COLORS.red, 0.05),
-              borderRadius: 1,
-              p: 1.5,
-              mb: 2,
+              background: `linear-gradient(135deg, ${alpha(ACCENTURE_COLORS.red, 0.05)} 0%, ${alpha(ACCENTURE_COLORS.orange, 0.05)} 100%)`,
+              borderRadius: 2,
+              p: 2.5,
+              mb: 3,
               display: 'flex',
               alignItems: 'flex-start',
-              gap: 1,
+              gap: 2,
               border: `1px solid ${alpha(ACCENTURE_COLORS.red, 0.1)}`
             }}
           >
-            <Typography variant="body2" fontSize="0.8rem">
-              <Box component="span" fontWeight={500}>Importante: </Box>
-              Please give a reason for rejecting the certification. This will be sent to the employee.
-            </Typography>
+            <WarningIcon sx={{ fontSize: 20, color: ACCENTURE_COLORS.red, flexShrink: 0, mt: 0.25 }} />
+            <Box>
+              <Typography variant="subtitle2" fontWeight={600} color={ACCENTURE_COLORS.red} gutterBottom>
+                Important Notice
+              </Typography>
+              <Typography variant="body2" color="text.secondary" lineHeight={1.6}>
+                Please provide a clear and constructive reason for rejecting this certification. 
+                This feedback will be sent to the employee to help them understand the decision.
+              </Typography>
+            </Box>
           </Box>
           
           <TextField
             fullWidth
             multiline
-            rows={3}
-            placeholder="Explain the reason for rejection..."
+            rows={4}
+            placeholder="Enter a detailed reason for rejection..."
             value={rejectionReason}
             onChange={(e) => setRejectionReason(e.target.value)}
             required
             error={rejectDialogOpen && !rejectionReason}
-            helperText={rejectDialogOpen && !rejectionReason ? "Motive of rejection required" : ""}
+            helperText={rejectDialogOpen && !rejectionReason ? "Rejection reason is required" : "Be specific and constructive in your feedback"}
             sx={{
               '& .MuiOutlinedInput-root': {
-                borderRadius: 1,
-                fontSize: '0.875rem',
+                borderRadius: 2,
+                fontSize: '0.9375rem',
                 bgcolor: ACCENTURE_COLORS.white,
-                border: `1px solid ${alpha(ACCENTURE_COLORS.black, 0.15)}`,
+                transition: 'all 0.3s ease',
                 '&:hover': {
-                  borderColor: alpha(ACCENTURE_COLORS.black, 0.3)
+                  bgcolor: alpha(ACCENTURE_COLORS.red, 0.02),
+                  transform: 'translateY(-1px)',
+                  boxShadow: `0 4px 12px ${alpha(ACCENTURE_COLORS.red, 0.08)}`
                 },
                 '&.Mui-focused': {
                   borderColor: ACCENTURE_COLORS.red,
-                  boxShadow: `0 0 0 2px ${alpha(ACCENTURE_COLORS.red, 0.1)}`
+                  boxShadow: `0 0 0 3px ${alpha(ACCENTURE_COLORS.red, 0.1)}`
+                },
+                '&.Mui-error': {
+                  animation: 'shake 0.3s ease-in-out'
                 }
               },
               '& .MuiFormHelperText-root': {
-                fontSize: '0.7rem'
+                fontSize: '0.8125rem',
+                mt: 1
+              },
+              '@keyframes shake': {
+                '0%, 100%': { transform: 'translateX(0)' },
+                '25%': { transform: 'translateX(-5px)' },
+                '75%': { transform: 'translateX(5px)' }
               }
             }}
           />
@@ -1904,58 +2514,48 @@ const handleConfirmApproval = async () => {
         
         <Box 
           sx={{ 
-            p: 2, 
-            borderTop: `1px solid ${alpha(ACCENTURE_COLORS.black, 0.08)}`,
+            p: 3,
+            background: `linear-gradient(180deg, transparent 0%, ${alpha(ACCENTURE_COLORS.red, 0.05)} 100%)`,
+            borderTop: `1px solid ${alpha(ACCENTURE_COLORS.red, 0.1)}`,
             display: 'flex',
             justifyContent: 'space-between',
-            alignItems: 'center',
-            bgcolor: ACCENTURE_COLORS.white
+            alignItems: 'center'
           }}
         >
-          <Button 
-            variant="text"
+          <StyledButton 
+            variant="outlined"
             onClick={() => setRejectDialogOpen(false)}
             sx={{
-              px: 2,
-              py: 0.75,
+              borderColor: alpha(ACCENTURE_COLORS.darkGray, 0.3),
               color: ACCENTURE_COLORS.darkGray,
               '&:hover': {
-                bgcolor: alpha(ACCENTURE_COLORS.black, 0.03)
-              },
-              textTransform: 'none'
+                borderColor: ACCENTURE_COLORS.darkGray,
+                bgcolor: alpha(ACCENTURE_COLORS.darkGray, 0.05)
+              }
             }}
           >
-            Cancelar
-          </Button>
+            Cancel
+          </StyledButton>
           
-          <Button 
+          <StyledButton 
             variant="contained"
             onClick={handleConfirmRejection}
             disabled={!rejectionReason || loading}
+            startIcon={loading ? <CircularProgress size={18} sx={{ color: 'inherit' }} /> : <BlockIcon />}
             sx={{
-              borderRadius: 1,
-              px: 3,
-              py: 0.75,
-              bgcolor: ACCENTURE_COLORS.red,
+              background: rejectionReason ? ACCENTURE_COLORS.gradients.error : undefined,
               '&:hover': {
-                bgcolor: alpha(ACCENTURE_COLORS.red, 0.85)
+                background: rejectionReason ? ACCENTURE_COLORS.gradients.error : undefined,
+                filter: 'brightness(0.95)'
               },
               '&:disabled': {
-                bgcolor: alpha(ACCENTURE_COLORS.red, 0.2)
-              },
-              textTransform: 'none',
-              boxShadow: 'none'
+                background: 'none',
+                bgcolor: alpha(ACCENTURE_COLORS.darkGray, 0.1)
+              }
             }}
           >
-            {loading ? (
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <CircularProgress size={14} sx={{ color: ACCENTURE_COLORS.white }} />
-                <span>Processing...</span>
-              </Box>
-            ) : (
-              'Reject certification'
-            )}
-          </Button>
+            {loading ? 'Processing...' : 'Confirm Rejection'}
+          </StyledButton>
         </Box>
       </Dialog>
       

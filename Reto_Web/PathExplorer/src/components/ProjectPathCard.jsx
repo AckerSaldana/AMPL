@@ -1,9 +1,11 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   Box,
   Typography,
   Paper,
   Divider,
+  Fade,
+  Grow,
 } from "@mui/material";
 import {
   CalendarMonth,
@@ -12,35 +14,58 @@ import {
 } from "@mui/icons-material";
 import { ACCENTURE_COLORS } from "../styles/styles";
 
-const ProjectCard = ({ project }) => {
+const ProjectCard = ({ project, index = 0 }) => {
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsVisible(true);
+    }, index * 100);
+    return () => clearTimeout(timer);
+  }, [index]);
+
   return (
-    <Paper 
-      elevation={0}
-      sx={{
-        borderRadius: 2,
-        overflow: "hidden",
-        height: "100%",
-        boxShadow: "0 2px 10px rgba(0,0,0,0.03)",
-        display: "flex",
-        flexDirection: "column",
-        transition: "transform 0.2s, box-shadow 0.2s",
-        "&:hover": {
-          transform: "translateY(-4px)",
-          boxShadow: "0 6px 20px rgba(0,0,0,0.06)",
-        },
-        bgcolor: "#fff",
-        position: "relative",
-      }}
-    >
-      {/* Color accent line - Full width */}
+    <Grow in={isVisible} timeout={600} style={{ transformOrigin: '50% 50%' }}>
+      <Paper 
+        elevation={0}
+        sx={{
+          borderRadius: 3,
+          overflow: "hidden",
+          height: "100%",
+          boxShadow: "0 2px 10px rgba(0,0,0,0.03)",
+          display: "flex",
+          flexDirection: "column",
+          transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+          transform: "translateY(0)",
+          "&:hover": {
+            transform: "translateY(-8px) scale(1.02)",
+            boxShadow: `0 12px 24px ${ACCENTURE_COLORS.corePurple1}15`,
+            '& .accent-line': {
+              width: '100%',
+            },
+            '& .project-icon': {
+              transform: 'scale(1.2)',
+            },
+            '& .project-title': {
+              color: ACCENTURE_COLORS.corePurple1,
+            },
+          },
+          bgcolor: "#fff",
+          position: "relative",
+        }}
+      >
+      {/* Color accent line - Animated */}
       <Box 
+        className="accent-line"
         sx={{ 
-          width: "100%", 
+          width: isVisible ? "100%" : "0%", 
           height: "4px", 
           bgcolor: ACCENTURE_COLORS.corePurple1,
           position: "absolute",
           top: 0,
           left: 0,
+          transition: 'width 0.8s cubic-bezier(0.4, 0, 0.2, 1)',
+          transitionDelay: `${index * 100 + 300}ms`,
         }} 
       />
 
@@ -48,11 +73,13 @@ const ProjectCard = ({ project }) => {
       <Box sx={{ p: 3, pt: 4 }}>
         <Typography
           variant="h6"
+          className="project-title"
           sx={{
             fontWeight: 500,
             fontSize: "1.1rem",
             color: ACCENTURE_COLORS.black,
             mb: 1.5,
+            transition: 'color 0.3s ease',
           }}
         >
           {project.name}
@@ -88,7 +115,12 @@ const ProjectCard = ({ project }) => {
           <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
             <Person
               fontSize="small"
-              sx={{ color: ACCENTURE_COLORS.corePurple1, opacity: 0.8 }}
+              className="project-icon"
+              sx={{ 
+                color: ACCENTURE_COLORS.corePurple1, 
+                opacity: 0.8,
+                transition: 'transform 0.3s ease',
+              }}
             />
             <Typography
               variant="body2"
@@ -101,7 +133,12 @@ const ProjectCard = ({ project }) => {
           <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
             <Business
               fontSize="small"
-              sx={{ color: ACCENTURE_COLORS.corePurple1, opacity: 0.6 }}
+              className="project-icon"
+              sx={{ 
+                color: ACCENTURE_COLORS.corePurple1, 
+                opacity: 0.6,
+                transition: 'transform 0.3s ease',
+              }}
             />
             <Typography
               variant="body2"
@@ -114,7 +151,12 @@ const ProjectCard = ({ project }) => {
           <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
             <CalendarMonth
               fontSize="small"
-              sx={{ color: ACCENTURE_COLORS.corePurple1, opacity: 0.6 }}
+              className="project-icon"
+              sx={{ 
+                color: ACCENTURE_COLORS.corePurple1, 
+                opacity: 0.6,
+                transition: 'transform 0.3s ease',
+              }}
             />
             <Typography
               variant="body2"
@@ -126,6 +168,7 @@ const ProjectCard = ({ project }) => {
         </Box>
       </Box>
     </Paper>
+    </Grow>
   );
 };
 
