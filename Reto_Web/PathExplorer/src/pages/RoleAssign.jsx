@@ -250,16 +250,6 @@ const RoleAssign = () => {
     [dataChanged, confirming, navigate]
   );
 
-  // Manejar navegación dentro de la aplicación
-  const handleNavigate = useCallback(
-    (path) => {
-      if (confirmExit(path)) {
-        navigate(path);
-      }
-    },
-    [confirmExit, navigate]
-  );
-
   // Configurar el manejador beforeunload para navegador
   useEffect(() => {
     const handleBeforeUnload = (e) => {
