@@ -21,19 +21,16 @@ jobs:
           node-version: '16'
 
       - name: Install dependencies
-        run:
-          cd Reto_Web/PathExplorer 
-          npm install 
+        working-directory: Reto_Web/PathExplorer
+        run: npm install 
 
       - name: Verify Cypress binary
-        run:
-          cd Reto_Web/PathExplorer 
-          npx cypress verify
+        working-directory: Reto_Web/PathExplorer
+        run: npx cypress verify
 
       - name: Run Cypress against prod-ampl
-        # override del baseUrl para que apunte a tu deploy
+        working-directory: Reto_Web/PathExplorer
         run:
-          cd Reto_Web/PathExplorer 
           npx cypress run \
                --config baseUrl=https://localhost:3000 \
                --spec "cypress/e2e/spec.cy.js"
