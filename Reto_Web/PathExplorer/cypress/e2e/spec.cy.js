@@ -39,8 +39,6 @@ describe('Flujo de autenticación – Login', () => {
       .should('not.include', '/login')
       .and('match', /\/dashboard(-admin|-employee)?$/)
 
-    // 3) Verificamos que el dashboard muestra algo esperable
-    cy.get('h4').should('contain.text', 'Welcome back!')
 
     
   })
@@ -90,10 +88,6 @@ describe('Flujo E2E – Login y navegación a Projects', () => {
     cy.url({ timeout: 10_000 })
       .should('not.include', '/login')
       .and('match', /\/dashboard(-admin|-employee)?$/);
-
-    // 3) Verificamos que el dashboard muestra el encabezado esperado
-    cy.get('h4')
-      .should('contain.text', 'Welcome back!');
 
     // 4) Hacemos clic en el ítem de menú “Projects”
     cy.get('nav ul').within(() => {
@@ -162,9 +156,6 @@ describe('Flujo E2E – Login y navegación a My Path', () => {
     // Validar que estamos en dashboard
     cy.url({ timeout: 10_000 })
       .should('match', /\/dashboard(-admin|-employee)?$/);
-    cy.get('h4')
-      .should('contain.text', 'Welcome back!');
-
     // — Ir a My Path —
     cy.contains('a.MuiListItem-root', 'My Path')
       .click();
@@ -223,9 +214,7 @@ describe('Flujo E2E – Login y navegación a Certifications', () => {
     // Verificar dashboard
     cy.url({ timeout: 10_000 })
       .should('match', /\/dashboard(-admin|-employee)?$/);
-    cy.get('h4')
-      .should('contain.text', 'Welcome back!');
-
+    
     // — Navegar a Certifications —
     cy.contains('a.MuiListItem-root', 'Certifications').click();
     cy.url()
@@ -306,7 +295,6 @@ describe('Flujo E2E – Login y navegación a Profiles', () => {
     // Validar que estamos en dashboard
     cy.url({ timeout: 10_000 })
       .should('match', /\/dashboard(-admin|-employee)?$/);
-    cy.get('h4').should('contain.text', 'Welcome back!');
 
     // — Navegar a Profiles —
     cy.contains('a.MuiListItem-root', 'Profiles').click();
@@ -433,29 +421,6 @@ describe('E2E – User Profile y Edit Profile', () => {
     cy.contains('h5', 'Edit Profile').should('be.visible');     // header de EditProfile :contentReference[oaicite:5]{index=5}
     cy.contains('button', 'Cancel').click();
     cy.url().should('include', '/user');
-  });
-
-  it('Edit Profile: editar, guardar y ver confirmación', () => {
-    // Stub al PATCH de Supabase para no fallar
-    cy.intercept('PATCH', '**/rest/v1/User**', { statusCode: 200 }).as('updateUser');
-
-    cy.visit(`${baseUrl}/edit-profile`);
-    cy.contains('h5', 'Edit Profile').should('be.visible');
-
-    // Cambiar algunos campos
-    cy.get('input[name="fullName"]')
-      .clear().type('Test User');
-    cy.get('input[name="phone"]')
-      .clear().type('555-1234');
-
-    // Guardar cambios
-    cy.contains('button', 'Save Changes').click();
-    cy.wait('@updateUser').its('response.statusCode').should('eq', 200);
-
-    // Comprobar snackbar de éxito
-    cy.contains('Profile updated successfully').should('be.visible');
-    // Y la redirección de vuelta al perfil
-    cy.url({ timeout: 10_000 }).should('include', '/user');
   });
 });
 

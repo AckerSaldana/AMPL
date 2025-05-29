@@ -1,0 +1,36 @@
+# .github/workflows/cypress.yml
+
+name: Cypress E2E Tests
+
+on:
+  push:
+    branches: [ sprint4-web ]
+  pull_request:
+    branches: [ sprint4-web ]
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16'
+
+      - name: Install dependencies
+        working-directory: Reto_Web/PathExplorer
+        run: npm install 
+
+      - name: Verify Cypress binary
+        working-directory: Reto_Web/PathExplorer
+        run: npx cypress verify
+
+      - name: Run Cypress against prod-ampl
+        working-directory: Reto_Web/PathExplorer
+        run:
+          npx cypress run \
+               --config baseUrl=https://prod-ampl.web.app \
+               --spec "cypress/e2e/spec.cy.js"
