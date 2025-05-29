@@ -21,7 +21,7 @@ jobs:
           node-version: '16'
 
       - name: Install dependencies
-        run: npm install
+        run: npm install 
 
       - name: Verify Cypress binary
         run: npx cypress verify
@@ -29,5 +29,5 @@ jobs:
       - name: Run Cypress against prod-ampl
         # override del baseUrl para que apunte a tu deploy
         run: npx cypress run \
-               --config baseUrl=https://prod-ampl.web.app \
+               --config baseUrl=https://localhost:3000 \
                --spec "cypress/e2e/spec.cy.js"
