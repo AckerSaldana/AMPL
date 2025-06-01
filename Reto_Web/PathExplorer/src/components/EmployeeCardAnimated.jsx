@@ -71,8 +71,8 @@ const EmployeeCardAnimated = ({ employee, onViewDetails, useModal = false, isLoa
   // Loading skeleton
   if (isLoading) {
     return (
-      <Paper sx={{ p: isSmallScreen ? 2 : 3, borderRadius: 3, height: "100%" }}>
-        <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
+      <Paper sx={{ p: isSmallScreen ? 2 : 3, borderRadius: 3, height: 380, display: "flex", flexDirection: "column" }}>
+        <Box sx={{ display: "flex", alignItems: "center", mb: 2, flexShrink: 0 }}>
           <Skeleton variant="circular" width={56} height={56} />
           <Box sx={{ ml: 2, flex: 1 }}>
             <Skeleton variant="text" width="70%" />
@@ -80,13 +80,14 @@ const EmployeeCardAnimated = ({ employee, onViewDetails, useModal = false, isLoa
           </Box>
           <Skeleton variant="rectangular" width={60} height={24} sx={{ borderRadius: 1 }} />
         </Box>
-        <Box sx={{ display: "flex", gap: 1, mb: 2 }}>
+        <Box sx={{ display: "flex", gap: 1, mb: 2, minHeight: 52, alignContent: "flex-start" }}>
           <Skeleton variant="rectangular" width={60} height={22} sx={{ borderRadius: 1 }} />
           <Skeleton variant="rectangular" width={80} height={22} sx={{ borderRadius: 1 }} />
           <Skeleton variant="rectangular" width={50} height={22} sx={{ borderRadius: 1 }} />
         </Box>
-        <Skeleton variant="text" width="90%" sx={{ mb: 2 }} />
-        <Skeleton variant="rectangular" width="100%" height={40} sx={{ borderRadius: 2 }} />
+        <Box sx={{ flex: 1 }} />
+        <Skeleton variant="text" width="90%" sx={{ mb: 2, minHeight: 20 }} />
+        <Skeleton variant="rectangular" width="100%" height={40} sx={{ borderRadius: 2, flexShrink: 0 }} />
       </Paper>
     );
   }
@@ -106,7 +107,7 @@ const EmployeeCardAnimated = ({ employee, onViewDetails, useModal = false, isLoa
         }}
         sx={{ 
           borderRadius: 3,
-          height: "100%",
+          height: 275, // Fixed height for all cards
           display: "flex",
           flexDirection: "column",
           cursor: "pointer",
@@ -128,7 +129,8 @@ const EmployeeCardAnimated = ({ employee, onViewDetails, useModal = false, isLoa
           display: "flex", 
           flexDirection: "column",
           width: "100%",
-          mb: isSmallScreen ? 2 : 3,
+          mb: 2,
+          flexShrink: 0, // Prevent shrinking
         }}>
           <Box sx={{
             display: "flex",
@@ -294,8 +296,10 @@ const EmployeeCardAnimated = ({ employee, onViewDetails, useModal = false, isLoa
             display: "flex",
             flexWrap: "wrap",
             gap: 0.7,
-            mb: isSmallScreen ? 2 : 3,
-            justifyContent: "flex-start"
+            mb: 2,
+            justifyContent: "flex-start",
+            minHeight: 52, // Ensure consistent space for skills
+            alignContent: "flex-start"
           }}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -357,20 +361,24 @@ const EmployeeCardAnimated = ({ employee, onViewDetails, useModal = false, isLoa
           )}
         </MotionBox>
         
+        {/* Spacer to push content to bottom */}
+        <Box sx={{ flex: 1 }} />
+        
         {/* Animated availability text */}
         <MotionBox
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 1 }}
+          sx={{ flexShrink: 0 }}
         >
           <Typography 
             sx={{ 
               color: "text.secondary",
               fontStyle: "italic",
               fontSize: "0.75rem",
-              mt: "auto",
               mb: 2,
-              whiteSpace: "normal"
+              whiteSpace: "normal",
+              minHeight: 20, // Ensure consistent space
             }}
           >
             {employee.isAssigned 
@@ -384,6 +392,7 @@ const EmployeeCardAnimated = ({ employee, onViewDetails, useModal = false, isLoa
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 1.1 }}
+          sx={{ flexShrink: 0 }}
         >
           <Button
             variant="outlined"
