@@ -48,7 +48,8 @@ const SearchFilter = ({
   onFilterClick,
   onSortClick,
   onClearFilters,
-  availableCount
+  availableCount,
+  onAddEmployee
 }) => {
   const theme = useTheme();
   // Media queries for responsive layout
@@ -387,6 +388,7 @@ const SearchFilter = ({
       <AddEmployeeForm 
         open={addEmployeeOpen} 
         onClose={handleCloseAddEmployee} 
+        onSuccess={onAddEmployee}
       />
     </>
   );
