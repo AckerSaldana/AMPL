@@ -1530,25 +1530,35 @@ Si el candidato NO tiene la skill 8, NO puedes decir que la tiene
    - SOLO cuenta las skills que SÍ están en ese array
    - NO INVENTES skills que no están
 
-3️⃣ CALCULA el score técnico:
-   ✅ Tiene TODAS las skills requeridas → 85-100% técnico
-   ⚠️ Le falta 1 skill → 50-75% técnico (NO 75% exacto)
-   ❌ Le faltan 2+ skills → 20-50% técnico
+3️⃣ CALCULA el score técnico - FÓRMULA EXACTA:
+   
+   Score Técnico = (Skills que tiene / Skills requeridas) × Factor de ajuste
+   
+   Factores de ajuste:
+   ✅ Tiene TODAS (2/2) → Factor 0.85 a 1.0 → Score: 85-100%
+   ⚠️ Le falta 1 (1/2) → Factor 0.50 a 0.70 → Score: 50-70%
+   ❌ Le falta más (0/2) → Factor 0.10 a 0.20 → Score: 10-20%
+   
+   IMPORTANTE: NO des el mismo score a candidatos diferentes
+   - Si uno tiene 2/2 skills → Dale 90-95% técnico
+   - Si otro tiene 1/2 skills → Dale 60-65% técnico
+   - NUNCA les des 50% a ambos
 
 4️⃣ VERIFICACIÓN PASO A PASO:
    Ejemplo: Rol requiere skills [8, 12]
    
-   • Candidato A tiene skills: [7, 8, 12, 20, 45]
-     - ¿Tiene skill 8? SÍ (está en su array)
-     - ¿Tiene skill 12? SÍ (está en su array)
-     - Resultado: 2/2 skills → 85%+ técnico
+   • Acker tiene skills: [7, 8, 12, 20, 45, ...más]
+     - ¿Tiene skill 8? SÍ ✅ (está en su array)
+     - ¿Tiene skill 12? SÍ ✅ (está en su array)
+     - Resultado: 2/2 skills → Dale 90-95% técnico
    
-   • Candidato B tiene skills: [5, 10, 12, 45, 70]
-     - ¿Tiene skill 8? NO (NO está en su array)
-     - ¿Tiene skill 12? SÍ (está en su array)
-     - Resultado: 1/2 skills → Máximo 75% técnico
+   • Leonardo tiene skills: [5, 10, 12, 45, 70]
+     - ¿Tiene skill 8? NO ❌ (NO está en su array)
+     - ¿Tiene skill 12? SÍ ✅ (está en su array)
+     - Resultado: 1/2 skills → Dale 60-65% técnico
      
-   ⚠️ NO puedes darle a B un score de 100 en skill 8 porque NO LA TIENE
+   ⚠️ NUNCA des el mismo score técnico a ambos
+   ⚠️ Leonardo NO puede tener score 100 en skill 8 porque NO LA TIENE
 
 ════════════════════════════════════════════════════════════════════════════════
                             CÓMO EVALUAR CONTEXTO
@@ -1580,9 +1590,21 @@ ${certificationWeight > 0 ? `
 📐 FÓRMULA:
    Score Final = (Técnico × ${technicalWeight}%) + (Contextual × ${contextualWeight}%)${certificationWeight > 0 ? ` + (Certificaciones × ${certificationWeight}%)` : ''}
 
-⚠️ VERIFICACIÓN OBLIGATORIA:
-   • Candidato COMPLETO debe tener score > Candidato INCOMPLETO
-   • NO es válido: Candidato con 1/2 skills tenga 92% de score
+📊 EJEMPLO DE CÁLCULO CORRECTO:
+   • Acker (2/2 skills + certs):
+     - Técnico: 92% × ${technicalWeight}% = ${(92 * technicalWeight / 100).toFixed(1)}
+     - Contextual: 70% × ${contextualWeight}% = ${(70 * contextualWeight / 100).toFixed(1)}${certificationWeight > 0 ? `
+     - Certificaciones: 100% × ${certificationWeight}% = ${(100 * certificationWeight / 100).toFixed(1)}` : ''}
+     - TOTAL: ${(92 * technicalWeight / 100 + 70 * contextualWeight / 100 + (certificationWeight > 0 ? 100 * certificationWeight / 100 : 0)).toFixed(1)}%
+   
+   • Leonardo (1/2 skills, sin certs):
+     - Técnico: 62% × ${technicalWeight}% = ${(62 * technicalWeight / 100).toFixed(1)}
+     - Contextual: 70% × ${contextualWeight}% = ${(70 * contextualWeight / 100).toFixed(1)}${certificationWeight > 0 ? `
+     - Certificaciones: 0% × ${certificationWeight}% = 0.0` : ''}
+     - TOTAL: ${(62 * technicalWeight / 100 + 70 * contextualWeight / 100).toFixed(1)}%
+
+⚠️ VERIFICACIÓN: Acker DEBE tener score final MAYOR que Leonardo
+⚠️ NO pueden tener el mismo score combinado (48.6)
 
 ════════════════════════════════════════════════════════════════════════════════
                               FORMATO DE RESPUESTA
@@ -1627,7 +1649,11 @@ ${certificationWeight > 0 ? `
 ✅ VERIFICACIÓN FINAL ANTES DE RESPONDER:
    1. ¿Cada skill en matchDetails realmente existe en el array del candidato?
    2. ¿Los candidatos completos tienen scores más altos que los incompletos?
-   3. ¿Los scores reflejan correctamente las skills faltantes?
+   3. ¿Los scores técnicos son DIFERENTES para candidatos con diferente número de skills?
+   4. Si Acker tiene 2/2 skills y Leonardo tiene 1/2:
+      - ¿Acker tiene score técnico 90%+ y Leonardo 60-65%?
+      - ¿El score final de Acker es MAYOR que el de Leonardo?
+      - ¿NO tienen el mismo combinedScore?
 `;
 }
 
@@ -1926,7 +1952,7 @@ export async function matchCandidatesWithGPT(role, employees, skillMap = {}) {
     
     // 4. Llamar a GPT-4o-mini para analizar todos los candidatos a la vez
     const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: "gpt-4.1-nano",
       messages: [
         { 
           role: "system", 
