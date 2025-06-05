@@ -75,7 +75,7 @@ const PATTERNS = {
   WARNING_SECTION: /(?:Warning|Important|Critical):\s*([^#\n]+)/gi
 };
 
-const MessageContent = ({ text, sender, sx = {} }) => {
+const MessageContent = ({ text, sender, metadata, sx = {} }) => {
   const theme = useTheme();
   
   // For user messages, render simple text
@@ -88,10 +88,10 @@ const MessageContent = ({ text, sender, sx = {} }) => {
   }
 
   // For bot messages, apply advanced formatting
-  return <EnhancedBotMessage text={text} sx={sx} />;
+  return <EnhancedBotMessage text={text} metadata={metadata} sx={sx} />;
 };
 
-const EnhancedBotMessage = ({ text, sx }) => {
+const EnhancedBotMessage = ({ text, metadata, sx }) => {
   const theme = useTheme();
   const [expandedSections, setExpandedSections] = React.useState({});
   
@@ -103,7 +103,31 @@ const EnhancedBotMessage = ({ text, sx }) => {
     }));
   };
   
-  // Parse the message to identify its structure
+  // If we have structured metadata, use it directly
+  if (metadata && metadata.certifications) {
+    // Normalize certification data to ensure skills are properly formatted
+    const normalizedCertifications = metadata.certifications.map(cert => ({
+      ...cert,
+      skills: (cert.skills || []).map(skill => {
+        // Ensure each skill is a proper object with name
+        if (typeof skill === 'string') {
+          return { id: 'unknown', name: skill };
+        }
+        return skill;
+      })
+    }));
+    
+    return <CertificationRecommendationView 
+      data={{
+        type: 'certification_recommendation',
+        introduction: text.split('\n')[0], // First line as intro
+        certifications: normalizedCertifications
+      }} 
+      sx={sx} 
+    />;
+  }
+  
+  // Otherwise, parse the message to identify its structure
   const messageStructure = parseMessageStructure(text);
   
   // Render based on message type
@@ -284,6 +308,15 @@ const CertificationRecommendationView = ({ data, sx }) => {
     setExpanded(prev => ({ ...prev, [index]: !prev[index] }));
   };
   
+  // Helper to get difficulty color
+  const getDifficultyColor = (level) => {
+    const levelLower = (level || '').toLowerCase();
+    if (levelLower.includes('beginner') || levelLower.includes('basic')) return '#4CAF50';
+    if (levelLower.includes('intermediate') || levelLower.includes('medium')) return '#FF9800';
+    if (levelLower.includes('advanced') || levelLower.includes('expert')) return '#F44336';
+    return ACCENTURE_COLORS.corePurple1;
+  };
+  
   return (
     <Box sx={{ width: '100%', ...sx }}>
       {/* Introduction */}
@@ -295,7 +328,10 @@ const CertificationRecommendationView = ({ data, sx }) => {
       
       {/* Certifications Grid */}
       <Stack spacing={2}>
-        {data.certifications.map((cert, index) => (
+        {data.certifications.map((cert, index) => {
+          const difficultyColor = getDifficultyColor(cert.level);
+          
+          return (
           <Card
             key={index}
             elevation={0}
@@ -304,6 +340,8 @@ const CertificationRecommendationView = ({ data, sx }) => {
               borderRadius: 2,
               background: `linear-gradient(135deg, ${alpha(ACCENTURE_COLORS.corePurple1, 0.02)} 0%, ${alpha(ACCENTURE_COLORS.corePurple1, 0.05)} 100%)`,
               transition: 'all 0.3s ease',
+              position: 'relative',
+              overflow: 'visible',
               '&:hover': {
                 borderColor: alpha(ACCENTURE_COLORS.corePurple1, 0.4),
                 boxShadow: `0 4px 12px ${alpha(ACCENTURE_COLORS.corePurple1, 0.1)}`
@@ -311,6 +349,7 @@ const CertificationRecommendationView = ({ data, sx }) => {
             }}
           >
             <CardContent sx={{ p: 2.5 }}>
+              
               {/* Header */}
               <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 2 }}>
                 <WorkspacePremium 
@@ -362,10 +401,13 @@ const CertificationRecommendationView = ({ data, sx }) => {
                     Skills Covered
                   </Typography>
                   <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                    {cert.skills.map((skill, idx) => (
+                    {cert.skills.map((skill, idx) => {
+                      // Handle both string and object formats
+                      const skillName = typeof skill === 'string' ? skill : skill.name || skill;
+                      return (
                       <Chip
                         key={idx}
-                        label={skill}
+                        label={skillName}
                         size="small"
                         icon={<Code sx={{ fontSize: '14px !important' }} />}
                         sx={{
@@ -378,13 +420,14 @@ const CertificationRecommendationView = ({ data, sx }) => {
                           }
                         }}
                       />
-                    ))}
+                      );
+                    })}
                   </Box>
                 </Box>
               )}
               
               {/* Details Grid */}
-              <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 2, mb: 2 }}>
+              <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 2, mb: 2 }}>
                 {cert.focus && (
                   <Box>
                     <Typography variant="caption" sx={{ color: alpha(theme.palette.text.primary, 0.6) }}>
@@ -401,15 +444,40 @@ const CertificationRecommendationView = ({ data, sx }) => {
                     <Typography variant="caption" sx={{ color: alpha(theme.palette.text.primary, 0.6) }}>
                       Level
                     </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                      <Box 
+                        sx={{ 
+                          width: 8, 
+                          height: 8, 
+                          borderRadius: '50%', 
+                          bgcolor: difficultyColor 
+                        }} 
+                      />
+                      <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                        {cert.level}
+                      </Typography>
+                    </Box>
+                  </Box>
+                )}
+                
+                {cert.type && (
+                  <Box>
+                    <Typography variant="caption" sx={{ color: alpha(theme.palette.text.primary, 0.6) }}>
+                      Type
+                    </Typography>
                     <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                      {cert.level}
+                      {cert.type}
                     </Typography>
                   </Box>
                 )}
               </Box>
               
-              {/* Value Proposition */}
-              {cert.value && (
+              {/* Value Proposition or Match Details */}
+              {(cert.value || (cert.matchDetails && (
+                cert.matchDetails.exactSkillMatches?.length > 0 ||
+                cert.matchDetails.goalAlignments?.length > 0 ||
+                cert.matchDetails.skillGaps?.length > 0
+              ))) && (
                 <Box 
                   sx={{ 
                     p: 1.5,
@@ -418,10 +486,35 @@ const CertificationRecommendationView = ({ data, sx }) => {
                     borderLeft: `3px solid ${ACCENTURE_COLORS.corePurple1}`
                   }}
                 >
-                  <Typography variant="body2" sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
-                    <EmojiEvents sx={{ fontSize: 18, color: ACCENTURE_COLORS.corePurple1, mt: 0.3 }} />
-                    {cert.value}
-                  </Typography>
+                  {cert.value && (
+                    <Typography variant="body2" sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
+                      <EmojiEvents sx={{ fontSize: 18, color: ACCENTURE_COLORS.corePurple1, mt: 0.3 }} />
+                      {cert.value}
+                    </Typography>
+                  )}
+                  
+                  {cert.matchDetails && (
+                    <Box sx={{ mt: cert.value ? 1 : 0 }}>
+                      {cert.matchDetails.exactSkillMatches?.length > 0 && (
+                        <Typography variant="caption" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: '#4CAF50' }}>
+                          <CheckCircle sx={{ fontSize: 14 }} />
+                          Exact match: {cert.matchDetails.exactSkillMatches.join(', ')}
+                        </Typography>
+                      )}
+                      {cert.matchDetails.goalAlignments?.length > 0 && (
+                        <Typography variant="caption" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: ACCENTURE_COLORS.corePurple1, mt: 0.5 }}>
+                          <EmojiEvents sx={{ fontSize: 14 }} />
+                          Aligns with your goals
+                        </Typography>
+                      )}
+                      {cert.matchDetails.skillGaps?.length > 0 && (
+                        <Typography variant="caption" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: '#FF9800', mt: 0.5 }}>
+                          <TipsAndUpdates sx={{ fontSize: 14 }} />
+                          New skills: {cert.matchDetails.skillGaps.slice(0, 2).join(', ')}{cert.matchDetails.skillGaps.length > 2 ? '...' : ''}
+                        </Typography>
+                      )}
+                    </Box>
+                  )}
                 </Box>
               )}
               
@@ -446,7 +539,8 @@ const CertificationRecommendationView = ({ data, sx }) => {
               )}
             </CardContent>
           </Card>
-        ))}
+          );
+        })}
       </Stack>
     </Box>
   );

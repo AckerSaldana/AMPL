@@ -512,6 +512,7 @@ const VirtualAssistant = () => {
                       <MessageContent 
                         text={chat.text} 
                         sender={chat.sender}
+                        metadata={chat.metadata}
                         sx={{
                           color: chat.sender === "user" ? 'white' : 'inherit',
                           '& a': {
