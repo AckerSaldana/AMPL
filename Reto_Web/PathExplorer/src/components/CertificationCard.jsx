@@ -8,15 +8,13 @@ import {
   Chip,
   Button,
   alpha,
-  useTheme,
   Tooltip,
-  IconButton
+  IconButton,
 } from "@mui/material";
-import { 
-  Info as InfoIcon
-} from "@mui/icons-material";
+import { Info as InfoIcon } from "@mui/icons-material";
 import CertificationDetailModal from "./CertificationDetailModal";
-import { ACCENTURE_COLORS, primaryButtonStyles } from "../styles/styles";
+import { primaryButtonStyles } from "../styles/styles";
+import { useTheme } from "@mui/material/styles";
 
 /**
  * Enhanced component for certification cards following Accenture design guidelines
@@ -30,26 +28,26 @@ import { ACCENTURE_COLORS, primaryButtonStyles } from "../styles/styles";
  * @param {string} props.duration - Course duration or issuer
  * @param {string} props.level - Difficulty level
  */
-export const CertificationCard = ({ 
-  id,  // Added ID as prop
-  title, 
-  url, 
-  skills = [], 
-  backgroundImage = '/default-certification.jpg',
+export const CertificationCard = ({
+  id, // Added ID as prop
+  title,
+  url,
+  skills = [],
+  backgroundImage = "/default-certification.jpg",
   isListView = false,
   duration = "40 hours",
-  level = "Beginner"
+  level = "Beginner",
 }) => {
   const theme = useTheme();
-  
+
   // State to control modal opening
   const [modalOpen, setModalOpen] = useState(false);
-  
+
   // Function to open course URL in a new tab
   const handleTakeCourse = (e) => {
     e.stopPropagation();
     if (url) {
-      window.open(url, '_blank', 'noopener,noreferrer');
+      window.open(url, "_blank", "noopener,noreferrer");
     }
   };
 
@@ -75,11 +73,12 @@ export const CertificationCard = ({
           borderRadius: 2,
           overflow: "hidden",
           transition: "all 0.2s ease",
-          border: `1px solid ${alpha('#000', 0.08)}`,
-          bgcolor: "white",
+          border: `1px solid`,
+          borderColor: theme.palette.accenture.colors.white,
+          bgcolor: theme.palette.background.paper,
           "&:hover": {
-            boxShadow: `0 4px 12px ${alpha(ACCENTURE_COLORS.corePurple1, 0.12)}`,
-            borderColor: alpha(ACCENTURE_COLORS.corePurple1, 0.15),
+            boxShadow: `0 4px 12px ${alpha(theme.palette.primary.main, 0.12)}`,
+            borderColor: alpha(theme.palette.primary.main, 0.15),
           },
           position: "relative",
         }}
@@ -103,21 +102,21 @@ export const CertificationCard = ({
               right: 0,
               bottom: 0,
               backgroundImage: `linear-gradient(180deg, rgba(65, 0, 115, 0.8) 0%, rgba(65, 0, 115, 0.4) 40%, rgba(65, 0, 115, 0) 100%)`,
-              zIndex: 1
-            }
+              zIndex: 1,
+            },
           }}
         >
           {/* Skills tags displayed over the image */}
-          <Box 
-            sx={{ 
-              position: "absolute", 
-              top: 12, 
-              left: 12, 
+          <Box
+            sx={{
+              position: "absolute",
+              top: 12,
+              left: 12,
               display: "flex",
               gap: 0.75,
               flexWrap: "wrap",
               maxWidth: "calc(100% - 24px)",
-              zIndex: 2
+              zIndex: 2,
             }}
           >
             {skills.slice(0, 3).map((skill, index) => (
@@ -126,7 +125,7 @@ export const CertificationCard = ({
                 label={skill}
                 size="small"
                 sx={{
-                  bgcolor: alpha(ACCENTURE_COLORS.corePurple1, 0.2),
+                  bgcolor: alpha(theme.palette.primary.main, 0.2),
                   color: "white",
                   fontWeight: 500,
                   fontSize: "0.7rem",
@@ -138,7 +137,7 @@ export const CertificationCard = ({
                   borderColor: alpha("#fff", 0.3),
                   "& .MuiChip-label": {
                     px: 1,
-                  }
+                  },
                 }}
               />
             ))}
@@ -162,7 +161,7 @@ export const CertificationCard = ({
             )}
           </Box>
         </CardMedia>
-        
+
         {/* Certification content */}
         <CardContent
           sx={{
@@ -188,29 +187,25 @@ export const CertificationCard = ({
                 WebkitLineClamp: 2,
                 WebkitBoxOrient: "vertical",
                 lineHeight: 1.4,
-                color: "#333",
+                color: theme.palette.text,
                 minHeight: "2.8rem", // Maintains consistent height for titles
               }}
             >
               {title}
             </Typography>
-            
-            <Typography 
-              variant="body2" 
-              color="text.secondary"
-              sx={{ mb: 1 }}
-            >
+
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
               {duration}
             </Typography>
           </Box>
-          
+
           {/* Action buttons */}
-          <Box 
-            sx={{ 
-              display: "flex", 
-              justifyContent: "space-between", 
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
               alignItems: "center",
-              mt: 1.5
+              mt: 1.5,
             }}
           >
             <Button
@@ -218,8 +213,8 @@ export const CertificationCard = ({
               size="small"
               onClick={handleTakeCourse}
               sx={{
-                ...primaryButtonStyles,
-                bgcolor: ACCENTURE_COLORS.corePurple1,
+                ...primaryButtonStyles(theme),
+                bgcolor: theme.palette.primary.main,
                 px: 2,
                 fontSize: "0.8rem",
                 borderRadius: 6,
@@ -228,16 +223,16 @@ export const CertificationCard = ({
             >
               Take course
             </Button>
-            
+
             <Tooltip title="View details">
               <IconButton
                 size="small"
                 onClick={handleViewDetails}
                 sx={{
-                  color: ACCENTURE_COLORS.corePurple3,
-                  bgcolor: alpha(ACCENTURE_COLORS.corePurple1, 0.08),
+                  color: theme.palette.accenture.colors.corePurple3,
+                  bgcolor: alpha(theme.palette.primary.main, 0.08),
                   "&:hover": {
-                    bgcolor: alpha(ACCENTURE_COLORS.corePurple1, 0.15),
+                    bgcolor: alpha(theme.palette.primary.main, 0.15),
                   },
                   transition: "background-color 0.2s",
                   width: 32,
@@ -252,7 +247,7 @@ export const CertificationCard = ({
       </Card>
 
       {/* Details modal */}
-      <CertificationDetailModal 
+      <CertificationDetailModal
         open={modalOpen}
         handleClose={handleCloseModal}
         certificationId={id}
