@@ -6,7 +6,6 @@ import {
   TextField,
   MenuItem,
   Button,
-  useTheme,
   IconButton,
   CircularProgress,
   Snackbar,
@@ -28,14 +27,14 @@ import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../supabase/supabaseClient";
 import {
-  ACCENTURE_COLORS,
   formFieldStyles,
   primaryButtonStyles,
   outlineButtonStyles,
-  chipStyles,
 } from "../styles/styles";
 import CertificatePicker from "../components/CertificatePicker.jsx";
 import SelectedCertificates from "../components/SelectedCertificates.jsx";
+
+import { useTheme } from "@mui/material/styles";
 
 export const AddRoleCard = ({
   onRoleCreated,
@@ -288,7 +287,7 @@ export const AddRoleCard = ({
         <Typography
           variant="h6"
           fontWeight={600}
-          color={ACCENTURE_COLORS.corePurple3}
+          color={theme.palette.accenture.colors.corePurple3}
           gutterBottom
         >
           {initialRole ? "Edit Role" : "Create Role"}
@@ -308,18 +307,19 @@ export const AddRoleCard = ({
             sx={{
               p: 2.5,
               borderRadius: 2,
-              bgcolor: "rgba(255,255,255,0.8)",
-              border: "1px solid rgba(0,0,0,0.05)",
+              bgcolor: theme.palette.background.paper,
+              border: (theme) =>
+                `1px solid ${theme.palette.accenture.colors.lightGray}`,
             }}
           >
             <Typography
               variant="subtitle2"
               fontWeight={600}
               sx={{
-                color: ACCENTURE_COLORS.corePurple2,
+                color: theme.palette.primary.main,
                 mb: 2,
                 pb: 1,
-                borderBottom: `1px solid ${ACCENTURE_COLORS.accentPurple5}`,
+                borderBottom: `1px solid ${theme.palette.accenture.colors.accentPurple5}`,
                 display: "flex",
                 alignItems: "center",
                 gap: 1,
@@ -348,10 +348,10 @@ export const AddRoleCard = ({
                   size="small"
                   required
                   sx={{
-                    ...formFieldStyles,
+                    ...formFieldStyles(theme),
                     "& .MuiOutlinedInput-root": {
-                      ...formFieldStyles["& .MuiOutlinedInput-root"],
-                      backgroundColor: "rgba(255,255,255,0.6)",
+                      ...formFieldStyles(theme)["& .MuiOutlinedInput-root"],
+                      backgroundColor: theme.palette.background.paper,
                     },
                   }}
                 />
@@ -374,10 +374,10 @@ export const AddRoleCard = ({
                   onChange={handleInputChange}
                   size="small"
                   sx={{
-                    ...formFieldStyles,
+                    ...formFieldStyles(theme),
                     "& .MuiOutlinedInput-root": {
-                      ...formFieldStyles["& .MuiOutlinedInput-root"],
-                      backgroundColor: "rgba(255,255,255,0.6)",
+                      ...formFieldStyles(theme)["& .MuiOutlinedInput-root"],
+                      backgroundColor: theme.palette.background.paper,
                     },
                   }}
                 >
@@ -409,10 +409,10 @@ export const AddRoleCard = ({
                   onChange={handleInputChange}
                   placeholder="Add a description here..."
                   sx={{
-                    ...formFieldStyles,
+                    ...formFieldStyles(theme),
                     "& .MuiOutlinedInput-root": {
-                      ...formFieldStyles["& .MuiOutlinedInput-root"],
-                      backgroundColor: "rgba(255,255,255,0.6)",
+                      ...formFieldStyles(theme)["& .MuiOutlinedInput-root"],
+                      backgroundColor: theme.palette.background.paper,
                     },
                   }}
                 />
@@ -431,8 +431,9 @@ export const AddRoleCard = ({
             sx={{
               p: 2.5,
               borderRadius: 2,
-              bgcolor: "rgba(255,255,255,0.8)",
-              border: "1px solid rgba(0,0,0,0.05)",
+              bgcolor: theme.palette.background.paper,
+              border: (theme) =>
+                `1px solid ${theme.palette.accenture.colors.lightGray}`,
               height: "400px",
               display: "flex",
               flexDirection: "column",
@@ -442,10 +443,10 @@ export const AddRoleCard = ({
               variant="subtitle2"
               fontWeight={600}
               sx={{
-                color: ACCENTURE_COLORS.corePurple2,
+                color: theme.palette.primary.main,
                 mb: 2,
                 pb: 1,
-                borderBottom: `1px solid ${ACCENTURE_COLORS.accentPurple5}`,
+                borderBottom: `1px solid ${theme.palette.accenture.colors.accentPurple5}`,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "space-between",
@@ -461,8 +462,8 @@ export const AddRoleCard = ({
                 sx={{
                   height: 20,
                   fontSize: "0.625rem",
-                  bgcolor: ACCENTURE_COLORS.accentPurple5,
-                  color: ACCENTURE_COLORS.corePurple2,
+                  bgcolor: theme.palette.accenture.colors.accentPurple5,
+                  color: theme.palette.primary.main,
                   fontWeight: 600,
                 }}
               />
@@ -477,10 +478,10 @@ export const AddRoleCard = ({
               onChange={(e) => setSearchTerm(e.target.value)}
               sx={{
                 mb: 2,
-                ...formFieldStyles,
+                ...formFieldStyles(theme),
                 "& .MuiOutlinedInput-root": {
-                  ...formFieldStyles["& .MuiOutlinedInput-root"],
-                  backgroundColor: "white",
+                  ...formFieldStyles(theme)["& .MuiOutlinedInput-root"],
+                  backgroundColor: theme.palette.background.paper,
                   borderRadius: 6,
                   fontSize: "0.8rem",
                 },
@@ -493,8 +494,9 @@ export const AddRoleCard = ({
                 overflow: "hidden",
                 position: "relative",
                 borderRadius: 2,
-                bgcolor: "rgba(255,255,255,0.5)",
-                border: "1px solid rgba(0,0,0,0.03)",
+                bgcolor: theme.palette.background.paper,
+                border: (theme) =>
+                  `1px solid ${theme.palette.accenture.colors.lightGray}`,
                 boxShadow: "inset 0 1px 3px rgba(0,0,0,0.02)",
                 display: "flex",
                 flexDirection: "column",
@@ -513,10 +515,12 @@ export const AddRoleCard = ({
                     borderRadius: "3px",
                   },
                   "&::-webkit-scrollbar-thumb": {
-                    backgroundColor: ACCENTURE_COLORS.accentPurple5,
+                    backgroundColor:
+                      theme.palette.accenture.colors.accentPurple5,
                     borderRadius: "3px",
                     "&:hover": {
-                      backgroundColor: ACCENTURE_COLORS.accentPurple4,
+                      backgroundColor:
+                        theme.palette.accenture.colors.accentPurple4,
                     },
                   },
                 }}
@@ -525,7 +529,7 @@ export const AddRoleCard = ({
                   <Box sx={{ display: "flex", justifyContent: "center", p: 3 }}>
                     <CircularProgress
                       size={24}
-                      sx={{ color: ACCENTURE_COLORS.corePurple1 }}
+                      sx={{ color: theme.palette.accenture.colors.corePurple1 }}
                     />
                   </Box>
                 ) : filteredSkills.length > 0 ? (
@@ -544,14 +548,16 @@ export const AddRoleCard = ({
                             alignItems: "center",
                             p: 1.5,
                             borderRadius: 1.5,
-                            bgcolor: "white",
+                            bgcolor: theme.palette.background.paper,
                             boxShadow: "0 1px 2px rgba(0,0,0,0.03)",
-                            border: "1px solid rgba(0,0,0,0.04)",
+                            border: (theme) =>
+                              `1px solid ${theme.palette.accenture.colors.lightGray}`,
                             cursor: "pointer",
                             transition: "all 0.2s ease",
                             "&:hover": {
                               boxShadow: "0 2px 4px rgba(0,0,0,0.06)",
-                              borderColor: ACCENTURE_COLORS.accentPurple4,
+                              borderColor:
+                                theme.palette.accenture.colors.accentPurple4,
                               transform: "translateY(-1px)",
                             },
                           }}
@@ -562,11 +568,11 @@ export const AddRoleCard = ({
                                 width: 28,
                                 height: 28,
                                 borderRadius: "6px",
-                                backgroundColor: `${ACCENTURE_COLORS.corePurple1}15`,
+                                backgroundColor: `${theme.palette.accenture.colors.corePurple1}15`,
                                 display: "flex",
                                 alignItems: "center",
                                 justifyContent: "center",
-                                color: ACCENTURE_COLORS.corePurple2,
+                                color: theme.palette.primary.main,
                                 fontWeight: "bold",
                                 fontSize: "0.7rem",
                                 flexShrink: 0,
@@ -578,7 +584,9 @@ export const AddRoleCard = ({
                               <Typography
                                 variant="body2"
                                 fontWeight={500}
-                                color={ACCENTURE_COLORS.corePurple3}
+                                color={
+                                  theme.palette.accenture.colors.corePurple3
+                                }
                                 fontSize="0.8rem"
                               >
                                 {skill.name}
@@ -601,8 +609,10 @@ export const AddRoleCard = ({
                                     borderRadius: "50%",
                                     bgcolor:
                                       skill.type === "Soft"
-                                        ? ACCENTURE_COLORS.accentPurple1
-                                        : ACCENTURE_COLORS.corePurple2,
+                                        ? theme.palette.accenture.colors
+                                            .accentPurple1
+                                        : theme.palette.accenture.colors
+                                            .corePurple2,
                                   }}
                                 />
                                 {skill.description}
@@ -618,20 +628,23 @@ export const AddRoleCard = ({
                                   (s) => s.id === skill.id
                                 )}
                                 sx={{
-                                  color: ACCENTURE_COLORS.corePurple1,
+                                  color:
+                                    theme.palette.accenture.colors.corePurple1,
                                   bgcolor: roleData.skills.some(
                                     (s) => s.id === skill.id
                                   )
-                                    ? `${ACCENTURE_COLORS.accentPurple4}50`
-                                    : `${ACCENTURE_COLORS.accentPurple5}90`,
+                                    ? `${theme.palette.accenture.colors.accentPurple4}50`
+                                    : `${theme.palette.accenture.colors.accentPurple5}90`,
                                   width: 28,
                                   height: 28,
                                   "&:hover": {
-                                    bgcolor: ACCENTURE_COLORS.accentPurple5,
+                                    bgcolor:
+                                      theme.palette.accenture.colors
+                                        .accentPurple5,
                                   },
                                   "&.Mui-disabled": {
-                                    bgcolor: `${ACCENTURE_COLORS.accentPurple4}30`,
-                                    color: `${ACCENTURE_COLORS.corePurple1}50`,
+                                    bgcolor: `${theme.palette.accenture.colors.accentPurple4}30`,
+                                    color: `${theme.palette.accenture.colors.corePurple1}50`,
                                   },
                                 }}
                               >
@@ -661,8 +674,9 @@ export const AddRoleCard = ({
             elevation={0}
             sx={{
               borderRadius: 2,
-              border: "1px solid rgba(0,0,0,0.08)",
-              bgcolor: "white",
+              border: (theme) =>
+                `1px solid ${theme.palette.accenture.colors.lightGray}`,
+              bgcolor: theme.palette.background.paper,
               height: "400px",
               display: "flex",
               flexDirection: "column",
@@ -680,7 +694,7 @@ export const AddRoleCard = ({
                 <Typography
                   variant="subtitle2"
                   fontWeight={600}
-                  color={ACCENTURE_COLORS.corePurple2}
+                  color={theme.palette.primary.main}
                   sx={{
                     display: "flex",
                     alignItems: "center",
@@ -694,8 +708,8 @@ export const AddRoleCard = ({
                   label={`${roleData.skills.length} skills`}
                   size="small"
                   sx={{
-                    bgcolor: `${ACCENTURE_COLORS.corePurple1}15`,
-                    color: ACCENTURE_COLORS.corePurple2,
+                    bgcolor: `${theme.palette.accenture.colors.corePurple1}15`,
+                    color: theme.palette.primary.main,
                     fontWeight: 600,
                     height: 20,
                     fontSize: "0.625rem",
@@ -717,10 +731,12 @@ export const AddRoleCard = ({
                     borderRadius: "3px",
                   },
                   "&::-webkit-scrollbar-thumb": {
-                    backgroundColor: ACCENTURE_COLORS.accentPurple5,
+                    backgroundColor:
+                      theme.palette.accenture.colors.accentPurple5,
                     borderRadius: "3px",
                     "&:hover": {
-                      backgroundColor: ACCENTURE_COLORS.accentPurple4,
+                      backgroundColor:
+                        theme.palette.accenture.colors.accentPurple4,
                     },
                   },
                 }}
@@ -737,7 +753,7 @@ export const AddRoleCard = ({
                         index < roleData.skills.length - 1
                           ? "1px solid"
                           : "none",
-                      borderColor: "rgba(0,0,0,0.04)",
+                      borderColor: theme.palette.accenture.colors.lightGray,
                       transition: "background-color 0.2s ease",
                       "&:hover": {
                         backgroundColor: "rgba(0,0,0,0.01)",
@@ -752,11 +768,11 @@ export const AddRoleCard = ({
                           width: 32,
                           height: 32,
                           borderRadius: "8px",
-                          backgroundColor: `${ACCENTURE_COLORS.corePurple1}15`,
+                          backgroundColor: `${theme.palette.accenture.colors.corePurple1}15`,
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
-                          color: ACCENTURE_COLORS.corePurple2,
+                          color: theme.palette.primary.main,
                           fontWeight: "bold",
                           fontSize: "0.85rem",
                         }}
@@ -766,7 +782,7 @@ export const AddRoleCard = ({
                       <Typography
                         variant="body2"
                         fontWeight={500}
-                        color={ACCENTURE_COLORS.corePurple3}
+                        color={theme.palette.accenture.colors.corePurple3}
                       >
                         {skill.name}
                       </Typography>
@@ -786,7 +802,7 @@ export const AddRoleCard = ({
                         <TimerIcon
                           sx={{
                             fontSize: 16,
-                            color: ACCENTURE_COLORS.corePurple2,
+                            color: theme.palette.primary.main,
                           }}
                         />
                         <Typography
@@ -823,13 +839,14 @@ export const AddRoleCard = ({
                           size="small"
                           onClick={() => handleDeleteSkill(index)}
                           sx={{
-                            color: "white",
-                            backgroundColor: ACCENTURE_COLORS.red,
+                            color: theme.palette.accenture.colors.white,
+                            backgroundColor: theme.palette.accenture.colors.red,
                             width: 28,
                             height: 28,
                             opacity: 0.8,
                             "&:hover": {
-                              backgroundColor: ACCENTURE_COLORS.red,
+                              backgroundColor:
+                                theme.palette.accenture.colors.red,
                               opacity: 1,
                             },
                             ml: 0.5,
@@ -867,7 +884,10 @@ export const AddRoleCard = ({
                   }}
                 >
                   <CategoryIcon
-                    sx={{ fontSize: 36, color: ACCENTURE_COLORS.accentPurple3 }}
+                    sx={{
+                      fontSize: 36,
+                      color: theme.palette.accenture.colors.accentPurple3,
+                    }}
                   />
                   No skills selected yet
                 </Typography>
@@ -917,12 +937,12 @@ export const AddRoleCard = ({
             loading ? <CircularProgress size={20} color="inherit" /> : null
           }
           sx={{
-            ...primaryButtonStyles,
+            ...primaryButtonStyles(theme),
             minWidth: 130,
             mx: 1,
-            backgroundColor: ACCENTURE_COLORS.corePurple1,
+            backgroundColor: theme.palette.accenture.colors.corePurple1,
             "&:hover": {
-              backgroundColor: ACCENTURE_COLORS.corePurple2,
+              backgroundColor: theme.palette.primary.main,
             },
           }}
         >
@@ -933,14 +953,14 @@ export const AddRoleCard = ({
           onClick={onCancel}
           disabled={loading}
           sx={{
-            ...outlineButtonStyles,
+            ...outlineButtonStyles(theme),
             minWidth: 130,
             mx: 1,
-            borderColor: ACCENTURE_COLORS.accentPurple1,
-            color: ACCENTURE_COLORS.accentPurple1,
+            borderColor: theme.palette.accenture.colors.accentPurple1,
+            color: theme.palette.accenture.colors.accentPurple1,
             "&:hover": {
-              borderColor: ACCENTURE_COLORS.accentPurple1,
-              backgroundColor: `${ACCENTURE_COLORS.accentPurple1}10`,
+              borderColor: theme.palette.accenture.colors.accentPurple1,
+              backgroundColor: `${theme.palette.accenture.colors.accentPurple1}10`,
             },
           }}
         >

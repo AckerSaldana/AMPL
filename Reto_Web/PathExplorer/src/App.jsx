@@ -30,60 +30,94 @@ import UserProfileDetail from "./pages/UserProfileDetail";
 // Protección de rutas
 import ProtectedRoute from "./components/ProtectedRoute";
 
+// Theme and Dark Mode
+import { ThemeProvider, CssBaseline } from "@mui/material";
+import { lightTheme, darkTheme } from "./styles/theme.js";
+import { useState, createContext, useMemo } from "react";
+
+export const ColorModeContext = createContext({ toggleColorMode: () => {} });
+
 function App() {
+  const [mode, setMode] = useState("light");
+  const colorMode = useMemo(
+    () => ({
+      toggleColorMode: () => {
+        setMode((prevMode) => (prevMode === "light" ? "dark" : "light"));
+      },
+    }),
+    []
+  );
+  const theme = useMemo(
+    () => (mode === "light" ? lightTheme : darkTheme),
+    [mode]
+  );
+
   return (
-    <BrowserRouter>
-      <Routes>
-        {/* Ruta pública para login */}
-        <Route path="/login" element={<Login />} />
-        {/* Página de acceso no autorizado */}
-        <Route path="/unauthorized" element={<Unauthorized />} />
+    <ColorModeContext.Provider value={colorMode}>
+      <ThemeProvider theme={theme}>
+        <CssBaseline />
+        <BrowserRouter>
+          <Routes>
+            {/* Ruta pública para login */}
+            <Route path="/login" element={<Login />} />
+            {/* Página de acceso no autorizado */}
+            <Route path="/unauthorized" element={<Unauthorized />} />
 
-        {/* Rutas protegidas dentro del layout principal */}
-        <Route path="/" element={<MainLayout />}>
-          {/* Rutas accesibles para todos los roles (empleado, TFS, manager) */}
-          <Route
-            element={
-              <ProtectedRoute allowedRoles={["empleado", "TFS", "manager"]} />
-            }
-          >
-            <Route index element={<Dashboard />} />
-            <Route path="projects" element={<ProjectDashboard />} />
-            <Route path="project-detail/:id" element={<ProjectDetail />} />
-            <Route path="certifications" element={<Certifications />} />
-            <Route path="my-certifications" element={<MyCertifications />} /> {/* Nueva ruta para My Certifications */}
-            <Route
-              path="submit-certification"
-              element={<SubmitCertification />}
-            />
-            <Route path="mypath" element={<MyPath />} />
-            <Route path="user" element={<User />} />
-            <Route path="edit-profile" element={<EditProfile />} />
-            {/* Nueva ruta para editar perfil de un usuario específico */}
-            <Route path="edit-profile/:id" element={<EditProfile />} />
-          </Route>
+            {/* Rutas protegidas dentro del layout principal */}
+            <Route path="/" element={<MainLayout />}>
+              {/* Rutas accesibles para todos los roles (empleado, TFS, manager) */}
+              <Route
+                element={
+                  <ProtectedRoute
+                    allowedRoles={["empleado", "TFS", "manager"]}
+                  />
+                }
+              >
+                <Route index element={<Dashboard />} />
+                <Route path="projects" element={<ProjectDashboard />} />
+                <Route path="project-detail/:id" element={<ProjectDetail />} />
+                <Route path="certifications" element={<Certifications />} />
+                <Route
+                  path="my-certifications"
+                  element={<MyCertifications />}
+                />{" "}
+                {/* Nueva ruta para My Certifications */}
+                <Route
+                  path="submit-certification"
+                  element={<SubmitCertification />}
+                />
+                <Route path="mypath" element={<MyPath />} />
+                <Route path="user" element={<User />} />
+                <Route path="edit-profile" element={<EditProfile />} />
+                {/* Nueva ruta para editar perfil de un usuario específico */}
+                <Route path="edit-profile/:id" element={<EditProfile />} />
+              </Route>
 
-          {/* Rutas accesibles solo para TFS y manager */}
-          <Route element={<ProtectedRoute allowedRoles={["TFS", "manager"]} />}>
-            <Route path="profiles" element={<Profiles />} />
-            <Route path="project-edit/:id" element={<ProjectEdit />} />
-            <Route path="add-projects" element={<AddProject />} />
-            <Route path="role-assign" element={<RoleAssign />} />
-            {/* Nueva ruta para ver detalle de usuario por ID */}
-            <Route path="user/:id" element={<UserProfileDetail />} />
-          </Route>
+              {/* Rutas accesibles solo para TFS y manager */}
+              <Route
+                element={<ProtectedRoute allowedRoles={["TFS", "manager"]} />}
+              >
+                <Route path="profiles" element={<Profiles />} />
+                <Route path="project-edit/:id" element={<ProjectEdit />} />
+                <Route path="add-projects" element={<AddProject />} />
+                <Route path="role-assign" element={<RoleAssign />} />
+                {/* Nueva ruta para ver detalle de usuario por ID */}
+                <Route path="user/:id" element={<UserProfileDetail />} />
+              </Route>
 
-          {/* Rutas accesibles solo para manager */}
-          <Route element={<ProtectedRoute allowedRoles={["manager"]} />}>
-            <Route path="analytics" element={<Analytics />} />
-            <Route path="all-skills" element={<AllSkills />} />
-          </Route>
+              {/* Rutas accesibles solo para manager */}
+              <Route element={<ProtectedRoute allowedRoles={["manager"]} />}>
+                <Route path="analytics" element={<Analytics />} />
+                <Route path="all-skills" element={<AllSkills />} />
+              </Route>
 
-          {/* Redirección por defecto */}
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Route>
-      </Routes>
-    </BrowserRouter>
+              {/* Redirección por defecto */}
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Route>
+          </Routes>
+        </BrowserRouter>
+      </ThemeProvider>
+    </ColorModeContext.Provider>
   );
 }
 
