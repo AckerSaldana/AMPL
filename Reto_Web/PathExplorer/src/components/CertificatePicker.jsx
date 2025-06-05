@@ -19,13 +19,16 @@ import {
 import SchoolIcon from "@mui/icons-material/School";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
 import FilterListIcon from "@mui/icons-material/FilterList";
-import { ACCENTURE_COLORS, formFieldStyles } from "../styles/styles";
+import { formFieldStyles } from "../styles/styles";
 import { supabase } from "../supabase/supabaseClient";
+
+import { useTheme } from "@mui/material/styles";
 
 const CertificatePicker = ({
   onCertificateAdd,
   selectedCertificateIds = [],
 }) => {
+  const theme = useTheme();
   const [availableCertificates, setAvailableCertificates] = useState([]);
   const [loadingCertificates, setLoadingCertificates] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -109,11 +112,11 @@ const CertificatePicker = ({
             width: 32,
             height: 32,
             borderRadius: "6px",
-            backgroundColor: `${ACCENTURE_COLORS.accentPurple1}15`,
+            backgroundColor: `${theme.palette.accenture.colors.accentPurple1}15`,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            color: ACCENTURE_COLORS.accentPurple1,
+            color: theme.palette.accenture.colors.accentPurple1,
             fontWeight: "bold",
             fontSize: "0.7rem",
             flexShrink: 0,
@@ -131,8 +134,9 @@ const CertificatePicker = ({
       sx={{
         p: 2.5,
         borderRadius: 2,
-        bgcolor: "rgba(255,255,255,0.8)",
-        border: "1px solid rgba(0,0,0,0.05)",
+        bgcolor: theme.palette.background.paper,
+        border: "1px solid",
+        borderColor: theme.palette.accenture.colors.lightGray,
         height: "100%",
         display: "flex",
         flexDirection: "column",
@@ -142,10 +146,10 @@ const CertificatePicker = ({
         variant="subtitle2"
         fontWeight={600}
         sx={{
-          color: ACCENTURE_COLORS.corePurple2,
+          color: theme.palette.primary.main,
           mb: 2,
           pb: 1,
-          borderBottom: `1px solid ${ACCENTURE_COLORS.accentPurple5}`,
+          borderBottom: `1px solid ${theme.palette.accenture.colors.accentPurple5}`,
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
@@ -162,8 +166,8 @@ const CertificatePicker = ({
             sx={{
               height: 20,
               fontSize: "0.625rem",
-              bgcolor: ACCENTURE_COLORS.accentPurple5,
-              color: ACCENTURE_COLORS.corePurple2,
+              bgcolor: theme.palette.accenture.colors.accentPurple5,
+              color: theme.palette.primary.main,
               fontWeight: 600,
             }}
           />
@@ -175,10 +179,10 @@ const CertificatePicker = ({
                 width: 24,
                 height: 24,
                 color: showFilters
-                  ? ACCENTURE_COLORS.corePurple1
-                  : ACCENTURE_COLORS.corePurple3,
+                  ? theme.palette.accenture.colors.corePurple1
+                  : theme.palette.accenture.colors.corePurple3,
                 bgcolor: showFilters
-                  ? `${ACCENTURE_COLORS.accentPurple5}`
+                  ? `${theme.palette.accenture.colors.accentPurple5}`
                   : "transparent",
               }}
             >
@@ -197,10 +201,10 @@ const CertificatePicker = ({
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           sx={{
-            ...formFieldStyles,
+            ...formFieldStyles(theme),
             "& .MuiOutlinedInput-root": {
-              ...formFieldStyles["& .MuiOutlinedInput-root"],
-              backgroundColor: "white",
+              ...formFieldStyles(theme)["& .MuiOutlinedInput-root"],
+              backgroundColor: theme.palette.accenture.colors.white,
               borderRadius: 6,
               fontSize: "0.8rem",
             },
@@ -222,8 +226,8 @@ const CertificatePicker = ({
                 onChange={(e) => setTypeFilter(e.target.value)}
                 label="Certificate Type"
                 sx={{
-                  ...formFieldStyles["& .MuiOutlinedInput-root"],
-                  backgroundColor: "white",
+                  ...formFieldStyles(theme)["& .MuiOutlinedInput-root"],
+                  backgroundColor: theme.palette.background.paper,
                   borderRadius: 6,
                   fontSize: "0.8rem",
                 }}
@@ -245,8 +249,9 @@ const CertificatePicker = ({
           overflow: "hidden",
           position: "relative",
           borderRadius: 2,
-          bgcolor: "rgba(255,255,255,0.5)",
-          border: "1px solid rgba(0,0,0,0.03)",
+          bgcolor: theme.palette.background.paper,
+          border: "1px solid",
+          borderColor: theme.palette.accenture.colors.lightGray,
           boxShadow: "inset 0 1px 3px rgba(0,0,0,0.02)",
           display: "flex",
           flexDirection: "column",
@@ -265,10 +270,10 @@ const CertificatePicker = ({
               borderRadius: "3px",
             },
             "&::-webkit-scrollbar-thumb": {
-              backgroundColor: ACCENTURE_COLORS.accentPurple5,
+              backgroundColor: theme.palette.accenture.colors.accentPurple5,
               borderRadius: "3px",
               "&:hover": {
-                backgroundColor: ACCENTURE_COLORS.accentPurple4,
+                backgroundColor: theme.palette.accenture.colors.accentPurple4,
               },
             },
           }}
@@ -277,7 +282,7 @@ const CertificatePicker = ({
             <Box sx={{ display: "flex", justifyContent: "center", p: 3 }}>
               <CircularProgress
                 size={24}
-                sx={{ color: ACCENTURE_COLORS.corePurple1 }}
+                sx={{ color: theme.palette.accenture.colors.corePurple1 }}
               />
             </Box>
           ) : filteredCertificates.length > 0 ? (
@@ -296,14 +301,16 @@ const CertificatePicker = ({
                       alignItems: "center",
                       p: 1.5,
                       borderRadius: 1.5,
-                      bgcolor: "white",
+                      bgcolor: theme.palette.background.paper,
                       boxShadow: "0 1px 2px rgba(0,0,0,0.03)",
-                      border: "1px solid rgba(0,0,0,0.04)",
+                      border: "1px solid",
+                      borderColor: theme.palette.accenture.colors.lightGray,
                       cursor: "pointer",
                       transition: "all 0.2s ease",
                       "&:hover": {
                         boxShadow: "0 2px 4px rgba(0,0,0,0.06)",
-                        borderColor: ACCENTURE_COLORS.accentPurple4,
+                        borderColor:
+                          theme.palette.accenture.colors.accentPurple4,
                         transform: "translateY(-1px)",
                       },
                     }}
@@ -314,7 +321,7 @@ const CertificatePicker = ({
                         <Typography
                           variant="body2"
                           fontWeight={500}
-                          color={ACCENTURE_COLORS.corePurple3}
+                          color={theme.palette.accenture.colors.corePurple3}
                           fontSize="0.8rem"
                         >
                           {cert.title}
@@ -338,7 +345,8 @@ const CertificatePicker = ({
                                 width: 6,
                                 height: 6,
                                 borderRadius: "50%",
-                                bgcolor: ACCENTURE_COLORS.accentPurple2,
+                                bgcolor:
+                                  theme.palette.accenture.colors.accentPurple2,
                               }}
                             />
                             {cert.issuer}
@@ -349,8 +357,8 @@ const CertificatePicker = ({
                             sx={{
                               height: 16,
                               fontSize: "0.6rem",
-                              bgcolor: `${ACCENTURE_COLORS.accentPurple5}60`,
-                              color: ACCENTURE_COLORS.corePurple2,
+                              bgcolor: `${theme.palette.accenture.colors.accentPurple5}60`,
+                              color: theme.palette.primary.main,
                             }}
                           />
                         </Box>
@@ -386,18 +394,19 @@ const CertificatePicker = ({
                           onClick={() => onCertificateAdd(cert)}
                           disabled={selectedCertificateIds.includes(cert.id)}
                           sx={{
-                            color: ACCENTURE_COLORS.corePurple1,
+                            color: theme.palette.accenture.colors.corePurple1,
                             bgcolor: selectedCertificateIds.includes(cert.id)
-                              ? `${ACCENTURE_COLORS.accentPurple4}50`
-                              : `${ACCENTURE_COLORS.accentPurple5}90`,
+                              ? `${theme.palette.accenture.colors.accentPurple4}50`
+                              : `${theme.palette.accenture.colors.accentPurple5}90`,
                             width: 28,
                             height: 28,
                             "&:hover": {
-                              bgcolor: ACCENTURE_COLORS.accentPurple5,
+                              bgcolor:
+                                theme.palette.accenture.colors.accentPurple5,
                             },
                             "&.Mui-disabled": {
-                              bgcolor: `${ACCENTURE_COLORS.accentPurple4}30`,
-                              color: `${ACCENTURE_COLORS.corePurple1}50`,
+                              bgcolor: `${theme.palette.accenture.colors.accentPurple4}30`,
+                              color: `${theme.palette.accenture.colors.corePurple1}50`,
                             },
                           }}
                         >

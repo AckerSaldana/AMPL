@@ -28,7 +28,9 @@ import useAuth from "../hooks/useAuth";
 import { supabase } from "../supabase/supabaseClient.js";
 import { useNavigate } from "react-router-dom";
 import { alpha } from "@mui/material/styles";
-import { ACCENTURE_COLORS, contentPaperStyles, primaryButtonStyles, outlineButtonStyles } from "../styles/styles";
+
+import { primaryButtonStyles, outlineButtonStyles } from "../styles/styles";
+import { useTheme } from "@mui/material/styles";
 
 // Icons
 import CloseIcon from "@mui/icons-material/Close";
@@ -39,6 +41,7 @@ import AddIcon from "@mui/icons-material/Add";
 import WarningIcon from "@mui/icons-material/Warning";
 
 const ProjectDashboard = () => {
+  const theme = useTheme();
   const [activeFilter, setActiveFilter] = useState("all");
   const [openDialog, setOpenDialog] = useState(false);
   const [dialogAction, setDialogAction] = useState("");
@@ -55,7 +58,7 @@ const ProjectDashboard = () => {
 
   const fetchProjects = useCallback(async () => {
     setIsLoading(true);
-    
+
     try {
       // Fetch both queries in parallel for better performance
       const [projectsResult, userRolesResult] = await Promise.allSettled([
@@ -66,12 +69,15 @@ const ProjectDashboard = () => {
           ),
         supabase
           .from("UserRole")
-          .select("project_id, user_id, User:User(user_id, name, profile_pic)")
+          .select("project_id, user_id, User:User(user_id, name, profile_pic)"),
       ]);
 
       // Handle projects data
-      if (projectsResult.status === 'rejected' || projectsResult.value.error) {
-        const error = projectsResult.status === 'rejected' ? projectsResult.reason : projectsResult.value.error;
+      if (projectsResult.status === "rejected" || projectsResult.value.error) {
+        const error =
+          projectsResult.status === "rejected"
+            ? projectsResult.reason
+            : projectsResult.value.error;
         console.error("Error fetching projects:", error.message);
         setSnackbar({
           open: true,
@@ -84,15 +90,22 @@ const ProjectDashboard = () => {
       const projectsData = projectsResult.value.data;
 
       // Handle user roles data
-      if (userRolesResult.status === 'rejected' || userRolesResult.value.error) {
-        const error = userRolesResult.status === 'rejected' ? userRolesResult.reason : userRolesResult.value.error;
+      if (
+        userRolesResult.status === "rejected" ||
+        userRolesResult.value.error
+      ) {
+        const error =
+          userRolesResult.status === "rejected"
+            ? userRolesResult.reason
+            : userRolesResult.value.error;
         console.error("Error fetching user roles:", error.message);
         // Continue without team data rather than failing completely
       }
 
-      const userRolesData = userRolesResult.status === 'fulfilled' && !userRolesResult.value.error 
-        ? userRolesResult.value.data 
-        : [];
+      const userRolesData =
+        userRolesResult.status === "fulfilled" && !userRolesResult.value.error
+          ? userRolesResult.value.data
+          : [];
 
       const teamByProject = {};
       userRolesData.forEach(({ project_id, User }) => {
@@ -199,7 +212,7 @@ const ProjectDashboard = () => {
   }, [dialogAction, selectedProject, projects]);
 
   const handleCloseSnackbar = useCallback(() => {
-    setSnackbar(prev => ({ ...prev, open: false }));
+    setSnackbar((prev) => ({ ...prev, open: false }));
   }, []);
 
   const filteredProjects = useMemo(() => {
@@ -210,21 +223,26 @@ const ProjectDashboard = () => {
   }, [projects, activeFilter]);
 
   // Create an array of skeleton cards for loading state - memoized
-  const skeletonCards = useMemo(() => 
-    Array(6).fill(0).map((_, index) => (
-      <Grid item xs={12} sm={6} lg={4} key={`skeleton-${index}`}>
-        <SkeletonProjectCard />
-      </Grid>
-    )), []);
+  const skeletonCards = useMemo(
+    () =>
+      Array(6)
+        .fill(0)
+        .map((_, index) => (
+          <Grid item xs={12} sm={6} lg={4} key={`skeleton-${index}`}>
+            <SkeletonProjectCard />
+          </Grid>
+        )),
+    []
+  );
 
   return (
-    <Box sx={{ p: { xs: 2, md: 3 }, maxWidth: "100%"}}>
-      <Typography 
-        variant="h4" 
-        sx={{ 
-          fontWeight: 700, 
-          mb: 3, 
-          position: 'relative'
+    <Box sx={{ p: { xs: 2, md: 3 }, maxWidth: "100%" }}>
+      <Typography
+        variant="h4"
+        sx={{
+          fontWeight: 700,
+          mb: 3,
+          position: "relative",
         }}
       >
         Projects
@@ -234,22 +252,22 @@ const ProjectDashboard = () => {
         <Grid item xs={12} md={3} lg={2.5} sx={{ position: "relative" }}>
           {/* Add Project Card */}
           {role === "manager" && (
-            <Paper 
+            <Paper
               elevation={0}
-              sx={{ 
+              sx={{
                 borderRadius: 2,
                 mb: 2,
                 p: 3,
                 border: "1px solid rgba(0,0,0,0.12)",
-                position: 'relative',
-                overflow: 'hidden',
-                '&::before': {
+                position: "relative",
+                overflow: "hidden",
+                "&::before": {
                   content: '""',
-                  position: 'absolute',
+                  position: "absolute",
                   top: 0,
                   left: 0,
                   right: 0,
-                  height: '4px'
+                  height: "4px",
                 },
               }}
             >
@@ -258,13 +276,13 @@ const ProjectDashboard = () => {
           )}
 
           {/* Filter Card - Will stay in its original position */}
-          <Paper 
+          <Paper
             elevation={0}
-            sx={{ 
+            sx={{
               borderRadius: 2,
-              overflow: 'hidden',
+              overflow: "hidden",
               border: "1px solid rgba(0,0,0,0.12)",
-              position: 'static',  // Stays in normal document flow
+              position: "static", // Stays in normal document flow
             }}
           >
             <Box sx={{ py: 2 }}>
@@ -285,24 +303,20 @@ const ProjectDashboard = () => {
             ) : filteredProjects.length > 0 ? (
               // Show actual project cards with fade-in animation
               filteredProjects.map((project, index) => (
-                <Fade 
-                  in={true} 
+                <Fade
+                  in={true}
                   key={project.id}
-                  timeout={300} 
+                  timeout={300}
                   style={{ transitionDelay: `${Math.min(index * 30, 150)}ms` }}
                 >
                   <Grid item xs={12} sm={6} lg={4}>
                     <ProjectCard
                       project={project}
                       onEdit={
-                        role === "manager"
-                          ? handleEditProject
-                          : undefined
+                        role === "manager" ? handleEditProject : undefined
                       }
                       onDelete={
-                        role === "manager"
-                          ? handleDeleteProject
-                          : undefined
+                        role === "manager" ? handleDeleteProject : undefined
                       }
                       onViewDetails={handleViewDetails}
                     />
@@ -320,34 +334,45 @@ const ProjectDashboard = () => {
                       textAlign: "center",
                       borderRadius: 3,
                       border: "1px dashed",
-                      borderColor: alpha(ACCENTURE_COLORS.corePurple1, 0.2),
-                      bgcolor: alpha(ACCENTURE_COLORS.lightGray, 0.6),
-                      boxShadow: '0 6px 20px rgba(0,0,0,0.02)',
+                      borderColor: alpha(
+                        theme.palette.accenture.colors.corePurple1,
+                        0.2
+                      ),
+                      bgcolor: alpha(
+                        theme.palette.accenture.colors.lightGray,
+                        0.6
+                      ),
+                      boxShadow: "0 6px 20px rgba(0,0,0,0.02)",
                     }}
                   >
                     <Box
                       sx={{
                         width: 80,
                         height: 80,
-                        borderRadius: '50%',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        bgcolor: alpha(ACCENTURE_COLORS.corePurple1, 0.08),
-                        mx: 'auto',
+                        borderRadius: "50%",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        bgcolor: alpha(
+                          theme.palette.accenture.colors.corePurple1,
+                          0.08
+                        ),
+                        mx: "auto",
                         mb: 3,
                       }}
                     >
-                      <InfoOutlinedIcon sx={{ 
-                        fontSize: 40, 
-                        color: ACCENTURE_COLORS.corePurple1,
-                        opacity: 0.7
-                      }} />
+                      <InfoOutlinedIcon
+                        sx={{
+                          fontSize: 40,
+                          color: theme.palette.accenture.colors.corePurple1,
+                          opacity: 0.7,
+                        }}
+                      />
                     </Box>
-                    <Typography 
-                      variant="h5" 
-                      sx={{ 
-                        color: ACCENTURE_COLORS.black,
+                    <Typography
+                      variant="h5"
+                      sx={{
+                        color: theme.palette.accenture.colors.black,
                         fontWeight: 600,
                         mb: 1,
                       }}
@@ -357,14 +382,15 @@ const ProjectDashboard = () => {
                     <Typography
                       variant="body1"
                       color="text.secondary"
-                      sx={{ 
+                      sx={{
                         maxWidth: 450,
-                        mx: 'auto',
+                        mx: "auto",
                         mb: 4,
-                        color: ACCENTURE_COLORS.darkGray
+                        color: theme.palette.accenture.colors.darkGray,
                       }}
                     >
-                      No projects match the selected filter. Try changing the filter or add a new project.
+                      No projects match the selected filter. Try changing the
+                      filter or add a new project.
                     </Typography>
                     {role === "manager" && (
                       <Button
@@ -373,8 +399,8 @@ const ProjectDashboard = () => {
                         startIcon={<AddIcon />}
                         sx={{
                           ...primaryButtonStyles,
-                          bgcolor: ACCENTURE_COLORS.corePurple1,
-                          px: 3
+                          bgcolor: theme.palette.accenture.colors.corePurple1,
+                          px: 3,
                         }}
                       >
                         Add New Project
@@ -389,47 +415,51 @@ const ProjectDashboard = () => {
       </Grid>
 
       {/* Dialog with elegant styling */}
-      <Dialog 
-        open={openDialog} 
+      <Dialog
+        open={openDialog}
         onClose={handleCloseDialog}
         PaperProps={{
           sx: {
             borderRadius: 2,
-            boxShadow: '0 10px 30px rgba(0,0,0,0.1)',
-            overflow: 'hidden',
-            maxWidth: dialogAction === 'view' ? 500 : 400,
-            background: ACCENTURE_COLORS.white,
-          }
+            boxShadow: "0 10px 30px rgba(0,0,0,0.1)",
+            overflow: "hidden",
+            maxWidth: dialogAction === "view" ? 500 : 400,
+            background: theme.palette.accenture.colors.white,
+          },
         }}
       >
         {/* Dialog Header */}
-        <DialogTitle 
-          sx={{ 
+        <DialogTitle
+          sx={{
             p: 0,
-            position: 'relative',
+            position: "relative",
           }}
         >
-          <Box 
-            sx={{ 
+          <Box
+            sx={{
               p: 2.5,
               pb: 2,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              borderBottom: `1px solid ${alpha(ACCENTURE_COLORS.corePurple1, 0.1)}`,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              borderBottom: `1px solid ${alpha(
+                theme.palette.accenture.colors.corePurple1,
+                0.1
+              )}`,
             }}
           >
-            <Typography 
-              variant="h6" 
+            <Typography
+              variant="h6"
               component="div"
-              sx={{ 
+              sx={{
                 fontWeight: 600,
-                fontSize: '1.1rem',
-                color: dialogAction === 'delete' 
-                  ? ACCENTURE_COLORS.red
-                  : ACCENTURE_COLORS.black,
-                display: 'flex',
-                alignItems: 'center',
+                fontSize: "1.1rem",
+                color:
+                  dialogAction === "delete"
+                    ? theme.palette.accenture.colors.red
+                    : theme.palette.accenture.colors.black,
+                display: "flex",
+                alignItems: "center",
                 gap: 1,
               }}
             >
@@ -440,14 +470,17 @@ const ProjectDashboard = () => {
                 ? "Edit Project"
                 : "Project Details"}
             </Typography>
-            <IconButton 
+            <IconButton
               onClick={handleCloseDialog}
               size="small"
-              sx={{ 
-                color: ACCENTURE_COLORS.darkGray,
-                '&:hover': {
-                  backgroundColor: alpha(ACCENTURE_COLORS.corePurple1, 0.05),
-                }
+              sx={{
+                color: theme.palette.accenture.colors.darkGray,
+                "&:hover": {
+                  backgroundColor: alpha(
+                    theme.palette.accenture.colors.corePurple1,
+                    0.05
+                  ),
+                },
               }}
             >
               <CloseIcon fontSize="small" />
@@ -458,59 +491,65 @@ const ProjectDashboard = () => {
         {/* Dialog Content */}
         <DialogContent sx={{ p: 3, pt: 2 }}>
           {dialogAction === "delete" && (
-            <Typography sx={{ color: ACCENTURE_COLORS.darkGray }}>
+            <Typography sx={{ color: theme.palette.accenture.colors.darkGray }}>
               ¿Estás seguro de que deseas eliminar el proyecto "
-              <Box component="span" sx={{ fontWeight: 600, color: ACCENTURE_COLORS.black }}>
+              <Box
+                component="span"
+                sx={{
+                  fontWeight: 600,
+                  color: theme.palette.accenture.colors.black,
+                }}
+              >
                 {selectedProject?.title}
               </Box>
               "? Esta acción no se puede deshacer.
             </Typography>
           )}
-          
+
           {dialogAction === "edit" && (
-            <Typography sx={{ color: ACCENTURE_COLORS.darkGray }}>
+            <Typography sx={{ color: theme.palette.accenture.colors.darkGray }}>
               Formulario de edición (implementación futura)
             </Typography>
           )}
-          
+
           {dialogAction === "view" && selectedProject && (
             <Box>
               {/* Project Title */}
-              <Typography 
-                variant="h6" 
-                sx={{ 
-                  fontWeight: 600, 
+              <Typography
+                variant="h6"
+                sx={{
+                  fontWeight: 600,
                   mb: 2,
-                  color: ACCENTURE_COLORS.corePurple1
+                  color: theme.palette.accenture.colors.corePurple1,
                 }}
               >
                 {selectedProject.title}
               </Typography>
-              
+
               {/* Project Description */}
-              <Typography 
-                variant="body2" 
-                sx={{ 
+              <Typography
+                variant="body2"
+                sx={{
                   mb: 3,
-                  color: ACCENTURE_COLORS.darkGray,
-                  lineHeight: 1.5
+                  color: theme.palette.accenture.colors.darkGray,
+                  lineHeight: 1.5,
                 }}
               >
                 {selectedProject.description}
               </Typography>
-              
+
               <Divider sx={{ mb: 2 }} />
-              
+
               {/* Project Status and Progress */}
               <Grid container spacing={2} sx={{ mb: 2 }}>
                 <Grid item xs={6}>
-                  <Typography 
-                    variant="caption" 
-                    sx={{ 
-                      color: ACCENTURE_COLORS.darkGray,
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      color: theme.palette.accenture.colors.darkGray,
                       fontWeight: 500,
-                      display: 'block',
-                      mb: 0.5
+                      display: "block",
+                      mb: 0.5,
                     }}
                   >
                     Status
@@ -521,55 +560,64 @@ const ProjectDashboard = () => {
                       size="small"
                       sx={{
                         height: 24,
-                        fontSize: '0.75rem',
-                        bgcolor: selectedProject.status === "In Progress"
-                          ? alpha(ACCENTURE_COLORS.corePurple1, 0.1)
-                          : selectedProject.status === "Completed"
-                          ? alpha(ACCENTURE_COLORS.green, 0.1)
-                          : alpha(ACCENTURE_COLORS.orange, 0.1),
-                        color: selectedProject.status === "In Progress"
-                          ? ACCENTURE_COLORS.corePurple1
-                          : selectedProject.status === "Completed"
-                          ? ACCENTURE_COLORS.green
-                          : ACCENTURE_COLORS.orange,
+                        fontSize: "0.75rem",
+                        bgcolor:
+                          selectedProject.status === "In Progress"
+                            ? alpha(
+                                theme.palette.accenture.colors.corePurple1,
+                                0.1
+                              )
+                            : selectedProject.status === "Completed"
+                            ? alpha(theme.palette.accenture.colors.green, 0.1)
+                            : alpha(theme.palette.accenture.colors.orange, 0.1),
+                        color:
+                          selectedProject.status === "In Progress"
+                            ? theme.palette.accenture.colors.corePurple1
+                            : selectedProject.status === "Completed"
+                            ? theme.palette.accenture.colors.green
+                            : theme.palette.accenture.colors.orange,
                         fontWeight: 500,
                       }}
                     />
                   </Box>
                 </Grid>
                 <Grid item xs={6}>
-                  <Typography 
-                    variant="caption" 
-                    sx={{ 
-                      color: ACCENTURE_COLORS.darkGray,
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      color: theme.palette.accenture.colors.darkGray,
                       fontWeight: 500,
-                      display: 'block',
-                      mb: 0.5
+                      display: "block",
+                      mb: 0.5,
                     }}
                   >
                     Progress
                   </Typography>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                     <LinearProgress
                       variant="determinate"
                       value={selectedProject.progress}
                       sx={{
-                        width: '70%',
+                        width: "70%",
                         height: 8,
                         borderRadius: 4,
-                        bgcolor: alpha(ACCENTURE_COLORS.corePurple1, 0.1),
-                        '& .MuiLinearProgress-bar': {
-                          bgcolor: selectedProject.progress >= 70
-                            ? ACCENTURE_COLORS.green
-                            : ACCENTURE_COLORS.corePurple1,
+                        bgcolor: alpha(
+                          theme.palette.accenture.colors.corePurple1,
+                          0.1
+                        ),
+                        "& .MuiLinearProgress-bar": {
+                          bgcolor:
+                            selectedProject.progress >= 70
+                              ? theme.palette.accenture.colors.green
+                              : theme.palette.accenture.colors.corePurple1,
                         },
                       }}
                     />
-                    <Typography 
-                      variant="body2" 
-                      sx={{ 
+                    <Typography
+                      variant="body2"
+                      sx={{
                         fontWeight: 600,
-                        color: ACCENTURE_COLORS.black
+                        color: theme.palette.accenture.colors.black,
                       }}
                     >
                       {selectedProject.progress}%
@@ -577,102 +625,117 @@ const ProjectDashboard = () => {
                   </Box>
                 </Grid>
               </Grid>
-              
+
               {/* Project Dates */}
               <Grid container spacing={2} sx={{ mb: 1 }}>
                 <Grid item xs={6}>
-                  <Typography 
-                    variant="caption" 
-                    sx={{ 
-                      color: ACCENTURE_COLORS.darkGray,
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      color: theme.palette.accenture.colors.darkGray,
                       fontWeight: 500,
-                      display: 'block',
-                      mb: 0.5
+                      display: "block",
+                      mb: 0.5,
                     }}
                   >
                     Start Date
                   </Typography>
-                  <Typography 
-                    variant="body2" 
-                    sx={{ 
+                  <Typography
+                    variant="body2"
+                    sx={{
                       fontWeight: 600,
-                      color: ACCENTURE_COLORS.black
+                      color: theme.palette.accenture.colors.black,
                     }}
                   >
-                    {new Date(selectedProject.assignedDate).toLocaleDateString('en-US', {
-                      year: 'numeric',
-                      month: 'short',
-                      day: 'numeric'
-                    })}
+                    {new Date(selectedProject.assignedDate).toLocaleDateString(
+                      "en-US",
+                      {
+                        year: "numeric",
+                        month: "short",
+                        day: "numeric",
+                      }
+                    )}
                   </Typography>
                 </Grid>
                 <Grid item xs={6}>
-                  <Typography 
-                    variant="caption" 
-                    sx={{ 
-                      color: ACCENTURE_COLORS.darkGray,
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      color: theme.palette.accenture.colors.darkGray,
                       fontWeight: 500,
-                      display: 'block',
-                      mb: 0.5
+                      display: "block",
+                      mb: 0.5,
                     }}
                   >
                     Due Date
                   </Typography>
-                  <Typography 
-                    variant="body2" 
-                    sx={{ 
+                  <Typography
+                    variant="body2"
+                    sx={{
                       fontWeight: 600,
-                      color: ACCENTURE_COLORS.black
+                      color: theme.palette.accenture.colors.black,
                     }}
                   >
-                    {new Date(selectedProject.dueDate).toLocaleDateString('en-US', {
-                      year: 'numeric',
-                      month: 'short',
-                      day: 'numeric'
-                    })}
+                    {new Date(selectedProject.dueDate).toLocaleDateString(
+                      "en-US",
+                      {
+                        year: "numeric",
+                        month: "short",
+                        day: "numeric",
+                      }
+                    )}
                   </Typography>
                 </Grid>
               </Grid>
-              
+
               {/* Team Members */}
               <Box sx={{ mt: 2 }}>
-                <Typography 
-                  variant="caption" 
-                  sx={{ 
-                    color: ACCENTURE_COLORS.darkGray,
+                <Typography
+                  variant="caption"
+                  sx={{
+                    color: theme.palette.accenture.colors.darkGray,
                     fontWeight: 500,
-                    display: 'block',
-                    mb: 1
+                    display: "block",
+                    mb: 1,
                   }}
                 >
                   Team Members ({selectedProject.team.length})
                 </Typography>
-                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
                   {selectedProject.team.map((member, index) => (
                     <Chip
                       key={index}
                       avatar={
-                        <Avatar 
-                          alt={member.name} 
+                        <Avatar
+                          alt={member.name}
                           src={member.avatar || undefined}
                           sx={{
-                            bgcolor: !member.avatar ? [
-                              ACCENTURE_COLORS.corePurple1, 
-                              ACCENTURE_COLORS.accentPurple3, 
-                              ACCENTURE_COLORS.blue, 
-                              ACCENTURE_COLORS.accentPurple2
-                            ][index % 4] : undefined
+                            bgcolor: !member.avatar
+                              ? [
+                                  theme.palette.accenture.colors.corePurple1,
+                                  theme.palette.accenture.colors.accentPurple3,
+                                  theme.palette.accenture.colors.blue,
+                                  theme.palette.accenture.colors.accentPurple2,
+                                ][index % 4]
+                              : undefined,
                           }}
                         >
-                          {!member.avatar && member.name.charAt(0).toUpperCase()}
+                          {!member.avatar &&
+                            member.name.charAt(0).toUpperCase()}
                         </Avatar>
                       }
                       label={member.name}
                       size="small"
                       sx={{
-                        bgcolor: alpha(ACCENTURE_COLORS.corePurple1, 0.05),
-                        border: `1px solid ${alpha(ACCENTURE_COLORS.corePurple1, 0.1)}`,
-                        height: 30
+                        bgcolor: alpha(
+                          theme.palette.accenture.colors.corePurple1,
+                          0.05
+                        ),
+                        border: `1px solid ${alpha(
+                          theme.palette.accenture.colors.corePurple1,
+                          0.1
+                        )}`,
+                        height: 30,
                       }}
                     />
                   ))}
@@ -683,57 +746,72 @@ const ProjectDashboard = () => {
         </DialogContent>
 
         {/* Dialog Actions */}
-        <DialogActions sx={{ p: 2.5, pt: 2, borderTop: `1px solid ${alpha(ACCENTURE_COLORS.corePurple1, 0.1)}` }}>
-          <Button 
+        <DialogActions
+          sx={{
+            p: 2.5,
+            pt: 2,
+            borderTop: `1px solid ${alpha(
+              theme.palette.accenture.colors.corePurple1,
+              0.1
+            )}`,
+          }}
+        >
+          <Button
             onClick={handleCloseDialog}
-            sx={{ 
+            sx={{
               ...outlineButtonStyles,
-              color: dialogAction === 'delete' ? ACCENTURE_COLORS.darkGray : ACCENTURE_COLORS.corePurple1,
-              borderColor: dialogAction === 'delete' ? ACCENTURE_COLORS.darkGray : ACCENTURE_COLORS.corePurple1,
+              color:
+                dialogAction === "delete"
+                  ? theme.palette.accenture.colors.darkGray
+                  : theme.palette.accenture.colors.corePurple1,
+              borderColor:
+                dialogAction === "delete"
+                  ? theme.palette.accenture.colors.darkGray
+                  : theme.palette.accenture.colors.corePurple1,
             }}
           >
             {dialogAction === "view" ? "Close" : "Cancel"}
           </Button>
-          
+
           {dialogAction === "delete" && (
             <Button
               onClick={handleConfirmAction}
               variant="contained"
               color="error"
               sx={{
-                bgcolor: ACCENTURE_COLORS.red,
-                color: 'white',
+                bgcolor: theme.palette.accenture.colors.red,
+                color: theme.palette.accenture.colors.white,
                 fontWeight: 500,
-                textTransform: 'none',
+                textTransform: "none",
                 px: 3,
-                '&:hover': {
-                  bgcolor: alpha(ACCENTURE_COLORS.red, 0.9),
-                }
+                "&:hover": {
+                  bgcolor: alpha(theme.palette.accenture.colors.red, 0.9),
+                },
               }}
             >
               Delete
             </Button>
           )}
-          
+
           {dialogAction === "edit" && (
             <Button
               onClick={handleCloseDialog}
               variant="contained"
               sx={{
                 ...primaryButtonStyles,
-                bgcolor: ACCENTURE_COLORS.corePurple1,
+                bgcolor: theme.palette.accenture.colors.corePurple1,
               }}
             >
               Save Changes
             </Button>
           )}
-          
+
           {dialogAction === "view" && (
             <Button
               variant="contained"
               sx={{
                 ...primaryButtonStyles,
-                bgcolor: ACCENTURE_COLORS.corePurple1,
+                bgcolor: theme.palette.accenture.colors.corePurple1,
               }}
               endIcon={<LaunchIcon />}
               onClick={() => navigate(`/project-detail/${selectedProject.id}`)}
@@ -756,18 +834,19 @@ const ProjectDashboard = () => {
           onClose={handleCloseSnackbar}
           severity={snackbar.severity}
           variant="filled"
-          sx={{ 
+          sx={{
             width: "100%",
-            boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+            boxShadow: "0 4px 20px rgba(0,0,0,0.1)",
             borderRadius: 2,
-            '& .MuiAlert-icon': {
-              fontSize: '1.2rem',
+            "& .MuiAlert-icon": {
+              fontSize: "1.2rem",
             },
-            bgcolor: snackbar.severity === 'success' 
-              ? ACCENTURE_COLORS.green 
-              : snackbar.severity === 'error'
-              ? ACCENTURE_COLORS.red
-              : ACCENTURE_COLORS.blue
+            bgcolor:
+              snackbar.severity === "success"
+                ? theme.palette.accenture.colors.green
+                : snackbar.severity === "error"
+                ? theme.palette.accenture.colors.red
+                : theme.palette.accenture.colors.blue,
           }}
         >
           {snackbar.message}
