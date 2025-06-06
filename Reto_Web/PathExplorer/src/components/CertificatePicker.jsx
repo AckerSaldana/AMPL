@@ -19,16 +19,15 @@ import {
 import SchoolIcon from "@mui/icons-material/School";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
 import FilterListIcon from "@mui/icons-material/FilterList";
-import { formFieldStyles } from "../styles/styles";
+import { ACCENTURE_COLORS, formFieldStyles } from "../styles/styles";
 import { supabase } from "../supabase/supabaseClient";
-
-import { useTheme } from "@mui/material/styles";
+import { useDarkMode } from "../contexts/DarkModeContext";
 
 const CertificatePicker = ({
   onCertificateAdd,
   selectedCertificateIds = [],
 }) => {
-  const theme = useTheme();
+  const { darkMode } = useDarkMode();
   const [availableCertificates, setAvailableCertificates] = useState([]);
   const [loadingCertificates, setLoadingCertificates] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -112,11 +111,11 @@ const CertificatePicker = ({
             width: 32,
             height: 32,
             borderRadius: "6px",
-            backgroundColor: `${theme.palette.accenture.colors.accentPurple1}15`,
+            backgroundColor: darkMode ? 'rgba(161, 0, 255, 0.15)' : `${ACCENTURE_COLORS.accentPurple1}15`,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            color: theme.palette.accenture.colors.accentPurple1,
+            color: darkMode ? '#a67aff' : ACCENTURE_COLORS.accentPurple1,
             fontWeight: "bold",
             fontSize: "0.7rem",
             flexShrink: 0,
@@ -134,9 +133,8 @@ const CertificatePicker = ({
       sx={{
         p: 2.5,
         borderRadius: 2,
-        bgcolor: theme.palette.background.paper,
-        border: "1px solid",
-        borderColor: theme.palette.accenture.colors.lightGray,
+        bgcolor: darkMode ? "rgba(255,255,255,0.05)" : "rgba(255,255,255,0.8)",
+        border: darkMode ? "1px solid rgba(255,255,255,0.12)" : "1px solid rgba(0,0,0,0.05)",
         height: "100%",
         display: "flex",
         flexDirection: "column",
@@ -146,17 +144,17 @@ const CertificatePicker = ({
         variant="subtitle2"
         fontWeight={600}
         sx={{
-          color: theme.palette.primary.main,
+          color: darkMode ? '#ffffff' : ACCENTURE_COLORS.corePurple2,
           mb: 2,
           pb: 1,
-          borderBottom: `1px solid ${theme.palette.accenture.colors.accentPurple5}`,
+          borderBottom: darkMode ? '1px solid rgba(161, 0, 255, 0.3)' : `1px solid ${ACCENTURE_COLORS.accentPurple5}`,
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
         }}
       >
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-          <SchoolIcon fontSize="small" />
+          <SchoolIcon fontSize="small" sx={{ color: darkMode ? ACCENTURE_COLORS.accentPurple3 : 'inherit' }} />
           Available Certificates
         </Box>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
@@ -166,8 +164,9 @@ const CertificatePicker = ({
             sx={{
               height: 20,
               fontSize: "0.625rem",
-              bgcolor: theme.palette.accenture.colors.accentPurple5,
-              color: theme.palette.primary.main,
+              bgcolor: darkMode ? 'rgba(161, 0, 255, 0.15)' : ACCENTURE_COLORS.accentPurple5,
+              color: darkMode ? '#a67aff' : ACCENTURE_COLORS.corePurple2,
+              border: darkMode ? '1px solid rgba(161, 0, 255, 0.3)' : 'none',
               fontWeight: 600,
             }}
           />
@@ -179,10 +178,10 @@ const CertificatePicker = ({
                 width: 24,
                 height: 24,
                 color: showFilters
-                  ? theme.palette.accenture.colors.corePurple1
-                  : theme.palette.accenture.colors.corePurple3,
+                  ? ACCENTURE_COLORS.corePurple1
+                  : darkMode ? 'rgba(255, 255, 255, 0.7)' : ACCENTURE_COLORS.corePurple3,
                 bgcolor: showFilters
-                  ? `${theme.palette.accenture.colors.accentPurple5}`
+                  ? darkMode ? 'rgba(161, 0, 255, 0.15)' : `${ACCENTURE_COLORS.accentPurple5}`
                   : "transparent",
               }}
             >
@@ -201,13 +200,31 @@ const CertificatePicker = ({
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           sx={{
-            ...formFieldStyles(theme),
+            ...formFieldStyles,
             "& .MuiOutlinedInput-root": {
-              ...formFieldStyles(theme)["& .MuiOutlinedInput-root"],
-              backgroundColor: theme.palette.accenture.colors.white,
+              ...formFieldStyles["& .MuiOutlinedInput-root"],
+              backgroundColor: darkMode ? "rgba(255,255,255,0.05)" : "white",
               borderRadius: 6,
               fontSize: "0.8rem",
+              color: darkMode ? '#ffffff' : 'inherit',
+              '& fieldset': {
+                borderColor: darkMode ? 'rgba(255, 255, 255, 0.23)' : 'rgba(0,0,0,0.06)',
+              },
+              '&:hover fieldset': {
+                borderColor: darkMode ? 'rgba(161, 0, 255, 0.6)' : `${ACCENTURE_COLORS.corePurple1}40`,
+              },
+              '&.Mui-focused': {
+                '& fieldset': {
+                  borderColor: ACCENTURE_COLORS.corePurple1,
+                },
+              },
             },
+            '& .MuiInputBase-input': {
+              '&::placeholder': {
+                color: darkMode ? 'rgba(255, 255, 255, 0.5)' : 'rgba(0, 0, 0, 0.5)',
+                opacity: 1
+              }
+            }
           }}
         />
 
@@ -216,7 +233,13 @@ const CertificatePicker = ({
             <FormControl size="small" fullWidth sx={{ mt: 1 }}>
               <InputLabel
                 id="certificate-type-label"
-                sx={{ fontSize: "0.8rem" }}
+                sx={{ 
+                  fontSize: "0.8rem",
+                  color: darkMode ? 'rgba(255, 255, 255, 0.7)' : 'inherit',
+                  '&.Mui-focused': {
+                    color: darkMode ? ACCENTURE_COLORS.accentPurple3 : ACCENTURE_COLORS.corePurple1
+                  }
+                }}
               >
                 Certificate Type
               </InputLabel>
@@ -226,14 +249,45 @@ const CertificatePicker = ({
                 onChange={(e) => setTypeFilter(e.target.value)}
                 label="Certificate Type"
                 sx={{
-                  ...formFieldStyles(theme)["& .MuiOutlinedInput-root"],
-                  backgroundColor: theme.palette.background.paper,
+                  ...formFieldStyles["& .MuiOutlinedInput-root"],
+                  backgroundColor: darkMode ? "rgba(255,255,255,0.05)" : "white",
                   borderRadius: 6,
                   fontSize: "0.8rem",
+                  color: darkMode ? '#ffffff' : 'inherit',
+                  '& fieldset': {
+                    borderColor: darkMode ? 'rgba(255, 255, 255, 0.23)' : 'rgba(0,0,0,0.06)',
+                  },
+                  '&:hover fieldset': {
+                    borderColor: darkMode ? 'rgba(161, 0, 255, 0.6)' : `${ACCENTURE_COLORS.corePurple1}40`,
+                  },
+                  '&.Mui-focused': {
+                    '& fieldset': {
+                      borderColor: ACCENTURE_COLORS.corePurple1,
+                    },
+                  },
+                  '& .MuiSvgIcon-root': {
+                    color: darkMode ? 'rgba(255, 255, 255, 0.7)' : 'inherit'
+                  }
                 }}
               >
                 {uniqueTypes.map((type) => (
-                  <MenuItem key={type} value={type} sx={{ fontSize: "0.8rem" }}>
+                  <MenuItem 
+                    key={type} 
+                    value={type} 
+                    sx={{ 
+                      fontSize: "0.8rem",
+                      color: darkMode ? '#ffffff' : 'inherit',
+                      '&:hover': {
+                        backgroundColor: darkMode ? 'rgba(161, 0, 255, 0.15)' : 'rgba(0,0,0,0.04)'
+                      },
+                      '&.Mui-selected': {
+                        backgroundColor: darkMode ? 'rgba(161, 0, 255, 0.2)' : 'rgba(161, 0, 255, 0.08)',
+                        '&:hover': {
+                          backgroundColor: darkMode ? 'rgba(161, 0, 255, 0.25)' : 'rgba(161, 0, 255, 0.12)'
+                        }
+                      }
+                    }}
+                  >
                     {type === "all" ? "All Types" : type}
                   </MenuItem>
                 ))}
@@ -249,10 +303,9 @@ const CertificatePicker = ({
           overflow: "hidden",
           position: "relative",
           borderRadius: 2,
-          bgcolor: theme.palette.background.paper,
-          border: "1px solid",
-          borderColor: theme.palette.accenture.colors.lightGray,
-          boxShadow: "inset 0 1px 3px rgba(0,0,0,0.02)",
+          bgcolor: darkMode ? "rgba(255,255,255,0.03)" : "rgba(255,255,255,0.5)",
+          border: darkMode ? "1px solid rgba(255,255,255,0.08)" : "1px solid rgba(0,0,0,0.03)",
+          boxShadow: darkMode ? "inset 0 1px 3px rgba(255,255,255,0.02)" : "inset 0 1px 3px rgba(0,0,0,0.02)",
           display: "flex",
           flexDirection: "column",
         }}
@@ -266,14 +319,14 @@ const CertificatePicker = ({
               width: "6px",
             },
             "&::-webkit-scrollbar-track": {
-              backgroundColor: "rgba(0,0,0,0.02)",
+              backgroundColor: darkMode ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.02)",
               borderRadius: "3px",
             },
             "&::-webkit-scrollbar-thumb": {
-              backgroundColor: theme.palette.accenture.colors.accentPurple5,
+              backgroundColor: darkMode ? "rgba(161, 0, 255, 0.3)" : ACCENTURE_COLORS.accentPurple5,
               borderRadius: "3px",
               "&:hover": {
-                backgroundColor: theme.palette.accenture.colors.accentPurple4,
+                backgroundColor: darkMode ? "rgba(161, 0, 255, 0.5)" : ACCENTURE_COLORS.accentPurple4,
               },
             },
           }}
@@ -282,7 +335,7 @@ const CertificatePicker = ({
             <Box sx={{ display: "flex", justifyContent: "center", p: 3 }}>
               <CircularProgress
                 size={24}
-                sx={{ color: theme.palette.accenture.colors.corePurple1 }}
+                sx={{ color: ACCENTURE_COLORS.corePurple1 }}
               />
             </Box>
           ) : filteredCertificates.length > 0 ? (
@@ -301,16 +354,14 @@ const CertificatePicker = ({
                       alignItems: "center",
                       p: 1.5,
                       borderRadius: 1.5,
-                      bgcolor: theme.palette.background.paper,
-                      boxShadow: "0 1px 2px rgba(0,0,0,0.03)",
-                      border: "1px solid",
-                      borderColor: theme.palette.accenture.colors.lightGray,
+                      bgcolor: darkMode ? "rgba(255,255,255,0.02)" : "white",
+                      boxShadow: darkMode ? "0 1px 2px rgba(255,255,255,0.03)" : "0 1px 2px rgba(0,0,0,0.03)",
+                      border: darkMode ? "1px solid rgba(255,255,255,0.08)" : "1px solid rgba(0,0,0,0.04)",
                       cursor: "pointer",
                       transition: "all 0.2s ease",
                       "&:hover": {
-                        boxShadow: "0 2px 4px rgba(0,0,0,0.06)",
-                        borderColor:
-                          theme.palette.accenture.colors.accentPurple4,
+                        boxShadow: darkMode ? "0 2px 4px rgba(255,255,255,0.06)" : "0 2px 4px rgba(0,0,0,0.06)",
+                        borderColor: ACCENTURE_COLORS.accentPurple4,
                         transform: "translateY(-1px)",
                       },
                     }}
@@ -321,8 +372,10 @@ const CertificatePicker = ({
                         <Typography
                           variant="body2"
                           fontWeight={500}
-                          color={theme.palette.accenture.colors.corePurple3}
-                          fontSize="0.8rem"
+                          sx={{ 
+                            color: darkMode ? '#ffffff' : ACCENTURE_COLORS.corePurple3,
+                            fontSize: "0.8rem"
+                          }}
                         >
                           {cert.title}
                         </Typography>
@@ -331,12 +384,12 @@ const CertificatePicker = ({
                         >
                           <Typography
                             variant="caption"
-                            color="text.secondary"
                             sx={{
                               fontSize: "0.7rem",
                               display: "flex",
                               alignItems: "center",
                               gap: 0.5,
+                              color: darkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary'
                             }}
                           >
                             <Box
@@ -345,8 +398,7 @@ const CertificatePicker = ({
                                 width: 6,
                                 height: 6,
                                 borderRadius: "50%",
-                                bgcolor:
-                                  theme.palette.accenture.colors.accentPurple2,
+                                bgcolor: ACCENTURE_COLORS.accentPurple2,
                               }}
                             />
                             {cert.issuer}
@@ -357,15 +409,14 @@ const CertificatePicker = ({
                             sx={{
                               height: 16,
                               fontSize: "0.6rem",
-                              bgcolor: `${theme.palette.accenture.colors.accentPurple5}60`,
-                              color: theme.palette.primary.main,
+                              bgcolor: `${ACCENTURE_COLORS.accentPurple5}60`,
+                              color: ACCENTURE_COLORS.corePurple2,
                             }}
                           />
                         </Box>
                         {cert.description && (
                           <Typography
                             variant="caption"
-                            color="text.secondary"
                             sx={{
                               fontSize: "0.7rem",
                               display: "-webkit-box",
@@ -374,6 +425,7 @@ const CertificatePicker = ({
                               WebkitLineClamp: 2,
                               mt: 0.5,
                               maxWidth: "240px",
+                              color: darkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary'
                             }}
                           >
                             {cert.description}
@@ -394,19 +446,18 @@ const CertificatePicker = ({
                           onClick={() => onCertificateAdd(cert)}
                           disabled={selectedCertificateIds.includes(cert.id)}
                           sx={{
-                            color: theme.palette.accenture.colors.corePurple1,
+                            color: darkMode ? '#a67aff' : ACCENTURE_COLORS.corePurple1,
                             bgcolor: selectedCertificateIds.includes(cert.id)
-                              ? `${theme.palette.accenture.colors.accentPurple4}50`
-                              : `${theme.palette.accenture.colors.accentPurple5}90`,
+                              ? darkMode ? 'rgba(161, 0, 255, 0.08)' : `${ACCENTURE_COLORS.accentPurple4}50`
+                              : darkMode ? 'rgba(161, 0, 255, 0.15)' : `${ACCENTURE_COLORS.accentPurple5}90`,
                             width: 28,
                             height: 28,
                             "&:hover": {
-                              bgcolor:
-                                theme.palette.accenture.colors.accentPurple5,
+                              bgcolor: darkMode ? 'rgba(161, 0, 255, 0.25)' : ACCENTURE_COLORS.accentPurple5,
                             },
                             "&.Mui-disabled": {
-                              bgcolor: `${theme.palette.accenture.colors.accentPurple4}30`,
-                              color: `${theme.palette.accenture.colors.corePurple1}50`,
+                              bgcolor: darkMode ? 'rgba(161, 0, 255, 0.05)' : `${ACCENTURE_COLORS.accentPurple4}30`,
+                              color: darkMode ? 'rgba(161, 0, 255, 0.3)' : `${ACCENTURE_COLORS.corePurple1}50`,
                             },
                           }}
                         >
@@ -420,7 +471,7 @@ const CertificatePicker = ({
             </Stack>
           ) : (
             <Box sx={{ textAlign: "center", p: 3 }}>
-              <Typography variant="body2" color="text.secondary">
+              <Typography variant="body2" sx={{ color: darkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary' }}>
                 No certificates match your search
               </Typography>
             </Box>
@@ -433,7 +484,7 @@ const CertificatePicker = ({
           variant="caption"
           align="center"
           sx={{
-            color: "text.secondary",
+            color: darkMode ? 'rgba(255, 255, 255, 0.7)' : "text.secondary",
             mt: 1,
             fontSize: "0.7rem",
           }}

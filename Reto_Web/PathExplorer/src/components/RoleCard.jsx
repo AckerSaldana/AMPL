@@ -58,8 +58,10 @@ const RoleCard = ({ role, name, avatar, percentage, onClick, selected, darkMode 
         <Typography
           variant="subtitle1"
           fontWeight={700}
-          color={ACCENTURE_COLORS.corePurple3}
-          sx={{ mb: 0.5 }}
+          sx={{ 
+            mb: 0.5,
+            color: darkMode ? '#ffffff' : ACCENTURE_COLORS.corePurple3
+          }}
         >
           {role}
         </Typography>
@@ -74,7 +76,7 @@ const RoleCard = ({ role, name, avatar, percentage, onClick, selected, darkMode 
         >
           Assigned to: <span style={{ 
             fontWeight: 500, 
-            color: darkMode ? ACCENTURE_COLORS.accentPurple5 : ACCENTURE_COLORS.corePurple2
+            color: darkMode ? '#ffffff' : ACCENTURE_COLORS.corePurple2
           }}>{name}</span>
         </Typography>
       </Box>

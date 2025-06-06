@@ -1,13 +1,13 @@
 import React, { useState } from "react";
-import { Box, Grid, Typography, Paper } from "@mui/material";
+import { Box, Grid, Typography, Paper, useTheme } from "@mui/material";
 import { AddProjectCard } from "../components/AddProjectCard";
 import { AddRoleCard } from "../components/AddRoleCard";
-import { contentPaperStyles } from "../styles/styles";
-
-import { useTheme } from "@mui/material/styles";
+import { ACCENTURE_COLORS, contentPaperStyles } from "../styles/styles";
+import { useDarkMode } from "../contexts/DarkModeContext";
 
 const AddProject = () => {
   const theme = useTheme();
+  const { darkMode } = useDarkMode();
   // Estado compartido entre componentes para los roles
   const [projectRoles, setProjectRoles] = useState([]);
   const [selectedRoleForEdit, setSelectedRoleForEdit] = useState(null);
@@ -16,15 +16,15 @@ const AddProject = () => {
   const handleRoleCreated = (newRole) => {
     if (selectedRoleForEdit) {
       // Estamos editando un rol existente
-      setProjectRoles((prev) =>
-        prev.map((role) =>
+      setProjectRoles(prev => 
+        prev.map(role => 
           role.id === selectedRoleForEdit.id ? newRole : role
         )
       );
       setSelectedRoleForEdit(null); // Limpiar la selección después de editar
     } else {
       // Estamos agregando un nuevo rol
-      setProjectRoles((prev) => [...prev, newRole]);
+      setProjectRoles(prev => [...prev, newRole]);
     }
   };
 
@@ -35,7 +35,7 @@ const AddProject = () => {
 
   // Función para eliminar un rol
   const handleDeleteRole = (roleId) => {
-    setProjectRoles((prev) => prev.filter((role) => role.id !== roleId));
+    setProjectRoles(prev => prev.filter(role => role.id !== roleId));
     if (selectedRoleForEdit && selectedRoleForEdit.id === roleId) {
       setSelectedRoleForEdit(null); // Limpiar la selección si se elimina el rol que se estaba editando
     }
@@ -57,7 +57,14 @@ const AddProject = () => {
     >
       {/* Encabezado de página */}
       <Box mb={4} sx={{ px: 1 }}>
-        <Typography variant="h4" sx={{ fontWeight: 600, mb: 3 }}>
+        <Typography 
+          variant="h4" 
+          sx={{ 
+            fontWeight: 600, 
+            mb: 3,
+            color: darkMode ? '#ffffff' : 'inherit'
+          }}
+        >
           Create New Project
         </Typography>
       </Box>
@@ -65,11 +72,14 @@ const AddProject = () => {
       <Grid container spacing={4} sx={{ width: "100%" }}>
         {/* Izquierda: Formulario de proyecto y lista de roles */}
         <Grid item xs={12} md={5} lg={4}>
-          <Paper
-            elevation={0}
-            sx={{
-              ...contentPaperStyles(theme),
+          <Paper 
+            elevation={0} 
+            sx={{ 
+              ...contentPaperStyles,
               height: "auto", // Cambiamos a altura automática
+              bgcolor: darkMode ? '#1e1e1e' : '#ffffff',
+              border: darkMode ? '1px solid rgba(255, 255, 255, 0.12)' : 'none',
+              boxShadow: darkMode ? '0 2px 8px rgba(255, 255, 255, 0.04)' : contentPaperStyles.boxShadow,
               "&::before": {
                 content: '""',
                 position: "absolute",
@@ -77,7 +87,7 @@ const AddProject = () => {
                 left: 0,
                 width: "100%",
                 height: "4px",
-                background: theme.palette.primary.main,
+                background: ACCENTURE_COLORS.corePurple1,
               },
             }}
           >
@@ -91,11 +101,14 @@ const AddProject = () => {
 
         {/* Derecha: Formulario para crear/editar roles */}
         <Grid item xs={12} md={7} lg={8}>
-          <Paper
-            elevation={0}
-            sx={{
-              ...contentPaperStyles(theme),
+          <Paper 
+            elevation={0} 
+            sx={{ 
+              ...contentPaperStyles,
               height: "auto", // Cambiamos a altura automática
+              bgcolor: darkMode ? '#1e1e1e' : '#ffffff',
+              border: darkMode ? '1px solid rgba(255, 255, 255, 0.12)' : 'none',
+              boxShadow: darkMode ? '0 2px 8px rgba(255, 255, 255, 0.04)' : contentPaperStyles.boxShadow,
               "&::before": {
                 content: '""',
                 position: "absolute",
@@ -103,7 +116,7 @@ const AddProject = () => {
                 left: 0,
                 width: "100%",
                 height: "4px",
-                background: theme.palette.primary.main,
+                background: ACCENTURE_COLORS.corePurple1,
               },
             }}
           >
