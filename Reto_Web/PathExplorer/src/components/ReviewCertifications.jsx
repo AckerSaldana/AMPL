@@ -110,13 +110,17 @@ const PROFICIENCY_LEVELS = [
 ];
 
 // Styled components for glassmorphism and modern design
-const GlassCard = ({ children, sx, ...props }) => (
+const GlassCard = ({ children, sx, darkMode = false, ...props }) => (
   <Card
     elevation={0}
     sx={{
-      background: alpha(ACCENTURE_COLORS.white, 0.7),
+      background: darkMode 
+        ? alpha('#1e1e1e', 0.9)
+        : alpha(ACCENTURE_COLORS.white, 0.7),
       backdropFilter: 'blur(20px)',
-      border: `1px solid ${alpha(ACCENTURE_COLORS.corePurple1, 0.1)}`,
+      border: darkMode
+        ? `1px solid ${alpha(ACCENTURE_COLORS.white, 0.12)}`
+        : `1px solid ${alpha(ACCENTURE_COLORS.corePurple1, 0.1)}`,
       borderRadius: 2,
       transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
       ...sx
@@ -127,13 +131,15 @@ const GlassCard = ({ children, sx, ...props }) => (
   </Card>
 );
 
-const AnimatedChip = ({ children, sx, ...props }) => (
+const AnimatedChip = ({ children, sx, darkMode = false, ...props }) => (
   <Chip
     sx={{
       transition: 'all 0.2s ease',
       '&:hover': {
         transform: 'translateY(-2px)',
-        boxShadow: `0 4px 12px ${alpha(ACCENTURE_COLORS.corePurple1, 0.2)}`,
+        boxShadow: darkMode
+          ? `0 4px 12px ${alpha(ACCENTURE_COLORS.white, 0.1)}`
+          : `0 4px 12px ${alpha(ACCENTURE_COLORS.corePurple1, 0.2)}`,
       },
       ...sx
     }}
@@ -143,7 +149,7 @@ const AnimatedChip = ({ children, sx, ...props }) => (
   </Chip>
 );
 
-const StyledButton = ({ children, variant = 'contained', sx, ...props }) => (
+const StyledButton = ({ children, variant = 'contained', sx, darkMode = false, ...props }) => (
   <Button
     variant={variant}
     sx={{
@@ -156,7 +162,17 @@ const StyledButton = ({ children, variant = 'contained', sx, ...props }) => (
         background: ACCENTURE_COLORS.gradients.purple,
         '&:hover': {
           transform: 'translateY(-2px)',
-          boxShadow: `0 8px 24px ${alpha(ACCENTURE_COLORS.corePurple1, 0.3)}`,
+          boxShadow: darkMode
+            ? `0 8px 24px ${alpha(ACCENTURE_COLORS.white, 0.1)}`
+            : `0 8px 24px ${alpha(ACCENTURE_COLORS.corePurple1, 0.3)}`,
+        }
+      }),
+      ...(variant === 'outlined' && darkMode && {
+        borderColor: 'rgba(255, 255, 255, 0.23)',
+        color: '#ffffff',
+        '&:hover': {
+          borderColor: 'rgba(255, 255, 255, 0.4)',
+          backgroundColor: 'rgba(255, 255, 255, 0.05)',
         }
       }),
       ...sx
@@ -167,7 +183,7 @@ const StyledButton = ({ children, variant = 'contained', sx, ...props }) => (
   </Button>
 );
 
-const ReviewCertifications = ({ open, onClose }) => {
+const ReviewCertifications = ({ open, onClose, darkMode = false }) => {
   const theme = useTheme();
   
   const [certifications, setCertifications] = useState([]);
@@ -922,9 +938,13 @@ const handleConfirmApproval = async () => {
           maxHeight: { xs: '100vh', sm: '95vh' },
           borderRadius: 3,
           overflow: 'hidden',
-          background: alpha(ACCENTURE_COLORS.white, 0.98),
+          background: darkMode 
+            ? alpha('#121212', 0.98)
+            : alpha(ACCENTURE_COLORS.white, 0.98),
           backdropFilter: 'blur(10px)',
-          boxShadow: `0 25px 50px -12px ${alpha(ACCENTURE_COLORS.black, 0.25)}`
+          boxShadow: darkMode
+            ? `0 25px 50px -12px ${alpha(ACCENTURE_COLORS.black, 0.5)}`
+            : `0 25px 50px -12px ${alpha(ACCENTURE_COLORS.black, 0.25)}`
         }
       }}
     >
@@ -1018,16 +1038,22 @@ const handleConfirmApproval = async () => {
         </Box>
       </Box>
       
-      <DialogContent sx={{ p: 0, display: 'flex', flexDirection: 'column', height: '100%', bgcolor: '#f8f9fc' }}>
+      <DialogContent sx={{ p: 0, display: 'flex', flexDirection: 'column', height: '100%', bgcolor: darkMode ? '#121212' : '#f8f9fc' }}>
         {/* Enhanced Filters Section */}
-        <GlassCard sx={{ 
-          m: 3,
-          mb: 2,
-          borderRadius: 3,
-          background: alpha(ACCENTURE_COLORS.white, 0.9),
-          backdropFilter: 'blur(20px)',
-          boxShadow: `0 4px 20px ${alpha(ACCENTURE_COLORS.corePurple1, 0.08)}`
-        }}>
+        <GlassCard 
+          darkMode={darkMode}
+          sx={{ 
+            m: 3,
+            mb: 2,
+            borderRadius: 3,
+            background: darkMode 
+              ? alpha('#1e1e1e', 0.9)
+              : alpha(ACCENTURE_COLORS.white, 0.9),
+            backdropFilter: 'blur(20px)',
+            boxShadow: darkMode
+              ? `0 4px 20px ${alpha(ACCENTURE_COLORS.black, 0.3)}`
+              : `0 4px 20px ${alpha(ACCENTURE_COLORS.corePurple1, 0.08)}`
+          }}>
           <CardContent sx={{ p: 3 }}>
             <Fade in={open} timeout={800}>
               <Box>
@@ -1055,25 +1081,40 @@ const handleConfirmApproval = async () => {
                         minWidth: { xs: 250, sm: 350 },
                         '& .MuiOutlinedInput-root': {
                           borderRadius: 2,
-                          bgcolor: alpha(ACCENTURE_COLORS.white, 0.8),
+                          bgcolor: darkMode 
+                            ? alpha(ACCENTURE_COLORS.white, 0.05)
+                            : alpha(ACCENTURE_COLORS.white, 0.8),
                           backdropFilter: 'blur(10px)',
-                          border: `1px solid ${alpha(ACCENTURE_COLORS.corePurple1, 0.1)}`,
+                          border: darkMode
+                            ? `1px solid ${alpha(ACCENTURE_COLORS.white, 0.12)}`
+                            : `1px solid ${alpha(ACCENTURE_COLORS.corePurple1, 0.1)}`,
                           transition: 'all 0.3s ease',
                           '&:hover': {
-                            borderColor: alpha(ACCENTURE_COLORS.corePurple1, 0.3),
-                            bgcolor: ACCENTURE_COLORS.white,
+                            borderColor: darkMode
+                              ? alpha(ACCENTURE_COLORS.white, 0.3)
+                              : alpha(ACCENTURE_COLORS.corePurple1, 0.3),
+                            bgcolor: darkMode
+                              ? alpha(ACCENTURE_COLORS.white, 0.08)
+                              : ACCENTURE_COLORS.white,
                             transform: 'translateY(-1px)',
-                            boxShadow: `0 4px 12px ${alpha(ACCENTURE_COLORS.corePurple1, 0.1)}`
+                            boxShadow: darkMode
+                              ? `0 4px 12px ${alpha(ACCENTURE_COLORS.white, 0.05)}`
+                              : `0 4px 12px ${alpha(ACCENTURE_COLORS.corePurple1, 0.1)}`
                           },
                           '&.Mui-focused': {
                             borderColor: ACCENTURE_COLORS.corePurple1,
                             boxShadow: `0 0 0 3px ${alpha(ACCENTURE_COLORS.accentPurple4, 0.2)}`,
-                            bgcolor: ACCENTURE_COLORS.white
+                            bgcolor: darkMode
+                              ? alpha(ACCENTURE_COLORS.white, 0.08)
+                              : ACCENTURE_COLORS.white
                           },
                           '& input': {
                             fontWeight: 500,
+                            color: darkMode ? '#ffffff' : 'inherit',
                             '&::placeholder': {
-                              color: alpha(ACCENTURE_COLORS.darkGray, 0.6)
+                              color: darkMode
+                                ? alpha(ACCENTURE_COLORS.white, 0.5)
+                                : alpha(ACCENTURE_COLORS.darkGray, 0.6)
                             }
                           }
                         }
@@ -1098,13 +1139,17 @@ const handleConfirmApproval = async () => {
                     px: 2.5,
                     py: 1,
                     borderRadius: 2,
-                    bgcolor: alpha(ACCENTURE_COLORS.corePurple1, 0.05),
-                    border: `1px solid ${alpha(ACCENTURE_COLORS.corePurple1, 0.1)}`
+                    bgcolor: darkMode
+                      ? alpha(ACCENTURE_COLORS.corePurple1, 0.15)
+                      : alpha(ACCENTURE_COLORS.corePurple1, 0.05),
+                    border: darkMode
+                      ? `1px solid ${alpha(ACCENTURE_COLORS.corePurple1, 0.3)}`
+                      : `1px solid ${alpha(ACCENTURE_COLORS.corePurple1, 0.1)}`
                   }}>
                     <Typography variant="body2" fontWeight={600} color={ACCENTURE_COLORS.corePurple2}>
                       {filteredCertifications.length}
                     </Typography>
-                    <Typography variant="body2" color="text.secondary">
+                    <Typography variant="body2" color={darkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary'}>
                       of {certifications.length} certifications
                     </Typography>
                   </Box>
@@ -1112,8 +1157,8 @@ const handleConfirmApproval = async () => {
 
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <FilterListIcon sx={{ fontSize: 18, color: ACCENTURE_COLORS.darkGray }} />
-                    <Typography variant="body2" fontWeight={500} color="text.secondary">
+                    <FilterListIcon sx={{ fontSize: 18, color: darkMode ? 'rgba(255, 255, 255, 0.7)' : ACCENTURE_COLORS.darkGray }} />
+                    <Typography variant="body2" fontWeight={500} color={darkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary'}>
                       Filter by status:
                     </Typography>
                   </Box>
@@ -1126,6 +1171,7 @@ const handleConfirmApproval = async () => {
                       { value: 'rejected', label: 'Rejected', icon: <BlockIcon />, color: ACCENTURE_COLORS.red }
                     ].map((status) => (
                       <AnimatedChip
+                        darkMode={darkMode}
                         key={status.value}
                         label={status.label}
                         icon={status.icon}
@@ -1137,20 +1183,26 @@ const handleConfirmApproval = async () => {
                           borderRadius: 2,
                           px: 1,
                           bgcolor: statusFilter === status.value 
-                            ? alpha(status.color, 0.15) 
+                            ? alpha(status.color, darkMode ? 0.25 : 0.15) 
                             : 'transparent',
                           borderColor: statusFilter === status.value 
                             ? 'transparent' 
-                            : alpha(status.color, 0.3),
+                            : darkMode
+                              ? alpha(status.color, 0.5)
+                              : alpha(status.color, 0.3),
                           color: statusFilter === status.value 
-                            ? status.color 
-                            : alpha(status.color, 0.8),
+                            ? (darkMode ? status.color : status.color)
+                            : darkMode
+                              ? alpha(status.color, 1)
+                              : alpha(status.color, 0.8),
                           '& .MuiChip-icon': {
                             fontSize: 16,
                             color: status.color
                           },
                           '&:hover': {
-                            bgcolor: alpha(status.color, statusFilter === status.value ? 0.2 : 0.05),
+                            bgcolor: alpha(status.color, statusFilter === status.value 
+                              ? (darkMode ? 0.3 : 0.2) 
+                              : (darkMode ? 0.1 : 0.05)),
                             borderColor: status.color,
                           }
                         }}
@@ -1169,16 +1221,41 @@ const handleConfirmApproval = async () => {
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               {[1, 2, 3].map((index) => (
                 <Grow in={loading} key={index} timeout={index * 200}>
-                  <GlassCard sx={{ p: 3 }}>
+                  <GlassCard darkMode={darkMode} sx={{ p: 3 }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                      <Skeleton variant="circular" width={48} height={48} />
+                      <Skeleton 
+                        variant="circular" 
+                        width={48} 
+                        height={48} 
+                        sx={{ bgcolor: darkMode ? 'rgba(255, 255, 255, 0.12)' : undefined }}
+                      />
                       <Box sx={{ flex: 1 }}>
-                        <Skeleton variant="text" width="30%" height={24} />
-                        <Skeleton variant="text" width="50%" height={20} />
+                        <Skeleton 
+                          variant="text" 
+                          width="30%" 
+                          height={24} 
+                          sx={{ bgcolor: darkMode ? 'rgba(255, 255, 255, 0.12)' : undefined }}
+                        />
+                        <Skeleton 
+                          variant="text" 
+                          width="50%" 
+                          height={20} 
+                          sx={{ bgcolor: darkMode ? 'rgba(255, 255, 255, 0.12)' : undefined }}
+                        />
                       </Box>
                       <Box sx={{ display: 'flex', gap: 1 }}>
-                        <Skeleton variant="rounded" width={80} height={32} />
-                        <Skeleton variant="rounded" width={80} height={32} />
+                        <Skeleton 
+                          variant="rounded" 
+                          width={80} 
+                          height={32} 
+                          sx={{ bgcolor: darkMode ? 'rgba(255, 255, 255, 0.12)' : undefined }}
+                        />
+                        <Skeleton 
+                          variant="rounded" 
+                          width={80} 
+                          height={32} 
+                          sx={{ bgcolor: darkMode ? 'rgba(255, 255, 255, 0.12)' : undefined }}
+                        />
                       </Box>
                     </Box>
                   </GlassCard>
@@ -1196,14 +1273,20 @@ const handleConfirmApproval = async () => {
               width: 8,
             },
             '&::-webkit-scrollbar-track': {
-              bgcolor: alpha(ACCENTURE_COLORS.lightGray, 0.3),
+              bgcolor: darkMode 
+                ? alpha(ACCENTURE_COLORS.white, 0.05)
+                : alpha(ACCENTURE_COLORS.lightGray, 0.3),
               borderRadius: 4,
             },
             '&::-webkit-scrollbar-thumb': {
-              bgcolor: alpha(ACCENTURE_COLORS.corePurple1, 0.3),
+              bgcolor: darkMode
+                ? alpha(ACCENTURE_COLORS.corePurple1, 0.5)
+                : alpha(ACCENTURE_COLORS.corePurple1, 0.3),
               borderRadius: 4,
               '&:hover': {
-                bgcolor: alpha(ACCENTURE_COLORS.corePurple1, 0.5),
+                bgcolor: darkMode
+                  ? alpha(ACCENTURE_COLORS.corePurple1, 0.7)
+                  : alpha(ACCENTURE_COLORS.corePurple1, 0.5),
               }
             }
           }}>
@@ -1211,6 +1294,7 @@ const handleConfirmApproval = async () => {
               {filteredCertifications.map((cert, index) => (
                 <Zoom in key={cert.uniqueId} timeout={300 + index * 50}>
                   <GlassCard 
+                    darkMode={darkMode}
                     sx={{ 
                       p: 3,
                       cursor: 'pointer',
@@ -1218,7 +1302,9 @@ const handleConfirmApproval = async () => {
                       overflow: 'hidden',
                       '&:hover': {
                         transform: 'translateY(-2px)',
-                        boxShadow: `0 12px 40px ${alpha(ACCENTURE_COLORS.corePurple1, 0.15)}`,
+                        boxShadow: darkMode
+                          ? `0 12px 40px ${alpha(ACCENTURE_COLORS.black, 0.4)}`
+                          : `0 12px 40px ${alpha(ACCENTURE_COLORS.corePurple1, 0.15)}`,
                         '& .action-buttons': {
                           opacity: 1,
                           transform: 'translateX(0)'
@@ -1256,7 +1342,9 @@ const handleConfirmApproval = async () => {
                                 : cert.status === 'pending'
                                 ? ACCENTURE_COLORS.blue
                                 : ACCENTURE_COLORS.red,
-                              border: `2px solid ${ACCENTURE_COLORS.white}`
+                              border: darkMode
+                                ? `2px solid #121212`
+                                : `2px solid ${ACCENTURE_COLORS.white}`
                             }} />
                           }
                         >
@@ -1279,13 +1367,13 @@ const handleConfirmApproval = async () => {
                         <Box sx={{ flex: 1 }}>
                           <Typography variant="h6" sx={{ 
                             fontWeight: 600, 
-                            color: ACCENTURE_COLORS.black,
+                            color: darkMode ? '#ffffff' : ACCENTURE_COLORS.black,
                             letterSpacing: '-0.01em'
                           }}>
                             {cert.userName}
                           </Typography>
                           <Typography variant="body2" sx={{ 
-                            color: ACCENTURE_COLORS.darkGray,
+                            color: darkMode ? 'rgba(255, 255, 255, 0.7)' : ACCENTURE_COLORS.darkGray,
                             display: 'flex',
                             alignItems: 'center',
                             gap: 0.5,
@@ -1309,14 +1397,14 @@ const handleConfirmApproval = async () => {
                         </Box>
                         <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                            <CalendarTodayIcon sx={{ fontSize: 14, color: ACCENTURE_COLORS.darkGray }} />
-                            <Typography variant="caption" color="text.secondary">
+                            <CalendarTodayIcon sx={{ fontSize: 14, color: darkMode ? 'rgba(255, 255, 255, 0.5)' : ACCENTURE_COLORS.darkGray }} />
+                            <Typography variant="caption" color={darkMode ? 'rgba(255, 255, 255, 0.5)' : 'text.secondary'}>
                               Completed: {cert.completedDate}
                             </Typography>
                           </Box>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                            <AccessTimeIcon sx={{ fontSize: 14, color: ACCENTURE_COLORS.darkGray }} />
-                            <Typography variant="caption" color="text.secondary">
+                            <AccessTimeIcon sx={{ fontSize: 14, color: darkMode ? 'rgba(255, 255, 255, 0.5)' : ACCENTURE_COLORS.darkGray }} />
+                            <Typography variant="caption" color={darkMode ? 'rgba(255, 255, 255, 0.5)' : 'text.secondary'}>
                               Valid until: {cert.validUntil}
                             </Typography>
                           </Box>
@@ -1334,13 +1422,13 @@ const handleConfirmApproval = async () => {
                             cert.score >= 90 ? ACCENTURE_COLORS.green :
                             cert.score >= 70 ? ACCENTURE_COLORS.orange :
                             ACCENTURE_COLORS.red, 
-                            0.1
+                            darkMode ? 0.2 : 0.1
                           ),
                           border: `1px solid ${alpha(
                             cert.score >= 90 ? ACCENTURE_COLORS.green :
                             cert.score >= 70 ? ACCENTURE_COLORS.orange :
                             ACCENTURE_COLORS.red, 
-                            0.2
+                            darkMode ? 0.4 : 0.2
                           )}`,
                           minWidth: 65
                         }}>
@@ -1354,12 +1442,13 @@ const handleConfirmApproval = async () => {
                           }}>
                             {cert.score}%
                           </Typography>
-                          <Typography variant="caption" sx={{ fontSize: '0.7rem' }} color="text.secondary">
+                          <Typography variant="caption" sx={{ fontSize: '0.7rem' }} color={darkMode ? 'rgba(255, 255, 255, 0.5)' : 'text.secondary'}>
                             Score
                           </Typography>
                         </Box>
 
                         <AnimatedChip
+                          darkMode={darkMode}
                           icon={
                             cert.status === 'approved' ? <VerifiedIcon /> :
                             cert.status === 'pending' ? <HourglassEmptyIcon /> :
@@ -1376,10 +1465,10 @@ const handleConfirmApproval = async () => {
                             fontSize: '0.875rem',
                             fontWeight: 600,
                             bgcolor: cert.status === 'approved' 
-                              ? alpha(ACCENTURE_COLORS.green, 0.15)
+                              ? alpha(ACCENTURE_COLORS.green, darkMode ? 0.25 : 0.15)
                               : cert.status === 'pending'
-                              ? alpha(ACCENTURE_COLORS.blue, 0.15)
-                              : alpha(ACCENTURE_COLORS.red, 0.15),
+                              ? alpha(ACCENTURE_COLORS.blue, darkMode ? 0.25 : 0.15)
+                              : alpha(ACCENTURE_COLORS.red, darkMode ? 0.25 : 0.15),
                             color: cert.status === 'approved' 
                               ? ACCENTURE_COLORS.green
                               : cert.status === 'pending'
@@ -1408,10 +1497,10 @@ const handleConfirmApproval = async () => {
                             <IconButton 
                               onClick={() => handleViewEvidence(cert)}
                               sx={{ 
-                                bgcolor: alpha(ACCENTURE_COLORS.blue, 0.1),
+                                bgcolor: alpha(ACCENTURE_COLORS.blue, darkMode ? 0.2 : 0.1),
                                 color: ACCENTURE_COLORS.blue,
                                 '&:hover': {
-                                  bgcolor: alpha(ACCENTURE_COLORS.blue, 0.2),
+                                  bgcolor: alpha(ACCENTURE_COLORS.blue, darkMode ? 0.3 : 0.2),
                                   transform: 'scale(1.1)'
                                 }
                               }}
@@ -1427,10 +1516,10 @@ const handleConfirmApproval = async () => {
                               <IconButton 
                                 onClick={() => handleApprove(cert)}
                                 sx={{ 
-                                  bgcolor: alpha(ACCENTURE_COLORS.green, 0.1),
+                                  bgcolor: alpha(ACCENTURE_COLORS.green, darkMode ? 0.2 : 0.1),
                                   color: ACCENTURE_COLORS.green,
                                   '&:hover': {
-                                    bgcolor: alpha(ACCENTURE_COLORS.green, 0.2),
+                                    bgcolor: alpha(ACCENTURE_COLORS.green, darkMode ? 0.3 : 0.2),
                                     transform: 'scale(1.1)'
                                   }
                                 }}
@@ -1443,10 +1532,10 @@ const handleConfirmApproval = async () => {
                               <IconButton 
                                 onClick={() => handleReject(cert)}
                                 sx={{ 
-                                  bgcolor: alpha(ACCENTURE_COLORS.red, 0.1),
+                                  bgcolor: alpha(ACCENTURE_COLORS.red, darkMode ? 0.2 : 0.1),
                                   color: ACCENTURE_COLORS.red,
                                   '&:hover': {
-                                    bgcolor: alpha(ACCENTURE_COLORS.red, 0.2),
+                                    bgcolor: alpha(ACCENTURE_COLORS.red, darkMode ? 0.3 : 0.2),
                                     transform: 'scale(1.1)'
                                   }
                                 }}
@@ -1474,7 +1563,7 @@ const handleConfirmApproval = async () => {
                             <Typography variant="body2" fontWeight={600} color={ACCENTURE_COLORS.red} gutterBottom>
                               Rejection Reason
                             </Typography>
-                            <Typography variant="body2" color="text.secondary">
+                            <Typography variant="body2" color={darkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary'}>
                               {cert.rejectionReason}
                             </Typography>
                           </Box>
@@ -1543,7 +1632,7 @@ const handleConfirmApproval = async () => {
               }}>
                 No certifications found
               </Typography>
-              <Typography variant="body1" color="text.secondary" align="center" sx={{ 
+              <Typography variant="body1" color={darkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary'} align="center" sx={{ 
                 maxWidth: 400,
                 lineHeight: 1.6
               }}>
@@ -1558,8 +1647,12 @@ const handleConfirmApproval = async () => {
       <Box 
         sx={{ 
           p: 3,
-          background: `linear-gradient(180deg, transparent 0%, ${alpha(ACCENTURE_COLORS.accentPurple5, 0.3)} 100%)`,
-          borderTop: `1px solid ${alpha(ACCENTURE_COLORS.corePurple1, 0.1)}`,
+          background: darkMode
+            ? `linear-gradient(180deg, transparent 0%, ${alpha(ACCENTURE_COLORS.black, 0.2)} 100%)`
+            : `linear-gradient(180deg, transparent 0%, ${alpha(ACCENTURE_COLORS.accentPurple5, 0.3)} 100%)`,
+          borderTop: darkMode
+            ? `1px solid ${alpha(ACCENTURE_COLORS.white, 0.12)}`
+            : `1px solid ${alpha(ACCENTURE_COLORS.corePurple1, 0.1)}`,
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center'
@@ -1573,26 +1666,39 @@ const handleConfirmApproval = async () => {
             px: 2,
             py: 1,
             borderRadius: 2,
-            bgcolor: alpha(ACCENTURE_COLORS.corePurple1, 0.05),
-            border: `1px solid ${alpha(ACCENTURE_COLORS.corePurple1, 0.1)}`
+            bgcolor: darkMode
+              ? alpha(ACCENTURE_COLORS.corePurple1, 0.15)
+              : alpha(ACCENTURE_COLORS.corePurple1, 0.05),
+            border: darkMode
+              ? `1px solid ${alpha(ACCENTURE_COLORS.corePurple1, 0.3)}`
+              : `1px solid ${alpha(ACCENTURE_COLORS.corePurple1, 0.1)}`
           }}>
             <InfoIcon sx={{ fontSize: 18, color: ACCENTURE_COLORS.corePurple2 }} />
-            <Typography variant="caption" color="text.secondary">
+            <Typography variant="caption" color={darkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary'}>
               Review and manage employee certification requests
             </Typography>
           </Box>
         </Box>
 
         <StyledButton
+          darkMode={darkMode}
           variant="outlined"
           onClick={onClose}
           startIcon={<ArrowBackIcon />}
           sx={{
-            borderColor: alpha(ACCENTURE_COLORS.corePurple1, 0.3),
-            color: ACCENTURE_COLORS.corePurple2,
+            borderColor: darkMode
+              ? 'rgba(255, 255, 255, 0.23)'
+              : alpha(ACCENTURE_COLORS.corePurple1, 0.3),
+            color: darkMode
+              ? '#ffffff'
+              : ACCENTURE_COLORS.corePurple2,
             '&:hover': {
-              borderColor: ACCENTURE_COLORS.corePurple1,
-              bgcolor: alpha(ACCENTURE_COLORS.corePurple1, 0.05)
+              borderColor: darkMode
+                ? 'rgba(255, 255, 255, 0.4)'
+                : ACCENTURE_COLORS.corePurple1,
+              bgcolor: darkMode
+                ? 'rgba(255, 255, 255, 0.05)'
+                : alpha(ACCENTURE_COLORS.corePurple1, 0.05)
             }
           }}
         >
@@ -1613,9 +1719,13 @@ const handleConfirmApproval = async () => {
             height: '90vh',
             borderRadius: 3,
             overflow: 'hidden',
-            background: alpha(ACCENTURE_COLORS.white, 0.98),
+            background: darkMode
+              ? alpha('#121212', 0.98)
+              : alpha(ACCENTURE_COLORS.white, 0.98),
             backdropFilter: 'blur(10px)',
-            boxShadow: `0 25px 50px -12px ${alpha(ACCENTURE_COLORS.black, 0.25)}`
+            boxShadow: darkMode
+              ? `0 25px 50px -12px ${alpha(ACCENTURE_COLORS.black, 0.5)}`
+              : `0 25px 50px -12px ${alpha(ACCENTURE_COLORS.black, 0.25)}`
           }
         }}
       >
@@ -1625,8 +1735,12 @@ const handleConfirmApproval = async () => {
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
-            background: `linear-gradient(135deg, ${alpha(ACCENTURE_COLORS.corePurple1, 0.05)} 0%, ${alpha(ACCENTURE_COLORS.accentPurple2, 0.05)} 100%)`,
-            borderBottom: `1px solid ${alpha(ACCENTURE_COLORS.corePurple1, 0.1)}`
+            background: darkMode
+              ? `linear-gradient(135deg, ${alpha(ACCENTURE_COLORS.corePurple1, 0.15)} 0%, ${alpha(ACCENTURE_COLORS.accentPurple2, 0.15)} 100%)`
+              : `linear-gradient(135deg, ${alpha(ACCENTURE_COLORS.corePurple1, 0.05)} 0%, ${alpha(ACCENTURE_COLORS.accentPurple2, 0.05)} 100%)`,
+            borderBottom: darkMode
+              ? `1px solid ${alpha(ACCENTURE_COLORS.white, 0.12)}`
+              : `1px solid ${alpha(ACCENTURE_COLORS.corePurple1, 0.1)}`
           }}
         >
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -1643,10 +1757,10 @@ const handleConfirmApproval = async () => {
               <PdfIcon sx={{ color: ACCENTURE_COLORS.white, fontSize: 24 }} />
             </Box>
             <Box>
-              <Typography variant="h6" fontWeight={600}>
+              <Typography variant="h6" fontWeight={600} color={darkMode ? '#ffffff' : 'inherit'}>
                 Certification Evidence
               </Typography>
-              <Typography variant="caption" color="text.secondary">
+              <Typography variant="caption" color={darkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary'}>
                 Review the submitted documentation
               </Typography>
             </Box>
@@ -1654,10 +1768,14 @@ const handleConfirmApproval = async () => {
           <IconButton 
             onClick={() => setPreviewOpen(false)}
             sx={{
-              color: ACCENTURE_COLORS.darkGray,
-              bgcolor: alpha(ACCENTURE_COLORS.black, 0.05),
+              color: darkMode ? 'rgba(255, 255, 255, 0.7)' : ACCENTURE_COLORS.darkGray,
+              bgcolor: darkMode
+                ? alpha(ACCENTURE_COLORS.white, 0.05)
+                : alpha(ACCENTURE_COLORS.black, 0.05),
               '&:hover': {
-                bgcolor: alpha(ACCENTURE_COLORS.black, 0.1),
+                bgcolor: darkMode
+                  ? alpha(ACCENTURE_COLORS.white, 0.1)
+                  : alpha(ACCENTURE_COLORS.black, 0.1),
                 transform: 'rotate(90deg)'
               },
               transition: 'all 0.3s ease'
@@ -1668,15 +1786,17 @@ const handleConfirmApproval = async () => {
         </Box>
         <Box sx={{ 
           height: 'calc(90vh - 100px)', 
-          bgcolor: '#f8f9fc',
+          bgcolor: darkMode ? '#1a1a1a' : '#f8f9fc',
           p: 2
         }}>
           <Box sx={{
             height: '100%',
             borderRadius: 2,
             overflow: 'hidden',
-            boxShadow: `0 4px 20px ${alpha(ACCENTURE_COLORS.black, 0.1)}`,
-            bgcolor: ACCENTURE_COLORS.white
+            boxShadow: darkMode
+              ? `0 4px 20px ${alpha(ACCENTURE_COLORS.black, 0.4)}`
+              : `0 4px 20px ${alpha(ACCENTURE_COLORS.black, 0.1)}`,
+            bgcolor: darkMode ? '#2a2a2a' : ACCENTURE_COLORS.white
           }}>
             <iframe
               src={previewFile}
@@ -1702,9 +1822,13 @@ const handleConfirmApproval = async () => {
             maxHeight: '90vh',
             borderRadius: 3,
             overflow: 'hidden',
-            background: alpha(ACCENTURE_COLORS.white, 0.98),
+            background: darkMode
+              ? alpha('#121212', 0.98)
+              : alpha(ACCENTURE_COLORS.white, 0.98),
             backdropFilter: 'blur(10px)',
-            boxShadow: `0 25px 50px -12px ${alpha(ACCENTURE_COLORS.black, 0.25)}`
+            boxShadow: darkMode
+              ? `0 25px 50px -12px ${alpha(ACCENTURE_COLORS.black, 0.5)}`
+              : `0 25px 50px -12px ${alpha(ACCENTURE_COLORS.black, 0.25)}`
           }
         }}
       >
@@ -1773,10 +1897,10 @@ const handleConfirmApproval = async () => {
           </Box>
         </Box>
         
-        <DialogContent sx={{ p: 3, bgcolor: '#f8f9fc' }}>
+        <DialogContent sx={{ p: 3, bgcolor: darkMode ? '#1a1a1a' : '#f8f9fc' }}>
           {selectedCertification && (
             <Fade in timeout={300}>
-              <GlassCard sx={{ mb: 3, p: 2.5 }}>
+              <GlassCard darkMode={darkMode} sx={{ mb: 3, p: 2.5 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2.5 }}>
                   <Avatar 
                     src={selectedCertification.userProfilePic} 
@@ -1793,7 +1917,7 @@ const handleConfirmApproval = async () => {
                     {getUserInitials(selectedCertification.userName)}
                   </Avatar>
                   <Box sx={{ flex: 1 }}>
-                    <Typography variant="h6" fontWeight={600} color={ACCENTURE_COLORS.black}>
+                    <Typography variant="h6" fontWeight={600} color={darkMode ? '#ffffff' : ACCENTURE_COLORS.black}>
                       {selectedCertification.userName}
                     </Typography>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
@@ -1809,14 +1933,14 @@ const handleConfirmApproval = async () => {
                     alignItems: 'center',
                     p: 2,
                     borderRadius: 2,
-                    bgcolor: alpha(ACCENTURE_COLORS.green, 0.05),
-                    border: `1px solid ${alpha(ACCENTURE_COLORS.green, 0.2)}`
+                    bgcolor: alpha(ACCENTURE_COLORS.green, darkMode ? 0.15 : 0.05),
+                    border: `1px solid ${alpha(ACCENTURE_COLORS.green, darkMode ? 0.4 : 0.2)}`
                   }}>
                     <EmojiEventsIcon sx={{ fontSize: 32, color: ACCENTURE_COLORS.green, mb: 0.5 }} />
                     <Typography variant="h6" fontWeight={700} color={ACCENTURE_COLORS.green}>
                       {selectedCertification.score}%
                     </Typography>
-                    <Typography variant="caption" color="text.secondary">
+                    <Typography variant="caption" color={darkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary'}>
                       Score
                     </Typography>
                   </Box>
@@ -1827,24 +1951,29 @@ const handleConfirmApproval = async () => {
           
           <Box
             sx={{
-              background: `linear-gradient(135deg, ${alpha(ACCENTURE_COLORS.corePurple1, 0.05)} 0%, ${alpha(ACCENTURE_COLORS.accentPurple2, 0.05)} 100%)`,
+              background: darkMode
+                ? `linear-gradient(135deg, ${alpha(ACCENTURE_COLORS.corePurple1, 0.15)} 0%, ${alpha(ACCENTURE_COLORS.accentPurple2, 0.15)} 100%)`
+                : `linear-gradient(135deg, ${alpha(ACCENTURE_COLORS.corePurple1, 0.05)} 0%, ${alpha(ACCENTURE_COLORS.accentPurple2, 0.05)} 100%)`,
               borderRadius: 2,
               p: 2.5,
               mb: 3,
-              border: `1px solid ${alpha(ACCENTURE_COLORS.corePurple1, 0.1)}`,
+              border: darkMode
+                ? `1px solid ${alpha(ACCENTURE_COLORS.corePurple1, 0.3)}`
+                : `1px solid ${alpha(ACCENTURE_COLORS.corePurple1, 0.1)}`,
               display: 'flex',
               alignItems: 'center',
               gap: 2
             }}
           >
             <InfoIcon sx={{ fontSize: 20, color: ACCENTURE_COLORS.corePurple2, flexShrink: 0 }} />
-            <Typography variant="body2" color="text.secondary" lineHeight={1.6}>
+            <Typography variant="body2" color={darkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary'} lineHeight={1.6}>
               Select the skills to update based on this certification. The system will automatically 
               add new skills or update existing ones with improved proficiency levels.
             </Typography>
           </Box>
           
           <GlassCard
+            darkMode={darkMode}
             sx={{ 
               mb: 3,
               maxHeight: '45vh',
@@ -1859,14 +1988,20 @@ const handleConfirmApproval = async () => {
                 width: 8,
               },
               '&::-webkit-scrollbar-track': {
-                bgcolor: alpha(ACCENTURE_COLORS.lightGray, 0.3),
+                bgcolor: darkMode
+                  ? alpha(ACCENTURE_COLORS.white, 0.05)
+                  : alpha(ACCENTURE_COLORS.lightGray, 0.3),
                 borderRadius: 4,
               },
               '&::-webkit-scrollbar-thumb': {
-                bgcolor: alpha(ACCENTURE_COLORS.corePurple1, 0.3),
+                bgcolor: darkMode
+                  ? alpha(ACCENTURE_COLORS.corePurple1, 0.5)
+                  : alpha(ACCENTURE_COLORS.corePurple1, 0.3),
                 borderRadius: 4,
                 '&:hover': {
-                  bgcolor: alpha(ACCENTURE_COLORS.corePurple1, 0.5),
+                  bgcolor: darkMode
+                    ? alpha(ACCENTURE_COLORS.corePurple1, 0.7)
+                    : alpha(ACCENTURE_COLORS.corePurple1, 0.5),
                 }
               }
             }}>
@@ -1878,10 +2013,14 @@ const handleConfirmApproval = async () => {
                         fontWeight: 600,
                         fontSize: '0.875rem', 
                         width: '20%',
-                        background: `linear-gradient(180deg, ${alpha(ACCENTURE_COLORS.white, 0.9)} 0%, ${alpha(ACCENTURE_COLORS.accentPurple5, 0.5)} 100%)`,
+                        background: darkMode
+                          ? `linear-gradient(180deg, ${alpha('#2a2a2a', 0.9)} 0%, ${alpha(ACCENTURE_COLORS.black, 0.5)} 100%)`
+                          : `linear-gradient(180deg, ${alpha(ACCENTURE_COLORS.white, 0.9)} 0%, ${alpha(ACCENTURE_COLORS.accentPurple5, 0.5)} 100%)`,
                         backdropFilter: 'blur(10px)',
-                        color: ACCENTURE_COLORS.black,
-                        borderBottom: `2px solid ${alpha(ACCENTURE_COLORS.corePurple1, 0.1)}`
+                        color: darkMode ? '#ffffff' : ACCENTURE_COLORS.black,
+                        borderBottom: darkMode
+                          ? `2px solid ${alpha(ACCENTURE_COLORS.white, 0.12)}`
+                          : `2px solid ${alpha(ACCENTURE_COLORS.corePurple1, 0.1)}`
                       }}
                     >
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -1894,10 +2033,14 @@ const handleConfirmApproval = async () => {
                         fontWeight: 600, 
                         fontSize: '0.875rem',
                         width: '12%',
-                        background: `linear-gradient(180deg, ${alpha(ACCENTURE_COLORS.white, 0.9)} 0%, ${alpha(ACCENTURE_COLORS.accentPurple5, 0.5)} 100%)`,
+                        background: darkMode
+                          ? `linear-gradient(180deg, ${alpha('#2a2a2a', 0.9)} 0%, ${alpha(ACCENTURE_COLORS.black, 0.5)} 100%)`
+                          : `linear-gradient(180deg, ${alpha(ACCENTURE_COLORS.white, 0.9)} 0%, ${alpha(ACCENTURE_COLORS.accentPurple5, 0.5)} 100%)`,
                         backdropFilter: 'blur(10px)',
-                        color: ACCENTURE_COLORS.black,
-                        borderBottom: `2px solid ${alpha(ACCENTURE_COLORS.corePurple1, 0.1)}`
+                        color: darkMode ? '#ffffff' : ACCENTURE_COLORS.black,
+                        borderBottom: darkMode
+                          ? `2px solid ${alpha(ACCENTURE_COLORS.white, 0.12)}`
+                          : `2px solid ${alpha(ACCENTURE_COLORS.corePurple1, 0.1)}`
                       }}
                     >
                       Type
@@ -1907,10 +2050,14 @@ const handleConfirmApproval = async () => {
                         fontWeight: 600, 
                         fontSize: '0.875rem',
                         width: '25%',
-                        background: `linear-gradient(180deg, ${alpha(ACCENTURE_COLORS.white, 0.9)} 0%, ${alpha(ACCENTURE_COLORS.accentPurple5, 0.5)} 100%)`,
+                        background: darkMode
+                          ? `linear-gradient(180deg, ${alpha('#2a2a2a', 0.9)} 0%, ${alpha(ACCENTURE_COLORS.black, 0.5)} 100%)`
+                          : `linear-gradient(180deg, ${alpha(ACCENTURE_COLORS.white, 0.9)} 0%, ${alpha(ACCENTURE_COLORS.accentPurple5, 0.5)} 100%)`,
                         backdropFilter: 'blur(10px)',
-                        color: ACCENTURE_COLORS.black,
-                        borderBottom: `2px solid ${alpha(ACCENTURE_COLORS.corePurple1, 0.1)}`
+                        color: darkMode ? '#ffffff' : ACCENTURE_COLORS.black,
+                        borderBottom: darkMode
+                          ? `2px solid ${alpha(ACCENTURE_COLORS.white, 0.12)}`
+                          : `2px solid ${alpha(ACCENTURE_COLORS.corePurple1, 0.1)}`
                       }}
                     >
                       Description
@@ -1921,10 +2068,14 @@ const handleConfirmApproval = async () => {
                         fontSize: '0.875rem',
                         width: '8%', 
                         textAlign: 'center',
-                        background: `linear-gradient(180deg, ${alpha(ACCENTURE_COLORS.white, 0.9)} 0%, ${alpha(ACCENTURE_COLORS.accentPurple5, 0.5)} 100%)`,
+                        background: darkMode
+                          ? `linear-gradient(180deg, ${alpha('#2a2a2a', 0.9)} 0%, ${alpha(ACCENTURE_COLORS.black, 0.5)} 100%)`
+                          : `linear-gradient(180deg, ${alpha(ACCENTURE_COLORS.white, 0.9)} 0%, ${alpha(ACCENTURE_COLORS.accentPurple5, 0.5)} 100%)`,
                         backdropFilter: 'blur(10px)',
-                        color: ACCENTURE_COLORS.black,
-                        borderBottom: `2px solid ${alpha(ACCENTURE_COLORS.corePurple1, 0.1)}`
+                        color: darkMode ? '#ffffff' : ACCENTURE_COLORS.black,
+                        borderBottom: darkMode
+                          ? `2px solid ${alpha(ACCENTURE_COLORS.white, 0.12)}`
+                          : `2px solid ${alpha(ACCENTURE_COLORS.corePurple1, 0.1)}`
                       }}
                     >
                       Select
@@ -1934,10 +2085,14 @@ const handleConfirmApproval = async () => {
                         fontWeight: 600, 
                         fontSize: '0.875rem',
                         width: '15%',
-                        background: `linear-gradient(180deg, ${alpha(ACCENTURE_COLORS.white, 0.9)} 0%, ${alpha(ACCENTURE_COLORS.accentPurple5, 0.5)} 100%)`,
+                        background: darkMode
+                          ? `linear-gradient(180deg, ${alpha('#2a2a2a', 0.9)} 0%, ${alpha(ACCENTURE_COLORS.black, 0.5)} 100%)`
+                          : `linear-gradient(180deg, ${alpha(ACCENTURE_COLORS.white, 0.9)} 0%, ${alpha(ACCENTURE_COLORS.accentPurple5, 0.5)} 100%)`,
                         backdropFilter: 'blur(10px)',
-                        color: ACCENTURE_COLORS.black,
-                        borderBottom: `2px solid ${alpha(ACCENTURE_COLORS.corePurple1, 0.1)}`
+                        color: darkMode ? '#ffffff' : ACCENTURE_COLORS.black,
+                        borderBottom: darkMode
+                          ? `2px solid ${alpha(ACCENTURE_COLORS.white, 0.12)}`
+                          : `2px solid ${alpha(ACCENTURE_COLORS.corePurple1, 0.1)}`
                       }}
                     >
                       Proficiency
@@ -1947,10 +2102,14 @@ const handleConfirmApproval = async () => {
                         fontWeight: 600, 
                         fontSize: '0.875rem',
                         width: '10%',
-                        background: `linear-gradient(180deg, ${alpha(ACCENTURE_COLORS.white, 0.9)} 0%, ${alpha(ACCENTURE_COLORS.accentPurple5, 0.5)} 100%)`,
+                        background: darkMode
+                          ? `linear-gradient(180deg, ${alpha('#2a2a2a', 0.9)} 0%, ${alpha(ACCENTURE_COLORS.black, 0.5)} 100%)`
+                          : `linear-gradient(180deg, ${alpha(ACCENTURE_COLORS.white, 0.9)} 0%, ${alpha(ACCENTURE_COLORS.accentPurple5, 0.5)} 100%)`,
                         backdropFilter: 'blur(10px)',
-                        color: ACCENTURE_COLORS.black,
-                        borderBottom: `2px solid ${alpha(ACCENTURE_COLORS.corePurple1, 0.1)}`
+                        color: darkMode ? '#ffffff' : ACCENTURE_COLORS.black,
+                        borderBottom: darkMode
+                          ? `2px solid ${alpha(ACCENTURE_COLORS.white, 0.12)}`
+                          : `2px solid ${alpha(ACCENTURE_COLORS.corePurple1, 0.1)}`
                       }}
                     >
                       Years
@@ -1960,10 +2119,14 @@ const handleConfirmApproval = async () => {
                         fontWeight: 600, 
                         fontSize: '0.875rem',
                         width: '10%',
-                        background: `linear-gradient(180deg, ${alpha(ACCENTURE_COLORS.white, 0.9)} 0%, ${alpha(ACCENTURE_COLORS.accentPurple5, 0.5)} 100%)`,
+                        background: darkMode
+                          ? `linear-gradient(180deg, ${alpha('#2a2a2a', 0.9)} 0%, ${alpha(ACCENTURE_COLORS.black, 0.5)} 100%)`
+                          : `linear-gradient(180deg, ${alpha(ACCENTURE_COLORS.white, 0.9)} 0%, ${alpha(ACCENTURE_COLORS.accentPurple5, 0.5)} 100%)`,
                         backdropFilter: 'blur(10px)',
-                        color: ACCENTURE_COLORS.black,
-                        borderBottom: `2px solid ${alpha(ACCENTURE_COLORS.corePurple1, 0.1)}`
+                        color: darkMode ? '#ffffff' : ACCENTURE_COLORS.black,
+                        borderBottom: darkMode
+                          ? `2px solid ${alpha(ACCENTURE_COLORS.white, 0.12)}`
+                          : `2px solid ${alpha(ACCENTURE_COLORS.corePurple1, 0.1)}`
                       }}
                     >
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -1981,12 +2144,16 @@ const handleConfirmApproval = async () => {
                         <Zoom in key={skill.skill_ID} timeout={200 + index * 50}>
                           <TableRow sx={{
                             position: 'relative',
-                            bgcolor: isSelected ? alpha(ACCENTURE_COLORS.corePurple1, 0.05) : 'transparent',
+                            bgcolor: isSelected 
+                              ? alpha(ACCENTURE_COLORS.corePurple1, darkMode ? 0.15 : 0.05) 
+                              : 'transparent',
                             transition: 'all 0.3s ease',
                             '&:hover': { 
                               bgcolor: isSelected 
-                                ? alpha(ACCENTURE_COLORS.corePurple1, 0.08) 
-                                : alpha(ACCENTURE_COLORS.lightGray, 0.3),
+                                ? alpha(ACCENTURE_COLORS.corePurple1, darkMode ? 0.2 : 0.08) 
+                                : darkMode
+                                  ? alpha(ACCENTURE_COLORS.white, 0.05)
+                                  : alpha(ACCENTURE_COLORS.lightGray, 0.3),
                               transform: 'translateX(4px)'
                             },
                             '&::before': {
@@ -2013,7 +2180,9 @@ const handleConfirmApproval = async () => {
                                   variant="body2" 
                                   fontWeight={isSelected ? 600 : 400}
                                   sx={{ 
-                                    color: isSelected ? ACCENTURE_COLORS.corePurple2 : ACCENTURE_COLORS.black,
+                                    color: isSelected 
+                                      ? ACCENTURE_COLORS.corePurple2 
+                                      : darkMode ? '#ffffff' : ACCENTURE_COLORS.black,
                                     transition: 'all 0.3s ease'
                                   }}
                                 >
@@ -2023,6 +2192,7 @@ const handleConfirmApproval = async () => {
                             </TableCell>
                             <TableCell>
                               <AnimatedChip
+                                darkMode={darkMode}
                                 label={skill.type}
                                 size="small"
                                 icon={skill.type === 'Soft Skill' ? <PsychologyIcon /> : <SchoolIcon />}
@@ -2032,8 +2202,8 @@ const handleConfirmApproval = async () => {
                                   fontSize: '0.75rem',
                                   fontWeight: 500,
                                   bgcolor: skill.type === 'Soft Skill' 
-                                    ? alpha(ACCENTURE_COLORS.blue, 0.1) 
-                                    : alpha(ACCENTURE_COLORS.corePurple1, 0.1),
+                                    ? alpha(ACCENTURE_COLORS.blue, darkMode ? 0.2 : 0.1) 
+                                    : alpha(ACCENTURE_COLORS.corePurple1, darkMode ? 0.2 : 0.1),
                                   color: skill.type === 'Soft Skill' 
                                     ? ACCENTURE_COLORS.blue 
                                     : ACCENTURE_COLORS.corePurple2,
@@ -2054,7 +2224,9 @@ const handleConfirmApproval = async () => {
                                     whiteSpace: 'nowrap',
                                     maxWidth: 300,
                                     fontSize: '0.875rem',
-                                    color: alpha(ACCENTURE_COLORS.darkGray, 0.8),
+                                    color: darkMode 
+                                      ? 'rgba(255, 255, 255, 0.7)' 
+                                      : alpha(ACCENTURE_COLORS.darkGray, 0.8),
                                     lineHeight: 1.5
                                   }}
                                 >
@@ -2090,9 +2262,13 @@ const handleConfirmApproval = async () => {
                                         height: 36,
                                         fontSize: '0.875rem',
                                         borderRadius: 2,
-                                        bgcolor: alpha(getProficiencyColor(proficiencyLevels[skill.skill_ID] || "Basic"), 0.08),
+                                        bgcolor: darkMode
+                                          ? alpha(getProficiencyColor(proficiencyLevels[skill.skill_ID] || "Basic"), 0.2)
+                                          : alpha(getProficiencyColor(proficiencyLevels[skill.skill_ID] || "Basic"), 0.08),
                                         '& .MuiOutlinedInput-notchedOutline': {
-                                          borderColor: alpha(getProficiencyColor(proficiencyLevels[skill.skill_ID] || "Basic"), 0.3),
+                                          borderColor: darkMode
+                                            ? alpha(getProficiencyColor(proficiencyLevels[skill.skill_ID] || "Basic"), 0.5)
+                                            : alpha(getProficiencyColor(proficiencyLevels[skill.skill_ID] || "Basic"), 0.3),
                                           borderWidth: 1.5
                                         },
                                         '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
@@ -2108,7 +2284,8 @@ const handleConfirmApproval = async () => {
                                           py: 0.75,
                                           display: 'flex',
                                           alignItems: 'center',
-                                          gap: 1
+                                          gap: 1,
+                                          color: darkMode ? '#ffffff' : undefined
                                         },
                                         transition: 'all 0.3s ease'
                                       }}
@@ -2153,20 +2330,25 @@ const handleConfirmApproval = async () => {
                                       sx: {
                                         height: 36,
                                         fontSize: '0.875rem',
-                                        fontWeight: 600
+                                        fontWeight: 600,
+                                        color: darkMode ? '#ffffff' : undefined
                                       }
                                     }}
                                     sx={{ 
                                       width: '80px',
                                       '& .MuiOutlinedInput-root': {
                                         borderRadius: 2,
-                                        bgcolor: alpha(ACCENTURE_COLORS.corePurple1, 0.05),
+                                        bgcolor: darkMode
+                                          ? alpha(ACCENTURE_COLORS.corePurple1, 0.15)
+                                          : alpha(ACCENTURE_COLORS.corePurple1, 0.05),
                                         '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
                                           borderColor: ACCENTURE_COLORS.corePurple1,
                                           borderWidth: 2
                                         },
                                         '&:hover': {
-                                          bgcolor: alpha(ACCENTURE_COLORS.corePurple1, 0.08)
+                                          bgcolor: darkMode
+                                            ? alpha(ACCENTURE_COLORS.corePurple1, 0.2)
+                                            : alpha(ACCENTURE_COLORS.corePurple1, 0.08)
                                         },
                                         transition: 'all 0.3s ease'
                                       }
@@ -2204,7 +2386,7 @@ const handleConfirmApproval = async () => {
                     })
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={7} align="center">
+                      <TableCell colSpan={7} align="center" sx={{ borderBottom: darkMode ? 'none' : undefined }}>
                         <Box sx={{ py: 6, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
                           <Box sx={{
                             width: 80,
@@ -2235,7 +2417,7 @@ const handleConfirmApproval = async () => {
                           <Typography variant="h6" color={ACCENTURE_COLORS.corePurple2} fontWeight={600}>
                             No skills available
                           </Typography>
-                          <Typography variant="body2" color="text.secondary" textAlign="center" maxWidth={300}>
+                          <Typography variant="body2" color={darkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary'} textAlign="center" maxWidth={300}>
                             This certification does not have any associated skills to update.
                           </Typography>
                         </Box>
@@ -2255,11 +2437,15 @@ const handleConfirmApproval = async () => {
                   mb: 2,
                   p: 2,
                   borderRadius: 2,
-                  background: `linear-gradient(135deg, ${alpha(ACCENTURE_COLORS.red, 0.05)} 0%, ${alpha(ACCENTURE_COLORS.orange, 0.05)} 100%)`,
+                  background: darkMode
+                    ? `linear-gradient(135deg, ${alpha(ACCENTURE_COLORS.red, 0.15)} 0%, ${alpha(ACCENTURE_COLORS.orange, 0.15)} 100%)`
+                    : `linear-gradient(135deg, ${alpha(ACCENTURE_COLORS.red, 0.05)} 0%, ${alpha(ACCENTURE_COLORS.orange, 0.05)} 100%)`,
                   display: 'flex',
                   alignItems: 'center',
                   gap: 2,
-                  border: `1px solid ${alpha(ACCENTURE_COLORS.red, 0.2)}`
+                  border: darkMode
+                    ? `1px solid ${alpha(ACCENTURE_COLORS.red, 0.3)}`
+                    : `1px solid ${alpha(ACCENTURE_COLORS.red, 0.2)}`
                 }}
               >
                 <Box sx={{
@@ -2284,22 +2470,35 @@ const handleConfirmApproval = async () => {
         <Box 
           sx={{ 
             p: 3,
-            background: `linear-gradient(180deg, transparent 0%, ${alpha(ACCENTURE_COLORS.green, 0.05)} 100%)`,
-            borderTop: `1px solid ${alpha(ACCENTURE_COLORS.green, 0.1)}`,
+            background: darkMode
+              ? `linear-gradient(180deg, transparent 0%, ${alpha(ACCENTURE_COLORS.green, 0.15)} 100%)`
+              : `linear-gradient(180deg, transparent 0%, ${alpha(ACCENTURE_COLORS.green, 0.05)} 100%)`,
+            borderTop: darkMode
+              ? `1px solid ${alpha(ACCENTURE_COLORS.green, 0.3)}`
+              : `1px solid ${alpha(ACCENTURE_COLORS.green, 0.1)}`,
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center'
           }}
         >
           <StyledButton 
+            darkMode={darkMode}
             variant="outlined"
             onClick={() => setSkillsDialogOpen(false)}
             sx={{
-              borderColor: alpha(ACCENTURE_COLORS.darkGray, 0.3),
-              color: ACCENTURE_COLORS.darkGray,
+              borderColor: darkMode
+                ? 'rgba(255, 255, 255, 0.23)'
+                : alpha(ACCENTURE_COLORS.darkGray, 0.3),
+              color: darkMode
+                ? 'rgba(255, 255, 255, 0.7)'
+                : ACCENTURE_COLORS.darkGray,
               '&:hover': {
-                borderColor: ACCENTURE_COLORS.darkGray,
-                bgcolor: alpha(ACCENTURE_COLORS.darkGray, 0.05)
+                borderColor: darkMode
+                  ? 'rgba(255, 255, 255, 0.4)'
+                  : ACCENTURE_COLORS.darkGray,
+                bgcolor: darkMode
+                  ? 'rgba(255, 255, 255, 0.05)'
+                  : alpha(ACCENTURE_COLORS.darkGray, 0.05)
               }
             }}
           >
@@ -2307,6 +2506,7 @@ const handleConfirmApproval = async () => {
           </StyledButton>
           
           <StyledButton 
+            darkMode={darkMode}
             variant="contained"
             onClick={handleConfirmApproval}
             disabled={selectedSkills.length === 0 || loading}
@@ -2319,7 +2519,9 @@ const handleConfirmApproval = async () => {
               },
               '&:disabled': {
                 background: 'none',
-                bgcolor: alpha(ACCENTURE_COLORS.darkGray, 0.1)
+                bgcolor: darkMode
+                  ? alpha(ACCENTURE_COLORS.white, 0.1)
+                  : alpha(ACCENTURE_COLORS.darkGray, 0.1)
               }
             }}
           >
@@ -2340,9 +2542,13 @@ const handleConfirmApproval = async () => {
           sx: { 
             borderRadius: 3,
             overflow: 'hidden',
-            background: alpha(ACCENTURE_COLORS.white, 0.98),
+            background: darkMode
+              ? alpha('#121212', 0.98)
+              : alpha(ACCENTURE_COLORS.white, 0.98),
             backdropFilter: 'blur(10px)',
-            boxShadow: `0 25px 50px -12px ${alpha(ACCENTURE_COLORS.black, 0.25)}`
+            boxShadow: darkMode
+              ? `0 25px 50px -12px ${alpha(ACCENTURE_COLORS.black, 0.5)}`
+              : `0 25px 50px -12px ${alpha(ACCENTURE_COLORS.black, 0.25)}`
           }
         }}
       >
@@ -2411,10 +2617,10 @@ const handleConfirmApproval = async () => {
           </Box>
         </Box>
         
-        <DialogContent sx={{ p: 3, bgcolor: '#f8f9fc' }}>
+        <DialogContent sx={{ p: 3, bgcolor: darkMode ? '#1a1a1a' : '#f8f9fc' }}>
           {selectedCertification && (
             <Fade in timeout={300}>
-              <GlassCard sx={{ mb: 3, p: 2 }}>
+              <GlassCard darkMode={darkMode} sx={{ mb: 3, p: 2 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                   <Avatar 
                     src={selectedCertification.userProfilePic} 
@@ -2448,14 +2654,18 @@ const handleConfirmApproval = async () => {
           
           <Box
             sx={{
-              background: `linear-gradient(135deg, ${alpha(ACCENTURE_COLORS.red, 0.05)} 0%, ${alpha(ACCENTURE_COLORS.orange, 0.05)} 100%)`,
+              background: darkMode
+                ? `linear-gradient(135deg, ${alpha(ACCENTURE_COLORS.red, 0.15)} 0%, ${alpha(ACCENTURE_COLORS.orange, 0.15)} 100%)`
+                : `linear-gradient(135deg, ${alpha(ACCENTURE_COLORS.red, 0.05)} 0%, ${alpha(ACCENTURE_COLORS.orange, 0.05)} 100%)`,
               borderRadius: 2,
               p: 2.5,
               mb: 3,
               display: 'flex',
               alignItems: 'flex-start',
               gap: 2,
-              border: `1px solid ${alpha(ACCENTURE_COLORS.red, 0.1)}`
+              border: darkMode
+                ? `1px solid ${alpha(ACCENTURE_COLORS.red, 0.3)}`
+                : `1px solid ${alpha(ACCENTURE_COLORS.red, 0.1)}`
             }}
           >
             <WarningIcon sx={{ fontSize: 20, color: ACCENTURE_COLORS.red, flexShrink: 0, mt: 0.25 }} />
@@ -2523,11 +2733,16 @@ const handleConfirmApproval = async () => {
           }}
         >
           <StyledButton 
+            darkMode={darkMode}
             variant="outlined"
             onClick={() => setRejectDialogOpen(false)}
             sx={{
-              borderColor: alpha(ACCENTURE_COLORS.darkGray, 0.3),
-              color: ACCENTURE_COLORS.darkGray,
+              borderColor: darkMode
+                ? 'rgba(255, 255, 255, 0.23)'
+                : alpha(ACCENTURE_COLORS.darkGray, 0.3),
+              color: darkMode
+                ? 'rgba(255, 255, 255, 0.7)'
+                : ACCENTURE_COLORS.darkGray,
               '&:hover': {
                 borderColor: ACCENTURE_COLORS.darkGray,
                 bgcolor: alpha(ACCENTURE_COLORS.darkGray, 0.05)

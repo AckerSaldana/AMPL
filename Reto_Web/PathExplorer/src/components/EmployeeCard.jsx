@@ -23,7 +23,7 @@ import UserProfileModal from "./UserProfileModal";
  * @param {function} props.onViewDetails - Function for viewing employee details
  * @param {boolean} props.useModal - Whether to use a modal for viewing details
  */
-const EmployeeCard = ({ employee, onViewDetails, useModal = false }) => {
+const EmployeeCard = ({ employee, onViewDetails, useModal = false, darkMode = false }) => {
   const theme = useTheme();
   // Media queries más específicas para controlar cuándo cambiar el layout
   const isSmallScreen = useMediaQuery('(max-width:599px)');
@@ -78,14 +78,15 @@ const EmployeeCard = ({ employee, onViewDetails, useModal = false }) => {
           cursor: "pointer",
           transition: "all 0.25s ease",
           transform: isHovered ? "translateY(-4px)" : "translateY(0)",
-          boxShadow: isHovered ? "0 8px 24px rgba(0,0,0,0.08)" : "0 1px 4px rgba(0,0,0,0.04)",
+          boxShadow: isHovered ? (darkMode ? "0 8px 24px rgba(255,255,255,0.08)" : "0 8px 24px rgba(0,0,0,0.08)") : (darkMode ? "0 1px 4px rgba(255,255,255,0.04)" : "0 1px 4px rgba(0,0,0,0.04)"),
           overflow: "hidden",
           border: "1px solid",
-          borderColor: isHovered ? "#9c27b0" : "rgba(0,0,0,0.04)",
+          borderColor: isHovered ? "#9c27b0" : (darkMode ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.04)"),
           "&:hover": {
             borderColor: "#9c27b0",
           },
           p: isSmallScreen ? 2 : 3,
+          backgroundColor: darkMode ? '#2e2e2e' : '#ffffff',
           // Asegurar que tenga un ancho mínimo para prevenir compresión
           minWidth: isSmallScreen ? "100%" : 240
         }}
@@ -156,7 +157,7 @@ const EmployeeCard = ({ employee, onViewDetails, useModal = false }) => {
                   sx={{ 
                     lineHeight: 1.2,
                     fontSize: isSmallScreen ? "0.875rem" : "0.95rem", // Nombre más pequeño
-                    color: "#212121",
+                    color: darkMode ? '#ffffff' : "#212121",
                     // Añadir ellipsis para nombres muy largos
                     overflow: "hidden",
                     textOverflow: "ellipsis",
@@ -265,8 +266,8 @@ const EmployeeCard = ({ employee, onViewDetails, useModal = false }) => {
                 height: 22, // Altura más pequeña
                 fontSize: "0.7rem", // Texto más pequeño
                 borderRadius: "12px",
-                backgroundColor: "rgba(0,0,0,0.04)",
-                color: "rgba(0,0,0,0.7)",
+                backgroundColor: darkMode ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.04)",
+                color: darkMode ? "rgba(255,255,255,0.9)" : "rgba(0,0,0,0.7)",
                 fontWeight: 500,
                 '&:hover': {
                   backgroundColor: "rgba(0,0,0,0.08)",
@@ -291,9 +292,9 @@ const EmployeeCard = ({ employee, onViewDetails, useModal = false }) => {
                 height: 22, // Altura más pequeña
                 fontSize: "0.7rem", // Texto más pequeño
                 borderRadius: "12px",
-                backgroundColor: "rgba(0,0,0,0.02)",
-                color: "rgba(0,0,0,0.5)",
-                border: "1px dashed rgba(0,0,0,0.1)",
+                backgroundColor: darkMode ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.02)",
+                color: darkMode ? "rgba(255,255,255,0.7)" : "rgba(0,0,0,0.5)",
+                border: darkMode ? "1px dashed rgba(255,255,255,0.2)" : "1px dashed rgba(0,0,0,0.1)",
                 '&:hover': {
                   backgroundColor: "rgba(0,0,0,0.06)",
                 },
@@ -308,7 +309,7 @@ const EmployeeCard = ({ employee, onViewDetails, useModal = false }) => {
         {/* Availability information */}
         <Typography 
           sx={{ 
-            color: "text.secondary",
+            color: darkMode ? 'rgba(255,255,255,0.7)' : "text.secondary",
             fontStyle: "italic",
             fontSize: "0.75rem", // Texto más pequeño
             mt: "auto",

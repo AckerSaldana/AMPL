@@ -26,6 +26,7 @@ import DescriptionIcon from "@mui/icons-material/Description";
 import TuneIcon from "@mui/icons-material/Tune";
 import { supabase } from "../supabase/supabaseClient.js";
 import { ACCENTURE_COLORS } from "../styles/styles.js";
+import { useDarkMode } from "../contexts/DarkModeContext";
 
 import pdfMake from "pdfmake/build/pdfmake";
 import pdfFonts from "pdfmake/build/vfs_fonts";
@@ -62,6 +63,7 @@ Chart.register(
 
 const ReportsSection = () => {
   const theme = useTheme();
+  const { darkMode } = useDarkMode();
   const [projects, setProjects] = useState([]);
   const [filteredProjects, setFilteredProjects] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -161,18 +163,18 @@ const ReportsSection = () => {
   }, [searchTerm, statusFilter, projects, clients]);
 
   const generateProjectReport = async (project) => {
-  // Define Accenture color scheme
+  // Define Accenture color scheme with dark mode support
   const colors = {
     primary: "#a100ff",       // Core Purple 1
     secondary: "#7500c0",     // Core Purple 2 
     tertiary: "#460073",      // Core Purple 3
     accent1: "#b455aa",       // Accent Purple 1
     accent2: "#a055f5",       // Accent Purple 2
-    light: "#ffffff",         // White
-    text: "#000000",          // Black
-    lightText: "#75757a",     // Dark Gray
-    border: "#e6e6dc",        // Light Gray
-    gradientLight: "#f5f0ff", // Light Purple background
+    light: darkMode ? "#1e1e1e" : "#ffffff",         // Background
+    text: darkMode ? "#ffffff" : "#000000",          // Text
+    lightText: darkMode ? "rgba(255,255,255,0.7)" : "#75757a",     // Secondary text
+    border: darkMode ? "rgba(255,255,255,0.12)" : "#e6e6dc",        // Borders
+    gradientLight: darkMode ? "rgba(161,0,255,0.1)" : "#f5f0ff", // Light background
     success: "#2ecc71"        // Success Green
   };
   
@@ -206,6 +208,12 @@ const ReportsSection = () => {
   tempCanvas.width = 600;
   tempCanvas.height = 400;
   const ctx = tempCanvas.getContext("2d");
+  
+  // Set canvas background for dark mode
+  if (darkMode) {
+    ctx.fillStyle = '#1e1e1e';
+    ctx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+  }
 
   // Get all skills from team members
   const allSkills = project.team_members.flatMap((member) => {
@@ -281,7 +289,9 @@ const ReportsSection = () => {
             backgroundColor: colors.primary,
             borderRadius: 6,
             barThickness: 20,
-            maxBarThickness: 25
+            maxBarThickness: 25,
+            borderColor: darkMode ? 'rgba(255, 255, 255, 0.1)' : 'transparent',
+            borderWidth: darkMode ? 1 : 0
           },
           {
             label: "Average Proficiency (%)",
@@ -311,16 +321,18 @@ const ReportsSection = () => {
               text: "Team Members",
               font: {
                 size: 12,
+                color: darkMode ? 'rgba(255, 255, 255, 0.9)' : '#000',
               },
               padding: {bottom: 10}
             },
             grid: {
-              color: 'rgba(0, 0, 0, 0.06)',
+              color: darkMode ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)',
             },
             ticks: {
               padding: 10,
               font: {
                 size: 11,
+                color: darkMode ? 'rgba(255, 255, 255, 0.7)' : '#000',
               }
             }
           },
@@ -333,6 +345,7 @@ const ReportsSection = () => {
               text: "Proficiency %",
               font: {
                 size: 12,
+                color: darkMode ? 'rgba(255, 255, 255, 0.9)' : '#000',
               },
               padding: {bottom: 10}
             },
@@ -344,6 +357,7 @@ const ReportsSection = () => {
               },
               font: {
                 size: 11,
+                color: darkMode ? 'rgba(255, 255, 255, 0.7)' : '#000',
               }
             }
           },
@@ -357,6 +371,7 @@ const ReportsSection = () => {
               minRotation: 45,
               font: {
                 size: 10,
+                color: darkMode ? 'rgba(255, 255, 255, 0.7)' : '#000',
               }
             }
           }
@@ -372,6 +387,7 @@ const ReportsSection = () => {
               padding: 15,
               font: {
                 size: 11,
+                color: darkMode ? 'rgba(255, 255, 255, 0.7)' : '#000',
               },
             },
           },
@@ -386,7 +402,14 @@ const ReportsSection = () => {
               top: 10,
               bottom: 20
             },
-            color: colors.tertiary
+            color: darkMode ? 'rgba(255, 255, 255, 0.9)' : colors.tertiary
+          },
+          tooltip: {
+            backgroundColor: darkMode ? 'rgba(30, 30, 30, 0.95)' : 'rgba(255, 255, 255, 0.95)',
+            titleColor: darkMode ? '#fff' : '#000',
+            bodyColor: darkMode ? 'rgba(255, 255, 255, 0.8)' : '#000',
+            borderColor: darkMode ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.1)',
+            borderWidth: 1,
           },
         },
       },
@@ -394,7 +417,7 @@ const ReportsSection = () => {
   } catch (error) {
     console.error("Error creating chart:", error);
     // Create a placeholder if chart creation fails
-    ctx.fillStyle = colors.gradientLight;
+    ctx.fillStyle = darkMode ? '#2e2e2e' : colors.gradientLight;
     ctx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
     ctx.fillStyle = colors.primary;
     ctx.font = "bold 18px sans-serif";
@@ -470,7 +493,7 @@ const ReportsSection = () => {
   
   // Create progress bar SVG
   const progressBarSvg = `<svg width="200" height="15" viewBox="0 0 200 15">
-    <rect width="200" height="8" rx="4" ry="4" fill="#f0f0f0" />
+    <rect width="200" height="8" rx="4" ry="4" fill="${darkMode ? '#333' : '#f0f0f0'}" />
     <rect width="${progress.percent * 2}" height="8" rx="4" ry="4" fill="${progress.percent === 100 ? colors.success : colors.primary}" />
   </svg>`;
   
@@ -505,7 +528,15 @@ const ReportsSection = () => {
               w: 12,
               h: 792,
               color: colors.primary
-            }
+            },
+            // Add subtle background for dark mode
+            ...(darkMode ? [{
+              type: 'rect',
+              x: 12, y: 0,
+              w: 583,
+              h: 792,
+              color: '#1a1a1a'
+            }] : [])
           ]
         }
       ];
@@ -701,7 +732,9 @@ const ReportsSection = () => {
           vLineWidth: function() { return 0; },
           hLineColor: function(i) { return i === 0 || i === 1 ? colors.primary : colors.border; },
           fillColor: function(rowIndex, node, columnIndex) {
-            return (rowIndex === 0) ? colors.primary : (rowIndex % 2 === 0) ? colors.gradientLight : null;
+            if (rowIndex === 0) return colors.primary;
+            if (darkMode) return (rowIndex % 2 === 0) ? 'rgba(255, 255, 255, 0.02)' : null;
+            return (rowIndex % 2 === 0) ? colors.gradientLight : null;
           },
           paddingTop: function() { return 8; },
           paddingBottom: function() { return 8; }
@@ -820,6 +853,7 @@ const ReportsSection = () => {
                   vLineWidth: function() { return 0; },
                   hLineColor: function() { return colors.border; },
                   fillColor: function(rowIndex) {
+                    if (darkMode) return rowIndex % 2 === 0 ? 'rgba(255, 255, 255, 0.02)' : null;
                     return rowIndex % 2 === 0 ? colors.gradientLight : null;
                   },
                   paddingTop: function() { return 6; },
@@ -884,7 +918,7 @@ const ReportsSection = () => {
       tableHeader: { 
         bold: true, 
         fontSize: 11,
-        color: 'white',
+        color: darkMode ? 'white' : 'white',
         alignment: 'center',
         fillColor: colors.primary
       },
@@ -1004,12 +1038,12 @@ const ReportsSection = () => {
           mt: 4,
           mb: 4,
           borderRadius: 3,
-          background: '#fff',
-          border: `1px solid ${alpha(ACCENTURE_COLORS.corePurple1, 0.08)}`,
+          background: theme.palette.background.paper,
+          border: `1px solid ${alpha(ACCENTURE_COLORS.corePurple1, darkMode ? 0.2 : 0.08)}`,
           overflow: "hidden",
           transition: "all 0.3s ease",
           "&:hover": {
-            boxShadow: `0 8px 24px ${alpha(ACCENTURE_COLORS.corePurple1, 0.08)}`,
+            boxShadow: `0 8px 24px ${alpha(ACCENTURE_COLORS.corePurple1, darkMode ? 0.3 : 0.08)}`,
           }
         }}
       >
@@ -1021,8 +1055,10 @@ const ReportsSection = () => {
               alignItems: "center",
               justifyContent: "space-between",
               p: { xs: 2.5, md: 3 },
-              borderBottom: `1px solid ${alpha(ACCENTURE_COLORS.corePurple1, 0.05)}`,
-              background: `linear-gradient(135deg, ${alpha(ACCENTURE_COLORS.corePurple1, 0.02)}, transparent)`,
+              borderBottom: `1px solid ${alpha(ACCENTURE_COLORS.corePurple1, darkMode ? 0.1 : 0.05)}`,
+              background: darkMode 
+                ? `linear-gradient(135deg, ${alpha(ACCENTURE_COLORS.corePurple1, 0.05)}, transparent)`
+                : `linear-gradient(135deg, ${alpha(ACCENTURE_COLORS.corePurple1, 0.02)}, transparent)`,
             }}
           >
             <Box sx={{ display: "flex", alignItems: "center" }}>
@@ -1044,14 +1080,16 @@ const ReportsSection = () => {
                 Project Reports
               </Typography>
             </Box>
-            <TuneIcon sx={{ color: alpha(ACCENTURE_COLORS.corePurple1, 0.6), fontSize: 24 }} />
+            <TuneIcon sx={{ color: alpha(ACCENTURE_COLORS.corePurple1, darkMode ? 0.8 : 0.6), fontSize: 24 }} />
           </Box>
 
         {/* Search and filter controls - Redesigned for better aesthetics */}
         <Box sx={{ 
           p: { xs: 2.5, md: 3 },
-          borderBottom: `1px solid ${alpha(ACCENTURE_COLORS.corePurple1, 0.05)}`,
-          backgroundColor: alpha(ACCENTURE_COLORS.corePurple1, 0.01),
+          borderBottom: `1px solid ${alpha(ACCENTURE_COLORS.corePurple1, darkMode ? 0.1 : 0.05)}`,
+          backgroundColor: darkMode 
+            ? alpha(ACCENTURE_COLORS.corePurple1, 0.03)
+            : alpha(ACCENTURE_COLORS.corePurple1, 0.01),
         }}>
           <Grid container spacing={2}>
             <Grid item xs={12} sm={7}>
@@ -1085,16 +1123,16 @@ const ReportsSection = () => {
                   "& .MuiOutlinedInput-root": {
                     borderRadius: 1.5,
                     fontSize: "0.875rem",
-                    backgroundColor: "#ffffff",
+                    backgroundColor: theme.palette.background.paper,
                     transition: "box-shadow 0.2s",
-                    border: "1px solid rgba(0,0,0,0.03)",
+                    border: darkMode ? "1px solid rgba(255,255,255,0.05)" : "1px solid rgba(0,0,0,0.03)",
                     "&:hover": {
-                      boxShadow: "0 2px 4px rgba(0,0,0,0.04)",
+                      boxShadow: darkMode ? "0 2px 4px rgba(255,255,255,0.04)" : "0 2px 4px rgba(0,0,0,0.04)",
                     },
                     "&.Mui-focused": {
-                      boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+                      boxShadow: darkMode ? "0 2px 8px rgba(255,255,255,0.08)" : "0 2px 8px rgba(0,0,0,0.08)",
                       "& fieldset": {
-                        borderColor: `${ACCENTURE_COLORS.corePurple1}50`,
+                        borderColor: alpha(ACCENTURE_COLORS.corePurple1, 0.5),
                       },
                     },
                   },
@@ -1113,16 +1151,16 @@ const ReportsSection = () => {
                   "& .MuiOutlinedInput-root": {
                     borderRadius: 1.5,
                     fontSize: "0.875rem",
-                    backgroundColor: "#ffffff",
+                    backgroundColor: theme.palette.background.paper,
                     transition: "box-shadow 0.2s",
-                    border: "1px solid rgba(0,0,0,0.03)",
+                    border: darkMode ? "1px solid rgba(255,255,255,0.05)" : "1px solid rgba(0,0,0,0.03)",
                     "&:hover": {
-                      boxShadow: "0 2px 4px rgba(0,0,0,0.04)",
+                      boxShadow: darkMode ? "0 2px 4px rgba(255,255,255,0.04)" : "0 2px 4px rgba(0,0,0,0.04)",
                     },
                     "&.Mui-focused": {
-                      boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+                      boxShadow: darkMode ? "0 2px 8px rgba(255,255,255,0.08)" : "0 2px 8px rgba(0,0,0,0.08)",
                       "& fieldset": {
-                        borderColor: `${ACCENTURE_COLORS.corePurple1}50`,
+                        borderColor: alpha(ACCENTURE_COLORS.corePurple1, 0.5),
                       },
                     },
                   },
@@ -1179,7 +1217,7 @@ const ReportsSection = () => {
                       px: 3,
                       transition: "all 0.2s",
                       "&:hover": {
-                        backgroundColor: `${ACCENTURE_COLORS.corePurple1}05`,
+                        backgroundColor: alpha(ACCENTURE_COLORS.corePurple1, darkMode ? 0.15 : 0.05),
                       },
                     }}
                     secondaryAction={
@@ -1197,9 +1235,9 @@ const ReportsSection = () => {
                           py: 0.75,
                           transition: "all 0.2s",
                           "&:hover": {
-                            backgroundColor: `${ACCENTURE_COLORS.corePurple1}08`,
+                            backgroundColor: alpha(ACCENTURE_COLORS.corePurple1, darkMode ? 0.2 : 0.08),
                             borderColor: ACCENTURE_COLORS.corePurple1,
-                            boxShadow: `0 2px 6px ${ACCENTURE_COLORS.corePurple1}20`,
+                            boxShadow: `0 2px 6px ${alpha(ACCENTURE_COLORS.corePurple1, darkMode ? 0.4 : 0.2)}`,
                             transform: "translateY(-2px)",
                           },
                         }}
@@ -1229,7 +1267,7 @@ const ReportsSection = () => {
                               height: 22,
                               fontSize: "0.7rem",
                               fontWeight: 500,
-                              backgroundColor: `${getStatusColor(project.status)}15`,
+                              backgroundColor: alpha(getStatusColor(project.status), darkMode ? 0.25 : 0.15),
                               color: getStatusColor(project.status),
                               ml: 1,
                             }}
@@ -1297,7 +1335,7 @@ const ReportsSection = () => {
                       }
                     />
                   </ListItem>
-                  <Divider component="li" sx={{ borderColor: 'rgba(0,0,0,0.03)' }} />
+                  <Divider component="li" sx={{ borderColor: darkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.03)' }} />
                 </React.Fragment>
               ))}
             </List>

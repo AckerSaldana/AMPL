@@ -37,14 +37,14 @@ import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "../supabase/supabaseClient.js";
 import { 
   ACCENTURE_COLORS, 
-  cardStyles, 
   primaryButtonStyles, 
   outlineButtonStyles,
   textButtonStyles,
-  contentPaperStyles,
   statusChipStyles,
   sectionHeaderStyles
 } from "../styles/styles.js";
+import { useDarkMode } from "../contexts/DarkModeContext";
+import { getDarkModeStyles } from "../styles/darkModeStyles";
 
 // Project phases with their values and colors
 const phases = [
@@ -61,6 +61,7 @@ const ProjectDetail = () => {
   const { id } = useParams();
   const projectId = id;
   const theme = useTheme();
+  const { darkMode } = useDarkMode();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const isTablet = useMediaQuery(theme.breakpoints.down('md'));
 
@@ -963,8 +964,9 @@ const ProjectDetail = () => {
           borderRadius: 3,
           mb: 3,
           border: "1px solid",
-          borderColor: alpha("#000", 0.05),
-          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.03)'
+          borderColor: darkMode ? alpha("#fff", 0.1) : alpha("#000", 0.05),
+          boxShadow: darkMode ? '0 4px 20px rgba(0, 0, 0, 0.3)' : '0 4px 20px rgba(0, 0, 0, 0.03)',
+          bgcolor: theme.palette.background.paper
         }}
       >
         <Box sx={{ 
@@ -975,7 +977,7 @@ const ProjectDetail = () => {
           gap: 1
         }}>
           <InsightsIcon sx={{ color: ACCENTURE_COLORS.corePurple1, mr: 1.5 }} />
-          <Typography variant="h6" fontWeight={600} color={ACCENTURE_COLORS.corePurple3}>
+          <Typography variant="h6" fontWeight={600} sx={{ color: darkMode ? '#ffffff' : ACCENTURE_COLORS.corePurple3 }}>
             Progress Tracker
           </Typography>
           <Box sx={{ flex: 1 }} />
@@ -1214,7 +1216,7 @@ const ProjectDetail = () => {
               variant="h6" 
               fontWeight={600} 
               sx={{ 
-                color: activePhase?.color || ACCENTURE_COLORS.corePurple1,
+                color: darkMode ? '#ffffff' : (activePhase?.color || ACCENTURE_COLORS.corePurple1),
                 mb: 0.5
               }}
             >
@@ -1237,8 +1239,9 @@ const ProjectDetail = () => {
           p: { xs: 3, sm: 4 }, 
           borderRadius: 3,
           border: "1px solid",
-          borderColor: alpha("#000", 0.05),
-          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.03)'
+          borderColor: darkMode ? alpha("#fff", 0.1) : alpha("#000", 0.05),
+          boxShadow: darkMode ? '0 4px 20px rgba(0, 0, 0, 0.3)' : '0 4px 20px rgba(0, 0, 0, 0.03)',
+          bgcolor: theme.palette.background.paper
         }}
       >
         <Box sx={{ 
@@ -1249,7 +1252,7 @@ const ProjectDetail = () => {
         }}>
           <Box sx={{ display: "flex", alignItems: "center" }}>
             <PeopleIcon sx={{ color: ACCENTURE_COLORS.corePurple1, mr: 1.5 }} />
-            <Typography variant="h6" fontWeight={600} color={ACCENTURE_COLORS.corePurple3}>
+            <Typography variant="h6" fontWeight={600} sx={{ color: darkMode ? '#ffffff' : ACCENTURE_COLORS.corePurple3 }}>
               Team Members
             </Typography>
           </Box>
@@ -1283,13 +1286,14 @@ const ProjectDetail = () => {
                     p: 2,
                     borderRadius: 2,
                     border: "1px solid",
-                    borderColor: alpha(theme.palette.divider, 0.1),
-                    bgcolor: "white",
-                    boxShadow: "0 4px 10px rgba(0, 0, 0, 0.03)",
+                    borderColor: darkMode ? alpha(theme.palette.divider, 0.2) : alpha(theme.palette.divider, 0.1),
+                    bgcolor: darkMode ? alpha('#ffffff', 0.05) : "white",
+                    boxShadow: darkMode ? "0 4px 10px rgba(0, 0, 0, 0.3)" : "0 4px 10px rgba(0, 0, 0, 0.03)",
                     transition: "all 0.3s ease",
                     "&:hover": {
                       transform: "translateY(-1px)",
                       borderColor: alpha(ACCENTURE_COLORS.corePurple1, 0.3),
+                      bgcolor: darkMode ? alpha('#ffffff', 0.08) : "white",
                     },
                   }}
                 >
@@ -1312,7 +1316,7 @@ const ProjectDetail = () => {
                         whiteSpace: "nowrap", 
                         overflow: "hidden", 
                         textOverflow: "ellipsis",
-                        color: ACCENTURE_COLORS.corePurple3
+                        color: darkMode ? '#ffffff' : ACCENTURE_COLORS.corePurple3
                       }}
                     >
                       {teammate.name} {teammate.last_name}

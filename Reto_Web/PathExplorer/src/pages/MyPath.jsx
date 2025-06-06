@@ -13,6 +13,8 @@ import {
   Code,
   Timeline,
 } from "@mui/icons-material";
+import { useTheme } from "@mui/material/styles";
+import { useDarkMode } from "../contexts/DarkModeContext";
 
 // Direct import for ProfileSummary to avoid loading delay
 import ProfileSummary from "../components/ProfileSummary";
@@ -53,6 +55,8 @@ import { ACCENTURE_COLORS } from "../styles/styles";
 const MyPath = () => {
   const [activeTab, setActiveTab] = useState(0);
   const { loading: authLoading } = useAuth();
+  const theme = useTheme();
+  const { darkMode } = useDarkMode();
   
   // Use optimized hook for all data fetching
   const {
@@ -99,7 +103,10 @@ const MyPath = () => {
           severity="info" 
           sx={{ 
             mb: 2, 
-            "& .MuiAlert-icon": { color: ACCENTURE_COLORS.corePurple1 } 
+            "& .MuiAlert-icon": { color: ACCENTURE_COLORS.corePurple1 },
+            backgroundColor: darkMode ? 'rgba(161, 0, 255, 0.1)' : 'rgba(161, 0, 255, 0.05)',
+            color: darkMode ? '#ffffff' : 'inherit',
+            border: darkMode ? '1px solid rgba(161, 0, 255, 0.3)' : 'none'
           }}
         >
           Showing sample data. Your actual data will appear here when available.
@@ -107,7 +114,7 @@ const MyPath = () => {
       );
     }
     return null;
-  }, []);
+  }, [darkMode]);
 
   // Memoize empty state component
   const EmptyState = useCallback(({ message }) => (
@@ -116,15 +123,16 @@ const MyPath = () => {
         p: 3, 
         borderRadius: 2, 
         textAlign: 'center',
-        boxShadow: "0 2px 12px rgba(0, 0, 0, 0.03)",
-        border: `1px dashed ${ACCENTURE_COLORS.corePurple1}30`
+        boxShadow: darkMode ? "0 2px 12px rgba(255, 255, 255, 0.03)" : "0 2px 12px rgba(0, 0, 0, 0.03)",
+        border: darkMode ? `1px dashed ${ACCENTURE_COLORS.corePurple1}60` : `1px dashed ${ACCENTURE_COLORS.corePurple1}30`,
+        backgroundColor: darkMode ? theme.palette.background.paper : '#ffffff'
       }}>
-        <Typography variant="body1" sx={{ color: ACCENTURE_COLORS.darkGray }}>
+        <Typography variant="body1" sx={{ color: darkMode ? 'rgba(255, 255, 255, 0.7)' : ACCENTURE_COLORS.darkGray }}>
           {message}
         </Typography>
       </Paper>
     </Grid>
-  ), []);
+  ), [darkMode, theme.palette.background.paper]);
 
   // Memoize tab content to prevent unnecessary re-renders
   const tabContent = useMemo(() => {
@@ -139,7 +147,7 @@ const MyPath = () => {
           {timelineLoading ? (
             <CareerTimelineSkeleton />
           ) : (
-            <CareerTimeline timelineItems={timelineItems} />
+            <CareerTimeline timelineItems={timelineItems} darkMode={darkMode} />
           )}
         </Suspense>
       </Box>
@@ -158,7 +166,7 @@ const MyPath = () => {
               {projects.length > 0 ? (
                 projects.map((project, index) => (
                   <Grid item xs={12} sm={6} key={project.id}>
-                    <ProjectCard project={project} index={index} />
+                    <ProjectCard project={project} index={index} darkMode={darkMode} />
                   </Grid>
                 ))
               ) : (
@@ -183,7 +191,7 @@ const MyPath = () => {
               {certifications.length > 0 ? (
                 certifications.map((cert, index) => (
                   <Grid item xs={12} sm={6} key={cert.id}>
-                    <CertificationCard certification={cert} index={index} />
+                    <CertificationCard certification={cert} index={index} darkMode={darkMode} />
                   </Grid>
                 ))
               ) : (
@@ -205,6 +213,7 @@ const MyPath = () => {
     projects,
     certifications,
     renderMockDataAlert,
+    darkMode,
     EmptyState
   ]);
 
@@ -241,7 +250,7 @@ const MyPath = () => {
         display: "flex",
         flexDirection: "column"
       }}>
-        <Typography variant="h4" sx={{ fontWeight: 600, mb: 3 }}>
+        <Typography variant="h4" sx={{ fontWeight: 600, mb: 3, color: darkMode ? '#ffffff' : ACCENTURE_COLORS.black }}>
           Professional Journey
         </Typography>
 
@@ -289,7 +298,7 @@ const MyPath = () => {
                 {authLoading || profileLoading ? (
                   <ProfileSummarySkeleton />
                 ) : (
-                  <ProfileSummary userInfo={userProfile || defaultProfile} />
+                  <ProfileSummary userInfo={userProfile || defaultProfile} darkMode={darkMode} />
                 )}
               </Box>
 
@@ -300,9 +309,11 @@ const MyPath = () => {
                   borderRadius: 4,
                   mb: 2,
                   overflow: "visible",
-                  boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
+                  boxShadow: darkMode ? "0 2px 8px rgba(255,255,255,0.04)" : "0 2px 8px rgba(0,0,0,0.04)",
                   position: "relative",
-                  zIndex: 1
+                  zIndex: 1,
+                  backgroundColor: darkMode ? '#1e1e1e' : '#ffffff',
+                  border: darkMode ? '1px solid rgba(255, 255, 255, 0.12)' : 'none'
                 }}
               >
                 <Tabs
@@ -315,7 +326,7 @@ const MyPath = () => {
                       textTransform: "none",
                       fontSize: "1rem",
                       fontWeight: 400,
-                      color: ACCENTURE_COLORS.darkGray,
+                      color: darkMode ? 'rgba(255, 255, 255, 0.7)' : ACCENTURE_COLORS.darkGray,
                       py: 2.5,
                       minHeight: 64,
                     },

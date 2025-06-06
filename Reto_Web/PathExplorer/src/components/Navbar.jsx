@@ -26,6 +26,7 @@ import { ColorModeContext } from "../App";
 
 import { NavLink, useNavigate, useLocation } from "react-router-dom";
 import useAuth from "../hooks/useAuth";
+import { useDarkMode } from "../contexts/DarkModeContext";
 
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import FolderIcon from "@mui/icons-material/Folder";
@@ -87,7 +88,7 @@ const Navbar = ({ children }) => {
   const isTablet = useMediaQuery(theme.breakpoints.down("md"));
 
   const [prevActiveItem, setPrevActiveItem] = useState(null);
-  const [darkMode, setDarkMode] = useState(false);
+  const { darkMode, toggleDarkMode } = useDarkMode();
   const [expanded, setExpanded] = useState(!isMobile); // Collapsed by default on mobile
   const [mobileOpen, setMobileOpen] = useState(false); // State for mobile drawer
   const [hoveredItem, setHoveredItem] = useState(null);
@@ -357,7 +358,7 @@ const Navbar = ({ children }) => {
   }, [activeItem, prevActiveItem]);
 
   const toggleThemeMode = () => {
-    setDarkMode(!darkMode);
+    toggleDarkMode();
   };
 
   const toggleSidebar = () => {

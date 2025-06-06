@@ -26,7 +26,7 @@ const MotionChip = motion(Chip);
 /**
  * Animated Employee Card Component
  */
-const EmployeeCardAnimated = ({ employee, onViewDetails, useModal = false, isLoading = false, onHover }) => {
+const EmployeeCardAnimated = ({ employee, onViewDetails, useModal = false, isLoading = false, onHover, darkMode = false }) => {
   const theme = useTheme();
   const isSmallScreen = useMediaQuery('(max-width:599px)');
   const isVerySmallScreen = useMediaQuery('(max-width:450px)');
@@ -71,8 +71,14 @@ const EmployeeCardAnimated = ({ employee, onViewDetails, useModal = false, isLoa
   // Loading skeleton
   if (isLoading) {
     return (
-      <Paper sx={{ p: isSmallScreen ? 2 : 3, borderRadius: 3, height: 380, display: "flex", flexDirection: "column" }}>
-        <Box sx={{ display: "flex", alignItems: "center", mb: 2, flexShrink: 0 }}>
+      <Paper sx={{ 
+        p: isSmallScreen ? 2 : 3, 
+        borderRadius: 3, 
+        height: "100%",
+        backgroundColor: darkMode ? '#1e1e1e' : '#ffffff',
+        border: darkMode ? '1px solid rgba(255, 255, 255, 0.12)' : 'none'
+      }}>
+        <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
           <Skeleton variant="circular" width={56} height={56} />
           <Box sx={{ ml: 2, flex: 1 }}>
             <Skeleton variant="text" width="70%" />
@@ -80,14 +86,13 @@ const EmployeeCardAnimated = ({ employee, onViewDetails, useModal = false, isLoa
           </Box>
           <Skeleton variant="rectangular" width={60} height={24} sx={{ borderRadius: 1 }} />
         </Box>
-        <Box sx={{ display: "flex", gap: 1, mb: 2, minHeight: 52, alignContent: "flex-start" }}>
+        <Box sx={{ display: "flex", gap: 1, mb: 2 }}>
           <Skeleton variant="rectangular" width={60} height={22} sx={{ borderRadius: 1 }} />
           <Skeleton variant="rectangular" width={80} height={22} sx={{ borderRadius: 1 }} />
           <Skeleton variant="rectangular" width={50} height={22} sx={{ borderRadius: 1 }} />
         </Box>
-        <Box sx={{ flex: 1 }} />
-        <Skeleton variant="text" width="90%" sx={{ mb: 2, minHeight: 20 }} />
-        <Skeleton variant="rectangular" width="100%" height={40} sx={{ borderRadius: 2, flexShrink: 0 }} />
+        <Skeleton variant="text" width="90%" sx={{ mb: 2 }} />
+        <Skeleton variant="rectangular" width="100%" height={40} sx={{ borderRadius: 2 }} />
       </Paper>
     );
   }
@@ -107,15 +112,18 @@ const EmployeeCardAnimated = ({ employee, onViewDetails, useModal = false, isLoa
         }}
         sx={{ 
           borderRadius: 3,
-          height: 275, // Fixed height for all cards
+          height: "100%",
           display: "flex",
           flexDirection: "column",
           cursor: "pointer",
           transition: "all 0.25s ease",
-          boxShadow: isHovered ? "0 8px 24px rgba(0,0,0,0.08)" : "0 1px 4px rgba(0,0,0,0.04)",
+          boxShadow: isHovered ? 
+            (darkMode ? "0 8px 24px rgba(0,0,0,0.4)" : "0 8px 24px rgba(0,0,0,0.08)") : 
+            (darkMode ? "0 1px 4px rgba(0,0,0,0.3)" : "0 1px 4px rgba(0,0,0,0.04)"),
           overflow: "hidden",
           border: "1px solid",
-          borderColor: isHovered ? "#9c27b0" : "rgba(0,0,0,0.04)",
+          borderColor: isHovered ? "#9c27b0" : (darkMode ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.04)"),
+          backgroundColor: darkMode ? '#1e1e1e' : '#ffffff',
           "&:hover": {
             borderColor: "#9c27b0",
           },
@@ -129,8 +137,7 @@ const EmployeeCardAnimated = ({ employee, onViewDetails, useModal = false, isLoa
           display: "flex", 
           flexDirection: "column",
           width: "100%",
-          mb: 2,
-          flexShrink: 0, // Prevent shrinking
+          mb: isSmallScreen ? 2 : 3,
         }}>
           <Box sx={{
             display: "flex",
@@ -159,7 +166,7 @@ const EmployeeCardAnimated = ({ employee, onViewDetails, useModal = false, isLoa
                     width: isSmallScreen ? 48 : 56, 
                     height: isSmallScreen ? 48 : 56,
                     mr: 2,
-                    border: "4px solid #fff",
+                    border: darkMode ? "4px solid #1e1e1e" : "4px solid #fff",
                     boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
                     opacity: imageLoaded ? 1 : 0,
                     transition: "opacity 0.3s ease"
@@ -178,7 +185,7 @@ const EmployeeCardAnimated = ({ employee, onViewDetails, useModal = false, isLoa
                     height: 10, 
                     borderRadius: "50%",
                     bgcolor: getAssignmentColor(employee.isAssigned),
-                    border: "2px solid white",
+                    border: darkMode ? "2px solid #1e1e1e" : "2px solid white",
                     boxShadow: "0 0 4px rgba(0,0,0,0.1)"
                   }}
                   initial={{ scale: 0 }}
@@ -200,7 +207,7 @@ const EmployeeCardAnimated = ({ employee, onViewDetails, useModal = false, isLoa
                   sx={{ 
                     lineHeight: 1.2,
                     fontSize: isSmallScreen ? "0.875rem" : "0.95rem",
-                    color: "#212121",
+                    color: darkMode ? '#ffffff' : "#212121",
                     overflow: "hidden",
                     textOverflow: "ellipsis",
                     whiteSpace: "nowrap"
@@ -219,8 +226,8 @@ const EmployeeCardAnimated = ({ employee, onViewDetails, useModal = false, isLoa
                     sx={{ 
                       display: "flex",
                       alignItems: "center",
-                      backgroundColor: "rgba(156, 39, 176, 0.08)",
-                      color: "#9c27b0",
+                      backgroundColor: darkMode ? "rgba(156, 39, 176, 0.2)" : "rgba(156, 39, 176, 0.08)",
+                      color: darkMode ? "#ce93d8" : "#9c27b0",
                       px: 1,
                       py: 0.3,
                       borderRadius: 4,
@@ -263,18 +270,18 @@ const EmployeeCardAnimated = ({ employee, onViewDetails, useModal = false, isLoa
                   height: "24px",
                   fontWeight: 500,
                   bgcolor: employee.isAssigned 
-                    ? "rgba(244, 67, 54, 0.08)" 
-                    : "rgba(76, 175, 80, 0.08)",
+                    ? (darkMode ? "rgba(244, 67, 54, 0.2)" : "rgba(244, 67, 54, 0.08)") 
+                    : (darkMode ? "rgba(76, 175, 80, 0.2)" : "rgba(76, 175, 80, 0.08)"),
                   color: employee.isAssigned 
-                    ? "#f44336" 
-                    : "#4caf50",
+                    ? (darkMode ? "#ff6659" : "#f44336") 
+                    : (darkMode ? "#66bb6a" : "#4caf50"),
                   border: employee.isAssigned 
-                    ? "1px solid rgba(244, 67, 54, 0.2)" 
-                    : "1px solid rgba(76, 175, 80, 0.2)",
+                    ? (darkMode ? "1px solid rgba(244, 67, 54, 0.4)" : "1px solid rgba(244, 67, 54, 0.2)") 
+                    : (darkMode ? "1px solid rgba(76, 175, 80, 0.4)" : "1px solid rgba(76, 175, 80, 0.2)"),
                   '&:hover': {
                     bgcolor: employee.isAssigned 
-                      ? "rgba(244, 67, 54, 0.12)" 
-                      : "rgba(76, 175, 80, 0.12)",
+                      ? (darkMode ? "rgba(244, 67, 54, 0.3)" : "rgba(244, 67, 54, 0.12)") 
+                      : (darkMode ? "rgba(76, 175, 80, 0.3)" : "rgba(76, 175, 80, 0.12)"),
                   },
                   transition: "all 0.2s ease",
                   "& .MuiChip-label": {
@@ -296,10 +303,8 @@ const EmployeeCardAnimated = ({ employee, onViewDetails, useModal = false, isLoa
             display: "flex",
             flexWrap: "wrap",
             gap: 0.7,
-            mb: 2,
-            justifyContent: "flex-start",
-            minHeight: 52, // Ensure consistent space for skills
-            alignContent: "flex-start"
+            mb: isSmallScreen ? 2 : 3,
+            justifyContent: "flex-start"
           }}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -317,11 +322,11 @@ const EmployeeCardAnimated = ({ employee, onViewDetails, useModal = false, isLoa
                 height: 22,
                 fontSize: "0.7rem",
                 borderRadius: "12px",
-                backgroundColor: "rgba(0,0,0,0.04)",
-                color: "rgba(0,0,0,0.7)",
+                backgroundColor: darkMode ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.04)",
+                color: darkMode ? "rgba(255,255,255,0.7)" : "rgba(0,0,0,0.7)",
                 fontWeight: 500,
                 '&:hover': {
-                  backgroundColor: "rgba(0,0,0,0.08)",
+                  backgroundColor: darkMode ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.08)",
                   transform: "scale(1.05)"
                 },
                 maxWidth: "100%",
@@ -347,11 +352,11 @@ const EmployeeCardAnimated = ({ employee, onViewDetails, useModal = false, isLoa
                 height: 22,
                 fontSize: "0.7rem",
                 borderRadius: "12px",
-                backgroundColor: "rgba(0,0,0,0.02)",
-                color: "rgba(0,0,0,0.5)",
-                border: "1px dashed rgba(0,0,0,0.1)",
+                backgroundColor: darkMode ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.02)",
+                color: darkMode ? "rgba(255,255,255,0.5)" : "rgba(0,0,0,0.5)",
+                border: darkMode ? "1px dashed rgba(255,255,255,0.2)" : "1px dashed rgba(0,0,0,0.1)",
                 '&:hover': {
-                  backgroundColor: "rgba(0,0,0,0.06)",
+                  backgroundColor: darkMode ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)",
                 },
                 "& .MuiChip-label": {
                   padding: "0 6px"
@@ -361,24 +366,20 @@ const EmployeeCardAnimated = ({ employee, onViewDetails, useModal = false, isLoa
           )}
         </MotionBox>
         
-        {/* Spacer to push content to bottom */}
-        <Box sx={{ flex: 1 }} />
-        
         {/* Animated availability text */}
         <MotionBox
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 1 }}
-          sx={{ flexShrink: 0 }}
         >
           <Typography 
             sx={{ 
-              color: "text.secondary",
+              color: darkMode ? 'rgba(255, 255, 255, 0.7)' : "text.secondary",
               fontStyle: "italic",
               fontSize: "0.75rem",
+              mt: "auto",
               mb: 2,
-              whiteSpace: "normal",
-              minHeight: 20, // Ensure consistent space
+              whiteSpace: "normal"
             }}
           >
             {employee.isAssigned 
@@ -392,7 +393,6 @@ const EmployeeCardAnimated = ({ employee, onViewDetails, useModal = false, isLoa
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 1.1 }}
-          sx={{ flexShrink: 0 }}
         >
           <Button
             variant="outlined"
@@ -405,14 +405,14 @@ const EmployeeCardAnimated = ({ employee, onViewDetails, useModal = false, isLoa
               textTransform: "none",
               fontWeight: 600,
               py: 0.75,
-              borderColor: "#9c27b0",
-              color: "#9c27b0",
+              borderColor: darkMode ? "#ce93d8" : "#9c27b0",
+              color: darkMode ? "#ce93d8" : "#9c27b0",
               fontSize: "0.8rem",
               transition: "all 0.2s ease",
               '&:hover': {
-                borderColor: "#7b1fa2",
-                backgroundColor: "rgba(156, 39, 176, 0.04)",
-                boxShadow: "0 2px 8px rgba(156, 39, 176, 0.15)"
+                borderColor: darkMode ? "#ba68c8" : "#7b1fa2",
+                backgroundColor: darkMode ? "rgba(156, 39, 176, 0.15)" : "rgba(156, 39, 176, 0.04)",
+                boxShadow: darkMode ? "0 2px 8px rgba(156, 39, 176, 0.3)" : "0 2px 8px rgba(156, 39, 176, 0.15)"
               }
             }}
           >
@@ -427,6 +427,7 @@ const EmployeeCardAnimated = ({ employee, onViewDetails, useModal = false, isLoa
           open={modalOpen} 
           onClose={() => setModalOpen(false)} 
           userId={employee.user_id} 
+          darkMode={darkMode}
         />
       )}
     </>

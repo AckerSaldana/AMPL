@@ -26,7 +26,7 @@ import {
 } from "@mui/icons-material";
 import { ACCENTURE_COLORS } from "../styles/styles";
 
-const CertificationCard = ({ certification, index = 0 }) => {
+const CertificationCard = ({ certification, index = 0, darkMode = false }) => {
   const [isVisible, setIsVisible] = useState(false);
   const [evidenceModalOpen, setEvidenceModalOpen] = useState(false);
 
@@ -71,14 +71,16 @@ const CertificationCard = ({ certification, index = 0 }) => {
           borderRadius: 3,
           overflow: "hidden",
           height: "100%",
-          boxShadow: "0 2px 10px rgba(0,0,0,0.03)",
+          boxShadow: darkMode ? "0 2px 10px rgba(0,0,0,0.2)" : "0 2px 10px rgba(0,0,0,0.03)",
           display: "flex",
           flexDirection: "column",
           transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
           transform: "translateY(0)",
           "&:hover": {
             transform: "translateY(-8px) scale(1.02)",
-            boxShadow: `0 12px 24px ${ACCENTURE_COLORS.corePurple2}15`,
+            boxShadow: darkMode 
+              ? `0 12px 24px ${ACCENTURE_COLORS.corePurple2}30`
+              : `0 12px 24px ${ACCENTURE_COLORS.corePurple2}15`,
             '& .accent-line': {
               height: '6px',
             },
@@ -89,10 +91,12 @@ const CertificationCard = ({ certification, index = 0 }) => {
               color: ACCENTURE_COLORS.corePurple2,
             },
             '& .credential-box': {
-              bgcolor: `${ACCENTURE_COLORS.corePurple2}08`,
+              bgcolor: darkMode 
+                ? `${ACCENTURE_COLORS.corePurple2}15`
+                : `${ACCENTURE_COLORS.corePurple2}08`,
             },
           },
-          bgcolor: "#fff",
+          bgcolor: darkMode ? "#1e1e1e" : "#fff",
           position: "relative",
         }}
       >
@@ -145,7 +149,7 @@ const CertificationCard = ({ certification, index = 0 }) => {
           sx={{
             fontWeight: 500,
             fontSize: "1.1rem",
-            color: ACCENTURE_COLORS.black,
+            color: darkMode ? "#ffffff" : ACCENTURE_COLORS.black,
             mb: 1.5,
             display: "flex",
             alignItems: "center",
@@ -183,7 +187,7 @@ const CertificationCard = ({ certification, index = 0 }) => {
           />
           <Typography
             variant="body2"
-            sx={{ color: ACCENTURE_COLORS.darkGray }}
+            sx={{ color: darkMode ? "rgba(255,255,255,0.7)" : ACCENTURE_COLORS.darkGray }}
           >
             {safeCert.issuer}
           </Typography>
@@ -220,7 +224,7 @@ const CertificationCard = ({ certification, index = 0 }) => {
             ) : (
               <Typography
                 variant="body2"
-                sx={{ color: ACCENTURE_COLORS.darkGray }}
+                sx={{ color: darkMode ? "rgba(255,255,255,0.7)" : ACCENTURE_COLORS.darkGray }}
               >
                 Evidence available
               </Typography>
@@ -233,13 +237,13 @@ const CertificationCard = ({ certification, index = 0 }) => {
         <Box
           className="credential-box"
           sx={{
-            bgcolor: "rgba(0,0,0,0.02)",
+            bgcolor: darkMode ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.02)",
             px: 2,
             py: 1.5,
             borderRadius: 1,
             fontFamily: "monospace",
             fontSize: "0.75rem",
-            color: ACCENTURE_COLORS.darkGray,
+            color: darkMode ? "rgba(255,255,255,0.6)" : ACCENTURE_COLORS.darkGray,
             position: "relative",
             overflow: "hidden",
             transition: 'all 0.3s ease',
@@ -262,7 +266,11 @@ const CertificationCard = ({ certification, index = 0 }) => {
         </Box>
       </Box>
 
-      <Divider sx={{ mt: "auto", opacity: 0.5 }} />
+      <Divider sx={{ 
+        mt: "auto", 
+        opacity: darkMode ? 0.2 : 0.5,
+        borderColor: darkMode ? "rgba(255,255,255,0.1)" : undefined 
+      }} />
 
       {/* Footer */}
       <Box sx={{ p: 3, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -285,7 +293,7 @@ const CertificationCard = ({ certification, index = 0 }) => {
           <Box>
             <Typography
               variant="body2"
-              sx={{ color: ACCENTURE_COLORS.darkGray }}
+              sx={{ color: darkMode ? "rgba(255,255,255,0.7)" : ACCENTURE_COLORS.darkGray }}
             >
               {safeCert.date}
             </Typography>
@@ -293,7 +301,7 @@ const CertificationCard = ({ certification, index = 0 }) => {
               <Typography
                 variant="caption"
                 sx={{ 
-                  color: ACCENTURE_COLORS.darkGray,
+                  color: darkMode ? "rgba(255,255,255,0.6)" : ACCENTURE_COLORS.darkGray,
                   display: "block",
                   mt: 0.25,
                 }}
@@ -351,7 +359,7 @@ const CertificationCard = ({ certification, index = 0 }) => {
             height: { xs: '90vh', sm: '85vh' },
             overflow: 'hidden',
             borderRadius: 3,
-            backgroundColor: '#ffffff',
+            backgroundColor: darkMode ? '#1e1e1e' : '#ffffff',
             position: 'relative',
             boxShadow: `0 20px 80px -12px ${alpha(ACCENTURE_COLORS.corePurple2, 0.35)}`,
             display: 'flex',
@@ -388,13 +396,13 @@ const CertificationCard = ({ certification, index = 0 }) => {
               <Box>
                 <Typography variant="h6" sx={{ 
                   fontWeight: 600, 
-                  color: ACCENTURE_COLORS.black,
+                  color: darkMode ? '#ffffff' : ACCENTURE_COLORS.black,
                   fontSize: '1.1rem'
                 }}>
                   Certification Evidence
                 </Typography>
                 <Typography variant="caption" sx={{ 
-                  color: alpha(ACCENTURE_COLORS.black, 0.6),
+                  color: darkMode ? alpha('#ffffff', 0.6) : alpha(ACCENTURE_COLORS.black, 0.6),
                   fontSize: '0.75rem'
                 }}>
                   {safeCert.name}
@@ -404,7 +412,7 @@ const CertificationCard = ({ certification, index = 0 }) => {
             <IconButton
               onClick={handleCloseEvidence}
               sx={{
-                color: alpha(ACCENTURE_COLORS.black, 0.6),
+                color: darkMode ? alpha('#ffffff', 0.6) : alpha(ACCENTURE_COLORS.black, 0.6),
                 '&:hover': {
                   bgcolor: alpha(ACCENTURE_COLORS.corePurple2, 0.08),
                   color: ACCENTURE_COLORS.corePurple2,
@@ -456,11 +464,11 @@ const CertificationCard = ({ certification, index = 0 }) => {
                 >
                   <VerifiedIcon sx={{ fontSize: 40 }} />
                 </Box>
-                <Typography variant="h6" sx={{ mb: 2, color: ACCENTURE_COLORS.black }}>
+                <Typography variant="h6" sx={{ mb: 2, color: darkMode ? '#ffffff' : ACCENTURE_COLORS.black }}>
                   Evidence Available
                 </Typography>
                 <Typography variant="body2" sx={{ 
-                  color: alpha(ACCENTURE_COLORS.black, 0.7),
+                  color: darkMode ? alpha('#ffffff', 0.7) : alpha(ACCENTURE_COLORS.black, 0.7),
                   mb: 3,
                   lineHeight: 1.6
                 }}>

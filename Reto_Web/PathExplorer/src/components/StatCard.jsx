@@ -9,7 +9,7 @@ import { Box, Typography, Paper, useMediaQuery, useTheme } from "@mui/material";
  * @param {number|string} props.value - Valor de la estadística
  * @param {string} props.bgColor - Color de fondo del icono (formato rgba o hex)
  */
-const StatCard = ({ icon: Icon, title, value, bgColor }) => {
+const StatCard = ({ icon: Icon, title, value, bgColor, darkMode = false }) => {
   const theme = useTheme();
   
   // Media queries más específicos para un comportamiento responsivo más preciso
@@ -61,7 +61,10 @@ const StatCard = ({ icon: Icon, title, value, bgColor }) => {
         width: "100%",
         boxSizing: "border-box",
         // Ensure the card doesn't get squished too much
-        minWidth: isExtraSmallScreen ? "100%" : 180
+        minWidth: isExtraSmallScreen ? "100%" : 180,
+        backgroundColor: darkMode ? '#1e1e1e' : '#ffffff',
+        border: darkMode ? '1px solid rgba(255, 255, 255, 0.12)' : 'none',
+        boxShadow: darkMode ? '0 4px 6px rgba(0,0,0,0.3)' : '0 4px 6px rgba(0,0,0,0.04)'
       }}
     >
       <Box sx={{ 
@@ -98,7 +101,7 @@ const StatCard = ({ icon: Icon, title, value, bgColor }) => {
           <Typography 
             variant={isSmallScreen ? "h5" : "h4"} 
             fontWeight={500} 
-            color={bgColor.replace("20", "")}
+            color={darkMode ? '#ffffff' : bgColor.replace("20", "").replace("30", "")}
             sx={{
               mb: 0.5,
               fontSize,
@@ -113,13 +116,13 @@ const StatCard = ({ icon: Icon, title, value, bgColor }) => {
           </Typography>
           <Typography 
             variant="body2" 
-            color="text.secondary"
             sx={{ 
               fontSize: isSmallScreen ? "0.75rem" : "0.875rem",
               // Handle long titles
               overflow: "hidden",
               textOverflow: "ellipsis",
-              whiteSpace: "nowrap"
+              whiteSpace: "nowrap",
+              color: darkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary'
             }}
           >
             {title}

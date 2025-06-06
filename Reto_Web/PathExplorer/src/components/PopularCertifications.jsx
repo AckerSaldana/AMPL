@@ -1,8 +1,8 @@
 // src/components/PopularCertifications.jsx
 import React from "react";
-import {
-  Box,
-  Typography,
+import { 
+  Box, 
+  Typography, 
   Card,
   Avatar,
   Button,
@@ -11,7 +11,7 @@ import {
   Grid,
   Divider,
   Tooltip,
-  Skeleton,
+  Skeleton
 } from "@mui/material";
 
 // Iconos
@@ -28,295 +28,249 @@ import StarIcon from "@mui/icons-material/Star";
 import PeopleAltOutlinedIcon from "@mui/icons-material/PeopleAltOutlined";
 import { useNavigate } from "react-router-dom";
 
-import { useTheme } from "@mui/material/styles";
-
-export const PopularCertifications = ({ certifications, loading = false }) => {
+export const PopularCertifications = ({ certifications, loading = false, darkMode = false }) => {
   const navigate = useNavigate();
-  const theme = useTheme();
-
+  
+  // Match Dashboard profile color
+  const profilePurple = '#9c27b0';
+  
   // Get icon based on certification type
   const getIconByType = (iconType) => {
     switch (iconType) {
-      case "Storage":
-        return <StorageIcon />;
-      case "Code":
-        return <CodeIcon />;
-      case "Work":
-        return <WorkIcon />;
-      case "Cloud":
-        return <CloudIcon />;
-      case "DataObject":
-        return <DataObjectIcon />;
-      case "Security":
-        return <SecurityIcon />;
-      case "Analytics":
-        return <AnalyticsIcon />;
-      default:
-        return <EmojiEventsIcon />;
+      case 'Storage': return <StorageIcon />;
+      case 'Code': return <CodeIcon />;
+      case 'Work': return <WorkIcon />;
+      case 'Cloud': return <CloudIcon />;
+      case 'DataObject': return <DataObjectIcon />;
+      case 'Security': return <SecurityIcon />;
+      case 'Analytics': return <AnalyticsIcon />;
+      default: return <EmojiEventsIcon />;
     }
   };
-
+  
   // Calculate star rating based on popularity percentage
   const calculateStars = (popularity) => {
     // Transform popularity percentage to a 0-5 scale
     return Math.round(popularity / 20);
   };
-
+  
   return (
-    <Box sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
+    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       {/* Header */}
-      <Box
-        sx={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
+      <Box 
+        sx={{ 
+          display: 'flex', 
+          alignItems: 'center',
+          justifyContent: 'space-between',
           p: 2,
-          borderBottom: "1px solid",
-          borderColor: alpha(theme.palette.primary.main, 0.1),
+          borderBottom: '1px solid',
+          borderColor: darkMode ? 'rgba(255,255,255,0.12)' : alpha(profilePurple, 0.1)
         }}
       >
-        <Box sx={{ display: "flex", alignItems: "center" }}>
-          <EmojiEventsIcon
-            sx={{
-              color: theme.palette.primary.main,
+        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+          <EmojiEventsIcon 
+            sx={{ 
+              color: profilePurple, 
               mr: 1.5,
-              fontSize: 20,
-            }}
+              fontSize: 20
+            }} 
           />
-          <Typography variant="h6" fontWeight={500} sx={{ fontSize: "1rem" }}>
+          <Typography variant="h6" fontWeight={500} sx={{ fontSize: '1rem', color: darkMode ? '#ffffff' : '#000000' }}>
             Popular Certifications
           </Typography>
         </Box>
-        <Button
+        <Button 
           size="small"
-          endIcon={<ArrowForwardIosIcon sx={{ fontSize: "0.7rem" }} />}
-          onClick={() => navigate("/certifications")}
-          sx={{
-            textTransform: "none",
-            fontSize: "0.75rem",
-            color: theme.palette.primary.main,
+          endIcon={<ArrowForwardIosIcon sx={{ fontSize: '0.7rem' }} />}
+          onClick={() => navigate('/certifications')}
+          sx={{ 
+            textTransform: 'none',
+            fontSize: '0.75rem',
+            color: profilePurple,
             fontWeight: 400,
-            "&:hover": {
-              bgcolor: "transparent",
-            },
+            '&:hover': {
+              bgcolor: 'transparent'
+            }
           }}
         >
           View All
         </Button>
       </Box>
-
+      
       {/* Content - Card Grid Layout */}
-      <Box sx={{ p: 2, flexGrow: 1, overflow: "auto" }}>
+      <Box sx={{ p: 2, flexGrow: 1, overflow: 'auto' }}>
         <Grid container spacing={2}>
           {loading ? (
             // Skeleton loading
             Array.from({ length: 3 }).map((_, index) => (
               <Grid item xs={12} key={index}>
-                <Card
-                  elevation={0}
-                  sx={{
-                    p: 2,
-                    borderRadius: 2,
-                    border: `1px solid ${alpha(
-                      theme.palette.primary.main,
-                      0.1
-                    )}`,
-                  }}
-                >
+                <Card elevation={0} sx={{ p: 2, borderRadius: 2, border: darkMode ? '1px solid rgba(255,255,255,0.12)' : `1px solid ${alpha(profilePurple, 0.1)}`, backgroundColor: darkMode ? '#3e3e3e' : '#ffffff' }}>
                   <Stack direction="row" spacing={2} alignItems="center">
                     <Skeleton variant="circular" width={40} height={40} />
                     <Box sx={{ flex: 1 }}>
                       <Skeleton variant="text" width="60%" height={24} />
                       <Skeleton variant="text" width="40%" height={20} />
                     </Box>
-                    <Skeleton
-                      variant="rectangular"
-                      width={60}
-                      height={30}
-                      sx={{ borderRadius: 1 }}
-                    />
+                    <Skeleton variant="rectangular" width={60} height={30} sx={{ borderRadius: 1 }} />
                   </Stack>
                 </Card>
               </Grid>
             ))
           ) : certifications.length > 0 ? (
-            certifications.map((cert, index) => {
-              // Calculate star rating (0-5)
-              const starRating = calculateStars(cert.popularity);
-
-              return (
-                <Grid item xs={12} key={cert.id}>
-                  <Card
-                    elevation={0}
-                    sx={{
-                      borderRadius: 2,
-                      border: `1px solid ${alpha(
-                        theme.palette.primary.main,
-                        0.1
-                      )}`,
-                      transition: "all 0.2s",
-                      position: "relative",
-                      overflow: "hidden",
-                      "&:hover": {
-                        borderColor: alpha(theme.palette.primary.main, 0.3),
-                        boxShadow: `0 4px 12px ${alpha(
-                          theme.palette.primary.main,
-                          0.08
-                        )}`,
-                        "& .cert-number": {
-                          opacity: 1,
-                        },
-                      },
+          certifications.map((cert, index) => {
+            // Calculate star rating (0-5)
+            const starRating = calculateStars(cert.popularity);
+            
+            return (
+              <Grid item xs={12} key={cert.id}>
+                <Card 
+                  elevation={0}
+                  sx={{
+                    borderRadius: 2,
+                    border: darkMode ? '1px solid rgba(255,255,255,0.12)' : `1px solid ${alpha(profilePurple, 0.1)}`,
+                    backgroundColor: darkMode ? 'rgba(255, 255, 255, 0.03)' : '#ffffff',
+                    transition: 'all 0.2s',
+                    position: 'relative',
+                    overflow: 'hidden',
+                    '&:hover': {
+                      borderColor: darkMode ? alpha(profilePurple, 0.5) : alpha(profilePurple, 0.3),
+                      boxShadow: darkMode 
+                        ? `0 4px 12px ${alpha(profilePurple, 0.2)}`
+                        : `0 4px 12px ${alpha(profilePurple, 0.08)}`,
+                      backgroundColor: darkMode ? 'rgba(255, 255, 255, 0.05)' : '#ffffff',
+                      '& .cert-number': {
+                        opacity: 1
+                      }
+                    }
+                  }}
+                >
+                  {/* Position indicator */}
+                  <Box 
+                    className="cert-number"
+                    sx={{ 
+                      position: 'absolute',
+                      right: 0,
+                      top: 0,
+                      width: 30,
+                      height: 30,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      bgcolor: darkMode ? alpha(profilePurple, 0.2) : alpha(profilePurple, 0.1),
+                      color: darkMode ? alpha(profilePurple, 0.9) : profilePurple,
+                      fontWeight: 700,
+                      fontSize: '0.875rem',
+                      opacity: 0.7,
+                      transition: 'opacity 0.2s'
                     }}
                   >
-                    {/* Position indicator */}
-                    <Box
-                      className="cert-number"
-                      sx={{
-                        position: "absolute",
-                        right: 0,
-                        top: 0,
-                        width: 30,
-                        height: 30,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        bgcolor: alpha(theme.palette.primary.main, 0.1),
-                        color: theme.palette.primary.main,
-                        fontWeight: 700,
-                        fontSize: "0.875rem",
-                        opacity: 0.7,
-                        transition: "opacity 0.2s",
-                      }}
-                    >
-                      {index + 1}
-                    </Box>
-
-                    <Box sx={{ p: 2 }}>
-                      <Box
-                        sx={{ display: "flex", alignItems: "center", mb: 1.5 }}
+                    {index + 1}
+                  </Box>
+                
+                  <Box sx={{ p: 2 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.5 }}>
+                      <Avatar 
+                        sx={{ 
+                          bgcolor: darkMode ? alpha(profilePurple, 0.15) : alpha(profilePurple, 0.08),
+                          color: darkMode ? alpha(profilePurple, 0.9) : profilePurple,
+                          mr: 2,
+                          width: 42,
+                          height: 42
+                        }}
                       >
-                        <Avatar
-                          sx={{
-                            bgcolor: alpha(theme.palette.primary.main, 0.08),
-                            color: theme.palette.primary.main,
-                            mr: 2,
-                            width: 42,
-                            height: 42,
+                        {getIconByType(cert.iconType)}
+                      </Avatar>
+                      
+                      <Box sx={{ flex: 1 }}>
+                        <Typography variant="subtitle1" fontWeight={600} sx={{ color: darkMode ? '#ffffff' : '#000000' }}>
+                          {cert.name}
+                        </Typography>
+                        
+                        <Typography variant="caption" sx={{ 
+                          color: darkMode ? 'rgba(255, 255, 255, 0.6)' : alpha(profilePurple, 0.8),
+                          fontWeight: 500,
+                          fontSize: '0.7rem',
+                          textTransform: 'uppercase',
+                          letterSpacing: 0.5
+                        }}>
+                          {cert.category}
+                        </Typography>
+                      </Box>
+                    </Box>
+                    
+                    <Divider sx={{ my: 1.5, borderColor: darkMode ? 'rgba(255,255,255,0.12)' : alpha(profilePurple, 0.08) }} />
+                    
+                    <Box sx={{ 
+                      display: 'flex', 
+                      justifyContent: 'space-between',
+                      alignItems: 'center'
+                    }}>
+                      {/* Star Rating */}
+                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                        {[...Array(5)].map((_, i) => (
+                          <StarIcon 
+                            key={i} 
+                            sx={{ 
+                              fontSize: '0.95rem',
+                              color: i < starRating 
+                                ? darkMode ? alpha(profilePurple, 0.8) : profilePurple 
+                                : darkMode ? 'rgba(255, 255, 255, 0.1)' : alpha(profilePurple, 0.2),
+                              mr: 0.3
+                            }} 
+                          />
+                        ))}
+                        <Typography 
+                          variant="caption" 
+                          sx={{ 
+                            fontWeight: 600, 
+                            ml: 0.5,
+                            color: darkMode ? 'rgba(255,255,255,0.7)' : 'text.secondary'
                           }}
                         >
-                          {getIconByType(cert.iconType)}
-                        </Avatar>
-
-                        <Box sx={{ flex: 1 }}>
-                          <Typography variant="subtitle1" fontWeight={600}>
-                            {cert.name}
-                          </Typography>
-
-                          <Typography
-                            variant="caption"
-                            sx={{
-                              color: alpha(theme.palette.primary.main, 0.8),
+                          {cert.popularity}%
+                        </Typography>
+                      </Box>
+                      
+                      {/* People count with icon */}
+                      <Tooltip title={`${cert.completions} professionals completed this certification`}>
+                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                          <PeopleAltOutlinedIcon sx={{ 
+                            fontSize: '1rem', 
+                            color: profilePurple,
+                            mr: 0.5
+                          }} />
+                          <Typography 
+                            variant="caption" 
+                            sx={{ 
                               fontWeight: 500,
-                              fontSize: "0.7rem",
-                              textTransform: "uppercase",
-                              letterSpacing: 0.5,
+                              color: 'text.secondary'
                             }}
                           >
-                            {cert.category}
+                            {cert.completions}
                           </Typography>
                         </Box>
-                      </Box>
-
-                      <Divider
-                        sx={{
-                          my: 1.5,
-                          borderColor: alpha(theme.palette.primary.main, 0.08),
-                        }}
-                      />
-
-                      <Box
-                        sx={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "center",
-                        }}
-                      >
-                        {/* Star Rating */}
-                        <Box sx={{ display: "flex", alignItems: "center" }}>
-                          {[...Array(5)].map((_, i) => (
-                            <StarIcon
-                              key={i}
-                              sx={{
-                                fontSize: "0.95rem",
-                                color:
-                                  i < starRating
-                                    ? theme.palette.primary.main
-                                    : alpha(theme.palette.primary.main, 0.2),
-                                mr: 0.3,
-                              }}
-                            />
-                          ))}
-                          <Typography
-                            variant="caption"
-                            sx={{
-                              fontWeight: 600,
-                              ml: 0.5,
-                              color: "text.secondary",
-                            }}
-                          >
-                            {cert.popularity}%
-                          </Typography>
-                        </Box>
-
-                        {/* People count with icon */}
-                        <Tooltip
-                          title={`${cert.completions} professionals completed this certification`}
-                        >
-                          <Box sx={{ display: "flex", alignItems: "center" }}>
-                            <PeopleAltOutlinedIcon
-                              sx={{
-                                fontSize: "1rem",
-                                color: theme.palette.primary.main,
-                                mr: 0.5,
-                              }}
-                            />
-                            <Typography
-                              variant="caption"
-                              sx={{
-                                fontWeight: 500,
-                                color: "text.secondary",
-                              }}
-                            >
-                              {cert.completions}
-                            </Typography>
-                          </Box>
-                        </Tooltip>
-                      </Box>
+                      </Tooltip>
                     </Box>
-                  </Card>
-                </Grid>
-              );
-            })
-          ) : (
-            <Grid item xs={12}>
-              <Box
-                sx={{
-                  textAlign: "center",
-                  py: 4,
-                  border: `1px dashed ${alpha(
-                    theme.palette.primary.main,
-                    0.2
-                  )}`,
-                  borderRadius: 2,
-                }}
-              >
-                <Typography variant="body2" color="text.secondary">
-                  No popular certifications found
-                </Typography>
-              </Box>
-            </Grid>
-          )}
+                  </Box>
+                </Card>
+              </Grid>
+            );
+          })
+        ) : (
+          <Grid item xs={12}>
+            <Box sx={{ 
+              textAlign: 'center', 
+              py: 4,
+              border: darkMode ? '1px dashed rgba(255,255,255,0.2)' : `1px dashed ${alpha(profilePurple, 0.2)}`,
+              backgroundColor: darkMode ? '#2e2e2e' : 'transparent',
+              borderRadius: 2
+            }}>
+              <Typography variant="body2" color={darkMode ? 'rgba(255,255,255,0.7)' : "text.secondary"}>
+                No popular certifications found
+              </Typography>
+            </Box>
+          </Grid>
+        )}
         </Grid>
       </Box>
     </Box>

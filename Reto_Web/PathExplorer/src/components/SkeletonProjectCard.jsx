@@ -8,8 +8,11 @@ import {
 } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import { ACCENTURE_COLORS, cardStyles } from "../styles/styles";
+import { useDarkMode } from "../contexts/DarkModeContext";
 
 const SkeletonProjectCard = () => {
+  const { darkMode } = useDarkMode();
+  
   return (
     <Card
       variant="outlined"
@@ -21,9 +24,9 @@ const SkeletonProjectCard = () => {
         borderRadius: "8px",
         overflow: "hidden",
         boxShadow: "none",
-        border: "1px solid rgba(0,0,0,0.12)",
+        border: darkMode ? "1px solid rgba(255,255,255,0.12)" : "1px solid rgba(0,0,0,0.12)",
         transition: "all 0.2s ease-in-out",
-        bgcolor: "#ffffff",
+        bgcolor: darkMode ? "#1e1e1e" : "#ffffff",
       }}
     >
       <CardContent
@@ -31,7 +34,7 @@ const SkeletonProjectCard = () => {
           p: 2.5,
           pb: 2,
           flexGrow: 1,
-          backgroundColor: "#ffffff",
+          backgroundColor: darkMode ? "#1e1e1e" : "#ffffff",
           display: "flex",
           flexDirection: "column",
           borderRadius: "8px",
@@ -52,7 +55,7 @@ const SkeletonProjectCard = () => {
             height={24} 
             sx={{ 
               borderRadius: 5,
-              bgcolor: alpha(ACCENTURE_COLORS.corePurple1, 0.1) 
+              bgcolor: darkMode ? 'rgba(255, 255, 255, 0.1)' : alpha(ACCENTURE_COLORS.corePurple1, 0.1) 
             }} 
           />
         </Box>
@@ -67,7 +70,7 @@ const SkeletonProjectCard = () => {
               mr: 2,
               borderRadius: 0.5,
               flexShrink: 0,
-              bgcolor: alpha(ACCENTURE_COLORS.corePurple1, 0.12)
+              bgcolor: darkMode ? 'rgba(255, 255, 255, 0.12)' : alpha(ACCENTURE_COLORS.corePurple1, 0.12)
             }}
           />
           <Box sx={{ width: "100%" }}>
@@ -77,7 +80,7 @@ const SkeletonProjectCard = () => {
               height={24}
               sx={{ 
                 mb: 0.5,
-                bgcolor: alpha(ACCENTURE_COLORS.corePurple1, 0.08)
+                bgcolor: darkMode ? 'rgba(255, 255, 255, 0.08)' : alpha(ACCENTURE_COLORS.corePurple1, 0.08)
               }} 
             />
             <Skeleton 
@@ -86,7 +89,7 @@ const SkeletonProjectCard = () => {
               height={16} 
               sx={{ 
                 mb: 0.25,
-                bgcolor: alpha(ACCENTURE_COLORS.corePurple1, 0.06)
+                bgcolor: darkMode ? 'rgba(255, 255, 255, 0.06)' : alpha(ACCENTURE_COLORS.corePurple1, 0.06)
               }} 
             />
             <Skeleton 
@@ -94,7 +97,7 @@ const SkeletonProjectCard = () => {
               width="90%" 
               height={16}
               sx={{ 
-                bgcolor: alpha(ACCENTURE_COLORS.corePurple1, 0.06)
+                bgcolor: darkMode ? 'rgba(255, 255, 255, 0.06)' : alpha(ACCENTURE_COLORS.corePurple1, 0.06)
               }}
             />
           </Box>
@@ -123,7 +126,7 @@ const SkeletonProjectCard = () => {
                   width={36}
                   height={36}
                   sx={{ 
-                    bgcolor: alpha(ACCENTURE_COLORS.corePurple1, 0.1 + (index * 0.04)),
+                    bgcolor: darkMode ? `rgba(255, 255, 255, ${0.1 + (index * 0.04)})` : alpha(ACCENTURE_COLORS.corePurple1, 0.1 + (index * 0.04)),
                   }}
                 />
               ))}
@@ -137,7 +140,7 @@ const SkeletonProjectCard = () => {
               width={100} 
               height={16}
               sx={{ 
-                bgcolor: alpha(ACCENTURE_COLORS.corePurple1, 0.08)
+                bgcolor: darkMode ? 'rgba(255, 255, 255, 0.08)' : alpha(ACCENTURE_COLORS.corePurple1, 0.08)
               }}
             />
             <Skeleton 
@@ -145,7 +148,7 @@ const SkeletonProjectCard = () => {
               width={30} 
               height={16}
               sx={{ 
-                bgcolor: alpha(ACCENTURE_COLORS.corePurple1, 0.08)
+                bgcolor: darkMode ? 'rgba(255, 255, 255, 0.08)' : alpha(ACCENTURE_COLORS.corePurple1, 0.08)
               }}
             />
           </Box>
@@ -156,7 +159,7 @@ const SkeletonProjectCard = () => {
             sx={{ 
               borderRadius: 4, 
               mb: 3,
-              bgcolor: alpha(ACCENTURE_COLORS.corePurple1, 0.15),
+              bgcolor: darkMode ? 'rgba(255, 255, 255, 0.15)' : alpha(ACCENTURE_COLORS.corePurple1, 0.15),
             }}
           />
         </Box>
@@ -167,7 +170,7 @@ const SkeletonProjectCard = () => {
             display: "flex",
             justifyContent: "space-between",
             pt: 2,
-            borderTop: `1px solid ${alpha(ACCENTURE_COLORS.corePurple1, 0.08)}`,
+            borderTop: darkMode ? '1px solid rgba(255, 255, 255, 0.08)' : `1px solid ${alpha(ACCENTURE_COLORS.corePurple1, 0.08)}`,
           }}
         >
           <Box>
@@ -176,7 +179,7 @@ const SkeletonProjectCard = () => {
               width={80} 
               height={12}
               sx={{ 
-                bgcolor: alpha(ACCENTURE_COLORS.corePurple1, 0.05)
+                bgcolor: darkMode ? 'rgba(255, 255, 255, 0.05)' : alpha(ACCENTURE_COLORS.corePurple1, 0.05)
               }}
             />
             <Skeleton 
@@ -184,7 +187,7 @@ const SkeletonProjectCard = () => {
               width={70} 
               height={16}
               sx={{ 
-                bgcolor: alpha(ACCENTURE_COLORS.corePurple1, 0.08)
+                bgcolor: darkMode ? 'rgba(255, 255, 255, 0.08)' : alpha(ACCENTURE_COLORS.corePurple1, 0.08)
               }}
             />
           </Box>
@@ -194,7 +197,7 @@ const SkeletonProjectCard = () => {
               width={60} 
               height={12}
               sx={{ 
-                bgcolor: alpha(ACCENTURE_COLORS.corePurple1, 0.05)
+                bgcolor: darkMode ? 'rgba(255, 255, 255, 0.05)' : alpha(ACCENTURE_COLORS.corePurple1, 0.05)
               }}
             />
             <Skeleton 
@@ -202,7 +205,7 @@ const SkeletonProjectCard = () => {
               width={70} 
               height={16}
               sx={{ 
-                bgcolor: alpha(ACCENTURE_COLORS.corePurple1, 0.08)
+                bgcolor: darkMode ? 'rgba(255, 255, 255, 0.08)' : alpha(ACCENTURE_COLORS.corePurple1, 0.08)
               }}
             />
           </Box>

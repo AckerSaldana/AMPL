@@ -4,7 +4,7 @@ import EditIcon from "@mui/icons-material/Edit";
 import PersonIcon from "@mui/icons-material/Person";
 import { ACCENTURE_COLORS } from "../styles/styles";
 
-const RoleCard = ({ role, name, avatar, percentage, onClick, selected }) => {
+const RoleCard = ({ role, name, avatar, percentage, onClick, selected, darkMode = false }) => {
   // Determinar el color del score basado en el porcentaje
   const getScoreColor = (value) => {
     if (value >= 90) return ACCENTURE_COLORS.green;
@@ -23,15 +23,15 @@ const RoleCard = ({ role, name, avatar, percentage, onClick, selected }) => {
         border: selected ? "2px solid" : "1px solid",
         borderColor: selected 
           ? ACCENTURE_COLORS.corePurple1 
-          : "rgba(0,0,0,0.08)",
+          : darkMode ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.08)",
         borderRadius: 1.5,
         cursor: "pointer",
         transition: "all 0.2s ease-in-out",
         backgroundColor: selected 
-          ? `${ACCENTURE_COLORS.corePurple1}08`
-          : "white",
+          ? (darkMode ? `${ACCENTURE_COLORS.corePurple1}15` : `${ACCENTURE_COLORS.corePurple1}08`)
+          : (darkMode ? '#2e2e2e' : "white"),
         "&:hover": {
-          boxShadow: "0 3px 8px rgba(0,0,0,0.08)",
+          boxShadow: darkMode ? "0 3px 8px rgba(255,255,255,0.08)" : "0 3px 8px rgba(0,0,0,0.08)",
           borderColor: selected 
             ? ACCENTURE_COLORS.corePurple1 
             : ACCENTURE_COLORS.accentPurple4,
@@ -65,7 +65,7 @@ const RoleCard = ({ role, name, avatar, percentage, onClick, selected }) => {
         </Typography>
         <Typography 
           variant="body2" 
-          color="text.secondary"
+          color={darkMode ? 'rgba(255,255,255,0.7)' : "text.secondary"}
           sx={{
             display: "flex",
             alignItems: "center",
@@ -74,7 +74,7 @@ const RoleCard = ({ role, name, avatar, percentage, onClick, selected }) => {
         >
           Assigned to: <span style={{ 
             fontWeight: 500, 
-            color: ACCENTURE_COLORS.corePurple2
+            color: darkMode ? ACCENTURE_COLORS.accentPurple5 : ACCENTURE_COLORS.corePurple2
           }}>{name}</span>
         </Typography>
       </Box>
@@ -95,7 +95,7 @@ const RoleCard = ({ role, name, avatar, percentage, onClick, selected }) => {
         </Typography>
         <Typography 
           variant="caption" 
-          color="text.secondary"
+          color={darkMode ? 'rgba(255,255,255,0.7)' : "text.secondary"}
           sx={{ fontSize: "0.7rem" }}
         >
           Match Score

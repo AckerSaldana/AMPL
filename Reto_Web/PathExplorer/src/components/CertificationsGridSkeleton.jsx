@@ -7,8 +7,9 @@ import {
   Grid
 } from "@mui/material";
 import { ACCENTURE_COLORS } from "../styles/styles";
+import { useDarkMode } from "../contexts/DarkModeContext";
 
-const CertificationCardSkeleton = () => {
+const CertificationCardSkeleton = ({ darkMode }) => {
   return (
     <Paper 
       elevation={0}
@@ -16,10 +17,10 @@ const CertificationCardSkeleton = () => {
         borderRadius: 2,
         overflow: "hidden",
         height: "100%",
-        boxShadow: "0 2px 10px rgba(0,0,0,0.03)",
+        boxShadow: darkMode ? "0 2px 10px rgba(0,0,0,0.3)" : "0 2px 10px rgba(0,0,0,0.03)",
         display: "flex",
         flexDirection: "column",
-        bgcolor: "#fff",
+        bgcolor: darkMode ? "#1e1e1e" : "#fff",
         position: "relative",
       }}
     >
@@ -43,7 +44,7 @@ const CertificationCardSkeleton = () => {
           height={28} 
           sx={{ 
             mb: 1.5,
-            bgcolor: `${ACCENTURE_COLORS.corePurple2}10`,
+            bgcolor: darkMode ? 'rgba(255, 255, 255, 0.1)' : `${ACCENTURE_COLORS.corePurple2}10`,
           }} 
         />
 
@@ -53,7 +54,7 @@ const CertificationCardSkeleton = () => {
             width={20} 
             height={20} 
             sx={{ 
-              bgcolor: `${ACCENTURE_COLORS.corePurple2}15`,
+              bgcolor: darkMode ? 'rgba(255, 255, 255, 0.15)' : `${ACCENTURE_COLORS.corePurple2}15`,
             }} 
           />
           <Skeleton 
@@ -61,14 +62,14 @@ const CertificationCardSkeleton = () => {
             width={150} 
             height={24} 
             sx={{ 
-              bgcolor: `${ACCENTURE_COLORS.corePurple2}08`,
+              bgcolor: darkMode ? 'rgba(255, 255, 255, 0.08)' : `${ACCENTURE_COLORS.corePurple2}08`,
             }} 
           />
         </Box>
 
         <Box
           sx={{
-            bgcolor: "rgba(0,0,0,0.02)",
+            bgcolor: darkMode ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.02)",
             px: 2,
             py: 1.5,
             borderRadius: 1,
@@ -81,7 +82,7 @@ const CertificationCardSkeleton = () => {
               top: 0,
               bottom: 0,
               width: "3px",
-              bgcolor: `${ACCENTURE_COLORS.corePurple2}40`,
+              bgcolor: darkMode ? 'rgba(255, 255, 255, 0.4)' : `${ACCENTURE_COLORS.corePurple2}40`,
             }
           }}
         >
@@ -90,13 +91,13 @@ const CertificationCardSkeleton = () => {
             width="80%" 
             height={20} 
             sx={{ 
-              bgcolor: `${ACCENTURE_COLORS.corePurple2}10`,
+              bgcolor: darkMode ? 'rgba(255, 255, 255, 0.1)' : `${ACCENTURE_COLORS.corePurple2}10`,
             }} 
           />
         </Box>
       </Box>
 
-      <Divider sx={{ mt: "auto", opacity: 0.5 }} />
+      <Divider sx={{ mt: "auto", opacity: darkMode ? 0.15 : 0.5 }} />
 
       {/* Footer */}
       <Box sx={{ p: 3, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -112,7 +113,7 @@ const CertificationCardSkeleton = () => {
             width={20} 
             height={20} 
             sx={{ 
-              bgcolor: `${ACCENTURE_COLORS.corePurple2}15`,
+              bgcolor: darkMode ? 'rgba(255, 255, 255, 0.15)' : `${ACCENTURE_COLORS.corePurple2}15`,
             }} 
           />
           <Box>
@@ -121,7 +122,7 @@ const CertificationCardSkeleton = () => {
               width={100} 
               height={24} 
               sx={{ 
-                bgcolor: `${ACCENTURE_COLORS.corePurple2}08`,
+                bgcolor: darkMode ? 'rgba(255, 255, 255, 0.08)' : `${ACCENTURE_COLORS.corePurple2}08`,
               }} 
             />
             <Skeleton 
@@ -130,7 +131,7 @@ const CertificationCardSkeleton = () => {
               height={20} 
               sx={{ 
                 mt: 0.25,
-                bgcolor: `${ACCENTURE_COLORS.corePurple2}06`,
+                bgcolor: darkMode ? 'rgba(255, 255, 255, 0.06)' : `${ACCENTURE_COLORS.corePurple2}06`,
               }} 
             />
           </Box>
@@ -141,7 +142,7 @@ const CertificationCardSkeleton = () => {
           width={24} 
           height={24} 
           sx={{ 
-            bgcolor: `${ACCENTURE_COLORS.corePurple2}10`,
+            bgcolor: darkMode ? 'rgba(255, 255, 255, 0.1)' : `${ACCENTURE_COLORS.corePurple2}10`,
           }} 
         />
       </Box>
@@ -150,11 +151,12 @@ const CertificationCardSkeleton = () => {
 };
 
 const CertificationsGridSkeleton = () => {
+  const { darkMode } = useDarkMode();
   return (
     <Grid container spacing={2}>
       {[1, 2, 3, 4].map((i) => (
         <Grid item xs={12} sm={6} key={i}>
-          <CertificationCardSkeleton />
+          <CertificationCardSkeleton darkMode={darkMode} />
         </Grid>
       ))}
     </Grid>

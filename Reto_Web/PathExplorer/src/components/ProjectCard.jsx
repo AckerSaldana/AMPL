@@ -12,21 +12,16 @@ import {
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { alpha } from "@mui/material/styles";
-import { cardStyles } from "../styles/styles";
-import { useTheme } from "@mui/material/styles";
+import { ACCENTURE_COLORS, cardStyles } from "../styles/styles";
 
-const ProjectCard = ({ project }) => {
+const ProjectCard = ({ project, darkMode = false }) => {
   const navigate = useNavigate();
-  const theme = useTheme();
 
   const getProgressColor = () => {
-    if (project.status === "Completed")
-      return theme.palette.accenture.colors.green;
-    if (project.progress >= 70)
-      return theme.palette.accenture.colors.corePurple1;
-    if (project.progress >= 30)
-      return theme.palette.accenture.colors.accentPurple2;
-    return theme.palette.accenture.colors.lightGray;
+    if (project.status === "Completed") return "#22A565";
+    if (project.progress >= 70) return ACCENTURE_COLORS.corePurple1;
+    if (project.progress >= 30) return ACCENTURE_COLORS.accentPurple2;
+    return ACCENTURE_COLORS.lightGray;
   };
 
   const formatDate = (dateString) => {
@@ -53,12 +48,13 @@ const ProjectCard = ({ project }) => {
         flexDirection: "column",
         borderRadius: "8px",
         overflow: "hidden",
-        border: "1px solid rgba(0,0,0,0.12)",
+        backgroundColor: darkMode ? '#1e1e1e' : "#ffffff",
+        border: darkMode ? "1px solid rgba(255,255,255,0.12)" : "1px solid rgba(0,0,0,0.12)",
         transition: "all 0.2s ease-in-out",
         cursor: "pointer",
         "&:hover": {
           transform: "translateY(-1px)",
-          borderColor: alpha(theme.palette.accenture.colors.corePurple1, 0.3),
+          borderColor: alpha(ACCENTURE_COLORS.corePurple1, 0.3),
         },
       }}
     >
@@ -67,7 +63,7 @@ const ProjectCard = ({ project }) => {
           p: 2.5,
           pb: 2,
           flexGrow: 1,
-          backgroundColor: theme.palette.background.paper,
+          backgroundColor: darkMode ? '#1e1e1e' : "#ffffff",
           display: "flex",
           flexDirection: "column",
           borderRadius: "8px",
@@ -90,20 +86,20 @@ const ProjectCard = ({ project }) => {
               borderRadius: 5,
               backgroundColor:
                 project.status === "In Progress"
-                  ? alpha(theme.palette.accenture.colors.corePurple1, 0.1)
+                  ? alpha(ACCENTURE_COLORS.corePurple1, 0.1)
                   : project.status === "Completed"
-                  ? alpha(theme.palette.accenture.colors.green, 0.1)
+                  ? alpha("#22A565", 0.1)
                   : project.status === "On Hold"
-                  ? alpha(theme.palette.accenture.colors.orange, 0.1)
-                  : alpha(theme.palette.accenture.colors.blue, 0.1),
+                  ? alpha(ACCENTURE_COLORS.orange, 0.1)
+                  : alpha(ACCENTURE_COLORS.blue, 0.1),
               color:
                 project.status === "In Progress"
-                  ? theme.palette.accenture.colors.corePurple1
+                  ? ACCENTURE_COLORS.corePurple1
                   : project.status === "Completed"
-                  ? theme.palette.accenture.colors.green
+                  ? "#22A565"
                   : project.status === "On Hold"
-                  ? theme.palette.accenture.colors.orange
-                  : theme.palette.accenture.colors.blue,
+                  ? ACCENTURE_COLORS.orange
+                  : ACCENTURE_COLORS.blue,
               fontWeight: 500,
               fontSize: "0.7rem",
               "& .MuiChip-label": {
@@ -125,14 +121,9 @@ const ProjectCard = ({ project }) => {
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              bgcolor:
-                project.logoBackground ||
-                alpha(theme.palette.accenture.colors.accentPurple2, 0.1),
+              bgcolor: project.logoBackground || alpha(ACCENTURE_COLORS.accentPurple2, darkMode ? 0.2 : 0.1),
               flexShrink: 0,
-              border: `1px solid ${alpha(
-                theme.palette.accenture.colors.corePurple1,
-                0.1
-              )}`,
+              border: `1px solid ${alpha(ACCENTURE_COLORS.corePurple1, darkMode ? 0.2 : 0.1)}`,
             }}
           >
             {project.logo ? (
@@ -146,11 +137,11 @@ const ProjectCard = ({ project }) => {
                 }}
               />
             ) : (
-              <Typography
-                variant="h6"
-                sx={{
-                  color: theme.palette.accenture.colors.corePurple1,
-                  fontWeight: 600,
+              <Typography 
+                variant="h6" 
+                sx={{ 
+                  color: ACCENTURE_COLORS.corePurple1,
+                  fontWeight: 600 
                 }}
               >
                 {project.title.charAt(0)}
@@ -160,11 +151,11 @@ const ProjectCard = ({ project }) => {
           <Box sx={{ width: "100%" }}>
             <Typography
               variant="subtitle1"
-              sx={{
-                fontWeight: 600,
-                mb: 0.5,
+              sx={{ 
+                fontWeight: 600, 
+                mb: 0.5, 
                 fontSize: "0.95rem",
-                color: theme.palette.accenture.colors.black,
+                color: darkMode ? '#ffffff' : ACCENTURE_COLORS.black
               }}
             >
               {project.title}
@@ -172,7 +163,7 @@ const ProjectCard = ({ project }) => {
             <Tooltip title={project.description} placement="top">
               <Typography
                 variant="body2"
-                color={theme.palette.accenture.colors.darkGray}
+                color={darkMode ? 'rgba(255,255,255,0.7)' : ACCENTURE_COLORS.darkGray}
                 sx={{
                   fontSize: "0.75rem",
                   display: "-webkit-box",
@@ -198,11 +189,11 @@ const ProjectCard = ({ project }) => {
         <Box>
           <Typography
             variant="body2"
-            sx={{
-              mb: 0.5,
-              fontWeight: 600,
+            sx={{ 
+              mb: 0.5, 
+              fontWeight: 600, 
               fontSize: "0.75rem",
-              color: theme.palette.accenture.colors.corePurple3,
+              color: darkMode ? 'rgba(255,255,255,0.9)' : ACCENTURE_COLORS.corePurple3
             }}
           >
             Team:
@@ -217,7 +208,7 @@ const ProjectCard = ({ project }) => {
                   width: 36,
                   height: 36,
                   fontSize: "0.75rem",
-                  border: "2px solid #fff",
+                  border: darkMode ? "2px solid rgba(255,255,255,0.1)" : "2px solid #fff",
                 },
                 "& .MuiAvatarGroup-avatar": {
                   width: 36,
@@ -235,11 +226,11 @@ const ProjectCard = ({ project }) => {
                     bgcolor: member.avatar
                       ? "transparent"
                       : [
-                          theme.palette.accenture.colors.corePurple1,
-                          theme.palette.accenture.colors.accentPurple3,
-                          theme.palette.accenture.colors.blue,
-                          theme.palette.accenture.colors.accentPurple2,
-                        ][index % 4],
+                        ACCENTURE_COLORS.corePurple1, 
+                        ACCENTURE_COLORS.accentPurple3, 
+                        ACCENTURE_COLORS.blue, 
+                        ACCENTURE_COLORS.accentPurple2
+                      ][index % 4],
                   }}
                 >
                   {!member.avatar && member.name
@@ -259,7 +250,7 @@ const ProjectCard = ({ project }) => {
               display: "flex",
               justifyContent: "space-between",
               fontSize: "0.75rem",
-              color: theme.palette.accenture.colors.black,
+              color: darkMode ? '#ffffff' : ACCENTURE_COLORS.black,
             }}
           >
             <span>Project Progress:</span>
@@ -272,7 +263,7 @@ const ProjectCard = ({ project }) => {
               height: 8,
               borderRadius: 4,
               mb: 3,
-              bgcolor: alpha(theme.palette.accenture.colors.corePurple1, 0.08),
+              bgcolor: alpha(ACCENTURE_COLORS.corePurple1, darkMode ? 0.15 : 0.08),
               "& .MuiLinearProgress-bar": {
                 bgcolor: getProgressColor(),
                 transition: "transform 0.5s ease-out",
@@ -287,26 +278,25 @@ const ProjectCard = ({ project }) => {
             display: "flex",
             justifyContent: "space-between",
             pt: 2,
-            borderTop: `1px solid ${alpha(
-              theme.palette.accenture.colors.corePurple1,
-              0.08
-            )}`,
+            borderTop: darkMode ? `1px solid rgba(255,255,255,0.12)` : `1px solid ${alpha(ACCENTURE_COLORS.corePurple1, 0.08)}`,
           }}
         >
           <Box>
             <Typography
               variant="caption"
-              color={theme.palette.accenture.colors.darkGray}
-              sx={{ fontSize: "0.65rem" }}
+              sx={{ 
+                fontSize: "0.65rem",
+                color: darkMode ? 'rgba(255,255,255,0.7)' : ACCENTURE_COLORS.darkGray
+              }}
             >
               Assigned Date:
             </Typography>
             <Typography
               variant="body2"
-              sx={{
-                fontWeight: 600,
+              sx={{ 
+                fontWeight: 600, 
                 fontSize: "0.75rem",
-                color: theme.palette.accenture.colors.black,
+                color: darkMode ? '#ffffff' : ACCENTURE_COLORS.black
               }}
             >
               {formatDate(project.assignedDate)}
@@ -315,17 +305,19 @@ const ProjectCard = ({ project }) => {
           <Box sx={{ textAlign: "right" }}>
             <Typography
               variant="caption"
-              color={theme.palette.accenture.colors.darkGray}
-              sx={{ fontSize: "0.65rem" }}
+              sx={{ 
+                fontSize: "0.65rem",
+                color: darkMode ? 'rgba(255,255,255,0.7)' : ACCENTURE_COLORS.darkGray
+              }}
             >
               Due Date:
             </Typography>
             <Typography
               variant="body2"
-              sx={{
-                fontWeight: 600,
+              sx={{ 
+                fontWeight: 600, 
                 fontSize: "0.75rem",
-                color: theme.palette.accenture.colors.black,
+                color: darkMode ? '#ffffff' : ACCENTURE_COLORS.black
               }}
             >
               {formatDate(project.dueDate)}
