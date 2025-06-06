@@ -22,6 +22,8 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "../supabase/supabaseClient";
 import dayjs from 'dayjs';
 import { ACCENTURE_COLORS } from "../styles/styles";
+import { useDarkMode } from "../contexts/DarkModeContext";
+import { getDarkModeStyles } from "../styles/darkModeStyles";
 
 // Importar los componentes personalizados
 import { CalendarCompact } from "../components/CalendarCompact";
@@ -116,13 +118,13 @@ const getIconTypeFromCertType = (type) => {
 };
 
 // Componente Skeleton para Timeline mientras carga
-const TimelineSkeleton = ({ profilePurple }) => (
+const TimelineSkeleton = ({ profilePurple, darkMode }) => (
   <Paper
     elevation={0}
     sx={{
       borderRadius: 2,
-      bgcolor: '#ffffff',
-      boxShadow: '0 4px 12px rgba(0,0,0,0.03)',
+      bgcolor: darkMode ? '#1e1e1e' : '#ffffff',
+      boxShadow: darkMode ? '0 4px 12px rgba(0,0,0,0.3)' : '0 4px 12px rgba(0,0,0,0.03)',
       overflow: 'hidden',
       mb: 3
     }}
@@ -130,7 +132,7 @@ const TimelineSkeleton = ({ profilePurple }) => (
     <Box sx={{ 
       p: 2, 
       borderBottom: '1px solid',
-      borderColor: alpha(profilePurple, 0.1),
+      borderColor: darkMode ? alpha(profilePurple, 0.3) : alpha(profilePurple, 0.1),
       display: 'flex', 
       justifyContent: 'space-between', 
       alignItems: 'center' 
@@ -163,6 +165,9 @@ const TimelineSkeleton = ({ profilePurple }) => (
 const Dashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { darkMode } = useDarkMode();
+  const darkModeStyles = getDarkModeStyles(darkMode);
+  const theme = useTheme();
   
   // Estados básicos
   const [stats, setStats] = useState({
@@ -173,11 +178,11 @@ const Dashboard = () => {
     certsInProgress: 0
   });
   const [userRole, setUserRole] = useState("");
-  const [popularSkills, setPopularSkills] = useState(DEFAULT_SKILLS);
+  const [popularSkills, setPopularSkills] = useState(DEFAULT_SKILLS.slice(0, 3));
   const [isLoading, setIsLoading] = useState(true);
   
   // Estado para certificaciones populares
-  const [popularCertifications, setPopularCertifications] = useState(DEFAULT_CERTIFICATIONS);
+  const [popularCertifications, setPopularCertifications] = useState(DEFAULT_CERTIFICATIONS.slice(0, 3));
   
   // Estados de carga separados para renderizado progresivo
   const [loadingStates, setLoadingStates] = useState({
@@ -383,7 +388,7 @@ const Dashboard = () => {
           py: 3,
           borderRadius: 2,
           background: `linear-gradient(135deg, ${ACCENTURE_COLORS.accenturePurple} 0%, ${alpha(ACCENTURE_COLORS.accenturePurple, 0.8)} 100%)`,
-          boxShadow: `0 4px 20px ${alpha(ACCENTURE_COLORS.accenturePurple, 0.3)}`
+          boxShadow: darkMode ? `0 4px 20px ${alpha(ACCENTURE_COLORS.accenturePurple, 0.5)}` : `0 4px 20px ${alpha(ACCENTURE_COLORS.accenturePurple, 0.3)}`
         }}
       >
         <Grid container alignItems="center" justifyContent="space-between">
@@ -409,15 +414,16 @@ const Dashboard = () => {
               sx={{
                 p: 3,
                 borderRadius: 2,
-                bgcolor: alpha(profilePurple, 0.04),
-                border: `1px solid ${alpha(profilePurple, 0.1)}`,
+                bgcolor: darkMode ? alpha(profilePurple, 0.15) : alpha(profilePurple, 0.04),
+                border: `1px solid ${darkMode ? alpha(profilePurple, 0.3) : alpha(profilePurple, 0.1)}`,
                 transition: 'all 0.3s ease',
                 cursor: 'pointer',
                 '&:hover': {
                   transform: 'translateY(-4px)',
-                  boxShadow: `0 8px 24px ${alpha(profilePurple, 0.15)}`,
-                  borderColor: alpha(profilePurple, 0.3),
-                }
+                  boxShadow: darkMode ? `0 8px 24px ${alpha(profilePurple, 0.3)}` : `0 8px 24px ${alpha(profilePurple, 0.15)}`,
+                  borderColor: darkMode ? alpha(profilePurple, 0.5) : alpha(profilePurple, 0.3),
+                },
+                ...darkModeStyles.cardStyles
               }}
             >
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
@@ -429,7 +435,7 @@ const Dashboard = () => {
               <Typography variant="h4" fontWeight={600}>
                 {loadingStates.stats ? <Skeleton width={40} /> : stats.activeProjects}
               </Typography>
-              <Typography variant="body2" color="text.secondary">
+              <Typography variant="body2" color={theme.palette.text.secondary}>
                 Active Projects
               </Typography>
             </Paper>
@@ -441,15 +447,16 @@ const Dashboard = () => {
               sx={{
                 p: 3,
                 borderRadius: 2,
-                bgcolor: alpha(profilePurple, 0.04),
-                border: `1px solid ${alpha(profilePurple, 0.1)}`,
+                bgcolor: darkMode ? alpha(profilePurple, 0.15) : alpha(profilePurple, 0.04),
+                border: `1px solid ${darkMode ? alpha(profilePurple, 0.3) : alpha(profilePurple, 0.1)}`,
                 transition: 'all 0.3s ease',
                 cursor: 'pointer',
                 '&:hover': {
                   transform: 'translateY(-4px)',
-                  boxShadow: `0 8px 24px ${alpha(profilePurple, 0.15)}`,
-                  borderColor: alpha(profilePurple, 0.3),
-                }
+                  boxShadow: darkMode ? `0 8px 24px ${alpha(profilePurple, 0.3)}` : `0 8px 24px ${alpha(profilePurple, 0.15)}`,
+                  borderColor: darkMode ? alpha(profilePurple, 0.5) : alpha(profilePurple, 0.3),
+                },
+                ...darkModeStyles.cardStyles
               }}
             >
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
@@ -460,7 +467,7 @@ const Dashboard = () => {
               <Typography variant="h4" fontWeight={600}>
                 {loadingStates.stats ? <Skeleton width={40} /> : stats.teamMembers}
               </Typography>
-              <Typography variant="body2" color="text.secondary">
+              <Typography variant="body2" color={theme.palette.text.secondary}>
                 Team Members
               </Typography>
             </Paper>
@@ -472,15 +479,16 @@ const Dashboard = () => {
               sx={{
                 p: 3,
                 borderRadius: 2,
-                bgcolor: alpha(profilePurple, 0.04),
-                border: `1px solid ${alpha(profilePurple, 0.1)}`,
+                bgcolor: darkMode ? alpha(profilePurple, 0.15) : alpha(profilePurple, 0.04),
+                border: `1px solid ${darkMode ? alpha(profilePurple, 0.3) : alpha(profilePurple, 0.1)}`,
                 transition: 'all 0.3s ease',
                 cursor: 'pointer',
                 '&:hover': {
                   transform: 'translateY(-4px)',
-                  boxShadow: `0 8px 24px ${alpha(profilePurple, 0.15)}`,
-                  borderColor: alpha(profilePurple, 0.3),
-                }
+                  boxShadow: darkMode ? `0 8px 24px ${alpha(profilePurple, 0.3)}` : `0 8px 24px ${alpha(profilePurple, 0.15)}`,
+                  borderColor: darkMode ? alpha(profilePurple, 0.5) : alpha(profilePurple, 0.3),
+                },
+                ...darkModeStyles.cardStyles
               }}
             >
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
@@ -504,7 +512,7 @@ const Dashboard = () => {
               <Typography variant="h4" fontWeight={600}>
                 {loadingStates.stats ? <Skeleton width={40} /> : stats.myCertifications}
               </Typography>
-              <Typography variant="body2" color="text.secondary">
+              <Typography variant="body2" color={theme.palette.text.secondary}>
                 My Certifications
               </Typography>
             </Paper>
@@ -516,15 +524,16 @@ const Dashboard = () => {
               sx={{
                 p: 3,
                 borderRadius: 2,
-                bgcolor: alpha(profilePurple, 0.04),
-                border: `1px solid ${alpha(profilePurple, 0.1)}`,
+                bgcolor: darkMode ? alpha(profilePurple, 0.15) : alpha(profilePurple, 0.04),
+                border: `1px solid ${darkMode ? alpha(profilePurple, 0.3) : alpha(profilePurple, 0.1)}`,
                 transition: 'all 0.3s ease',
                 cursor: 'pointer',
                 '&:hover': {
                   transform: 'translateY(-4px)',
-                  boxShadow: `0 8px 24px ${alpha(profilePurple, 0.15)}`,
-                  borderColor: alpha(profilePurple, 0.3),
-                }
+                  boxShadow: darkMode ? `0 8px 24px ${alpha(profilePurple, 0.3)}` : `0 8px 24px ${alpha(profilePurple, 0.15)}`,
+                  borderColor: darkMode ? alpha(profilePurple, 0.5) : alpha(profilePurple, 0.3),
+                },
+                ...darkModeStyles.cardStyles
               }}
             >
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
@@ -536,7 +545,7 @@ const Dashboard = () => {
               <Typography variant="h4" fontWeight={600}>
                 {loadingStates.stats ? <Skeleton width={40} /> : stats.skillsMastered}
               </Typography>
-              <Typography variant="body2" color="text.secondary">
+              <Typography variant="body2" color={theme.palette.text.secondary}>
                 Skills Mastered
               </Typography>
             </Paper>
@@ -553,6 +562,7 @@ const Dashboard = () => {
                 items={timelineItems} 
                 profilePurple={profilePurple}
                 loading={timelineLoading}
+                darkMode={darkMode}
               />
             </Box>
 
@@ -562,14 +572,15 @@ const Dashboard = () => {
               sx={{ 
                 mb: 3, 
                 borderRadius: 2,
-                border: `1px solid ${alpha(profilePurple, 0.1)}`,
-                overflow: 'hidden'
+                border: `1px solid ${darkMode ? alpha(profilePurple, 0.3) : alpha(profilePurple, 0.1)}`,
+                overflow: 'hidden',
+                backgroundColor: darkMode ? '#1e1e1e' : '#ffffff'
               }}
             >
               <Box sx={{ 
                 p: 2, 
                 borderBottom: '1px solid',
-                borderColor: alpha(profilePurple, 0.1),
+                borderColor: darkMode ? alpha(profilePurple, 0.3) : alpha(profilePurple, 0.1),
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center'
@@ -620,11 +631,12 @@ const Dashboard = () => {
                         mb: 2,
                         p: 2,
                         borderRadius: 1,
-                        border: `1px solid ${alpha(profilePurple, 0.1)}`,
+                        border: `1px solid ${darkMode ? alpha(profilePurple, 0.3) : alpha(profilePurple, 0.1)}`,
                         transition: 'all 0.2s',
+                        bgcolor: darkMode ? alpha(profilePurple, 0.05) : 'transparent',
                         '&:hover': {
-                          borderColor: alpha(profilePurple, 0.3),
-                          bgcolor: alpha(profilePurple, 0.02),
+                          borderColor: darkMode ? alpha(profilePurple, 0.5) : alpha(profilePurple, 0.3),
+                          bgcolor: darkMode ? alpha(profilePurple, 0.1) : alpha(profilePurple, 0.02),
                           transform: 'translateX(4px)'
                         }
                       }}
@@ -634,7 +646,7 @@ const Dashboard = () => {
                           <Typography variant="subtitle1" fontWeight={600}>
                             {skill.name}
                           </Typography>
-                          <Typography variant="caption" color="text.secondary">
+                          <Typography variant="caption" color={theme.palette.text.secondary}>
                             {skill.category} • {skill.userCount} professionals • {skill.projectCount} projects
                           </Typography>
                         </Box>
@@ -655,7 +667,7 @@ const Dashboard = () => {
                         sx={{
                           height: 6,
                           borderRadius: 3,
-                          bgcolor: alpha(profilePurple, 0.1),
+                          bgcolor: darkMode ? alpha(profilePurple, 0.2) : alpha(profilePurple, 0.1),
                           '& .MuiLinearProgress-bar': {
                             borderRadius: 3,
                             bgcolor: profilePurple
@@ -673,13 +685,15 @@ const Dashboard = () => {
               elevation={0} 
               sx={{ 
                 borderRadius: 2,
-                border: `1px solid ${alpha(profilePurple, 0.1)}`,
-                overflow: 'hidden'
+                border: `1px solid ${darkMode ? alpha(profilePurple, 0.3) : alpha(profilePurple, 0.1)}`,
+                overflow: 'hidden',
+                backgroundColor: darkMode ? '#1e1e1e' : '#ffffff'
               }}
             >
               <PopularCertifications 
                 certifications={popularCertifications}
                 loading={loadingStates.certifications}
+                darkMode={darkMode}
               />
             </Paper>
           </Grid>
@@ -688,7 +702,7 @@ const Dashboard = () => {
           <Grid item xs={12} lg={4}>
             {/* Calendar */}
             <Box sx={{ maxHeight: { xs: '600px', sm: '700px', md: '800px', lg: '900px' } }}>
-              <CalendarCompact userId={user?.id} />
+              <CalendarCompact userId={user?.id} darkMode={darkMode} />
             </Box>
           </Grid>
         </Grid>

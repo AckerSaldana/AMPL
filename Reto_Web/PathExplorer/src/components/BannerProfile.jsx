@@ -3,7 +3,7 @@ import { Box, Avatar, Typography, Paper, Button } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../supabase/supabaseClient";
 
-export const BannerProfile = () => {
+export const BannerProfile = ({ darkMode = false }) => {
   const navigate = useNavigate();
   const [userInfo, setUserInfo] = useState({
     firstName: "",
@@ -99,7 +99,7 @@ export const BannerProfile = () => {
           left: 0,
           width: "100%",
           height: "50px",
-          backgroundColor: "white",
+          backgroundColor: darkMode ? '#2e2e2e' : "white",
           zIndex: 2,
         },
       }}
@@ -117,9 +117,9 @@ export const BannerProfile = () => {
       >
         <Avatar
           src={userInfo.profilePic}
-          sx={{ width: 100, height: 100, border: "3px solid white" }}
+          sx={{ width: 100, height: 100, border: darkMode ? "3px solid #2e2e2e" : "3px solid white" }}
         />
-        <Box sx={{ ml: 2, color: "white", position: "relative", bottom: 15 }}>
+        <Box sx={{ ml: 2, color: darkMode ? "#ffffff" : "white", position: "relative", bottom: 15 }}>
           <Typography variant="h5">
             {userInfo.firstName} {userInfo.lastName}
           </Typography>
@@ -135,10 +135,10 @@ export const BannerProfile = () => {
           top: 20,
           right: 20,
           zIndex: 3,
-          backgroundColor: "rgba(255,255,255,0.2)",
+          backgroundColor: darkMode ? "rgba(255,255,255,0.1)" : "rgba(255,255,255,0.2)",
           backdropFilter: "blur(5px)",
           "&:hover": {
-            backgroundColor: "rgba(255,255,255,0.3)",
+            backgroundColor: darkMode ? "rgba(255,255,255,0.2)" : "rgba(255,255,255,0.3)",
           },
         }}
         onClick={() => navigate("/edit-profile")}

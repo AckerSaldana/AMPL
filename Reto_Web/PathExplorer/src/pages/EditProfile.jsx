@@ -32,8 +32,10 @@ import {
   EditOutlined
 } from "@mui/icons-material";
 import { supabase } from "../supabase/supabaseClient";
+import { useDarkMode } from "../contexts/DarkModeContext";
 
 const EditProfile = () => {
+  const { darkMode } = useDarkMode();
   const theme = useTheme();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
@@ -257,7 +259,6 @@ const EditProfile = () => {
         p: { xs: 2, md: 4 },
         minHeight: "calc(100vh - 60px)",
         width: "100%",
-        backgroundColor: alpha('#f8f9fa', 0.6),
       }}
     >
       {/* Header */}
@@ -272,29 +273,29 @@ const EditProfile = () => {
           alignItems: { xs: "flex-start", sm: "center" },
           justifyContent: "space-between",
           gap: { xs: 2, sm: 0 },
-          boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
-          backgroundColor: "#ffffff",
-          backgroundImage: 'linear-gradient(to right, rgba(161, 0, 255, 0.03), rgba(255, 255, 255, 0))',
+          boxShadow: darkMode ? 'none' : '0 1px 2px rgba(0,0,0,0.03)',
+          backgroundColor: theme.palette.background.paper,
+          backgroundImage: darkMode ? 'none' : 'linear-gradient(to right, rgba(161, 0, 255, 0.03), rgba(255, 255, 255, 0))',
           backdropFilter: 'blur(8px)',
           position: "relative",
           overflow: "hidden",
           border: '1px solid',
-          borderColor: alpha('#a100ff', 0.08),
+          borderColor: darkMode ? 'rgba(255,255,255,0.12)' : alpha('#a100ff', 0.08),
         }}
       >
         <Box sx={{ display: 'flex', alignItems: 'center' }}>
           <IconButton 
             onClick={handleCancel}
-            sx={{ mr: 1.5, color: '#7500c0' }}
+            sx={{ mr: 1.5, color: darkMode ? theme.palette.primary.main : '#7500c0' }}
           >
             <ArrowBack />
           </IconButton>
           <Typography 
             variant="h5" 
             fontWeight="600" 
-            color="#460073"
             sx={{ 
-              fontSize: { xs: '1.25rem', sm: '1.5rem' }
+              fontSize: { xs: '1.25rem', sm: '1.5rem' },
+              color: darkMode ? theme.palette.text.primary : '#460073'
             }}
           >
             Edit Profile
@@ -316,13 +317,13 @@ const EditProfile = () => {
             onClick={handleCancel}
             disabled={loading}
             sx={{
-              borderColor: '#e6e6dc',
-              color: '#96968c',
+              borderColor: darkMode ? 'rgba(255,255,255,0.23)' : '#e6e6dc',
+              color: darkMode ? theme.palette.text.secondary : '#96968c',
               width: { xs: "100%", sm: "auto" },
               minWidth: { sm: "120px" },
               "&:hover": {
-                borderColor: '#96968c',
-                backgroundColor: alpha('#96968c', 0.04),
+                borderColor: darkMode ? 'rgba(255,255,255,0.4)' : '#96968c',
+                backgroundColor: darkMode ? 'rgba(255,255,255,0.08)' : alpha('#96968c', 0.04),
               },
               textTransform: 'none',
               fontWeight: 500,
@@ -359,7 +360,9 @@ const EditProfile = () => {
             borderRadius: 2, 
             overflow: "hidden", 
             position: "relative",
-            boxShadow: "0 2px 10px rgba(0,0,0,0.05)",
+            boxShadow: darkMode ? 'none' : "0 2px 10px rgba(0,0,0,0.05)",
+            backgroundColor: theme.palette.background.paper,
+            border: darkMode ? '1px solid rgba(255,255,255,0.12)' : 'none',
           }}>
             {/* Fixed gradient banner for all employees */}
             <Box
@@ -380,7 +383,7 @@ const EditProfile = () => {
                 pt: { xs: 5, sm: 6 },
                 pb: { xs: 2, sm: 3 },
                 px: { xs: 2, sm: 3 },
-                backgroundColor: "white",
+                backgroundColor: theme.palette.background.paper,
                 position: "relative",
                 borderTop: "none",
               }}
@@ -394,10 +397,10 @@ const EditProfile = () => {
                 mb: 1,
               }}>
                 <Box>
-                  <Typography variant="h6" color="#460073" fontWeight={600}>
+                  <Typography variant="h6" fontWeight={600} sx={{ color: darkMode ? theme.palette.text.primary : '#460073' }}>
                     {formData.fullName || "Your Name"}
                   </Typography>
-                  <Typography variant="body2" color="text.secondary">
+                  <Typography variant="body2" sx={{ color: theme.palette.text.secondary }}>
                     {formData.position || "Your Position"}
                   </Typography>
                 </Box>
@@ -446,7 +449,7 @@ const EditProfile = () => {
                   sx={{
                     width: { xs: 80, sm: 100 },
                     height: { xs: 80, sm: 100 },
-                    border: "4px solid white",
+                    border: darkMode ? "4px solid #121212" : "4px solid white",
                     boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
                     backgroundColor: '#be82ff',
                     color: 'white',
@@ -479,7 +482,7 @@ const EditProfile = () => {
                     opacity: avatarHovered ? 0.8 : 0,
                     transition: "opacity 0.3s ease",
                     cursor: "pointer",
-                    border: "4px solid white",
+                    border: darkMode ? "4px solid #121212" : "4px solid white",
                   }}
                   component="label"
                   htmlFor="avatar-upload"
@@ -546,15 +549,15 @@ const EditProfile = () => {
               display: "flex",
               flexDirection: "column",
               borderRadius: 2,
-              boxShadow: "0 2px 15px rgba(0,0,0,0.03)",
-              backgroundColor: "#ffffff",
+              boxShadow: darkMode ? 'none' : "0 2px 15px rgba(0,0,0,0.03)",
+              backgroundColor: theme.palette.background.paper,
               height: '100%',
               border: '1px solid',
-              borderColor: alpha('#e6e6dc', 0.5),
+              borderColor: darkMode ? 'rgba(255,255,255,0.12)' : alpha('#e6e6dc', 0.5),
               transition: 'all 0.2s ease-in-out',
               '&:hover': {
-                boxShadow: "0 3px 20px rgba(0,0,0,0.06)",
-                borderColor: alpha('#7500c0', 0.08),
+                boxShadow: darkMode ? 'none' : "0 3px 20px rgba(0,0,0,0.06)",
+                borderColor: darkMode ? 'rgba(255,255,255,0.23)' : alpha('#7500c0', 0.08),
               }
             }}
           >
@@ -580,9 +583,10 @@ const EditProfile = () => {
                 fontWeight="600"
                 color="#460073"
                 sx={{ 
-                  background: 'linear-gradient(135deg, #460073, #a100ff)',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
+                  color: darkMode ? theme.palette.text.primary : '#460073',
+                  background: darkMode ? 'none' : 'linear-gradient(135deg, #460073, #a100ff)',
+                  WebkitBackgroundClip: darkMode ? 'unset' : 'text',
+                  WebkitTextFillColor: darkMode ? 'unset' : 'transparent',
                   letterSpacing: '0.3px'
                 }}
               >
@@ -590,7 +594,7 @@ const EditProfile = () => {
               </Typography>
             </Box>
 
-            <Divider sx={{ mb: 3.5, opacity: 0.6 }} />
+            <Divider sx={{ mb: 3.5, opacity: darkMode ? 0.12 : 0.6 }} />
 
             <TextField
               fullWidth
@@ -603,25 +607,32 @@ const EditProfile = () => {
                 mb: 3,
                 '& .MuiOutlinedInput-root': {
                   borderRadius: 1.5,
+                  backgroundColor: darkMode ? 'rgba(255, 255, 255, 0.05)' : 'transparent',
                   '&.Mui-focused fieldset': {
-                    borderColor: '#a100ff',
+                    borderColor: darkMode ? theme.palette.primary.main : '#a100ff',
                     borderWidth: '1px',
                   },
                   '&:hover fieldset': {
-                    borderColor: alpha('#a100ff', 0.5),
+                    borderColor: darkMode ? alpha(theme.palette.primary.main, 0.5) : alpha('#a100ff', 0.5),
                   },
                   '& fieldset': {
-                    borderColor: alpha('#96968c', 0.2),
+                    borderColor: darkMode ? 'rgba(255,255,255,0.23)' : alpha('#96968c', 0.2),
+                  },
+                  '& input': {
+                    color: darkMode ? theme.palette.text.primary : undefined,
                   }
                 },
-                '& .MuiInputLabel-root.Mui-focused': {
-                  color: '#a100ff',
+                '& .MuiInputLabel-root': {
+                  color: darkMode ? theme.palette.text.secondary : undefined,
+                  '&.Mui-focused': {
+                    color: darkMode ? theme.palette.primary.main : '#a100ff',
+                  }
                 }
               }}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
-                    <Person fontSize="small" sx={{ color: '#96968c' }} />
+                    <Person fontSize="small" sx={{ color: darkMode ? theme.palette.text.secondary : '#96968c' }} />
                   </InputAdornment>
                 ),
               }}
@@ -639,19 +650,26 @@ const EditProfile = () => {
                 mb: 3,
                 '& .MuiOutlinedInput-root': {
                   borderRadius: 1.5,
+                  backgroundColor: darkMode ? 'rgba(255, 255, 255, 0.05)' : 'transparent',
                   '&.Mui-focused fieldset': {
-                    borderColor: '#a100ff',
+                    borderColor: darkMode ? theme.palette.primary.main : '#a100ff',
                     borderWidth: '1px',
                   },
                   '&:hover fieldset': {
-                    borderColor: alpha('#a100ff', 0.5),
+                    borderColor: darkMode ? alpha(theme.palette.primary.main, 0.5) : alpha('#a100ff', 0.5),
                   },
                   '& fieldset': {
-                    borderColor: alpha('#96968c', 0.2),
+                    borderColor: darkMode ? 'rgba(255,255,255,0.23)' : alpha('#96968c', 0.2),
+                  },
+                  '& input': {
+                    color: darkMode ? theme.palette.text.primary : undefined,
                   }
                 },
-                '& .MuiInputLabel-root.Mui-focused': {
-                  color: '#a100ff',
+                '& .MuiInputLabel-root': {
+                  color: darkMode ? theme.palette.text.secondary : undefined,
+                  '&.Mui-focused': {
+                    color: darkMode ? theme.palette.primary.main : '#a100ff',
+                  }
                 }
               }}
             />
@@ -667,25 +685,32 @@ const EditProfile = () => {
                 mb: 3,
                 '& .MuiOutlinedInput-root': {
                   borderRadius: 1.5,
+                  backgroundColor: darkMode ? 'rgba(255, 255, 255, 0.05)' : 'transparent',
                   '&.Mui-focused fieldset': {
-                    borderColor: '#a100ff',
+                    borderColor: darkMode ? theme.palette.primary.main : '#a100ff',
                     borderWidth: '1px',
                   },
                   '&:hover fieldset': {
-                    borderColor: alpha('#a100ff', 0.5),
+                    borderColor: darkMode ? alpha(theme.palette.primary.main, 0.5) : alpha('#a100ff', 0.5),
                   },
                   '& fieldset': {
-                    borderColor: alpha('#96968c', 0.2),
+                    borderColor: darkMode ? 'rgba(255,255,255,0.23)' : alpha('#96968c', 0.2),
+                  },
+                  '& input': {
+                    color: darkMode ? theme.palette.text.primary : undefined,
                   }
                 },
-                '& .MuiInputLabel-root.Mui-focused': {
-                  color: '#a100ff',
+                '& .MuiInputLabel-root': {
+                  color: darkMode ? theme.palette.text.secondary : undefined,
+                  '&.Mui-focused': {
+                    color: darkMode ? theme.palette.primary.main : '#a100ff',
+                  }
                 }
               }}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
-                    <Phone fontSize="small" sx={{ color: '#96968c' }} />
+                    <Phone fontSize="small" sx={{ color: darkMode ? theme.palette.text.secondary : '#96968c' }} />
                   </InputAdornment>
                 ),
               }}
@@ -702,25 +727,32 @@ const EditProfile = () => {
               sx={{ 
                 '& .MuiOutlinedInput-root': {
                   borderRadius: 1.5,
+                  backgroundColor: darkMode ? 'rgba(255, 255, 255, 0.05)' : 'transparent',
                   '&.Mui-focused fieldset': {
-                    borderColor: '#a100ff',
+                    borderColor: darkMode ? theme.palette.primary.main : '#a100ff',
                     borderWidth: '1px',
                   },
                   '&:hover fieldset': {
-                    borderColor: alpha('#a100ff', 0.5),
+                    borderColor: darkMode ? alpha(theme.palette.primary.main, 0.5) : alpha('#a100ff', 0.5),
                   },
                   '& fieldset': {
-                    borderColor: alpha('#96968c', 0.2),
+                    borderColor: darkMode ? 'rgba(255,255,255,0.23)' : alpha('#96968c', 0.2),
+                  },
+                  '& input': {
+                    color: darkMode ? theme.palette.text.primary : undefined,
                   }
                 },
-                '& .MuiInputLabel-root.Mui-focused': {
-                  color: '#a100ff',
+                '& .MuiInputLabel-root': {
+                  color: darkMode ? theme.palette.text.secondary : undefined,
+                  '&.Mui-focused': {
+                    color: darkMode ? theme.palette.primary.main : '#a100ff',
+                  }
                 }
               }}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
-                    <Email fontSize="small" sx={{ color: '#96968c' }} />
+                    <Email fontSize="small" sx={{ color: darkMode ? theme.palette.text.secondary : '#96968c' }} />
                   </InputAdornment>
                 ),
               }}
@@ -738,14 +770,14 @@ const EditProfile = () => {
               flexDirection: "column",
               height: "100%",
               borderRadius: 2,
-              boxShadow: "0 2px 15px rgba(0,0,0,0.03)",
-              backgroundColor: "#ffffff",
+              boxShadow: darkMode ? 'none' : "0 2px 15px rgba(0,0,0,0.03)",
+              backgroundColor: theme.palette.background.paper,
               border: '1px solid',
-              borderColor: alpha('#e6e6dc', 0.5),
+              borderColor: darkMode ? 'rgba(255,255,255,0.12)' : alpha('#e6e6dc', 0.5),
               transition: 'all 0.2s ease-in-out',
               '&:hover': {
-                boxShadow: "0 3px 20px rgba(0,0,0,0.06)",
-                borderColor: alpha('#7500c0', 0.08),
+                boxShadow: darkMode ? 'none' : "0 3px 20px rgba(0,0,0,0.06)",
+                borderColor: darkMode ? 'rgba(255,255,255,0.23)' : alpha('#7500c0', 0.08),
               }
             }}
           >
@@ -770,9 +802,10 @@ const EditProfile = () => {
                 variant="h6" 
                 fontWeight="600" 
                 sx={{ 
-                  background: 'linear-gradient(135deg, #7500c0, #a100ff)',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
+                  color: darkMode ? theme.palette.text.primary : undefined,
+                  background: darkMode ? 'none' : 'linear-gradient(135deg, #7500c0, #a100ff)',
+                  WebkitBackgroundClip: darkMode ? 'unset' : 'text',
+                  WebkitTextFillColor: darkMode ? 'unset' : 'transparent',
                   letterSpacing: '0.3px'
                 }}
               >
@@ -780,7 +813,7 @@ const EditProfile = () => {
               </Typography>
             </Box>
 
-            <Divider sx={{ mb: 3.5, opacity: 0.6 }} />
+            <Divider sx={{ mb: 3.5, opacity: darkMode ? 0.12 : 0.6 }} />
 
             <TextField
               fullWidth
@@ -795,19 +828,26 @@ const EditProfile = () => {
                 flexGrow: 1,
                 '& .MuiOutlinedInput-root': {
                   borderRadius: 1.5,
+                  backgroundColor: darkMode ? 'rgba(255, 255, 255, 0.05)' : 'transparent',
                   '&.Mui-focused fieldset': {
-                    borderColor: '#7500c0',
+                    borderColor: darkMode ? theme.palette.primary.main : '#7500c0',
                     borderWidth: '1px',
                   },
                   '&:hover fieldset': {
-                    borderColor: alpha('#7500c0', 0.5),
+                    borderColor: darkMode ? alpha(theme.palette.primary.main, 0.5) : alpha('#7500c0', 0.5),
                   },
                   '& fieldset': {
-                    borderColor: alpha('#96968c', 0.2),
+                    borderColor: darkMode ? 'rgba(255,255,255,0.23)' : alpha('#96968c', 0.2),
+                  },
+                  '& textarea': {
+                    color: darkMode ? theme.palette.text.primary : undefined,
                   }
                 },
-                '& .MuiInputLabel-root.Mui-focused': {
-                  color: '#7500c0',
+                '& .MuiInputLabel-root': {
+                  color: darkMode ? theme.palette.text.secondary : undefined,
+                  '&.Mui-focused': {
+                    color: darkMode ? theme.palette.primary.main : '#7500c0',
+                  }
                 },
                 '& .MuiOutlinedInput-input': {
                   lineHeight: 1.6,
@@ -824,14 +864,14 @@ const EditProfile = () => {
             sx={{
               p: { xs: 2.5, md: 3.5 },
               borderRadius: 2,
-              boxShadow: "0 2px 15px rgba(0,0,0,0.03)",
-              backgroundColor: "#ffffff",
+              boxShadow: darkMode ? 'none' : "0 2px 15px rgba(0,0,0,0.03)",
+              backgroundColor: theme.palette.background.paper,
               border: '1px solid',
-              borderColor: alpha('#e6e6dc', 0.5),
+              borderColor: darkMode ? 'rgba(255,255,255,0.12)' : alpha('#e6e6dc', 0.5),
               transition: 'all 0.2s ease-in-out',
               '&:hover': {
-                boxShadow: "0 3px 20px rgba(0,0,0,0.06)",
-                borderColor: alpha('#7500c0', 0.08),
+                boxShadow: darkMode ? 'none' : "0 3px 20px rgba(0,0,0,0.06)",
+                borderColor: darkMode ? 'rgba(255,255,255,0.23)' : alpha('#7500c0', 0.08),
               }
             }}
           >
@@ -856,9 +896,10 @@ const EditProfile = () => {
                 variant="h6" 
                 fontWeight="600"
                 sx={{ 
-                  background: 'linear-gradient(135deg, #460073, #7500c0)',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
+                  color: darkMode ? theme.palette.text.primary : undefined,
+                  background: darkMode ? 'none' : 'linear-gradient(135deg, #460073, #7500c0)',
+                  WebkitBackgroundClip: darkMode ? 'unset' : 'text',
+                  WebkitTextFillColor: darkMode ? 'unset' : 'transparent',
                   letterSpacing: '0.3px'
                 }}
               >
@@ -866,7 +907,7 @@ const EditProfile = () => {
               </Typography>
             </Box>
             
-            <Divider sx={{ mb: 3.5, opacity: 0.6 }} />
+            <Divider sx={{ mb: 3.5, opacity: darkMode ? 0.12 : 0.6 }} />
 
             <Grid container spacing={3}>
               {[
@@ -905,9 +946,10 @@ const EditProfile = () => {
                         variant="subtitle2" 
                         fontWeight={600}
                         sx={{ 
-                          background: goal.gradient,
-                          WebkitBackgroundClip: 'text',
-                          WebkitTextFillColor: 'transparent',
+                          color: darkMode ? theme.palette.text.primary : undefined,
+                          background: darkMode ? 'none' : goal.gradient,
+                          WebkitBackgroundClip: darkMode ? 'unset' : 'text',
+                          WebkitTextFillColor: darkMode ? 'unset' : 'transparent',
                           letterSpacing: '0.3px'
                         }}
                       >
@@ -929,19 +971,26 @@ const EditProfile = () => {
                       sx={{ 
                         '& .MuiOutlinedInput-root': {
                           borderRadius: 1.5,
+                          backgroundColor: darkMode ? 'rgba(255, 255, 255, 0.05)' : 'transparent',
                           '&.Mui-focused fieldset': {
-                            borderColor: goal.color,
+                            borderColor: darkMode ? theme.palette.primary.main : goal.color,
                             borderWidth: '1px',
                           },
                           '&:hover fieldset': {
-                            borderColor: alpha(goal.color, 0.5),
+                            borderColor: darkMode ? alpha(theme.palette.primary.main, 0.5) : alpha(goal.color, 0.5),
                           },
                           '& fieldset': {
-                            borderColor: alpha('#96968c', 0.2),
+                            borderColor: darkMode ? 'rgba(255,255,255,0.23)' : alpha('#96968c', 0.2),
+                          },
+                          '& textarea': {
+                            color: darkMode ? theme.palette.text.primary : undefined,
                           }
                         },
-                        '& .MuiInputLabel-root.Mui-focused': {
-                          color: goal.color,
+                        '& .MuiInputLabel-root': {
+                          color: darkMode ? theme.palette.text.secondary : undefined,
+                          '&.Mui-focused': {
+                            color: darkMode ? theme.palette.primary.main : goal.color,
+                          }
                         },
                         '& .MuiOutlinedInput-input': {
                           lineHeight: 1.6,
@@ -966,7 +1015,22 @@ const EditProfile = () => {
         <Alert
           onClose={() => setSnackbar({ ...snackbar, open: false })}
           severity={snackbar.severity}
-          sx={{ width: '100%' }}
+          sx={{ 
+            width: '100%',
+            backgroundColor: darkMode ? (
+              snackbar.severity === 'error' ? 'rgba(211, 47, 47, 0.15)' :
+              snackbar.severity === 'success' ? 'rgba(46, 125, 50, 0.15)' :
+              undefined
+            ) : undefined,
+            color: darkMode ? theme.palette.text.primary : undefined,
+            '& .MuiAlert-icon': {
+              color: darkMode ? (
+                snackbar.severity === 'error' ? '#f44336' :
+                snackbar.severity === 'success' ? '#66bb6a' :
+                undefined
+              ) : undefined
+            }
+          }}
         >
           {snackbar.message}
         </Alert>

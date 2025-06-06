@@ -11,16 +11,11 @@ import {
   Chip,
   LinearProgress,
   Stack,
-  Divider,
-  IconButton,
-  Tooltip,
-  useTheme,
   Skeleton
 } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../supabase/supabaseClient";
-import dayjs from 'dayjs';
 import { ACCENTURE_COLORS } from "../styles/styles";
 
 // Importar los componentes personalizados
@@ -175,7 +170,7 @@ const Dashboard = () => {
     skillsMastered: 0,
     certsInProgress: 0
   });
-  const [userRole, setUserRole] = useState("");
+  // const [userRole, setUserRole] = useState("");
   const [popularSkills, setPopularSkills] = useState(DEFAULT_SKILLS);
   const [isLoading, setIsLoading] = useState(true);
   
@@ -208,7 +203,7 @@ const Dashboard = () => {
             .limit(1);
           
           if (userRoles && userRoles.length > 0) {
-            setUserRole(userRoles[0].role_name);
+            // setUserRole(userRoles[0].role_name);
           }
         } catch (e) {
           console.error("Error obteniendo rol:", e);

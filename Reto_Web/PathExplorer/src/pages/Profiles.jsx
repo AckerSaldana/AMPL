@@ -24,6 +24,8 @@ import {
 } from "@mui/icons-material";
 import { supabase } from "../supabase/supabaseClient";
 import { motion, AnimatePresence } from "framer-motion";
+import { useDarkMode } from "../contexts/DarkModeContext";
+import { getDarkModeStyles } from "../styles/darkModeStyles";
 
 // Componentes modulares importados
 import StatCard from "../components/StatCard";
@@ -56,8 +58,14 @@ const extractCount = (response) => {
 };
 
 // Skeleton components for loading states
-const StatCardSkeleton = () => (
-  <Paper sx={{ p: 3, borderRadius: 4, height: 120 }}>
+const StatCardSkeleton = ({ darkMode }) => (
+  <Paper sx={{ 
+    p: 3, 
+    borderRadius: 4, 
+    height: 120,
+    backgroundColor: darkMode ? '#1e1e1e' : '#ffffff',
+    border: darkMode ? '1px solid rgba(255, 255, 255, 0.12)' : 'none'
+  }}>
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
       <Skeleton variant="circular" width={50} height={50} />
       <Box sx={{ flex: 1 }}>
@@ -68,8 +76,14 @@ const StatCardSkeleton = () => (
   </Paper>
 );
 
-const EmployeeCardSkeleton = () => (
-  <Paper sx={{ p: 3, borderRadius: 4, height: 280 }}>
+const EmployeeCardSkeleton = ({ darkMode }) => (
+  <Paper sx={{ 
+    p: 3, 
+    borderRadius: 4, 
+    height: 280,
+    backgroundColor: darkMode ? '#1e1e1e' : '#ffffff',
+    border: darkMode ? '1px solid rgba(255, 255, 255, 0.12)' : 'none'
+  }}>
     <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
       <Skeleton variant="circular" width={56} height={56} />
       <Box sx={{ ml: 2, flex: 1 }}>
@@ -86,6 +100,8 @@ const EmployeeCardSkeleton = () => (
 
 const Profiles = () => {
   const theme = useTheme();
+  const { darkMode } = useDarkMode();
+  const darkModeStyles = getDarkModeStyles(darkMode);
   const { preloadUserProfile, getUserProfile } = useUserProfileCache();
   
   // Media query hooks para responsividad
@@ -433,7 +449,8 @@ const Profiles = () => {
       p: 2, 
       width: "100%",
       boxSizing: "border-box",
-      maxWidth: "100vw"
+      maxWidth: "100vw",
+      minHeight: '100vh'
     }}>
       <Box sx={{ 
         display: 'flex', 
@@ -441,7 +458,7 @@ const Profiles = () => {
         alignItems: 'center',
         mb: 3 
       }}>
-        <Typography variant="h4" fontWeight={600}>
+        <Typography variant="h4" fontWeight={600} sx={{ color: darkMode ? '#ffffff' : 'inherit' }}>
           Employee Profiles
         </Typography>
         
@@ -482,13 +499,14 @@ const Profiles = () => {
           <Grow in={animateIn} timeout={600}>
             <Box>
               {statsLoading ? (
-                <StatCardSkeleton />
+                <StatCardSkeleton darkMode={darkMode} />
               ) : (
                 <StatCard 
                   icon={PersonOutlineIcon} 
                   title="Total Employees" 
                   value={stats.totalEmployees || 0} 
-                  bgColor={accentureColors.corePurple1 + "20"} 
+                  bgColor={darkMode ? accentureColors.corePurple1 + "30" : accentureColors.corePurple1 + "20"} 
+                  darkMode={darkMode}
                 />
               )}
             </Box>
@@ -498,13 +516,14 @@ const Profiles = () => {
           <Grow in={animateIn} timeout={800}>
             <Box>
               {statsLoading ? (
-                <StatCardSkeleton />
+                <StatCardSkeleton darkMode={darkMode} />
               ) : (
                 <StatCard 
                   icon={GroupIcon} 
                   title="Available Employees" 
                   value={stats.availableEmployees || 0} 
-                  bgColor="#2196f320" 
+                  bgColor={darkMode ? "#2196f330" : "#2196f320"} 
+                  darkMode={darkMode}
                 />
               )}
             </Box>
@@ -514,13 +533,14 @@ const Profiles = () => {
           <Grow in={animateIn} timeout={1000}>
             <Box>
               {statsLoading ? (
-                <StatCardSkeleton />
+                <StatCardSkeleton darkMode={darkMode} />
               ) : (
                 <StatCard 
                   icon={WorkIcon} 
                   title="Active Projects" 
                   value={stats.activeProjects || 0} 
-                  bgColor="#4caf5020" 
+                  bgColor={darkMode ? "#4caf5030" : "#4caf5020"} 
+                  darkMode={darkMode}
                 />
               )}
             </Box>
@@ -544,6 +564,7 @@ const Profiles = () => {
             }}
             availableCount={stats.availableEmployees}
             onAddEmployee={handleEmployeeAdded}
+            darkMode={darkMode}
           />
         </Box>
       </Fade>
@@ -551,7 +572,7 @@ const Profiles = () => {
       {/* Results count */}
       <Fade in={!loading} timeout={600}>
         <Box sx={{ mb: 2 }}>
-          <Typography variant="body2" color="text.secondary">
+          <Typography variant="body2" sx={{ color: darkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary' }}>
             Showing {filteredEmployees.length} of {stats.totalEmployees || 0} employees
           </Typography>
         </Box>
@@ -564,7 +585,7 @@ const Profiles = () => {
             <Grid item xs={12} sm={6} md={4} lg={3} key={index}>
               <Fade in={true} timeout={300 * (index + 1)}>
                 <Box>
-                  <EmployeeCardSkeleton />
+                  <EmployeeCardSkeleton darkMode={darkMode} />
                 </Box>
               </Fade>
             </Grid>
@@ -611,6 +632,7 @@ const Profiles = () => {
                       employee={employee} 
                       onViewDetails={() => handleViewDetails(employee.user_id)}
                       onHover={() => handleEmployeeHover(employee.user_id)}
+                      darkMode={darkMode}
                     />
                   </Box>
                 </MotionGrid>
@@ -627,13 +649,15 @@ const Profiles = () => {
               borderRadius: 2,
               borderStyle: 'dashed',
               borderWidth: 1,
-              borderColor: 'divider'
+              borderColor: darkMode ? 'rgba(255, 255, 255, 0.2)' : 'divider',
+              backgroundColor: darkMode ? '#1e1e1e' : '#ffffff',
+              border: darkMode ? '1px dashed rgba(255, 255, 255, 0.2)' : '1px dashed rgba(0, 0, 0, 0.12)'
             }}
           >
-            <Typography variant="h6" color="text.secondary" gutterBottom>
+            <Typography variant="h6" sx={{ color: darkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary' }} gutterBottom>
               No employees found
             </Typography>
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="body2" sx={{ color: darkMode ? 'rgba(255, 255, 255, 0.5)' : 'text.secondary' }}>
               Try adjusting your search criteria or clear the filters
             </Typography>
           </Paper>
@@ -645,6 +669,12 @@ const Profiles = () => {
         anchorEl={sortAnchorEl}
         open={Boolean(sortAnchorEl)}
         onClose={() => setSortAnchorEl(null)}
+        PaperProps={{
+          sx: {
+            backgroundColor: darkMode ? '#1e1e1e' : '#ffffff',
+            border: darkMode ? '1px solid rgba(255, 255, 255, 0.12)' : 'none',
+          }
+        }}
       >
         <MenuItem onClick={() => handleSort("nameAsc")}>Name (A-Z)</MenuItem>
         <MenuItem onClick={() => handleSort("nameDesc")}>Name (Z-A)</MenuItem>
@@ -657,6 +687,12 @@ const Profiles = () => {
         anchorEl={filterAnchorEl}
         open={Boolean(filterAnchorEl)}
         onClose={() => setFilterAnchorEl(null)}
+        PaperProps={{
+          sx: {
+            backgroundColor: darkMode ? '#1e1e1e' : '#ffffff',
+            border: darkMode ? '1px solid rgba(255, 255, 255, 0.12)' : 'none',
+          }
+        }}
       >
         <MenuItem onClick={() => setFilterAnchorEl(null)}>All Roles</MenuItem>
         <MenuItem onClick={() => setFilterAnchorEl(null)}>Developers</MenuItem>
@@ -684,6 +720,7 @@ const Profiles = () => {
       <ReviewCertifications 
         open={reviewCertificationsOpen} 
         onClose={() => setReviewCertificationsOpen(false)} 
+        darkMode={darkMode}
       />
       
       {/* User Profile Modal */}
@@ -696,6 +733,7 @@ const Profiles = () => {
             setProfileModalOpen(false);
             setSelectedUserId(null);
           }}
+          darkMode={darkMode}
         />
       )}
     </Box>

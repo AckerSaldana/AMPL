@@ -23,7 +23,7 @@ import { ACCENTURE_COLORS } from '../styles/styles';
 /**
  * Ultra minimal and elegant modal component to display certification details
  */
-const CertificationDetailModal = ({ open, handleClose, certificationId }) => {
+const CertificationDetailModal = ({ open, handleClose, certificationId, darkMode = false }) => {
   // State to store certification data
   const [certification, setCertification] = useState(null);
   const [skills, setSkills] = useState([]);
@@ -109,11 +109,14 @@ const CertificationDetailModal = ({ open, handleClose, certificationId }) => {
             overflowY: 'auto',
             p: 0,
             borderRadius: '16px',
-            backgroundColor: '#ffffff',
+            backgroundColor: darkMode ? '#1e1e1e' : '#ffffff',
             '&:focus': {
               outline: 'none',
             },
-            boxShadow: `0 20px 80px -12px ${alpha(ACCENTURE_COLORS.corePurple3, 0.35)}`,
+            boxShadow: darkMode 
+              ? `0 20px 80px -12px ${alpha(ACCENTURE_COLORS.corePurple1, 0.25)}`
+              : `0 20px 80px -12px ${alpha(ACCENTURE_COLORS.corePurple3, 0.35)}`,
+            border: darkMode ? `1px solid ${alpha('#fff', 0.1)}` : 'none',
             position: 'relative',
             '&::-webkit-scrollbar': {
               width: '4px',
@@ -122,7 +125,7 @@ const CertificationDetailModal = ({ open, handleClose, certificationId }) => {
               background: 'transparent',
             },
             '&::-webkit-scrollbar-thumb': {
-              background: alpha(ACCENTURE_COLORS.corePurple1, 0.2),
+              background: darkMode ? alpha(ACCENTURE_COLORS.corePurple1, 0.4) : alpha(ACCENTURE_COLORS.corePurple1, 0.2),
               borderRadius: '4px',
             },
             transition: 'transform 0.3s ease',
@@ -149,13 +152,17 @@ const CertificationDetailModal = ({ open, handleClose, certificationId }) => {
               right: 16,
               top: 16,
               color: 'white',
-              bgcolor: alpha('#000', 0.25),
+              bgcolor: darkMode 
+                ? alpha('#fff', 0.15)
+                : alpha('#000', 0.25),
               width: 32,
               height: 32,
               backdropFilter: 'blur(4px)',
               zIndex: 10,
               '&:hover': {
-                bgcolor: alpha('#000', 0.4),
+                bgcolor: darkMode 
+                  ? alpha('#fff', 0.25)
+                  : alpha('#000', 0.4),
                 transform: 'scale(1.08)',
               },
               transition: 'all 0.2s ease',
@@ -173,7 +180,7 @@ const CertificationDetailModal = ({ open, handleClose, certificationId }) => {
               justifyContent: 'center', 
               py: 12, 
               gap: 2,
-              bgcolor: '#ffffff' 
+              bgcolor: darkMode ? '#1e1e1e' : '#ffffff' 
             }}>
               <CircularProgress 
                 size={40} 
@@ -192,7 +199,7 @@ const CertificationDetailModal = ({ open, handleClose, certificationId }) => {
               <Typography 
                 variant="body2" 
                 sx={{ 
-                  color: alpha('#000', 0.5), 
+                  color: darkMode ? alpha('#fff', 0.5) : alpha('#000', 0.5), 
                   mt: 1,
                   fontSize: '0.85rem',
                   letterSpacing: '0.01em'
@@ -206,7 +213,7 @@ const CertificationDetailModal = ({ open, handleClose, certificationId }) => {
             <Box sx={{ 
               textAlign: 'center', 
               p: 6, 
-              bgcolor: '#ffffff',
+              bgcolor: darkMode ? '#1e1e1e' : '#ffffff',
               borderRadius: '16px'
             }}>
               <Box sx={{
@@ -237,8 +244,8 @@ const CertificationDetailModal = ({ open, handleClose, certificationId }) => {
               </Typography>
               <Typography 
                 variant="body2" 
-                color="text.secondary" 
                 sx={{ 
+                  color: darkMode ? alpha('#fff', 0.6) : 'text.secondary',
                   mb: 3,
                   maxWidth: '280px',
                   mx: 'auto',
@@ -293,7 +300,9 @@ const CertificationDetailModal = ({ open, handleClose, certificationId }) => {
                     left: 0,
                     right: 0,
                     bottom: 0,
-                    background: `linear-gradient(to bottom, ${alpha(ACCENTURE_COLORS.corePurple3, 0)} 0%, ${alpha(ACCENTURE_COLORS.corePurple3, 0.85)} 100%)`,
+                    background: darkMode
+                      ? `linear-gradient(to bottom, ${alpha('#000', 0)} 0%, ${alpha('#000', 0.9)} 100%)`
+                      : `linear-gradient(to bottom, ${alpha(ACCENTURE_COLORS.corePurple3, 0)} 0%, ${alpha(ACCENTURE_COLORS.corePurple3, 0.85)} 100%)`,
                     borderTopLeftRadius: '16px',
                     borderTopRightRadius: '16px',
                   }
@@ -325,7 +334,7 @@ const CertificationDetailModal = ({ open, handleClose, certificationId }) => {
               </Box>
 
               {/* Content area with enhanced spacing and typography */}
-              <Box sx={{ p: { xs: 3, sm: 4 }, bgcolor: '#ffffff' }}>
+              <Box sx={{ p: { xs: 3, sm: 4 }, bgcolor: darkMode ? '#1e1e1e' : '#ffffff' }}>
 
 
                 {/* Issuer and Category section */}
@@ -337,13 +346,17 @@ const CertificationDetailModal = ({ open, handleClose, certificationId }) => {
                     mb: 3,
                     p: 2.5,
                     borderRadius: '12px',
-                    backgroundColor: alpha(ACCENTURE_COLORS.accentPurple5, 0.5),
-                    border: `1px solid ${alpha(ACCENTURE_COLORS.accentPurple4, 0.2)}`
+                    backgroundColor: darkMode 
+                      ? alpha(ACCENTURE_COLORS.corePurple1, 0.1) 
+                      : alpha(ACCENTURE_COLORS.accentPurple5, 0.5),
+                    border: `1px solid ${darkMode 
+                      ? alpha(ACCENTURE_COLORS.corePurple1, 0.2) 
+                      : alpha(ACCENTURE_COLORS.accentPurple4, 0.2)}`
                   }}>
                     {/* Issuer information */}
                     <Box sx={{ minWidth: '45%' }}>
                       <Typography variant="body2" sx={{ 
-                        color: alpha('#000', 0.5),
+                        color: darkMode ? alpha('#fff', 0.5) : alpha('#000', 0.5),
                         fontSize: '0.75rem',
                         fontWeight: 500,
                         textTransform: 'uppercase',
@@ -353,7 +366,7 @@ const CertificationDetailModal = ({ open, handleClose, certificationId }) => {
                         Issuer
                       </Typography>
                       <Typography variant="body1" sx={{ 
-                        color: ACCENTURE_COLORS.corePurple3,
+                        color: darkMode ? alpha('#fff', 0.9) : ACCENTURE_COLORS.corePurple3,
                         fontWeight: 500,
                         fontSize: '0.95rem'
                       }}>
@@ -364,7 +377,7 @@ const CertificationDetailModal = ({ open, handleClose, certificationId }) => {
                     {/* Category information */}
                     <Box>
                       <Typography variant="body2" sx={{ 
-                        color: alpha('#000', 0.5),
+                        color: darkMode ? alpha('#fff', 0.5) : alpha('#000', 0.5),
                         fontSize: '0.75rem',
                         fontWeight: 500,
                         textTransform: 'uppercase',
@@ -374,7 +387,7 @@ const CertificationDetailModal = ({ open, handleClose, certificationId }) => {
                         Category
                       </Typography>
                       <Typography variant="body1" sx={{ 
-                        color: ACCENTURE_COLORS.corePurple3,
+                        color: darkMode ? alpha('#fff', 0.9) : ACCENTURE_COLORS.corePurple3,
                         fontWeight: 500,
                         fontSize: '0.95rem'
                       }}>
@@ -390,7 +403,7 @@ const CertificationDetailModal = ({ open, handleClose, certificationId }) => {
                     <Typography 
                       variant="subtitle1" 
                       sx={{ 
-                        color: '#111', 
+                        color: darkMode ? '#fff' : '#111', 
                         fontWeight: 600,
                         fontSize: '1rem',
                         mb: 1.5,
@@ -414,7 +427,7 @@ const CertificationDetailModal = ({ open, handleClose, certificationId }) => {
                     <Typography 
                       variant="body2" 
                       sx={{ 
-                        color: alpha('#000', 0.7),
+                        color: darkMode ? alpha('#fff', 0.7) : alpha('#000', 0.7),
                         lineHeight: 1.7,
                         fontSize: '0.9rem',
                         letterSpacing: '0.01em'
@@ -431,7 +444,7 @@ const CertificationDetailModal = ({ open, handleClose, certificationId }) => {
                     <Typography 
                       variant="subtitle1" 
                       sx={{ 
-                        color: '#111', 
+                        color: darkMode ? '#fff' : '#111', 
                         fontWeight: 600,
                         fontSize: '1rem',
                         mb: 2,
@@ -465,8 +478,12 @@ const CertificationDetailModal = ({ open, handleClose, certificationId }) => {
                           label={skill.name}
                           size="small"
                           sx={{
-                            bgcolor: '#fff',
-                            color: ACCENTURE_COLORS.corePurple2,
+                            bgcolor: darkMode 
+                              ? alpha(ACCENTURE_COLORS.corePurple1, 0.15) 
+                              : '#fff',
+                            color: darkMode 
+                              ? alpha('#fff', 0.95) 
+                              : ACCENTURE_COLORS.corePurple2,
                             fontWeight: 500,
                             borderRadius: '12px',
                             px: 1,
@@ -477,13 +494,21 @@ const CertificationDetailModal = ({ open, handleClose, certificationId }) => {
                               fontSize: '0.75rem'
                             },
                             border: '1px solid',
-                            borderColor: alpha(ACCENTURE_COLORS.corePurple1, 0.2),
+                            borderColor: darkMode
+                              ? alpha(ACCENTURE_COLORS.corePurple1, 0.3)
+                              : alpha(ACCENTURE_COLORS.corePurple1, 0.2),
                             transition: 'all 0.25s ease',
                             '&:hover': {
                               transform: 'translateY(-2px)',
-                              boxShadow: `0 3px 6px ${alpha(ACCENTURE_COLORS.corePurple1, 0.15)}`,
-                              borderColor: alpha(ACCENTURE_COLORS.corePurple1, 0.3),
-                              backgroundColor: alpha(ACCENTURE_COLORS.corePurple1, 0.03)
+                              boxShadow: darkMode
+                                ? `0 3px 8px ${alpha(ACCENTURE_COLORS.corePurple1, 0.3)}`
+                                : `0 3px 6px ${alpha(ACCENTURE_COLORS.corePurple1, 0.15)}`,
+                              borderColor: darkMode
+                                ? alpha(ACCENTURE_COLORS.corePurple1, 0.4)
+                                : alpha(ACCENTURE_COLORS.corePurple1, 0.3),
+                              backgroundColor: darkMode 
+                                ? alpha(ACCENTURE_COLORS.corePurple1, 0.25) 
+                                : alpha(ACCENTURE_COLORS.corePurple1, 0.03)
                             }
                           }}
                         />
@@ -495,7 +520,8 @@ const CertificationDetailModal = ({ open, handleClose, certificationId }) => {
                 {/* Elegant divider */}
                 <Divider sx={{ 
                   my: 3.5, 
-                  opacity: 0.06
+                  opacity: darkMode ? 0.15 : 0.06,
+                  bgcolor: darkMode ? alpha('#fff', 0.1) : undefined
                 }} />
 
                 {/* Action buttons with enhanced styling */}
@@ -511,7 +537,7 @@ const CertificationDetailModal = ({ open, handleClose, certificationId }) => {
                     variant="text"
                     onClick={handleClose}
                     sx={{
-                      color: alpha('#000', 0.6),
+                      color: darkMode ? alpha('#fff', 0.6) : alpha('#000', 0.6),
                       borderRadius: '30px',
                       px: 2.5,
                       py: 0.75,
@@ -520,7 +546,7 @@ const CertificationDetailModal = ({ open, handleClose, certificationId }) => {
                       fontWeight: 500,
                       letterSpacing: '0.01em',
                       '&:hover': {
-                        backgroundColor: alpha('#000', 0.04),
+                        backgroundColor: darkMode ? alpha('#fff', 0.08) : alpha('#000', 0.04),
                       },
                       transition: 'all 0.2s ease'
                     }}
@@ -562,7 +588,7 @@ const CertificationDetailModal = ({ open, handleClose, certificationId }) => {
             <Box sx={{ 
               textAlign: 'center', 
               p: 6, 
-              bgcolor: '#ffffff',
+              bgcolor: darkMode ? '#1e1e1e' : '#ffffff',
               borderRadius: '16px'
             }}>
               <Box sx={{
@@ -582,11 +608,14 @@ const CertificationDetailModal = ({ open, handleClose, certificationId }) => {
               <Typography variant="subtitle1" sx={{ 
                 mb: 1.5, 
                 fontWeight: 600,
-                color: alpha('#000', 0.7)
+                color: darkMode ? alpha('#fff', 0.7) : alpha('#000', 0.7)
               }}>
                 No details available
               </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+              <Typography variant="body2" sx={{ 
+                color: darkMode ? alpha('#fff', 0.6) : 'text.secondary',
+                mb: 3 
+              }}>
                 We couldn't find information for this certification.
               </Typography>
               <Button

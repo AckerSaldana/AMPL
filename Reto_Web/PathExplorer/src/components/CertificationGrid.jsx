@@ -5,7 +5,7 @@ import { CertificationCard } from "./CertificationCard";
 import { supabase } from "../supabase/supabaseClient";
 
 
-export const CertificationGrid = ({ userId }) => {
+export const CertificationGrid = ({ userId, darkMode = false }) => {
   const theme = useTheme();
   const [certifications, setCertifications] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -128,7 +128,9 @@ export const CertificationGrid = ({ userId }) => {
         display: 'flex', 
         justifyContent: 'center', 
         alignItems: 'center', 
-        minHeight: 200 
+        minHeight: 200,
+        backgroundColor: darkMode ? '#2e2e2e' : '#ffffff',
+        border: darkMode ? '1px solid rgba(255,255,255,0.12)' : 'none'
       }}>
         <CircularProgress />
       </Paper>
@@ -137,7 +139,7 @@ export const CertificationGrid = ({ userId }) => {
 
   if (error) {
     return (
-      <Paper sx={{ p: 2, textAlign: 'center' }}>
+      <Paper sx={{ p: 2, textAlign: 'center', backgroundColor: darkMode ? '#2e2e2e' : '#ffffff', border: darkMode ? '1px solid rgba(255,255,255,0.12)' : 'none' }}>
         <Typography color="error">Error loading certifications</Typography>
       </Paper>
     );
@@ -152,14 +154,15 @@ export const CertificationGrid = ({ userId }) => {
         height: "100%",
         minHeight: 0,
         p: 2,
-        bgcolor: '#fff',
+        bgcolor: darkMode ? '#2e2e2e' : '#fff',
         borderRadius: 2,
-        boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+        boxShadow: darkMode ? '0 1px 3px rgba(255,255,255,0.05)' : '0 1px 3px rgba(0,0,0,0.05)',
+        border: darkMode ? '1px solid rgba(255,255,255,0.12)' : 'none'
       }}
     >
       <Typography
         variant="h6"
-        sx={{ mb: 2, fontWeight: 500 }}
+        sx={{ mb: 2, fontWeight: 500, color: darkMode ? '#ffffff' : '#000000' }}
       >
         My Certifications
       </Typography>
@@ -177,11 +180,13 @@ export const CertificationGrid = ({ userId }) => {
           {certifications.map((cert) => (
             <Grid item xs={12} sm={6} key={cert.id}>
               <CertificationCard 
+                id={cert.id}
                 title={cert.title}
                 url={cert.url}
                 skills={cert.skills}
                 status={cert.status} // Pass status to the card component
                 backgroundImage={cert.backgroundImage}
+                darkMode={darkMode}
               />
             </Grid>
           ))}

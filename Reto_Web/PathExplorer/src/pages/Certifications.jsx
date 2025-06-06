@@ -19,6 +19,8 @@ import {
   Grow
 } from '@mui/material';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useDarkMode } from "../contexts/DarkModeContext";
+import { getDarkModeStyles } from "../styles/darkModeStyles";
 
 // Icons
 import SearchIcon from '@mui/icons-material/Search';
@@ -95,17 +97,23 @@ const MotionGrid = motion(Grid);
 const MotionBox = motion(Box);
 
 // Skeleton component for loading state with animation
-const CertificationSkeleton = ({ index }) => (
-  <Fade in={true} timeout={300 + index * 50}>
-    <Paper 
-      elevation={0}
-      sx={{ 
-        p: 0, 
-        borderRadius: 2, 
-        overflow: 'hidden',
-        height: 280
-      }}
-    >
+const CertificationSkeleton = ({ index }) => {
+  const { darkMode } = useDarkMode();
+  const theme = useTheme();
+  
+  return (
+    <Fade in={true} timeout={300 + index * 50}>
+      <Paper 
+        elevation={0}
+        sx={{ 
+          p: 0, 
+          borderRadius: 2, 
+          overflow: 'hidden',
+          height: 280,
+          backgroundColor: darkMode ? '#1e1e1e' : '#ffffff',
+          border: darkMode ? '1px solid rgba(255, 255, 255, 0.12)' : 'none'
+        }}
+      >
       <Skeleton 
         variant="rectangular" 
         height={160} 
@@ -123,10 +131,13 @@ const CertificationSkeleton = ({ index }) => (
       </Box>
     </Paper>
   </Fade>
-);
+  );
+};
 
 const Certifications = () => {
   const theme = useTheme();
+  const { darkMode } = useDarkMode();
+  const darkModeStyles = getDarkModeStyles(darkMode);
   const navigate = useNavigate();
 
   // States
@@ -491,7 +502,7 @@ const Certifications = () => {
           variant="h4" 
           sx={{ 
             fontWeight: 700, 
-            color: '#333333',
+            color: darkMode ? '#ffffff' : '#333333',
             mb: 1,
             fontSize: { xs: '1.75rem', md: '2.25rem' }
           }}
@@ -517,7 +528,7 @@ const Certifications = () => {
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
-                  <SearchIcon sx={{ color: alpha('#000', 0.4) }} />
+                  <SearchIcon sx={{ color: darkMode ? alpha('#fff', 0.5) : alpha('#000', 0.4) }} />
                 </InputAdornment>
               ),
               endAdornment: searchTerm && (
@@ -525,7 +536,7 @@ const Certifications = () => {
                   <IconButton
                     size="small"
                     onClick={() => setSearchTerm('')}
-                    sx={{ color: alpha('#000', 0.4) }}
+                    sx={{ color: darkMode ? alpha('#fff', 0.5) : alpha('#000', 0.4) }}
                   >
                     <CloseIcon fontSize="small" />
                   </IconButton>
@@ -537,10 +548,17 @@ const Certifications = () => {
               minWidth: { md: '240px' },
               '& .MuiOutlinedInput-root': {
                 borderRadius: 8,
-                bgcolor: 'white',
+                bgcolor: darkMode ? alpha('#fff', 0.05) : 'white',
                 transition: 'all 0.2s',
                 border: '1px solid',
-                borderColor: alpha('#000', 0.1),
+                borderColor: darkMode ? alpha('#fff', 0.1) : alpha('#000', 0.1),
+                '& input': {
+                  color: darkMode ? '#ffffff' : '#000000',
+                  '&::placeholder': {
+                    color: darkMode ? alpha('#fff', 0.5) : alpha('#000', 0.5),
+                    opacity: 1
+                  }
+                },
                 '&:hover': {
                   borderColor: alpha(ACCENTURE_COLORS.corePurple1, 0.5),
                   boxShadow: `0 0 0 1px ${alpha(ACCENTURE_COLORS.corePurple1, 0.1)}`
@@ -628,7 +646,7 @@ const Certifications = () => {
                 duration: 0.3
               }}
               component={Paper}
-              elevation={10}
+              elevation={0}
               sx={{
                 position: 'absolute',
                 top: { xs: '120px', md: '70px' },
@@ -638,9 +656,10 @@ const Certifications = () => {
                 borderRadius: 3,
                 zIndex: 100,
                 overflow: 'hidden',
-                boxShadow: '0 8px 32px rgba(0, 0, 0, 0.12), 0 0 2px rgba(0, 0, 0, 0.08)',
+                bgcolor: darkMode ? theme.palette.background.paper : '#ffffff',
+                boxShadow: darkMode ? '0 8px 32px rgba(0, 0, 0, 0.3), 0 0 2px rgba(0, 0, 0, 0.2)' : '0 8px 32px rgba(0, 0, 0, 0.12), 0 0 2px rgba(0, 0, 0, 0.08)',
                 border: '1px solid',
-                borderColor: alpha('#000', 0.06),
+                borderColor: darkMode ? alpha('#fff', 0.12) : alpha('#000', 0.06),
                 backdropFilter: 'blur(2px)'
               }}
             >
@@ -653,13 +672,13 @@ const Certifications = () => {
                 justifyContent: 'space-between',
                 alignItems: 'center',
                 borderBottom: '1px solid',
-                borderColor: alpha('#000', 0.06),
+                borderColor: darkMode ? alpha('#fff', 0.12) : alpha('#000', 0.06),
                 background: `linear-gradient(145deg, ${alpha(ACCENTURE_COLORS.corePurple1, 0.05)} 0%, ${alpha(ACCENTURE_COLORS.corePurple2, 0.08)} 100%)`,
               }}
             >
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                 <FilterAltOutlinedIcon sx={{ color: ACCENTURE_COLORS.corePurple1, fontSize: 22 }} />
-                <Typography variant="subtitle1" fontWeight={700} color={alpha('#000', 0.8)}>
+                <Typography variant="subtitle1" fontWeight={700} color={darkMode ? alpha('#fff', 0.8) : alpha('#000', 0.8)}>
                   Filter Certifications
                 </Typography>
               </Box>
@@ -672,12 +691,12 @@ const Certifications = () => {
                     startIcon={<ClearIcon />}
                     onClick={handleClearFilters}
                     sx={{
-                      color: alpha('#000', 0.6),
+                      color: darkMode ? alpha('#fff', 0.6) : alpha('#000', 0.6),
                       textTransform: 'none',
                       fontWeight: 600,
                       fontSize: '0.875rem',
                       '&:hover': {
-                        backgroundColor: alpha('#000', 0.05),
+                        backgroundColor: darkMode ? alpha('#fff', 0.05) : alpha('#000', 0.05),
                       }
                     }}
                   >
@@ -689,9 +708,9 @@ const Certifications = () => {
                   size="small"
                   onClick={closeFilters}
                   sx={{ 
-                    color: alpha('#000', 0.6),
+                    color: darkMode ? alpha('#fff', 0.6) : alpha('#000', 0.6),
                     '&:hover': {
-                      backgroundColor: alpha('#000', 0.05),
+                      backgroundColor: darkMode ? alpha('#fff', 0.05) : alpha('#000', 0.05),
                     }
                   }}
                 >
@@ -719,7 +738,7 @@ const Certifications = () => {
                     background: alpha(ACCENTURE_COLORS.corePurple1, 0.25),
                   }
                 },
-                bgcolor: '#ffffff',
+                bgcolor: darkMode ? theme.palette.background.paper : '#ffffff',
               }}
             >
               {/* Categories */}
@@ -728,7 +747,7 @@ const Certifications = () => {
                   mb: 4,
                   pb: 3,
                   borderBottom: '1px solid',
-                  borderColor: alpha('#000', 0.05),
+                  borderColor: darkMode ? alpha('#fff', 0.1) : alpha('#000', 0.05),
                 }}
               >
                 <Box
@@ -801,7 +820,7 @@ const Certifications = () => {
                 >
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <TagIcon sx={{ color: ACCENTURE_COLORS.corePurple1, fontSize: 20 }} />
-                    <Typography variant="subtitle2" fontWeight={600} color={alpha('#000', 0.8)}>
+                    <Typography variant="subtitle2" fontWeight={600} color={darkMode ? alpha('#fff', 0.8) : alpha('#000', 0.8)}>
                       Skills
                     </Typography>
                   </Box>
@@ -834,7 +853,7 @@ const Certifications = () => {
                   InputProps={{
                     startAdornment: (
                       <InputAdornment position="start">
-                        <SearchIcon sx={{ color: alpha('#000', 0.4) }} />
+                        <SearchIcon sx={{ color: darkMode ? alpha('#fff', 0.5) : alpha('#000', 0.4) }} />
                       </InputAdornment>
                     ),
                     endAdornment: skillSearchTerm && (
@@ -842,7 +861,7 @@ const Certifications = () => {
                         <IconButton
                           size="small"
                           onClick={() => setSkillSearchTerm('')}
-                          sx={{ color: alpha('#000', 0.4) }}
+                          sx={{ color: darkMode ? alpha('#fff', 0.5) : alpha('#000', 0.4) }}
                         >
                           <CloseIcon fontSize="small" />
                         </IconButton>
@@ -853,17 +872,24 @@ const Certifications = () => {
                     mb: 2,
                     '& .MuiOutlinedInput-root': {
                       borderRadius: 2,
-                      bgcolor: alpha('#f5f5f5', 0.5),
+                      bgcolor: darkMode ? theme.palette.background.default : alpha('#f5f5f5', 0.5),
                       border: '1px solid',
-                      borderColor: alpha('#000', 0.08),
+                      borderColor: darkMode ? alpha('#fff', 0.08) : alpha('#000', 0.08),
+                      '& input': {
+                        color: darkMode ? '#ffffff' : '#000000',
+                        '&::placeholder': {
+                          color: darkMode ? alpha('#fff', 0.5) : alpha('#000', 0.5),
+                          opacity: 1
+                        }
+                      },
                       '&:hover': {
                         borderColor: alpha(ACCENTURE_COLORS.corePurple1, 0.5),
-                        bgcolor: 'white',
+                        bgcolor: darkMode ? alpha('#fff', 0.05) : 'white',
                       },
                       '&.Mui-focused': {
                         borderColor: ACCENTURE_COLORS.corePurple1,
                         boxShadow: `0 0 0 2px ${alpha(ACCENTURE_COLORS.corePurple1, 0.15)}`,
-                        bgcolor: 'white',
+                        bgcolor: darkMode ? alpha('#fff', 0.05) : 'white',
                         '& fieldset': { border: 'none' }
                       },
                       '& fieldset': { border: 'none' }
@@ -878,12 +904,12 @@ const Certifications = () => {
                       mb: 2,
                       p: 1.5,
                       borderRadius: 2,
-                      bgcolor: alpha(ACCENTURE_COLORS.corePurple1, 0.04),
+                      bgcolor: darkMode ? alpha(ACCENTURE_COLORS.corePurple1, 0.15) : alpha(ACCENTURE_COLORS.corePurple1, 0.04),
                       border: '1px solid',
-                      borderColor: alpha(ACCENTURE_COLORS.corePurple1, 0.1),
+                      borderColor: darkMode ? alpha(ACCENTURE_COLORS.corePurple1, 0.3) : alpha(ACCENTURE_COLORS.corePurple1, 0.1),
                     }}
                   >
-                    <Typography variant="caption" fontWeight={600} color={alpha('#000', 0.7)} sx={{ display: 'block', mb: 1 }}>
+                    <Typography variant="caption" fontWeight={600} color={darkMode ? alpha('#fff', 0.7) : alpha('#000', 0.7)} sx={{ display: 'block', mb: 1 }}>
                       Selected Skills
                     </Typography>
                     <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
@@ -923,8 +949,8 @@ const Certifications = () => {
                     p: 2,
                     borderRadius: 2,
                     border: '1px solid',
-                    borderColor: alpha('#000', 0.08),
-                    bgcolor: alpha('#f9f9f9', 0.5),
+                    borderColor: darkMode ? alpha('#fff', 0.08) : alpha('#000', 0.08),
+                    bgcolor: darkMode ? alpha('#fff', 0.03) : alpha('#f9f9f9', 0.5),
                     '&::-webkit-scrollbar': {
                       width: '4px',
                     },
@@ -938,7 +964,7 @@ const Certifications = () => {
                         background: alpha(ACCENTURE_COLORS.corePurple1, 0.3),
                       }
                     },
-                    boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.02)'
+                    boxShadow: darkMode ? 'inset 0 1px 3px rgba(255,255,255,0.02)' : 'inset 0 1px 3px rgba(0,0,0,0.02)'
                   }}
                 >
                   {filteredSkills.length > 0 ? (
@@ -971,25 +997,25 @@ const Certifications = () => {
                                 height: 28,
                                 bgcolor: skillFilter.includes(skill) 
                                   ? alpha(ACCENTURE_COLORS.corePurple1, 0.1) 
-                                  : 'white',
+                                  : darkMode ? alpha('#fff', 0.05) : 'white',
                                 color: skillFilter.includes(skill) 
                                   ? ACCENTURE_COLORS.corePurple1 
-                                  : alpha('#000', 0.7),
+                                  : darkMode ? alpha('#fff', 0.7) : alpha('#000', 0.7),
                                 border: '1px solid',
                                 borderColor: skillFilter.includes(skill) 
                                   ? alpha(ACCENTURE_COLORS.corePurple1, 0.3) 
-                                  : alpha('#000', 0.08),
+                                  : darkMode ? alpha('#fff', 0.08) : alpha('#000', 0.08),
                                 '&:hover': {
                                   bgcolor: skillFilter.includes(skill) 
                                     ? alpha(ACCENTURE_COLORS.corePurple1, 0.15) 
-                                    : alpha(ACCENTURE_COLORS.corePurple1, 0.05),
+                                    : darkMode ? alpha(ACCENTURE_COLORS.corePurple1, 0.15) : alpha(ACCENTURE_COLORS.corePurple1, 0.05),
                                   borderColor: ACCENTURE_COLORS.corePurple1,
-                                  boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+                                  boxShadow: darkMode ? '0 2px 4px rgba(255,255,255,0.05)' : '0 2px 4px rgba(0,0,0,0.05)'
                                 },
                                 fontWeight: 500,
                                 transition: 'all 0.15s',
                                 boxShadow: skillFilter.includes(skill) 
-                                  ? '0 1px 3px rgba(0,0,0,0.05)' 
+                                  ? darkMode ? '0 1px 3px rgba(255,255,255,0.05)' : '0 1px 3px rgba(0,0,0,0.05)' 
                                   : 'none',
                               }}
                             />
@@ -1009,7 +1035,7 @@ const Certifications = () => {
                         gap: 1,
                       }}
                     >
-                      <SearchIcon sx={{ color: alpha('#000', 0.2), fontSize: 32 }} />
+                      <SearchIcon sx={{ color: darkMode ? alpha('#fff', 0.2) : alpha('#000', 0.2), fontSize: 32 }} />
                       <Typography variant="body2" color="text.secondary">
                         {allSkills.length === 0 ? 'No skills available' : 'No skills match your search'}
                       </Typography>
@@ -1024,15 +1050,15 @@ const Certifications = () => {
                   sx={{ 
                     pt: 3,
                     mt: 1,
-                    borderTop: `1px solid ${alpha('#000', 0.05)}`,
-                    bgcolor: alpha('#f5f5f5', 0.5),
+                    borderTop: `1px solid ${darkMode ? alpha('#fff', 0.1) : alpha('#000', 0.05)}`,
+                    bgcolor: darkMode ? theme.palette.background.default : alpha('#f5f5f5', 0.5),
                     mx: -3,
                     px: 3,
                     pb: 2
                   }}
                 >
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
-                    <Typography variant="subtitle2" fontWeight={600} color={alpha('#000', 0.7)}>
+                    <Typography variant="subtitle2" fontWeight={600} color={darkMode ? alpha('#fff', 0.7) : alpha('#000', 0.7)}>
                       Active filters
                     </Typography>
                   </Box>
@@ -1148,6 +1174,7 @@ const Certifications = () => {
                     skills={cert.skills || []}
                     backgroundImage={cert.backgroundImage}
                     duration={cert.issuer}
+                    darkMode={darkMode}
                   />
                 </MotionGrid>
               ))}
@@ -1162,8 +1189,8 @@ const Certifications = () => {
                 textAlign: 'center', 
                 borderRadius: 2,
                 border: '1px dashed',
-                borderColor: alpha('#000', 0.12),
-                bgcolor: '#fff',
+                borderColor: darkMode ? alpha('#fff', 0.12) : alpha('#000', 0.12),
+                bgcolor: darkMode ? theme.palette.background.paper : '#fff',
                 transition: 'all 0.3s ease',
                 '&:hover': {
                   borderColor: alpha(ACCENTURE_COLORS.corePurple1, 0.3),

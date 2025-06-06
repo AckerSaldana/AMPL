@@ -4,7 +4,6 @@ import {
   Grid,
   Paper,
   Typography,
-  useTheme,
   Button,
   Divider,
   IconButton,
@@ -26,9 +25,10 @@ import CloseIcon from "@mui/icons-material/Close";
 import InfoIcon from "@mui/icons-material/Info";
 import { ACCENTURE_COLORS, contentPaperStyles } from "../styles/styles";
 import { supabase } from "../supabase/supabaseClient";
-import { useNavigate, useLocation, useBeforeUnload } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import RoleCard from "../components/RoleCard";
 import MatchedEmployeeCard from "../components/MatchedEmployeeCard";
+import { useDarkMode } from "../contexts/DarkModeContext";
 
 import SupervisorCard from "../components/SupervisorCard";
 
@@ -197,7 +197,7 @@ function countSkillTypes(skillMap) {
 }
 
 const RoleAssign = () => {
-  const theme = useTheme();
+  const { darkMode } = useDarkMode();
   const navigate = useNavigate();
   const location = useLocation();
 

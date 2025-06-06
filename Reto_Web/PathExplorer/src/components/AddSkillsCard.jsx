@@ -29,7 +29,7 @@ import {
 } from "@mui/icons-material";
 import { supabase } from "../supabase/supabaseClient";
 
-export const AddSkillsCard = ({ userId, userRole }) => {
+export const AddSkillsCard = ({ userId, userRole, darkMode = false }) => {
   const theme = useTheme();
   const [skills, setSkills] = useState([]);
   const [availableSkills, setAvailableSkills] = useState([]);
@@ -379,7 +379,7 @@ export const AddSkillsCard = ({ userId, userRole }) => {
                       label={skill.name}
                       sx={{
                         bgcolor: alpha(categoryColor, 0.08),
-                        color: "text.primary",
+                        color: darkMode ? '#ffffff' : "text.primary",
                         borderColor: alpha(categoryColor, 0.2),
                         "& .MuiChip-deleteIcon": {
                           color: alpha(categoryColor, 0.7),
@@ -398,7 +398,7 @@ export const AddSkillsCard = ({ userId, userRole }) => {
             ) : (
               <Typography
                 variant="body2"
-                color="text.secondary"
+                color={darkMode ? 'rgba(255,255,255,0.7)' : "text.secondary"}
                 sx={{ fontStyle: "italic", py: 1 }}
               >
                 No skills added in this category yet.
@@ -411,7 +411,12 @@ export const AddSkillsCard = ({ userId, userRole }) => {
   };
 
   return (
-    <Card elevation={0} sx={{ borderRadius: 2, boxShadow: "0 2px 10px rgba(0,0,0,0.05)" }}>
+    <Card elevation={0} sx={{ 
+      borderRadius: 2, 
+      boxShadow: darkMode ? "0 2px 10px rgba(255,255,255,0.05)" : "0 2px 10px rgba(0,0,0,0.05)",
+      backgroundColor: darkMode ? '#2e2e2e' : '#ffffff',
+      border: darkMode ? '1px solid rgba(255,255,255,0.12)' : 'none'
+    }}>
       <CardContent>
         <Typography
           variant="h6"
@@ -419,7 +424,7 @@ export const AddSkillsCard = ({ userId, userRole }) => {
           mb={2}
           display="flex"
           alignItems="center"
-          color="primary.main"
+          color={darkMode ? '#bb86fc' : "primary.main"}
         >
           <Code sx={{ mr: 1 }} /> Skills & Competencies
         </Typography>
@@ -443,10 +448,13 @@ export const AddSkillsCard = ({ userId, userRole }) => {
 
       {/* Dialog for adding new skill */}
       <Dialog open={dialogOpen} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
-        <DialogTitle>
+        <DialogTitle sx={{ 
+          backgroundColor: darkMode ? '#2e2e2e' : '#ffffff',
+          color: darkMode ? '#ffffff' : '#000000'
+        }}>
           Add new {category === "technical" ? "technical" : "soft"} skill
         </DialogTitle>
-        <DialogContent>
+        <DialogContent sx={{ backgroundColor: darkMode ? '#2e2e2e' : '#ffffff' }}>
           <Autocomplete
             freeSolo
             options={
@@ -469,7 +477,7 @@ export const AddSkillsCard = ({ userId, userRole }) => {
             )}
           />
         </DialogContent>
-        <DialogActions>
+        <DialogActions sx={{ backgroundColor: darkMode ? '#2e2e2e' : '#ffffff' }}>
           <Button onClick={handleCloseDialog} color="inherit">
             Cancel
           </Button>

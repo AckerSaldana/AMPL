@@ -28,7 +28,8 @@ import useAuth from "../hooks/useAuth";
 import { supabase } from "../supabase/supabaseClient.js";
 import { useNavigate } from "react-router-dom";
 import { alpha } from "@mui/material/styles";
-import { ACCENTURE_COLORS, contentPaperStyles, primaryButtonStyles, outlineButtonStyles } from "../styles/styles";
+import { ACCENTURE_COLORS, primaryButtonStyles, outlineButtonStyles } from "../styles/styles";
+import { useDarkMode } from "../contexts/DarkModeContext";
 
 // Icons
 import CloseIcon from "@mui/icons-material/Close";
@@ -39,6 +40,7 @@ import AddIcon from "@mui/icons-material/Add";
 import WarningIcon from "@mui/icons-material/Warning";
 
 const ProjectDashboard = () => {
+  const { darkMode } = useDarkMode();
   const [activeFilter, setActiveFilter] = useState("all");
   const [openDialog, setOpenDialog] = useState(false);
   const [dialogAction, setDialogAction] = useState("");
@@ -218,13 +220,14 @@ const ProjectDashboard = () => {
     )), []);
 
   return (
-    <Box sx={{ p: { xs: 2, md: 3 }, maxWidth: "100%"}}>
+    <Box sx={{ p: { xs: 2, md: 3 }, maxWidth: "100%" }}>
       <Typography 
         variant="h4" 
         sx={{ 
           fontWeight: 700, 
           mb: 3, 
-          position: 'relative'
+          position: 'relative',
+          color: darkMode ? '#ffffff' : ACCENTURE_COLORS.black
         }}
       >
         Projects
@@ -240,17 +243,10 @@ const ProjectDashboard = () => {
                 borderRadius: 2,
                 mb: 2,
                 p: 3,
-                border: "1px solid rgba(0,0,0,0.12)",
+                border: darkMode ? "1px solid rgba(255,255,255,0.12)" : "1px solid rgba(0,0,0,0.12)",
+                bgcolor: darkMode ? '#1e1e1e' : '#ffffff',
                 position: 'relative',
                 overflow: 'hidden',
-                '&::before': {
-                  content: '""',
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  height: '4px'
-                },
               }}
             >
               <AddProjectButton onClick={handleAddProject} />
@@ -263,7 +259,8 @@ const ProjectDashboard = () => {
             sx={{ 
               borderRadius: 2,
               overflow: 'hidden',
-              border: "1px solid rgba(0,0,0,0.12)",
+              border: darkMode ? "1px solid rgba(255,255,255,0.12)" : "1px solid rgba(0,0,0,0.12)",
+              bgcolor: darkMode ? '#1e1e1e' : '#ffffff',
               position: 'static',  // Stays in normal document flow
             }}
           >
@@ -294,6 +291,7 @@ const ProjectDashboard = () => {
                   <Grid item xs={12} sm={6} lg={4}>
                     <ProjectCard
                       project={project}
+                      darkMode={darkMode}
                       onEdit={
                         role === "manager"
                           ? handleEditProject
@@ -320,9 +318,9 @@ const ProjectDashboard = () => {
                       textAlign: "center",
                       borderRadius: 3,
                       border: "1px dashed",
-                      borderColor: alpha(ACCENTURE_COLORS.corePurple1, 0.2),
-                      bgcolor: alpha(ACCENTURE_COLORS.lightGray, 0.6),
-                      boxShadow: '0 6px 20px rgba(0,0,0,0.02)',
+                      borderColor: darkMode ? alpha(ACCENTURE_COLORS.corePurple1, 0.3) : alpha(ACCENTURE_COLORS.corePurple1, 0.2),
+                      bgcolor: darkMode ? alpha(ACCENTURE_COLORS.corePurple1, 0.05) : alpha(ACCENTURE_COLORS.lightGray, 0.6),
+                      boxShadow: darkMode ? '0 6px 20px rgba(0,0,0,0.3)' : '0 6px 20px rgba(0,0,0,0.02)',
                     }}
                   >
                     <Box
@@ -333,7 +331,7 @@ const ProjectDashboard = () => {
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        bgcolor: alpha(ACCENTURE_COLORS.corePurple1, 0.08),
+                        bgcolor: darkMode ? alpha(ACCENTURE_COLORS.corePurple1, 0.15) : alpha(ACCENTURE_COLORS.corePurple1, 0.08),
                         mx: 'auto',
                         mb: 3,
                       }}
@@ -347,7 +345,7 @@ const ProjectDashboard = () => {
                     <Typography 
                       variant="h5" 
                       sx={{ 
-                        color: ACCENTURE_COLORS.black,
+                        color: darkMode ? '#ffffff' : ACCENTURE_COLORS.black,
                         fontWeight: 600,
                         mb: 1,
                       }}
@@ -361,7 +359,7 @@ const ProjectDashboard = () => {
                         maxWidth: 450,
                         mx: 'auto',
                         mb: 4,
-                        color: ACCENTURE_COLORS.darkGray
+                        color: darkMode ? 'rgba(255,255,255,0.7)' : ACCENTURE_COLORS.darkGray
                       }}
                     >
                       No projects match the selected filter. Try changing the filter or add a new project.
@@ -395,10 +393,11 @@ const ProjectDashboard = () => {
         PaperProps={{
           sx: {
             borderRadius: 2,
-            boxShadow: '0 10px 30px rgba(0,0,0,0.1)',
+            boxShadow: darkMode ? '0 10px 30px rgba(0,0,0,0.5)' : '0 10px 30px rgba(0,0,0,0.1)',
             overflow: 'hidden',
             maxWidth: dialogAction === 'view' ? 500 : 400,
-            background: ACCENTURE_COLORS.white,
+            bgcolor: darkMode ? '#1e1e1e' : ACCENTURE_COLORS.white,
+            color: darkMode ? '#ffffff' : ACCENTURE_COLORS.black,
           }
         }}
       >
@@ -416,7 +415,7 @@ const ProjectDashboard = () => {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              borderBottom: `1px solid ${alpha(ACCENTURE_COLORS.corePurple1, 0.1)}`,
+              borderBottom: darkMode ? `1px solid rgba(255,255,255,0.12)` : `1px solid ${alpha(ACCENTURE_COLORS.corePurple1, 0.1)}`,
             }}
           >
             <Typography 
@@ -427,7 +426,7 @@ const ProjectDashboard = () => {
                 fontSize: '1.1rem',
                 color: dialogAction === 'delete' 
                   ? ACCENTURE_COLORS.red
-                  : ACCENTURE_COLORS.black,
+                  : darkMode ? '#ffffff' : ACCENTURE_COLORS.black,
                 display: 'flex',
                 alignItems: 'center',
                 gap: 1,
@@ -444,9 +443,9 @@ const ProjectDashboard = () => {
               onClick={handleCloseDialog}
               size="small"
               sx={{ 
-                color: ACCENTURE_COLORS.darkGray,
+                color: darkMode ? 'rgba(255,255,255,0.7)' : ACCENTURE_COLORS.darkGray,
                 '&:hover': {
-                  backgroundColor: alpha(ACCENTURE_COLORS.corePurple1, 0.05),
+                  backgroundColor: darkMode ? alpha(ACCENTURE_COLORS.corePurple1, 0.15) : alpha(ACCENTURE_COLORS.corePurple1, 0.05),
                 }
               }}
             >
@@ -458,9 +457,9 @@ const ProjectDashboard = () => {
         {/* Dialog Content */}
         <DialogContent sx={{ p: 3, pt: 2 }}>
           {dialogAction === "delete" && (
-            <Typography sx={{ color: ACCENTURE_COLORS.darkGray }}>
+            <Typography sx={{ color: darkMode ? 'rgba(255,255,255,0.7)' : ACCENTURE_COLORS.darkGray }}>
               ¿Estás seguro de que deseas eliminar el proyecto "
-              <Box component="span" sx={{ fontWeight: 600, color: ACCENTURE_COLORS.black }}>
+              <Box component="span" sx={{ fontWeight: 600, color: darkMode ? '#ffffff' : ACCENTURE_COLORS.black }}>
                 {selectedProject?.title}
               </Box>
               "? Esta acción no se puede deshacer.
@@ -468,7 +467,7 @@ const ProjectDashboard = () => {
           )}
           
           {dialogAction === "edit" && (
-            <Typography sx={{ color: ACCENTURE_COLORS.darkGray }}>
+            <Typography sx={{ color: darkMode ? 'rgba(255,255,255,0.7)' : ACCENTURE_COLORS.darkGray }}>
               Formulario de edición (implementación futura)
             </Typography>
           )}
@@ -492,14 +491,14 @@ const ProjectDashboard = () => {
                 variant="body2" 
                 sx={{ 
                   mb: 3,
-                  color: ACCENTURE_COLORS.darkGray,
+                  color: darkMode ? 'rgba(255,255,255,0.7)' : ACCENTURE_COLORS.darkGray,
                   lineHeight: 1.5
                 }}
               >
                 {selectedProject.description}
               </Typography>
               
-              <Divider sx={{ mb: 2 }} />
+              <Divider sx={{ mb: 2, borderColor: darkMode ? 'rgba(255,255,255,0.12)' : undefined }} />
               
               {/* Project Status and Progress */}
               <Grid container spacing={2} sx={{ mb: 2 }}>
@@ -507,7 +506,7 @@ const ProjectDashboard = () => {
                   <Typography 
                     variant="caption" 
                     sx={{ 
-                      color: ACCENTURE_COLORS.darkGray,
+                      color: darkMode ? 'rgba(255,255,255,0.7)' : ACCENTURE_COLORS.darkGray,
                       fontWeight: 500,
                       display: 'block',
                       mb: 0.5
@@ -523,10 +522,10 @@ const ProjectDashboard = () => {
                         height: 24,
                         fontSize: '0.75rem',
                         bgcolor: selectedProject.status === "In Progress"
-                          ? alpha(ACCENTURE_COLORS.corePurple1, 0.1)
+                          ? alpha(ACCENTURE_COLORS.corePurple1, darkMode ? 0.2 : 0.1)
                           : selectedProject.status === "Completed"
-                          ? alpha(ACCENTURE_COLORS.green, 0.1)
-                          : alpha(ACCENTURE_COLORS.orange, 0.1),
+                          ? alpha(ACCENTURE_COLORS.green, darkMode ? 0.2 : 0.1)
+                          : alpha(ACCENTURE_COLORS.orange, darkMode ? 0.2 : 0.1),
                         color: selectedProject.status === "In Progress"
                           ? ACCENTURE_COLORS.corePurple1
                           : selectedProject.status === "Completed"
@@ -541,7 +540,7 @@ const ProjectDashboard = () => {
                   <Typography 
                     variant="caption" 
                     sx={{ 
-                      color: ACCENTURE_COLORS.darkGray,
+                      color: darkMode ? 'rgba(255,255,255,0.7)' : ACCENTURE_COLORS.darkGray,
                       fontWeight: 500,
                       display: 'block',
                       mb: 0.5
@@ -557,7 +556,7 @@ const ProjectDashboard = () => {
                         width: '70%',
                         height: 8,
                         borderRadius: 4,
-                        bgcolor: alpha(ACCENTURE_COLORS.corePurple1, 0.1),
+                        bgcolor: alpha(ACCENTURE_COLORS.corePurple1, darkMode ? 0.2 : 0.1),
                         '& .MuiLinearProgress-bar': {
                           bgcolor: selectedProject.progress >= 70
                             ? ACCENTURE_COLORS.green
@@ -569,7 +568,7 @@ const ProjectDashboard = () => {
                       variant="body2" 
                       sx={{ 
                         fontWeight: 600,
-                        color: ACCENTURE_COLORS.black
+                        color: darkMode ? '#ffffff' : ACCENTURE_COLORS.black
                       }}
                     >
                       {selectedProject.progress}%
@@ -584,7 +583,7 @@ const ProjectDashboard = () => {
                   <Typography 
                     variant="caption" 
                     sx={{ 
-                      color: ACCENTURE_COLORS.darkGray,
+                      color: darkMode ? 'rgba(255,255,255,0.7)' : ACCENTURE_COLORS.darkGray,
                       fontWeight: 500,
                       display: 'block',
                       mb: 0.5
@@ -610,7 +609,7 @@ const ProjectDashboard = () => {
                   <Typography 
                     variant="caption" 
                     sx={{ 
-                      color: ACCENTURE_COLORS.darkGray,
+                      color: darkMode ? 'rgba(255,255,255,0.7)' : ACCENTURE_COLORS.darkGray,
                       fontWeight: 500,
                       display: 'block',
                       mb: 0.5
@@ -670,8 +669,8 @@ const ProjectDashboard = () => {
                       label={member.name}
                       size="small"
                       sx={{
-                        bgcolor: alpha(ACCENTURE_COLORS.corePurple1, 0.05),
-                        border: `1px solid ${alpha(ACCENTURE_COLORS.corePurple1, 0.1)}`,
+                        bgcolor: alpha(ACCENTURE_COLORS.corePurple1, darkMode ? 0.1 : 0.05),
+                        border: `1px solid ${alpha(ACCENTURE_COLORS.corePurple1, darkMode ? 0.2 : 0.1)}`,
                         height: 30
                       }}
                     />
@@ -683,13 +682,17 @@ const ProjectDashboard = () => {
         </DialogContent>
 
         {/* Dialog Actions */}
-        <DialogActions sx={{ p: 2.5, pt: 2, borderTop: `1px solid ${alpha(ACCENTURE_COLORS.corePurple1, 0.1)}` }}>
+        <DialogActions sx={{ p: 2.5, pt: 2, borderTop: darkMode ? `1px solid rgba(255,255,255,0.12)` : `1px solid ${alpha(ACCENTURE_COLORS.corePurple1, 0.1)}` }}>
           <Button 
             onClick={handleCloseDialog}
             sx={{ 
               ...outlineButtonStyles,
-              color: dialogAction === 'delete' ? ACCENTURE_COLORS.darkGray : ACCENTURE_COLORS.corePurple1,
-              borderColor: dialogAction === 'delete' ? ACCENTURE_COLORS.darkGray : ACCENTURE_COLORS.corePurple1,
+              color: dialogAction === 'delete' 
+                ? (darkMode ? 'rgba(255,255,255,0.7)' : ACCENTURE_COLORS.darkGray) 
+                : ACCENTURE_COLORS.corePurple1,
+              borderColor: dialogAction === 'delete' 
+                ? (darkMode ? 'rgba(255,255,255,0.7)' : ACCENTURE_COLORS.darkGray) 
+                : ACCENTURE_COLORS.corePurple1,
             }}
           >
             {dialogAction === "view" ? "Close" : "Cancel"}

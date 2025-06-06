@@ -35,12 +35,14 @@ import {
 import useAuth from "../hooks/useAuth";
 import { supabase } from "../supabase/supabaseClient";
 import MessageContent from "./MessageContent";
+import { useDarkMode } from "../contexts/DarkModeContext";
 
 // Import styles
 import { ACCENTURE_COLORS } from "../styles/styles";
 
 const VirtualAssistant = () => {
   const theme = useTheme();
+  const { darkMode } = useDarkMode();
   const { user, loading: authLoading } = useAuth();
   const [userProfile, setUserProfile] = useState(null);
   const [profileLoading, setProfileLoading] = useState(true);
@@ -283,9 +285,9 @@ const VirtualAssistant = () => {
         flexDirection: "column",
         borderRadius: "24px",
         overflow: "hidden",
-        backgroundColor: '#ffffff',
-        boxShadow: '0 8px 24px rgba(0, 0, 0, 0.06)',
-        border: `1px solid ${alpha(ACCENTURE_COLORS.corePurple1, 0.12)}`,
+        backgroundColor: theme.palette.background.paper,
+        boxShadow: darkMode ? '0 8px 24px rgba(0, 0, 0, 0.3)' : '0 8px 24px rgba(0, 0, 0, 0.06)',
+        border: `1px solid ${alpha(ACCENTURE_COLORS.corePurple1, darkMode ? 0.2 : 0.12)}`,
         position: 'relative'
       }}
     >
@@ -293,12 +295,12 @@ const VirtualAssistant = () => {
       <Box
         sx={{
           p: 2.5,
-          backgroundColor: alpha(ACCENTURE_COLORS.corePurple1, 0.02),
-          color: ACCENTURE_COLORS.black,
+          backgroundColor: darkMode ? alpha(ACCENTURE_COLORS.corePurple1, 0.1) : alpha(ACCENTURE_COLORS.corePurple1, 0.02),
+          color: theme.palette.text.primary,
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          borderBottom: `1px solid ${alpha(ACCENTURE_COLORS.corePurple1, 0.15)}`,
+          borderBottom: `1px solid ${alpha(ACCENTURE_COLORS.corePurple1, darkMode ? 0.3 : 0.15)}`,
           position: 'relative',
           zIndex: 2
         }}
@@ -314,7 +316,7 @@ const VirtualAssistant = () => {
                   height: 8,
                   bgcolor: '#00C852',
                   borderRadius: '50%',
-                  border: '2px solid white',
+                  border: darkMode ? '2px solid #121212' : '2px solid white',
                   animation: 'pulse 2s ease-in-out infinite',
                   '@keyframes pulse': {
                     '0%': { transform: 'scale(0.95)', opacity: 1 },
@@ -342,7 +344,7 @@ const VirtualAssistant = () => {
               sx={{ 
                 fontSize: "1.1rem", 
                 fontWeight: 600, 
-                color: ACCENTURE_COLORS.corePurple1,
+                color: darkMode ? ACCENTURE_COLORS.accentPurple3 : ACCENTURE_COLORS.corePurple1,
                 letterSpacing: '-0.01em'
               }}
             >
@@ -351,7 +353,9 @@ const VirtualAssistant = () => {
             <Typography
               variant="caption"
               sx={{
-                color: alpha(ACCENTURE_COLORS.black, 0.6),
+                color: darkMode
+                  ? alpha(theme.palette.text.primary, 0.7)
+                  : alpha(ACCENTURE_COLORS.black, 0.6),
                 fontSize: '0.75rem',
                 display: 'flex',
                 alignItems: 'center',
@@ -369,7 +373,9 @@ const VirtualAssistant = () => {
               size={24} 
               thickness={5}
               sx={{ 
-                color: alpha(ACCENTURE_COLORS.corePurple1, 0.2)
+                color: darkMode
+                  ? alpha(ACCENTURE_COLORS.accentPurple3, 0.2)
+                  : alpha(ACCENTURE_COLORS.corePurple1, 0.2)
               }} 
             />
             <CircularProgress 
@@ -377,7 +383,9 @@ const VirtualAssistant = () => {
               thickness={5}
               variant="indeterminate"
               sx={{ 
-                color: ACCENTURE_COLORS.corePurple1,
+                color: darkMode
+                  ? ACCENTURE_COLORS.accentPurple3
+                  : ACCENTURE_COLORS.corePurple1,
                 position: 'absolute',
                 left: 0,
                 animationDuration: '1s'
@@ -389,10 +397,14 @@ const VirtualAssistant = () => {
             label={`${userProfile.name || 'User'}`}
             size="small"
             sx={{ 
-              backgroundColor: alpha(ACCENTURE_COLORS.corePurple1, 0.08),
-              color: ACCENTURE_COLORS.corePurple1,
+              backgroundColor: darkMode
+                ? alpha(ACCENTURE_COLORS.corePurple1, 0.2)
+                : alpha(ACCENTURE_COLORS.corePurple1, 0.08),
+              color: darkMode
+                ? ACCENTURE_COLORS.accentPurple3
+                : ACCENTURE_COLORS.corePurple1,
               fontWeight: 600,
-              border: `1px solid ${alpha(ACCENTURE_COLORS.corePurple1, 0.2)}`,
+              border: `1px solid ${alpha(ACCENTURE_COLORS.corePurple1, darkMode ? 0.3 : 0.2)}`,
               px: 2
             }}
           />
@@ -405,7 +417,7 @@ const VirtualAssistant = () => {
           flexGrow: 1,
           overflow: "auto",
           p: 3,
-          backgroundColor: '#f8f9fa',
+          backgroundColor: darkMode ? '#1a1a1a' : '#f8f9fa',
           position: 'relative',
           '&::-webkit-scrollbar': {
             width: '6px',
@@ -414,10 +426,14 @@ const VirtualAssistant = () => {
             background: 'transparent',
           },
           '&::-webkit-scrollbar-thumb': {
-            background: alpha(ACCENTURE_COLORS.corePurple1, 0.2),
+            background: darkMode 
+              ? alpha(ACCENTURE_COLORS.accentPurple3, 0.3)
+              : alpha(ACCENTURE_COLORS.corePurple1, 0.2),
             borderRadius: '3px',
             '&:hover': {
-              background: alpha(ACCENTURE_COLORS.corePurple1, 0.3),
+              background: darkMode 
+                ? alpha(ACCENTURE_COLORS.accentPurple3, 0.4)
+                : alpha(ACCENTURE_COLORS.corePurple1, 0.3),
             }
           }
         }}
@@ -446,12 +462,14 @@ const VirtualAssistant = () => {
                 {chat.sender === "user" ? (
                   <Avatar
                     sx={{
-                      backgroundColor: ACCENTURE_COLORS.corePurple3,
+                      backgroundColor: darkMode ? ACCENTURE_COLORS.corePurple1 : ACCENTURE_COLORS.corePurple3,
                       width: 36,
                       height: 36,
                       fontSize: '0.9rem',
                       fontWeight: 600,
-                      boxShadow: `0 2px 8px ${alpha(ACCENTURE_COLORS.corePurple3, 0.3)}`
+                      boxShadow: darkMode 
+                        ? `0 2px 8px ${alpha(ACCENTURE_COLORS.corePurple1, 0.4)}`
+                        : `0 2px 8px ${alpha(ACCENTURE_COLORS.corePurple3, 0.3)}`
                     }}
                   >
                     {userProfile?.name?.charAt(0).toUpperCase() || "U"}
@@ -461,7 +479,7 @@ const VirtualAssistant = () => {
                     sx={{
                       backgroundColor: chat.isWelcome 
                         ? ACCENTURE_COLORS.corePurple1
-                        : 'white',
+                        : darkMode ? '#2e2e2e' : 'white',
                       width: 36,
                       height: 36,
                       border: chat.isWelcome ? 'none' : `2px solid ${alpha(ACCENTURE_COLORS.corePurple1, 0.2)}`,
@@ -489,22 +507,28 @@ const VirtualAssistant = () => {
                         p: 2,
                         px: 2.5,
                         background: chat.sender === "user" 
-                          ? ACCENTURE_COLORS.corePurple3
+                          ? darkMode ? ACCENTURE_COLORS.corePurple1 : ACCENTURE_COLORS.corePurple3
                           : chat.isWelcome
-                            ? alpha(ACCENTURE_COLORS.corePurple1, 0.06)
-                            : 'white',
+                            ? darkMode ? alpha(ACCENTURE_COLORS.corePurple1, 0.15) : alpha(ACCENTURE_COLORS.corePurple1, 0.06)
+                            : darkMode ? '#2e2e2e' : 'white',
                         border: chat.sender === "bot" && !chat.isWelcome 
-                          ? `1px solid ${alpha(ACCENTURE_COLORS.corePurple1, 0.1)}` 
+                          ? `1px solid ${alpha(ACCENTURE_COLORS.corePurple1, darkMode ? 0.3 : 0.1)}` 
                           : 'none',
                         borderRadius: chat.sender === "user" 
                           ? '20px 20px 4px 20px' 
                           : '20px 20px 20px 4px',
-                        color: chat.sender === "user" ? 'white' : ACCENTURE_COLORS.black,
+                        color: chat.sender === "user" ? 'white' : darkMode ? '#ffffff' : ACCENTURE_COLORS.black,
                         boxShadow: chat.sender === "user"
-                          ? `0 4px 12px ${alpha(ACCENTURE_COLORS.corePurple3, 0.3)}`
+                          ? darkMode 
+                            ? `0 4px 12px ${alpha(ACCENTURE_COLORS.corePurple1, 0.4)}`
+                            : `0 4px 12px ${alpha(ACCENTURE_COLORS.corePurple3, 0.3)}`
                           : chat.isWelcome
-                            ? `0 4px 12px ${alpha(ACCENTURE_COLORS.corePurple1, 0.1)}`
-                            : '0 2px 8px rgba(0, 0, 0, 0.04)',
+                            ? darkMode
+                              ? `0 4px 12px ${alpha(ACCENTURE_COLORS.corePurple1, 0.2)}`
+                              : `0 4px 12px ${alpha(ACCENTURE_COLORS.corePurple1, 0.1)}`
+                            : darkMode 
+                              ? '0 2px 8px rgba(0, 0, 0, 0.3)'
+                              : '0 2px 8px rgba(0, 0, 0, 0.04)',
                         position: 'relative',
                         overflow: 'visible'
                       }}
@@ -515,7 +539,11 @@ const VirtualAssistant = () => {
                         sx={{
                           color: chat.sender === "user" ? 'white' : 'inherit',
                           '& a': {
-                            color: chat.sender === "user" ? 'white' : ACCENTURE_COLORS.corePurple1,
+                            color: chat.sender === "user" 
+                              ? 'white' 
+                              : darkMode 
+                                ? ACCENTURE_COLORS.accentPurple3
+                                : ACCENTURE_COLORS.corePurple1,
                             textDecoration: 'underline'
                           }
                         }}
@@ -526,7 +554,7 @@ const VirtualAssistant = () => {
                           display: "block", 
                           textAlign: chat.sender === "user" ? "left" : "right", 
                           mt: 1, 
-                          opacity: chat.sender === "user" ? 0.9 : 0.6,
+                          opacity: chat.sender === "user" ? 0.9 : darkMode ? 0.5 : 0.6,
                           fontSize: '0.7rem'
                         }}
                       >
@@ -544,7 +572,7 @@ const VirtualAssistant = () => {
             <Box sx={{ display: "flex", alignItems: "center", gap: 2, px: 6, py: 2 }}>
               <Avatar
                 sx={{
-                  background: 'white',
+                  background: darkMode ? '#2e2e2e' : 'white',
                   width: 36,
                   height: 36,
                   border: `2px solid ${alpha(ACCENTURE_COLORS.corePurple1, 0.2)}`,
@@ -582,8 +610,8 @@ const VirtualAssistant = () => {
         sx={{ 
           px: 3, 
           py: 2, 
-          backgroundColor: alpha(ACCENTURE_COLORS.corePurple1, 0.01),
-          borderTop: `1px solid ${alpha(ACCENTURE_COLORS.corePurple1, 0.1)}`,
+          backgroundColor: darkMode ? alpha(ACCENTURE_COLORS.corePurple1, 0.05) : alpha(ACCENTURE_COLORS.corePurple1, 0.01),
+          borderTop: `1px solid ${alpha(ACCENTURE_COLORS.corePurple1, darkMode ? 0.2 : 0.1)}`,
           display: "flex",
           flexWrap: "wrap",
           gap: 1.5,
@@ -608,15 +636,15 @@ const VirtualAssistant = () => {
               onClick={() => handleSuggestedPrompt(prompt.text)}
               sx={{
                 borderRadius: "20px",
-                backgroundColor: alpha(prompt.color, 0.06),
+                backgroundColor: darkMode ? alpha(prompt.color, 0.15) : alpha(prompt.color, 0.06),
                 border: `1px solid ${alpha(prompt.color, 0.2)}`,
-                color: ACCENTURE_COLORS.black,
+                color: darkMode ? '#ffffff' : ACCENTURE_COLORS.black,
                 fontWeight: 500,
                 fontSize: '0.85rem',
                 py: 2.5,
                 px: 1,
                 '&:hover': {
-                  backgroundColor: alpha(prompt.color, 0.1),
+                  backgroundColor: darkMode ? alpha(prompt.color, 0.2) : alpha(prompt.color, 0.1),
                   transform: 'translateY(-2px)',
                   boxShadow: `0 4px 12px ${alpha(prompt.color, 0.2)}`,
                 },
@@ -636,8 +664,8 @@ const VirtualAssistant = () => {
       <Box
         sx={{
           p: 2.5,
-          backgroundColor: alpha(ACCENTURE_COLORS.corePurple1, 0.01),
-          borderTop: `1px solid ${alpha(ACCENTURE_COLORS.corePurple1, 0.1)}`,
+          backgroundColor: darkMode ? alpha(ACCENTURE_COLORS.corePurple1, 0.05) : alpha(ACCENTURE_COLORS.corePurple1, 0.01),
+          borderTop: `1px solid ${alpha(ACCENTURE_COLORS.corePurple1, darkMode ? 0.2 : 0.1)}`,
           display: "flex",
           alignItems: "center",
           gap: 2,
@@ -661,7 +689,7 @@ const VirtualAssistant = () => {
           sx={{
             "& .MuiOutlinedInput-root": {
               borderRadius: '24px',
-              background: 'white',
+              background: darkMode ? '#2e2e2e' : 'white',
               border: `2px solid ${alpha(ACCENTURE_COLORS.corePurple1, 0.1)}`,
               transition: 'all 0.3s ease',
               '&:hover': {
@@ -679,8 +707,9 @@ const VirtualAssistant = () => {
                 px: 3,
                 py: 1.5,
                 fontSize: '0.95rem',
+                color: darkMode ? '#ffffff' : ACCENTURE_COLORS.black,
                 '&::placeholder': {
-                  color: alpha(ACCENTURE_COLORS.black, 0.4)
+                  color: darkMode ? 'rgba(255, 255, 255, 0.5)' : alpha(ACCENTURE_COLORS.black, 0.4)
                 }
               }
             },
@@ -693,16 +722,20 @@ const VirtualAssistant = () => {
               disabled={message.trim() === "" || isLoading || !user}
               sx={{ 
                 backgroundColor: message.trim() && !isLoading && user
-                  ? ACCENTURE_COLORS.corePurple1
-                  : alpha(ACCENTURE_COLORS.corePurple1, 0.1),
-                color: message.trim() && !isLoading && user ? 'white' : alpha(ACCENTURE_COLORS.corePurple1, 0.4),
+                  ? darkMode ? ACCENTURE_COLORS.accentPurple3 : ACCENTURE_COLORS.corePurple1
+                  : alpha(ACCENTURE_COLORS.corePurple1, darkMode ? 0.2 : 0.1),
+                color: message.trim() && !isLoading && user 
+                  ? 'white' 
+                  : darkMode 
+                    ? alpha(ACCENTURE_COLORS.accentPurple3, 0.5)
+                    : alpha(ACCENTURE_COLORS.corePurple1, 0.4),
                 width: 48,
                 height: 48,
                 transition: 'all 0.3s ease',
                 '&:hover': {
                   backgroundColor: message.trim() && !isLoading && user
-                    ? ACCENTURE_COLORS.corePurple3
-                    : alpha(ACCENTURE_COLORS.corePurple1, 0.1),
+                    ? darkMode ? ACCENTURE_COLORS.corePurple2 : ACCENTURE_COLORS.corePurple3
+                    : alpha(ACCENTURE_COLORS.corePurple1, darkMode ? 0.2 : 0.1),
                   transform: message.trim() && !isLoading && user ? 'scale(1.1)' : 'scale(1)',
                   boxShadow: message.trim() && !isLoading && user 
                     ? `0 4px 16px ${alpha(ACCENTURE_COLORS.corePurple1, 0.4)}`

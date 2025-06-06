@@ -57,6 +57,8 @@ import useAverageIdleDays from "../hooks/useAverageIdleDays.js";
 import useAvgAssignmentPercentage from "../hooks/useAvgAssignmentPercentage.js";
 import UserViewer from "../components/UserViewer.jsx";
 import { ACCENTURE_COLORS } from "../styles/styles.js";
+import { useDarkMode } from "../contexts/DarkModeContext";
+import { getDarkModeStyles } from "../styles/darkModeStyles";
 
 // Register required Chart.js components
 ChartJS.register(
@@ -73,23 +75,29 @@ ChartJS.register(
   Filler
 );
 
-// Custom Chart.js defaults for consistent styling
-ChartJS.defaults.font.family = '"Roboto", "Helvetica", "Arial", sans-serif';
-ChartJS.defaults.plugins.tooltip.backgroundColor = "rgba(255, 255, 255, 0.95)";
-ChartJS.defaults.plugins.tooltip.titleColor = "#000";
-ChartJS.defaults.plugins.tooltip.bodyColor = "#000";
-ChartJS.defaults.plugins.tooltip.borderColor = "#e0e0e0";
-ChartJS.defaults.plugins.tooltip.borderWidth = 1;
-ChartJS.defaults.plugins.tooltip.cornerRadius = 8;
-ChartJS.defaults.plugins.tooltip.padding = 12;
+// Custom Chart.js defaults will be set dynamically based on dark mode
 
 const Analytics = () => {
   const theme = useTheme();
   const navigate = useNavigate();
+  const { darkMode } = useDarkMode();
+  const darkModeStyles = getDarkModeStyles(darkMode);
 
   // Responsive breakpoints
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const isTablet = useMediaQuery(theme.breakpoints.down("md"));
+
+  // Set Chart.js defaults based on dark mode
+  useEffect(() => {
+    ChartJS.defaults.font.family = '"Roboto", "Helvetica", "Arial", sans-serif';
+    ChartJS.defaults.plugins.tooltip.backgroundColor = darkMode ? "rgba(30, 30, 30, 0.95)" : "rgba(255, 255, 255, 0.95)";
+    ChartJS.defaults.plugins.tooltip.titleColor = darkMode ? "#fff" : "#000";
+    ChartJS.defaults.plugins.tooltip.bodyColor = darkMode ? "#fff" : "#000";
+    ChartJS.defaults.plugins.tooltip.borderColor = darkMode ? "rgba(255, 255, 255, 0.2)" : "#e0e0e0";
+    ChartJS.defaults.plugins.tooltip.borderWidth = 1;
+    ChartJS.defaults.plugins.tooltip.cornerRadius = 8;
+    ChartJS.defaults.plugins.tooltip.padding = 12;
+  }, [darkMode]);
 
   // Chart IDs
   const chartIds = {
@@ -314,7 +322,7 @@ const Analytics = () => {
             },
           },
           tooltip: {
-            backgroundColor: "rgba(255, 255, 255, 0.95)",
+            backgroundColor: darkMode ? "rgba(30, 30, 30, 0.95)" : "rgba(255, 255, 255, 0.95)",
             titleColor: theme.palette.text.primary,
             bodyColor: theme.palette.text.primary,
             borderColor: theme.palette.divider,
@@ -340,7 +348,7 @@ const Analytics = () => {
         plugins: {
           legend: { display: false },
           tooltip: {
-            backgroundColor: "rgba(255, 255, 255, 0.95)",
+            backgroundColor: darkMode ? "rgba(30, 30, 30, 0.95)" : "rgba(255, 255, 255, 0.95)",
             titleColor: theme.palette.text.primary,
             bodyColor: theme.palette.text.primary,
             borderColor: theme.palette.divider,
@@ -368,7 +376,7 @@ const Analytics = () => {
               color: theme.palette.text.secondary,
             },
             grid: {
-              color: "rgba(0, 0, 0, 0.04)",
+              color: darkMode ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.04)",
             },
           },
           x: {
@@ -394,7 +402,7 @@ const Analytics = () => {
         plugins: {
           legend: { display: false },
           tooltip: {
-            backgroundColor: "rgba(255, 255, 255, 0.95)",
+            backgroundColor: darkMode ? "rgba(30, 30, 30, 0.95)" : "rgba(255, 255, 255, 0.95)",
             titleColor: theme.palette.text.primary,
             bodyColor: theme.palette.text.primary,
             borderColor: theme.palette.divider,
@@ -428,7 +436,7 @@ const Analytics = () => {
               color: theme.palette.text.secondary,
             },
             grid: {
-              color: "rgba(0, 0, 0, 0.04)",
+              color: darkMode ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.04)",
             },
           },
           y: {
@@ -487,10 +495,10 @@ const Analytics = () => {
                   sx={{
                     height: "100%",
                     borderRadius: 3,
-                    background: "#fff",
+                    backgroundColor: theme.palette.background.paper,
                     border: `1px solid ${alpha(
                       ACCENTURE_COLORS.corePurple1,
-                      0.08
+                      darkMode ? 0.2 : 0.08
                     )}`,
                     position: "relative",
                     overflow: "hidden",
@@ -512,7 +520,7 @@ const Analytics = () => {
                         width: 64,
                         height: 64,
                         borderRadius: 3,
-                        background: alpha(ACCENTURE_COLORS.corePurple1, 0.08),
+                        background: darkMode ? 'rgba(255, 255, 255, 0.08)' : alpha(ACCENTURE_COLORS.corePurple1, 0.08),
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
@@ -590,10 +598,10 @@ const Analytics = () => {
                   sx={{
                     height: "100%",
                     borderRadius: 3,
-                    background: "#fff",
+                    backgroundColor: theme.palette.background.paper,
                     border: `1px solid ${alpha(
                       ACCENTURE_COLORS.corePurple2,
-                      0.08
+                      darkMode ? 0.2 : 0.08
                     )}`,
                     position: "relative",
                     overflow: "hidden",
@@ -615,7 +623,7 @@ const Analytics = () => {
                         width: 64,
                         height: 64,
                         borderRadius: 3,
-                        background: alpha(ACCENTURE_COLORS.corePurple2, 0.08),
+                        background: darkMode ? 'rgba(255, 255, 255, 0.08)' : alpha(ACCENTURE_COLORS.corePurple2, 0.08),
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
@@ -693,10 +701,10 @@ const Analytics = () => {
                   sx={{
                     height: "100%",
                     borderRadius: 3,
-                    background: "#fff",
+                    backgroundColor: theme.palette.background.paper,
                     border: `1px solid ${alpha(
                       ACCENTURE_COLORS.corePurple3,
-                      0.08
+                      darkMode ? 0.2 : 0.08
                     )}`,
                     position: "relative",
                     overflow: "hidden",
@@ -718,7 +726,7 @@ const Analytics = () => {
                         width: 64,
                         height: 64,
                         borderRadius: 3,
-                        background: alpha(ACCENTURE_COLORS.corePurple3, 0.08),
+                        background: darkMode ? 'rgba(255, 255, 255, 0.08)' : alpha(ACCENTURE_COLORS.corePurple3, 0.08),
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
@@ -792,10 +800,10 @@ const Analytics = () => {
                   sx={{
                     height: "100%",
                     borderRadius: 3,
-                    background: "#fff",
+                    backgroundColor: theme.palette.background.paper,
                     border: `1px solid ${alpha(
                       ACCENTURE_COLORS.accentPurple1,
-                      0.08
+                      darkMode ? 0.2 : 0.08
                     )}`,
                     position: "relative",
                     overflow: "hidden",
@@ -817,7 +825,7 @@ const Analytics = () => {
                         width: 64,
                         height: 64,
                         borderRadius: 3,
-                        background: alpha(ACCENTURE_COLORS.accentPurple1, 0.08),
+                        background: darkMode ? 'rgba(255, 255, 255, 0.08)' : alpha(ACCENTURE_COLORS.accentPurple1, 0.08),
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
@@ -899,10 +907,10 @@ const Analytics = () => {
                   elevation={0}
                   sx={{
                     borderRadius: 3,
-                    background: "#fff",
+                    backgroundColor: theme.palette.background.paper,
                     border: `1px solid ${alpha(
                       ACCENTURE_COLORS.corePurple1,
-                      0.08
+                      darkMode ? 0.2 : 0.08
                     )}`,
                     height: "100%",
                     overflow: "hidden",
@@ -910,7 +918,7 @@ const Analytics = () => {
                     "&:hover": {
                       boxShadow: `0 8px 24px ${alpha(
                         ACCENTURE_COLORS.corePurple1,
-                        0.08
+                        darkMode ? 0.3 : 0.08
                       )}`,
                     },
                   }}
@@ -921,12 +929,17 @@ const Analytics = () => {
                         p: { xs: 2.5, md: 3 },
                         borderBottom: `1px solid ${alpha(
                           ACCENTURE_COLORS.corePurple1,
-                          0.05
+                          darkMode ? 0.1 : 0.05
                         )}`,
-                        background: `linear-gradient(135deg, ${alpha(
-                          ACCENTURE_COLORS.corePurple1,
-                          0.02
-                        )}, transparent)`,
+                        background: darkMode 
+                          ? `linear-gradient(135deg, ${alpha(
+                              ACCENTURE_COLORS.corePurple1,
+                              0.05
+                            )}, transparent)`
+                          : `linear-gradient(135deg, ${alpha(
+                              ACCENTURE_COLORS.corePurple1,
+                              0.02
+                            )}, transparent)`,
                       }}
                     >
                       <Box
@@ -1036,7 +1049,7 @@ const Analytics = () => {
                                   employeeAssignmentData.datasets[0]
                                     ?.backgroundColor?.[0] ||
                                     ACCENTURE_COLORS.corePurple1,
-                                  0.08
+                                  darkMode ? 0.2 : 0.08
                                 ),
                               }}
                             >
@@ -1076,8 +1089,8 @@ const Analytics = () => {
                                 backgroundColor: alpha(
                                   employeeAssignmentData.datasets[0]
                                     ?.backgroundColor?.[1] ||
-                                    alpha(ACCENTURE_COLORS.corePurple1, 0.3),
-                                  0.15
+                                    ACCENTURE_COLORS.accentPurple3,
+                                  darkMode ? 0.25 : 0.15
                                 ),
                               }}
                             >
@@ -1121,10 +1134,10 @@ const Analytics = () => {
                   elevation={0}
                   sx={{
                     borderRadius: 3,
-                    background: "#fff",
+                    backgroundColor: theme.palette.background.paper,
                     border: `1px solid ${alpha(
                       ACCENTURE_COLORS.corePurple2,
-                      0.08
+                      darkMode ? 0.2 : 0.08
                     )}`,
                     height: "100%",
                     overflow: "hidden",
@@ -1132,7 +1145,7 @@ const Analytics = () => {
                     "&:hover": {
                       boxShadow: `0 8px 24px ${alpha(
                         ACCENTURE_COLORS.corePurple2,
-                        0.08
+                        darkMode ? 0.3 : 0.08
                       )}`,
                     },
                   }}
@@ -1143,12 +1156,17 @@ const Analytics = () => {
                         p: { xs: 2.5, md: 3 },
                         borderBottom: `1px solid ${alpha(
                           ACCENTURE_COLORS.corePurple2,
-                          0.05
+                          darkMode ? 0.1 : 0.05
                         )}`,
-                        background: `linear-gradient(135deg, ${alpha(
-                          ACCENTURE_COLORS.corePurple2,
-                          0.02
-                        )}, transparent)`,
+                        background: darkMode 
+                          ? `linear-gradient(135deg, ${alpha(
+                              ACCENTURE_COLORS.corePurple2,
+                              0.05
+                            )}, transparent)`
+                          : `linear-gradient(135deg, ${alpha(
+                              ACCENTURE_COLORS.corePurple2,
+                              0.02
+                            )}, transparent)`,
                       }}
                     >
                       <Box
@@ -1241,10 +1259,10 @@ const Analytics = () => {
                   elevation={0}
                   sx={{
                     borderRadius: 3,
-                    background: "#fff",
+                    backgroundColor: theme.palette.background.paper,
                     border: `1px solid ${alpha(
                       ACCENTURE_COLORS.corePurple3,
-                      0.08
+                      darkMode ? 0.2 : 0.08
                     )}`,
                     height: "100%",
                     overflow: "hidden",
@@ -1252,7 +1270,7 @@ const Analytics = () => {
                     "&:hover": {
                       boxShadow: `0 8px 24px ${alpha(
                         ACCENTURE_COLORS.corePurple3,
-                        0.08
+                        darkMode ? 0.3 : 0.08
                       )}`,
                     },
                   }}
@@ -1261,7 +1279,7 @@ const Analytics = () => {
                     <Box
                       sx={{
                         p: { xs: 2.5, md: 3 },
-                        borderBottom: "1px solid rgba(0,0,0,0.03)",
+                        borderBottom: darkMode ? "1px solid rgba(255,255,255,0.1)" : "1px solid rgba(0,0,0,0.03)",
                         display: "flex",
                         flexDirection: { xs: "column", sm: "row" },
                         justifyContent: "space-between",
@@ -1298,13 +1316,15 @@ const Analytics = () => {
                               color:
                                 skillFilter === filter
                                   ? "#fff"
-                                  : ACCENTURE_COLORS.corePurple1,
-                              borderColor: ACCENTURE_COLORS.corePurple1,
+                                  : darkMode ? "#fff" : ACCENTURE_COLORS.corePurple1,
+                              borderColor: darkMode 
+                                ? alpha(ACCENTURE_COLORS.corePurple1, 0.5)
+                                : ACCENTURE_COLORS.corePurple1,
                               "&:hover": {
                                 backgroundColor:
                                   skillFilter === filter
                                     ? ACCENTURE_COLORS.corePurple2
-                                    : "rgba(161, 0, 255, 0.08)",
+                                    : alpha(ACCENTURE_COLORS.corePurple1, darkMode ? 0.2 : 0.08),
                                 borderColor: ACCENTURE_COLORS.corePurple1,
                               },
                             }}
@@ -1396,7 +1416,7 @@ const Analytics = () => {
                         display: "flex",
                         justifyContent: "flex-end",
                         p: { xs: 2, md: 2.5 },
-                        borderTop: "1px solid rgba(0,0,0,0.03)",
+                        borderTop: darkMode ? "1px solid rgba(255,255,255,0.1)" : "1px solid rgba(0,0,0,0.03)",
                       }}
                     >
                       <Button
@@ -1404,12 +1424,14 @@ const Analytics = () => {
                         size="small"
                         onClick={handleViewAllSkills}
                         sx={{
-                          color: ACCENTURE_COLORS.corePurple1,
-                          borderColor: ACCENTURE_COLORS.corePurple1,
+                          color: darkMode ? "#fff" : ACCENTURE_COLORS.corePurple1,
+                          borderColor: darkMode 
+                            ? alpha(ACCENTURE_COLORS.corePurple1, 0.5)
+                            : ACCENTURE_COLORS.corePurple1,
                           fontSize: "0.8rem",
                           fontWeight: 500,
                           "&:hover": {
-                            backgroundColor: "rgba(161, 0, 255, 0.08)",
+                            backgroundColor: alpha(ACCENTURE_COLORS.corePurple1, darkMode ? 0.2 : 0.08),
                             borderColor: ACCENTURE_COLORS.corePurple1,
                           },
                         }}
