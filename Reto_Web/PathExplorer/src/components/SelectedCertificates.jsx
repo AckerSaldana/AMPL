@@ -11,16 +11,18 @@ import {
 import DeleteIcon from "@mui/icons-material/Delete";
 import SchoolIcon from "@mui/icons-material/School";
 import WorkspacePremiumIcon from "@mui/icons-material/WorkspacePremium";
-import { ACCENTURE_COLORS } from "../styles/styles";
+
+import { useTheme } from "@mui/material/styles";
 
 const SelectedCertificates = ({ certificates, onCertificateRemove }) => {
+  const theme = useTheme();
   return (
     <Paper
       elevation={0}
       sx={{
         borderRadius: 2,
         border: "1px solid rgba(0,0,0,0.08)",
-        bgcolor: "white",
+        bgcolor: theme.palette.background.paper,
         height: "400px",
         display: "flex",
         flexDirection: "column",
@@ -38,7 +40,7 @@ const SelectedCertificates = ({ certificates, onCertificateRemove }) => {
           <Typography
             variant="subtitle2"
             fontWeight={600}
-            color={ACCENTURE_COLORS.corePurple2}
+            color={theme.palette.primary.main}
             sx={{
               display: "flex",
               alignItems: "center",
@@ -52,8 +54,8 @@ const SelectedCertificates = ({ certificates, onCertificateRemove }) => {
             label={`${certificates.length} certificates`}
             size="small"
             sx={{
-              bgcolor: `${ACCENTURE_COLORS.corePurple1}15`,
-              color: ACCENTURE_COLORS.corePurple2,
+              bgcolor: `${theme.palette.accenture.colors.corePurple1}15`,
+              color: theme.palette.primary.main,
               fontWeight: 600,
               height: 20,
               fontSize: "0.625rem",
@@ -76,10 +78,10 @@ const SelectedCertificates = ({ certificates, onCertificateRemove }) => {
               borderRadius: "3px",
             },
             "&::-webkit-scrollbar-thumb": {
-              backgroundColor: ACCENTURE_COLORS.accentPurple5,
+              backgroundColor: theme.palette.accenture.colors.accentPurple5,
               borderRadius: "3px",
               "&:hover": {
-                backgroundColor: ACCENTURE_COLORS.accentPurple4,
+                backgroundColor: theme.palette.accenture.colors.accentPurple4,
               },
             },
           }}
@@ -118,8 +120,8 @@ const SelectedCertificates = ({ certificates, onCertificateRemove }) => {
                     width: 32,
                     height: 32,
                     borderRadius: "8px",
-                    backgroundColor: `${ACCENTURE_COLORS.corePurple1}15`,
-                    color: ACCENTURE_COLORS.corePurple2,
+                    backgroundColor: `${theme.palette.accenture.colors.corePurple1}15`,
+                    color: theme.palette.primary.main,
                     fontWeight: "bold",
                     fontSize: "0.85rem",
                   }}
@@ -131,7 +133,7 @@ const SelectedCertificates = ({ certificates, onCertificateRemove }) => {
                   <Typography
                     variant="body2"
                     fontWeight={500}
-                    color={ACCENTURE_COLORS.corePurple3}
+                    color={theme.palette.accenture.colors.corePurple3}
                     sx={{
                       overflow: "hidden",
                       textOverflow: "ellipsis",
@@ -179,13 +181,13 @@ const SelectedCertificates = ({ certificates, onCertificateRemove }) => {
                     size="small"
                     onClick={() => onCertificateRemove(index)}
                     sx={{
-                      color: "white",
-                      backgroundColor: ACCENTURE_COLORS.red,
+                      color: theme.palette.background.paper,
+                      backgroundColor: theme.palette.accenture.colors.red,
                       width: 28,
                       height: 28,
                       opacity: 0.8,
                       "&:hover": {
-                        backgroundColor: ACCENTURE_COLORS.red,
+                        backgroundColor: theme.palette.accenture.colors.red,
                         opacity: 1,
                       },
                       ml: 0.5,
@@ -223,7 +225,10 @@ const SelectedCertificates = ({ certificates, onCertificateRemove }) => {
             }}
           >
             <SchoolIcon
-              sx={{ fontSize: 36, color: ACCENTURE_COLORS.accentPurple3 }}
+              sx={{
+                fontSize: 36,
+                color: theme.palette.accenture.colors.accentPurple3,
+              }}
             />
             No certificates selected yet
           </Typography>

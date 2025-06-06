@@ -13,13 +13,16 @@ import {
   Tooltip,
   Zoom,
   useMediaQuery,
-  useTheme,
   alpha,
   Drawer,
   SwipeableDrawer,
   Button,
-  Divider
+  Divider,
 } from "@mui/material";
+
+import { useTheme } from "@mui/material/styles";
+import { useContext } from "react";
+import { ColorModeContext } from "../App";
 
 import { NavLink, useNavigate, useLocation } from "react-router-dom";
 import useAuth from "../hooks/useAuth";
@@ -47,11 +50,11 @@ import { supabase } from "../supabase/supabaseClient";
 import AccentureLogo from "../brand/AccenturePurpleLogo.png";
 import Loading from "./Loading";
 
-import AssignmentIcon from '@mui/icons-material/Assignment';
-import EventIcon from '@mui/icons-material/Event';
-import UpdateIcon from '@mui/icons-material/Update';
-import RateReviewIcon from '@mui/icons-material/RateReview';
-import MessageIcon from '@mui/icons-material/Message';
+import AssignmentIcon from "@mui/icons-material/Assignment";
+import EventIcon from "@mui/icons-material/Event";
+import UpdateIcon from "@mui/icons-material/Update";
+import RateReviewIcon from "@mui/icons-material/RateReview";
+import MessageIcon from "@mui/icons-material/Message";
 import { Popover } from "@mui/material";
 
 const RippleEffect = ({ active }) => {
@@ -76,6 +79,8 @@ const RippleEffect = ({ active }) => {
 
 const Navbar = ({ children }) => {
   const theme = useTheme();
+  const colorMode = useContext(ColorModeContext);
+
   const navigate = useNavigate();
   const { user, role, loading } = useAuth();
   const isXsScreen = useMediaQuery(theme.breakpoints.down("xs"));
@@ -92,23 +97,32 @@ const Navbar = ({ children }) => {
   const [notifAnchorEl, setNotifAnchorEl] = useState(null);
   const location = useLocation();
   const [activeItem, setActiveItem] = useState("Dashboard");
-  const navBgColor = darkMode ? "#222" : "#fff";
   const [userName, setUserName] = useState("");
 
-  const unreadCount = (notifications || []).filter(n => !n.read).length;
+  const unreadCount = (notifications || []).filter((n) => !n.read).length;
 
   const getIconByType = (type) => {
     switch (type) {
-      case "task": return <AssignmentIcon fontSize="small" />;
-      case "event": return <EventIcon fontSize="small" />;
-      case "update": return <UpdateIcon fontSize="small" />;
-      case "review": return <RateReviewIcon fontSize="small" />;
-      case "message": return <MessageIcon fontSize="small" />;
-      case "project": return <FolderIcon fontSize="small" />;
-      case "certification": return <SchoolIcon fontSize="small" />;
-      case "course": return <WorkspacePremiumIcon fontSize="small" />;
-      case "path": return <ExploreIcon fontSize="small" />;
-      default: return null;
+      case "task":
+        return <AssignmentIcon fontSize="small" />;
+      case "event":
+        return <EventIcon fontSize="small" />;
+      case "update":
+        return <UpdateIcon fontSize="small" />;
+      case "review":
+        return <RateReviewIcon fontSize="small" />;
+      case "message":
+        return <MessageIcon fontSize="small" />;
+      case "project":
+        return <FolderIcon fontSize="small" />;
+      case "certification":
+        return <SchoolIcon fontSize="small" />;
+      case "course":
+        return <WorkspacePremiumIcon fontSize="small" />;
+      case "path":
+        return <ExploreIcon fontSize="small" />;
+      default:
+        return null;
     }
   };
 
@@ -145,7 +159,7 @@ const Navbar = ({ children }) => {
   useEffect(() => {
     const fetchProjectNotifications = async () => {
       if (!user) return;
-      
+
       // First, get the projects the user is assigned to
       const { data: userRoles, error: userRolesError } = await supabase
         .from("UserRole")
@@ -157,7 +171,7 @@ const Navbar = ({ children }) => {
       }
 
       // Extract project IDs the user is assigned to
-      const userProjectIds = userRoles.map(role => role.project_id);
+      const userProjectIds = userRoles.map((role) => role.project_id);
 
       // Fetch only assigned projects that are active
       const { data: projectsData, error } = await supabase
@@ -167,29 +181,33 @@ const Navbar = ({ children }) => {
         .in("status", ["In Progress", "On Hold"]);
 
       if (!error && projectsData) {
-        const notifs = projectsData.map((project) => {
-          const endDate = new Date(project.end_date);
-          const timeRemaining = endDate - new Date();
-          const daysRemaining = Math.floor(timeRemaining / (24 * 60 * 60 * 1000));
-          
-          // Create notification only if deadline is within 10 days
-          if (daysRemaining >= 0 && daysRemaining <= 10) {
-            return {
-              id: `project-${project.projectID}`,
-              text: `Project: ${project.title} - ${daysRemaining} days until deadline`,
-              type: "project",
-              read: false,
-              date: new Date(),
-              priority: daysRemaining <= 3 ? "high" : "medium",
-              entityId: project.projectID
-            };
-          }
-          return null;
-        }).filter(Boolean); // Remove null entries
+        const notifs = projectsData
+          .map((project) => {
+            const endDate = new Date(project.end_date);
+            const timeRemaining = endDate - new Date();
+            const daysRemaining = Math.floor(
+              timeRemaining / (24 * 60 * 60 * 1000)
+            );
 
-        setNotifications(prev => {
+            // Create notification only if deadline is within 10 days
+            if (daysRemaining >= 0 && daysRemaining <= 10) {
+              return {
+                id: `project-${project.projectID}`,
+                text: `Project: ${project.title} - ${daysRemaining} days until deadline`,
+                type: "project",
+                read: false,
+                date: new Date(),
+                priority: daysRemaining <= 3 ? "high" : "medium",
+                entityId: project.projectID,
+              };
+            }
+            return null;
+          })
+          .filter(Boolean); // Remove null entries
+
+        setNotifications((prev) => {
           // Filter out any existing project notifications to avoid duplicates
-          const filteredPrev = prev.filter(n => !n.id.startsWith('project-'));
+          const filteredPrev = prev.filter((n) => !n.id.startsWith("project-"));
           return [...filteredPrev, ...notifs];
         });
       }
@@ -204,7 +222,7 @@ const Navbar = ({ children }) => {
   useEffect(() => {
     const fetchCertificationNotifications = async () => {
       if (!user) return;
-      
+
       // Get the user's certifications that are about to expire
       const { data: userCerts, error: userCertsError } = await supabase
         .from("UserCertifications")
@@ -216,10 +234,12 @@ const Navbar = ({ children }) => {
       }
 
       // Filter for certifications expiring within 30 days
-      const expiringCerts = userCerts.filter(cert => {
+      const expiringCerts = userCerts.filter((cert) => {
         const validUntil = new Date(cert.valid_Until);
         const today = new Date();
-        const daysRemaining = Math.floor((validUntil - today) / (24 * 60 * 60 * 1000));
+        const daysRemaining = Math.floor(
+          (validUntil - today) / (24 * 60 * 60 * 1000)
+        );
         return daysRemaining >= 0 && daysRemaining <= 30;
       });
 
@@ -231,14 +251,21 @@ const Navbar = ({ children }) => {
       const { data: certsData } = await supabase
         .from("Certifications")
         .select("certification_id, title")
-        .in("certification_id", expiringCerts.map(c => c.certification_ID));
+        .in(
+          "certification_id",
+          expiringCerts.map((c) => c.certification_ID)
+        );
 
       if (certsData && certsData.length > 0) {
-        const notifs = certsData.map(cert => {
-          const userCert = expiringCerts.find(uc => uc.certification_ID === cert.certification_id);
+        const notifs = certsData.map((cert) => {
+          const userCert = expiringCerts.find(
+            (uc) => uc.certification_ID === cert.certification_id
+          );
           const validUntil = new Date(userCert.valid_Until);
-          const daysRemaining = Math.floor((validUntil - new Date()) / (24 * 60 * 60 * 1000));
-          
+          const daysRemaining = Math.floor(
+            (validUntil - new Date()) / (24 * 60 * 60 * 1000)
+          );
+
           return {
             id: `cert-${cert.certification_id}`,
             text: `Certification: ${cert.title} expires in ${daysRemaining} days`,
@@ -246,13 +273,13 @@ const Navbar = ({ children }) => {
             read: false,
             date: new Date(),
             priority: daysRemaining <= 7 ? "high" : "medium",
-            entityId: cert.certification_id
+            entityId: cert.certification_id,
           };
         });
 
-        setNotifications(prev => {
+        setNotifications((prev) => {
           // Remove existing certification notifications
-          const filteredPrev = prev.filter(n => !n.id.startsWith('cert-'));
+          const filteredPrev = prev.filter((n) => !n.id.startsWith("cert-"));
           return [...filteredPrev, ...notifs];
         });
       }
@@ -260,9 +287,12 @@ const Navbar = ({ children }) => {
 
     // Initial fetch
     fetchCertificationNotifications();
-    
+
     // Fetch every 6 hours (we don't need to check this as often)
-    const interval = setInterval(fetchCertificationNotifications, 6 * 60 * 60 * 1000);
+    const interval = setInterval(
+      fetchCertificationNotifications,
+      6 * 60 * 60 * 1000
+    );
     return () => clearInterval(interval);
   }, [user]);
 
@@ -271,18 +301,15 @@ const Navbar = ({ children }) => {
     // Commenting out Course notifications as the table doesn't exist
     // const fetchCourseNotifications = async () => {
     //   if (!user) return;
-      
     //   // Get recently added courses (last 7 days)
     //   const oneWeekAgo = new Date();
     //   oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-      
     //   const { data: courses } = await supabase
     //     .from("Course")
     //     .select("title, created_at")
     //     .gte("created_at", oneWeekAgo.toISOString())
     //     .order("created_at", { ascending: false })
     //     .limit(3);
-        
     //   if (courses && courses.length > 0) {
     //     const notifs = courses.map(course => ({
     //       id: `course-${course.title}`,
@@ -292,7 +319,6 @@ const Navbar = ({ children }) => {
     //       date: new Date(course.created_at),
     //       priority: "low",
     //     }));
-        
     //     setNotifications(prev => {
     //       // Remove existing course notifications
     //       const filteredPrev = prev.filter(n => !n.id.startsWith('course-'));
@@ -300,7 +326,6 @@ const Navbar = ({ children }) => {
     //     });
     //   }
     // };
-    
     // fetchCourseNotifications();
   }, [user]);
 
@@ -383,13 +408,9 @@ const Navbar = ({ children }) => {
 
   const menuItems = getMenuItems();
 
-  const primaryColor = "#973EBC";
-  const primaryLight = alpha(primaryColor, 0.15);
   const primaryDark = "#7b2e9e";
   const bgColor = darkMode ? "#1a1a2e" : "#f5f7fa";
   const borderColor = darkMode ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)";
-  const textColor = darkMode ? "white" : "#333";
-  const secondaryTextColor = darkMode ? "rgba(255,255,255,0.7)" : "#666";
 
   if (loading) {
     return <Loading />;
@@ -441,11 +462,14 @@ const Navbar = ({ children }) => {
               alignItems: "center",
               justifyContent: "flex-start", // Left alignment
               borderRadius: "10px",
-              bgcolor: activeItem === item.text ? primaryColor : "transparent",
+              bgcolor:
+                activeItem === item.text
+                  ? theme.palette.primary.main
+                  : "transparent",
               color: activeItem === item.text ? "white" : "inherit",
               boxShadow:
                 activeItem === item.text
-                  ? `0 4px 10px ${alpha(primaryColor, 0.3)}`
+                  ? `0 4px 10px ${alpha(theme.palette.primary.main, 0.3)}`
                   : "none",
               transition:
                 "all 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.5s cubic-bezier(0.4, 0, 0.2, 1)",
@@ -472,13 +496,13 @@ const Navbar = ({ children }) => {
               "&:hover": {
                 bgcolor:
                   activeItem === item.text
-                    ? primaryColor
+                    ? theme.palette.primary.main
                     : darkMode
                     ? alpha("#ffffff", 0.1)
                     : alpha("#000000", 0.08),
                 boxShadow:
                   activeItem === item.text
-                    ? `0 6px 15px ${alpha(primaryColor, 0.35)}`
+                    ? `0 6px 15px ${alpha(theme.palette.primary.main, 0.35)}`
                     : hoveredItem === item.text
                     ? `0 4px 8px ${alpha("#000", 0.1)}`
                     : "none",
@@ -495,7 +519,10 @@ const Navbar = ({ children }) => {
                 minWidth: 42,
                 width: 42,
                 height: 42,
-                color: activeItem === item.text ? "white" : secondaryTextColor,
+                color:
+                  activeItem === item.text
+                    ? "white"
+                    : theme.palette.text.lightGray,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -538,7 +565,7 @@ const Navbar = ({ children }) => {
                       ? "white"
                       : darkMode
                       ? "rgba(255, 255, 255, 0.7)"
-                      : "#444",
+                      : theme.palette.text.lightGray,
                   fontFamily: '"Palanquin", "Arial", sans-serif',
                   transition: "all 0.3s ease",
                   letterSpacing: activeItem === item.text ? "0.3px" : "normal",
@@ -564,7 +591,7 @@ const Navbar = ({ children }) => {
         display: { xs: "block", sm: "none" },
         "& .MuiDrawer-paper": {
           width: "230px",
-          backgroundColor: navBgColor,
+          backgroundColor: theme.palette.background.paper,
           pt: "60px", // Space for top bar
           transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
         },
@@ -581,7 +608,7 @@ const Navbar = ({ children }) => {
         width: "100vw",
         height: "100vh",
         overflow: "hidden",
-        bgcolor: bgColor,
+        bgcolor: theme.palette.background.default,
         transition: "background-color 0.6s cubic-bezier(0.4, 0, 0.2, 1)",
       }}
     >
@@ -598,7 +625,7 @@ const Navbar = ({ children }) => {
           top: 0,
           left: 0,
           right: 0,
-          bgcolor: navBgColor,
+          bgcolor: theme.palette.background.paper,
           borderBottom: "1px solid",
           borderColor: borderColor,
           zIndex: 1100,
@@ -657,7 +684,7 @@ const Navbar = ({ children }) => {
             variant="h6"
             sx={{
               fontWeight: 600,
-              color: primaryColor,
+              color: theme.palette.primary.main,
               fontFamily: '"Graphik", "Arial", sans-serif',
               whiteSpace: "nowrap",
               opacity: expanded && !isMobile ? 1 : 0,
@@ -679,8 +706,8 @@ const Navbar = ({ children }) => {
             onClick={toggleSidebar}
             size="small"
             sx={{
-              color: primaryColor,
-              bgcolor: alpha(primaryColor, 0.08),
+              color: theme.palette.primary.main,
+              bgcolor: alpha(theme.palette.primary.main, 0.08),
               width: 36,
               height: 36,
               minWidth: 36,
@@ -693,7 +720,7 @@ const Navbar = ({ children }) => {
               transform:
                 expanded && !isMobile ? "translateX(0)" : "translateX(-8px)",
               "&:hover": {
-                bgcolor: alpha(primaryColor, 0.15),
+                bgcolor: alpha(theme.palette.primary.main, 0.15),
                 transform:
                   expanded && !isMobile
                     ? "translateX(0) scale(1.05)"
@@ -735,7 +762,7 @@ const Navbar = ({ children }) => {
             <Typography
               variant="body2"
               sx={{
-                color: textColor,
+                color: theme.palette.text.primary,
                 fontWeight: 500,
                 mr: 1,
                 display: { xs: "none", md: "block" }, // Hide on small screens and mobile
@@ -747,10 +774,10 @@ const Navbar = ({ children }) => {
 
           {/* Dark mode/light mode button - Always visible */}
           <IconButton
-            onClick={toggleThemeMode}
+            onClick={colorMode.toggleColorMode}
             size="small"
             sx={{
-              color: secondaryTextColor,
+              color: theme.palette.text.lightGray,
               bgcolor: darkMode
                 ? alpha("#ffffff", 0.05)
                 : alpha("#000000", 0.05),
@@ -810,11 +837,15 @@ const Navbar = ({ children }) => {
             onClick={(e) => setNotifAnchorEl(e.currentTarget)}
             size="small"
             sx={{
-              color: unreadCount > 0 ? primaryColor : secondaryTextColor,
-              bgcolor: unreadCount > 0 
-                ? alpha(primaryColor, 0.08)
-                : darkMode 
-                  ? alpha("#ffffff", 0.05) 
+              color:
+                unreadCount > 0
+                  ? theme.palette.primary.main
+                  : theme.palette.text.lightGray,
+              bgcolor:
+                unreadCount > 0
+                  ? alpha(theme.palette.primary.main, 0.08)
+                  : darkMode
+                  ? alpha("#ffffff", 0.05)
                   : alpha("#000000", 0.05),
               width: 36,
               height: 36,
@@ -823,10 +854,11 @@ const Navbar = ({ children }) => {
               transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
               overflow: "hidden",
               "&:hover": {
-                bgcolor: unreadCount > 0
-                  ? alpha(primaryColor, 0.15)
-                  : darkMode 
-                    ? alpha("#ffffff", 0.1) 
+                bgcolor:
+                  unreadCount > 0
+                    ? alpha(theme.palette.primary.main, 0.15)
+                    : darkMode
+                    ? alpha("#ffffff", 0.1)
                     : alpha("#000000", 0.08),
                 transform: "scale(1.05)",
                 "& .notification-bell": {
@@ -835,9 +867,9 @@ const Navbar = ({ children }) => {
                     "0%, 100%": { transform: "rotate(0deg)" },
                     "10%, 30%": { transform: "rotate(-10deg)" },
                     "20%, 40%": { transform: "rotate(10deg)" },
-                    "50%": { transform: "rotate(0deg)" }
-                  }
-                }
+                    "50%": { transform: "rotate(0deg)" },
+                  },
+                },
               },
               "&::before": {
                 content: '""',
@@ -847,18 +879,18 @@ const Navbar = ({ children }) => {
                 right: 0,
                 bottom: 0,
                 background: `radial-gradient(circle at center, ${
-                  unreadCount > 0 
-                    ? alpha(primaryColor, 0.2)
-                    : darkMode 
-                      ? "rgba(255,255,255,0.1)" 
-                      : "rgba(0,0,0,0.05)"
+                  unreadCount > 0
+                    ? alpha(theme.palette.primary.main, 0.2)
+                    : darkMode
+                    ? "rgba(255,255,255,0.1)"
+                    : "rgba(0,0,0,0.05)"
                 } 0%, transparent 70%)`,
                 opacity: 0,
                 transition: "opacity 0.3s ease",
               },
               "&:active::before": {
                 opacity: 1,
-              }
+              },
             }}
           >
             <Badge
@@ -878,12 +910,12 @@ const Navbar = ({ children }) => {
                   padding: "0 3px",
                   boxShadow: `0 2px 4px ${alpha("rgb(255, 0, 0)", 0.3)}`,
                   border: `1.5px solid ${darkMode ? "#1a1a2e" : "#ffffff"}`,
-                }
+                },
               }}
             >
-              <NotificationsIcon 
+              <NotificationsIcon
                 className="notification-bell"
-                fontSize="small" 
+                fontSize="small"
                 sx={{
                   transition: "transform 0.3s ease",
                 }}
@@ -909,91 +941,121 @@ const Navbar = ({ children }) => {
                 overflow: "hidden",
                 bgcolor: darkMode ? "#1a1a2e" : "#ffffff",
                 border: "1px solid",
-                borderColor: darkMode ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)",
-                boxShadow: darkMode 
-                  ? "0 10px 30px rgba(0,0,0,0.3)" 
+                borderColor: darkMode
+                  ? "rgba(255,255,255,0.08)"
+                  : "rgba(0,0,0,0.08)",
+                boxShadow: darkMode
+                  ? "0 10px 30px rgba(0,0,0,0.3)"
                   : "0 10px 30px rgba(0,0,0,0.1)",
               },
             }}
           >
             {/* Header with gradient background */}
-            <Box sx={{ 
-              display: "flex", 
-              justifyContent: "space-between", 
-              alignItems: "center", 
-              px: 2.5, 
-              py: 2,
-              background: darkMode 
-                ? `linear-gradient(135deg, ${alpha(primaryColor, 0.15)} 0%, ${alpha(primaryColor, 0.05)} 100%)`
-                : `linear-gradient(135deg, ${alpha(primaryColor, 0.08)} 0%, ${alpha(primaryColor, 0.02)} 100%)`,
-              borderBottom: "1px solid",
-              borderColor: darkMode ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)",
-              position: "relative",
-              "&::after": {
-                content: '""',
-                position: "absolute",
-                bottom: 0,
-                left: 0,
-                right: 0,
-                height: "1px",
-                background: `linear-gradient(90deg, transparent, ${alpha(primaryColor, 0.3)}, transparent)`,
-              }
-            }}>
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                px: 2.5,
+                py: 2,
+                background: darkMode
+                  ? `linear-gradient(135deg, ${alpha(
+                      theme.palette.primary.main,
+                      0.15
+                    )} 0%, ${alpha(theme.palette.primary.main, 0.05)} 100%)`
+                  : `linear-gradient(135deg, ${alpha(
+                      theme.palette.primary.main,
+                      0.08
+                    )} 0%, ${alpha(theme.palette.primary.main, 0.02)} 100%)`,
+                borderBottom: "1px solid",
+                borderColor: darkMode
+                  ? "rgba(255,255,255,0.08)"
+                  : "rgba(0,0,0,0.08)",
+                position: "relative",
+                "&::after": {
+                  content: '""',
+                  position: "absolute",
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  height: "1px",
+                  background: `linear-gradient(90deg, transparent, ${alpha(
+                    theme.palette.primary.main,
+                    0.3
+                  )}, transparent)`,
+                },
+              }}
+            >
               <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                <NotificationsIcon sx={{ 
-                  color: primaryColor, 
-                  fontSize: 20,
-                  filter: `drop-shadow(0 2px 4px ${alpha(primaryColor, 0.3)})`
-                }} />
-                <Typography variant="h6" sx={{ 
-                  fontSize: "1.1rem", 
-                  fontWeight: 600,
-                  background: `linear-gradient(135deg, ${primaryColor} 0%, ${primaryDark} 100%)`,
-                  WebkitBackgroundClip: "text",
-                  WebkitTextFillColor: "transparent",
-                  letterSpacing: "0.5px"
-                }}>
+                <NotificationsIcon
+                  sx={{
+                    color: theme.palette.primary.main,
+                    fontSize: 20,
+                    filter: `drop-shadow(0 2px 4px ${alpha(
+                      theme.palette.primary.main,
+                      0.3
+                    )})`,
+                  }}
+                />
+                <Typography
+                  variant="h6"
+                  sx={{
+                    fontSize: "1.1rem",
+                    fontWeight: 600,
+                    background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${primaryDark} 100%)`,
+                    WebkitBackgroundClip: "text",
+                    WebkitTextFillColor: "transparent",
+                    letterSpacing: "0.5px",
+                  }}
+                >
                   Notifications
                 </Typography>
               </Box>
               {unreadCount > 0 && (
-                <Box sx={{ 
-                  bgcolor: alpha(primaryColor, 0.1),
-                  color: primaryColor,
-                  px: 2,
-                  py: 0.5,
-                  borderRadius: 20,
-                  fontSize: "0.75rem",
-                  fontWeight: 600,
-                  border: `1px solid ${alpha(primaryColor, 0.2)}`,
-                }}>
+                <Box
+                  sx={{
+                    bgcolor: alpha(theme.palette.primary.main, 0.1),
+                    color: theme.palette.primary.main,
+                    px: 2,
+                    py: 0.5,
+                    borderRadius: 20,
+                    fontSize: "0.75rem",
+                    fontWeight: 600,
+                    border: `1px solid ${alpha(
+                      theme.palette.primary.main,
+                      0.2
+                    )}`,
+                  }}
+                >
                   {unreadCount} new
                 </Box>
               )}
             </Box>
 
             {/* Notification List with elegant styling */}
-            <Box sx={{ 
-              maxHeight: 420, 
-              overflow: "auto",
-              "&::-webkit-scrollbar": {
-                width: "6px",
-              },
-              "&::-webkit-scrollbar-track": {
-                background: alpha("#000", darkMode ? 0.1 : 0.03),
-              },
-              "&::-webkit-scrollbar-thumb": {
-                background: alpha(primaryColor, 0.3),
-                borderRadius: "10px",
-                "&:hover": {
-                  background: alpha(primaryColor, 0.5),
+            <Box
+              sx={{
+                maxHeight: 420,
+                overflow: "auto",
+                "&::-webkit-scrollbar": {
+                  width: "6px",
                 },
-              },
-            }}>
+                "&::-webkit-scrollbar-track": {
+                  background: alpha("#000", darkMode ? 0.1 : 0.03),
+                },
+                "&::-webkit-scrollbar-thumb": {
+                  background: alpha(theme.palette.primary.main, 0.3),
+                  borderRadius: "10px",
+                  "&:hover": {
+                    background: alpha(theme.palette.primary.main, 0.5),
+                  },
+                },
+              }}
+            >
               {notifications.length > 0 ? (
                 <List disablePadding>
                   {notifications.map((notif, index) => (
-                    <ListItem 
+                    <ListItem
                       key={notif.id}
                       button
                       onClick={() => {
@@ -1012,10 +1074,12 @@ const Navbar = ({ children }) => {
                           default:
                             navigate("/");
                         }
-                        
+
                         // Mark as read
-                        setNotifications(prev => 
-                          prev.map(n => n.id === notif.id ? {...n, read: true} : n)
+                        setNotifications((prev) =>
+                          prev.map((n) =>
+                            n.id === notif.id ? { ...n, read: true } : n
+                          )
                         );
                         setNotifAnchorEl(null);
                       }}
@@ -1023,21 +1087,26 @@ const Navbar = ({ children }) => {
                         px: 2,
                         py: 1.5,
                         position: "relative",
-                        bgcolor: !notif.read 
-                          ? darkMode 
-                            ? alpha(primaryColor, 0.08) 
-                            : alpha(primaryColor, 0.04)
+                        bgcolor: !notif.read
+                          ? darkMode
+                            ? alpha(theme.palette.primary.main, 0.08)
+                            : alpha(theme.palette.primary.main, 0.04)
                           : "transparent",
-                        borderBottom: index < notifications.length - 1 ? "1px solid" : "none",
-                        borderColor: darkMode ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)",
+                        borderBottom:
+                          index < notifications.length - 1
+                            ? "1px solid"
+                            : "none",
+                        borderColor: darkMode
+                          ? "rgba(255,255,255,0.05)"
+                          : "rgba(0,0,0,0.05)",
                         transition: "all 0.3s ease",
                         "&:hover": {
-                          bgcolor: darkMode 
-                            ? alpha(primaryColor, 0.12) 
-                            : alpha(primaryColor, 0.08),
+                          bgcolor: darkMode
+                            ? alpha(theme.palette.primary.main, 0.12)
+                            : alpha(theme.palette.primary.main, 0.08),
                           "& .notification-icon": {
                             transform: "scale(1.1)",
-                          }
+                          },
                         },
                         "&::before": {
                           content: '""',
@@ -1048,7 +1117,7 @@ const Navbar = ({ children }) => {
                           width: notif.priority === "high" ? "3px" : "0px",
                           bgcolor: "error.main",
                           transition: "width 0.3s ease",
-                        }
+                        },
                       }}
                     >
                       {/* Icon with background */}
@@ -1062,20 +1131,26 @@ const Navbar = ({ children }) => {
                             display: "flex",
                             alignItems: "center",
                             justifyContent: "center",
-                            bgcolor: notif.priority === "high" 
-                              ? alpha("rgb(255, 0, 0)", 0.1)
-                              : notif.type === "certification" 
+                            bgcolor:
+                              notif.priority === "high"
+                                ? alpha("rgb(255, 0, 0)", 0.1)
+                                : notif.type === "certification"
                                 ? alpha("#06D6A0", 0.1)
-                                : alpha(primaryColor, 0.1),
-                            color: notif.priority === "high" 
-                              ? "error.main" 
-                              : notif.type === "certification" 
-                                ? "#06D6A0" 
-                                : primaryColor,
+                                : alpha(theme.palette.primary.main, 0.1),
+                            color:
+                              notif.priority === "high"
+                                ? "error.main"
+                                : notif.type === "certification"
+                                ? "#06D6A0"
+                                : theme.palette.primary.main,
                             transition: "all 0.3s ease",
-                            boxShadow: notif.priority === "high"
-                              ? `0 4px 12px ${alpha("rgb(255, 0, 0)", 0.2)}`
-                              : `0 4px 12px ${alpha(primaryColor, 0.15)}`,
+                            boxShadow:
+                              notif.priority === "high"
+                                ? `0 4px 12px ${alpha("rgb(255, 0, 0)", 0.2)}`
+                                : `0 4px 12px ${alpha(
+                                    theme.palette.primary.main,
+                                    0.15
+                                  )}`,
                           }}
                         >
                           {getIconByType(notif.type)}
@@ -1085,9 +1160,9 @@ const Navbar = ({ children }) => {
                       {/* Content with better typography */}
                       <ListItemText
                         primary={
-                          <Typography 
-                            variant="body2" 
-                            sx={{ 
+                          <Typography
+                            variant="body2"
+                            sx={{
                               fontWeight: notif.read ? 400 : 600,
                               color: darkMode ? "#ffffff" : "#1a1a2e",
                               lineHeight: 1.4,
@@ -1103,36 +1178,52 @@ const Navbar = ({ children }) => {
                           </Typography>
                         }
                         secondary={
-                          <Box sx={{ display: "flex", alignItems: "center", gap: 1, mt: 0.5 }}>
+                          <Box
+                            sx={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 1,
+                              mt: 0.5,
+                            }}
+                          >
                             <Typography
                               variant="caption"
-                              sx={{ 
-                                color: darkMode ? "rgba(255,255,255,0.5)" : "rgba(0,0,0,0.5)",
+                              sx={{
+                                color: darkMode
+                                  ? "rgba(255,255,255,0.5)"
+                                  : "rgba(0,0,0,0.5)",
                                 fontSize: "0.7rem",
                                 whiteSpace: "nowrap",
                               }}
                             >
-                              {notif.date ? new Date(notif.date).toLocaleDateString('en-US', { 
-                                month: 'short',
-                                day: 'numeric',
-                                hour: '2-digit', 
-                                minute: '2-digit',
-                                hour12: true
-                              }) : 'Just now'}
+                              {notif.date
+                                ? new Date(notif.date).toLocaleDateString(
+                                    "en-US",
+                                    {
+                                      month: "short",
+                                      day: "numeric",
+                                      hour: "2-digit",
+                                      minute: "2-digit",
+                                      hour12: true,
+                                    }
+                                  )
+                                : "Just now"}
                             </Typography>
                             {notif.priority === "high" && (
-                              <Box sx={{
-                                bgcolor: "error.main",
-                                color: "white",
-                                px: 0.75,
-                                py: 0.125,
-                                borderRadius: 0.75,
-                                fontSize: "0.6rem",
-                                fontWeight: 600,
-                                textTransform: "uppercase",
-                                letterSpacing: "0.3px",
-                                whiteSpace: "nowrap",
-                              }}>
+                              <Box
+                                sx={{
+                                  bgcolor: "error.main",
+                                  color: "white",
+                                  px: 0.75,
+                                  py: 0.125,
+                                  borderRadius: 0.75,
+                                  fontSize: "0.6rem",
+                                  fontWeight: 600,
+                                  textTransform: "uppercase",
+                                  letterSpacing: "0.3px",
+                                  whiteSpace: "nowrap",
+                                }}
+                              >
                                 Urgent
                               </Box>
                             )}
@@ -1140,12 +1231,13 @@ const Navbar = ({ children }) => {
                         }
                         sx={{
                           overflow: "hidden",
-                          "& .MuiListItemText-primary, & .MuiListItemText-secondary": {
-                            overflow: "hidden",
-                          }
+                          "& .MuiListItemText-primary, & .MuiListItemText-secondary":
+                            {
+                              overflow: "hidden",
+                            },
                         }}
                       />
-                      
+
                       {/* Animated unread indicator */}
                       {!notif.read && (
                         <Box
@@ -1153,24 +1245,47 @@ const Navbar = ({ children }) => {
                             width: 8,
                             height: 8,
                             borderRadius: "50%",
-                            bgcolor: notif.priority === "high" ? "error.main" : primaryColor,
+                            bgcolor:
+                              notif.priority === "high"
+                                ? "error.main"
+                                : theme.palette.primary.main,
                             position: "absolute",
                             right: 16,
                             top: "50%",
                             transform: "translateY(-50%)",
-                            boxShadow: `0 0 0 0 ${alpha(notif.priority === "high" ? "rgb(255, 0, 0)" : primaryColor, 0.4)}`,
+                            boxShadow: `0 0 0 0 ${alpha(
+                              notif.priority === "high"
+                                ? "rgb(255, 0, 0)"
+                                : theme.palette.primary.main,
+                              0.4
+                            )}`,
                             animation: "ripple 1.5s infinite",
                             "@keyframes ripple": {
                               "0%": {
-                                boxShadow: `0 0 0 0 ${alpha(notif.priority === "high" ? "rgb(255, 0, 0)" : primaryColor, 0.4)}`,
+                                boxShadow: `0 0 0 0 ${alpha(
+                                  notif.priority === "high"
+                                    ? "rgb(255, 0, 0)"
+                                    : theme.palette.primary.main,
+                                  0.4
+                                )}`,
                               },
                               "70%": {
-                                boxShadow: `0 0 0 8px ${alpha(notif.priority === "high" ? "rgb(255, 0, 0)" : primaryColor, 0)}`,
+                                boxShadow: `0 0 0 8px ${alpha(
+                                  notif.priority === "high"
+                                    ? "rgb(255, 0, 0)"
+                                    : theme.palette.primary.main,
+                                  0
+                                )}`,
                               },
                               "100%": {
-                                boxShadow: `0 0 0 0 ${alpha(notif.priority === "high" ? "rgb(255, 0, 0)" : primaryColor, 0)}`,
-                              }
-                            }
+                                boxShadow: `0 0 0 0 ${alpha(
+                                  notif.priority === "high"
+                                    ? "rgb(255, 0, 0)"
+                                    : theme.palette.primary.main,
+                                  0
+                                )}`,
+                              },
+                            },
                           }}
                         />
                       )}
@@ -1178,58 +1293,72 @@ const Navbar = ({ children }) => {
                   ))}
                 </List>
               ) : (
-                <Box sx={{ 
-                  p: 4, 
-                  textAlign: "center",
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  gap: 2
-                }}>
-                  <Box sx={{
-                    width: 80,
-                    height: 80,
-                    borderRadius: "50%",
-                    bgcolor: darkMode ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.03)",
+                <Box
+                  sx={{
+                    p: 4,
+                    textAlign: "center",
                     display: "flex",
+                    flexDirection: "column",
                     alignItems: "center",
-                    justifyContent: "center",
-                    position: "relative",
-                    "&::before": {
-                      content: '""',
-                      position: "absolute",
-                      inset: -2,
+                    gap: 2,
+                  }}
+                >
+                  <Box
+                    sx={{
+                      width: 80,
+                      height: 80,
                       borderRadius: "50%",
-                      border: `2px dashed ${darkMode ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)"}`,
-                      animation: "rotate 20s linear infinite",
-                      "@keyframes rotate": {
-                        "0%": { transform: "rotate(0deg)" },
-                        "100%": { transform: "rotate(360deg)" }
-                      }
-                    }
-                  }}>
-                    <NotificationsIcon 
-                      sx={{ 
-                        fontSize: 36, 
-                        color: darkMode ? "rgba(255,255,255,0.3)" : "rgba(0,0,0,0.3)",
+                      bgcolor: darkMode
+                        ? "rgba(255,255,255,0.05)"
+                        : "rgba(0,0,0,0.03)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      position: "relative",
+                      "&::before": {
+                        content: '""',
+                        position: "absolute",
+                        inset: -2,
+                        borderRadius: "50%",
+                        border: `2px dashed ${
+                          darkMode ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)"
+                        }`,
+                        animation: "rotate 20s linear infinite",
+                        "@keyframes rotate": {
+                          "0%": { transform: "rotate(0deg)" },
+                          "100%": { transform: "rotate(360deg)" },
+                        },
+                      },
+                    }}
+                  >
+                    <NotificationsIcon
+                      sx={{
+                        fontSize: 36,
+                        color: darkMode
+                          ? "rgba(255,255,255,0.3)"
+                          : "rgba(0,0,0,0.3)",
                       }}
                     />
                   </Box>
                   <Box>
-                    <Typography 
-                      variant="body1" 
-                      sx={{ 
-                        color: darkMode ? "rgba(255,255,255,0.7)" : "rgba(0,0,0,0.7)",
+                    <Typography
+                      variant="body1"
+                      sx={{
+                        color: darkMode
+                          ? "rgba(255,255,255,0.7)"
+                          : "rgba(0,0,0,0.7)",
                         fontWeight: 500,
-                        mb: 0.5
+                        mb: 0.5,
                       }}
                     >
                       All caught up!
                     </Typography>
-                    <Typography 
-                      variant="caption" 
-                      sx={{ 
-                        color: darkMode ? "rgba(255,255,255,0.5)" : "rgba(0,0,0,0.5)" 
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        color: darkMode
+                          ? "rgba(255,255,255,0.5)"
+                          : "rgba(0,0,0,0.5)",
                       }}
                     >
                       No new notifications
@@ -1241,32 +1370,37 @@ const Navbar = ({ children }) => {
 
             {/* Enhanced Footer */}
             {notifications.length > 0 && (
-              <Box sx={{ 
-                p: 2,
-                pt: 1,
-                borderTop: "1px solid",
-                borderColor: darkMode ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)",
-                background: `linear-gradient(to bottom, ${
-                  darkMode 
-                    ? "rgba(255,255,255,0.02)" 
-                    : "rgba(0,0,0,0.01)"
-                }, transparent)`,
-                display: "flex",
-                gap: 1.5,
-              }}>
+              <Box
+                sx={{
+                  p: 2,
+                  pt: 1,
+                  borderTop: "1px solid",
+                  borderColor: darkMode
+                    ? "rgba(255,255,255,0.08)"
+                    : "rgba(0,0,0,0.08)",
+                  background: `linear-gradient(to bottom, ${
+                    darkMode ? "rgba(255,255,255,0.02)" : "rgba(0,0,0,0.01)"
+                  }, transparent)`,
+                  display: "flex",
+                  gap: 1.5,
+                }}
+              >
                 <Button
                   fullWidth
-                  sx={{ 
+                  sx={{
                     py: 1.2,
                     px: 2,
-                    background: `linear-gradient(135deg, ${primaryColor} 0%, ${primaryDark} 100%)`,
+                    background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${primaryDark} 100%)`,
                     color: "white",
                     borderRadius: 2,
                     textTransform: "none",
                     fontWeight: 600,
                     fontSize: "0.875rem",
                     letterSpacing: "0.3px",
-                    boxShadow: `0 8px 20px ${alpha(primaryColor, 0.3)}`,
+                    boxShadow: `0 8px 20px ${alpha(
+                      theme.palette.primary.main,
+                      0.3
+                    )}`,
                     position: "relative",
                     overflow: "hidden",
                     transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
@@ -1277,7 +1411,8 @@ const Navbar = ({ children }) => {
                       left: 0,
                       right: 0,
                       bottom: 0,
-                      background: "linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 50%)",
+                      background:
+                        "linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 50%)",
                       opacity: 0,
                       transition: "opacity 0.3s ease",
                     },
@@ -1285,27 +1420,31 @@ const Navbar = ({ children }) => {
                       transform: "translateY(-1px)",
                       "&::before": {
                         opacity: 1,
-                      }
+                      },
                     },
                     "&:active": {
                       transform: "translateY(0)",
-                    }
+                    },
                   }}
                   onClick={() => {
-                    setNotifications(prev => prev.map(n => ({...n, read: true})));
+                    setNotifications((prev) =>
+                      prev.map((n) => ({ ...n, read: true }))
+                    );
                   }}
                 >
                   Mark all read
                 </Button>
                 <Button
                   fullWidth
-                  sx={{ 
+                  sx={{
                     py: 1.2,
                     px: 2,
-                    background: darkMode 
-                      ? "rgba(255,255,255,0.05)" 
+                    background: darkMode
+                      ? "rgba(255,255,255,0.05)"
                       : "rgba(0,0,0,0.03)",
-                    color: darkMode ? "rgba(255,255,255,0.8)" : "rgba(0,0,0,0.8)",
+                    color: darkMode
+                      ? "rgba(255,255,255,0.8)"
+                      : "rgba(0,0,0,0.8)",
                     borderRadius: 2,
                     textTransform: "none",
                     fontWeight: 600,
@@ -1334,11 +1473,11 @@ const Navbar = ({ children }) => {
                       transform: "translateY(-1px)",
                       "&::after": {
                         opacity: 1,
-                      }
+                      },
                     },
                     "&:active": {
                       transform: "translateY(0)",
-                    }
+                    },
                   }}
                   onClick={() => {
                     setNotifications([]);
@@ -1357,7 +1496,7 @@ const Navbar = ({ children }) => {
               onClick={handleLogout}
               size="small"
               sx={{
-                color: secondaryTextColor,
+                color: theme.palette.text.lightGray,
                 bgcolor: darkMode
                   ? alpha("#ffffff", 0.05)
                   : alpha("#000000", 0.05),
@@ -1389,14 +1528,20 @@ const Navbar = ({ children }) => {
                 sx={{
                   width: 36,
                   height: 36,
-                  bgcolor: primaryColor,
+                  bgcolor: theme.palette.primary.main,
                   cursor: "pointer",
                   transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-                  boxShadow: `0 2px 8px ${alpha(primaryColor, 0.3)}`,
+                  boxShadow: `0 2px 8px ${alpha(
+                    theme.palette.primary.main,
+                    0.3
+                  )}`,
                   border: "2px solid transparent",
                   "&:hover": {
                     transform: "scale(1.05)",
-                    boxShadow: `0 4px 12px ${alpha(primaryColor, 0.4)}`,
+                    boxShadow: `0 4px 12px ${alpha(
+                      theme.palette.primary.main,
+                      0.4
+                    )}`,
                     border: "2px solid white",
                   },
                 }}
@@ -1419,7 +1564,7 @@ const Navbar = ({ children }) => {
             flexShrink: 0,
             width: expanded ? "230px" : "90px",
             height: "calc(100vh - 60px)",
-            bgcolor: navBgColor,
+            bgcolor: theme.palette.background.paper,
             borderRight: "1px solid",
             borderColor: borderColor,
             position: "relative",
@@ -1461,8 +1606,8 @@ const Navbar = ({ children }) => {
             flexGrow: 1,
             height: "calc(100vh - 60px)",
             overflow: "auto",
-            bgcolor: bgColor,
-            color: textColor,
+            bgcolor: theme.palette.background.default,
+            color: theme.palette.text.primary,
             p: { xs: 2, sm: 3 }, // Smaller padding on mobile
             transition: "all 0.5s cubic-bezier(0.4, 0, 0.2, 1)",
             "&::-webkit-scrollbar": {

@@ -5,7 +5,6 @@ import {
   TextField,
   MenuItem,
   Button,
-  useTheme,
   IconButton,
   CircularProgress,
   Snackbar,
@@ -15,7 +14,7 @@ import {
   CardContent,
   Divider,
   Stack,
-  Fade
+  Fade,
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
@@ -26,30 +25,29 @@ import EventIcon from "@mui/icons-material/Event";
 import DescriptionIcon from "@mui/icons-material/Description";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../supabase/supabaseClient";
-import { 
-  ACCENTURE_COLORS, 
-  formFieldStyles, 
-  primaryButtonStyles, 
+import {
+  formFieldStyles,
+  primaryButtonStyles,
   outlineButtonStyles,
-  statusChipStyles,
-  chipStyles
+  chipStyles,
 } from "../styles/styles";
+import { useTheme } from "@mui/material/styles";
 
 // Modificado para usar props: roles, onEditRole, onDeleteRole
 export const AddProjectCard = ({ roles, onEditRole, onDeleteRole }) => {
   const theme = useTheme();
   const navigate = useNavigate();
-  
+
   // Datos del proyecto
   const [projectData, setProjectData] = useState({
     title: "",
     description: "",
     status: "Not Started",
     priority: "High",
-    start_date: new Date().toISOString().split('T')[0], // Formato: YYYY-MM-DD
-    end_date: "", 
+    start_date: new Date().toISOString().split("T")[0], // Formato: YYYY-MM-DD
+    end_date: "",
     client_id: null, // Se asignará si se selecciona un cliente
-    progress: 0 // Proyecto recién creado: 0% de progreso
+    progress: 0, // Proyecto recién creado: 0% de progreso
   });
 
   // Estados para manejo de UI
@@ -123,18 +121,18 @@ export const AddProjectCard = ({ roles, onEditRole, onDeleteRole }) => {
       setLoading(true);
 
       // Preparar los roles con el formato correcto para el matching (sin yearsOfExperience)
-      const formattedRoles = roles.map(role => ({
+      const formattedRoles = roles.map((role) => ({
         id: role.id,
         name: role.name,
         area: role.area,
         description: role.description,
-        skills: role.skills.map(skill => ({
+        skills: role.skills.map((skill) => ({
           id: skill.id,
           skill_ID: skill.id, // Asegurar compatibilidad
           name: skill.name,
           years: skill.years,
-          importance: skill.importance || 1
-        }))
+          importance: skill.importance || 1,
+        })),
       }));
 
       // En lugar de crear el proyecto en la base de datos,
@@ -149,12 +147,12 @@ export const AddProjectCard = ({ roles, onEditRole, onDeleteRole }) => {
           start_date: projectData.start_date,
           end_date: projectData.end_date || null,
           client_id: projectData.client_id,
-          progress: projectData.progress
+          progress: projectData.progress,
         },
         // Array de roles
         roles: formattedRoles,
         // Timestamp para identificación única (simular ID)
-        tempId: Date.now()
+        tempId: Date.now(),
       };
 
       // Guardar en localStorage
@@ -190,7 +188,12 @@ export const AddProjectCard = ({ roles, onEditRole, onDeleteRole }) => {
   return (
     <Box sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
       {/* Encabezado */}
-      <Typography variant="h6" fontWeight={600} color={ACCENTURE_COLORS.corePurple3} gutterBottom>
+      <Typography
+        variant="h6"
+        fontWeight={600}
+        color={theme.palette.accenture.colors.corePurple3}
+        gutterBottom
+      >
         Project Details
       </Typography>
       <Typography variant="body2" color="text.secondary" mb={3}>
@@ -202,7 +205,13 @@ export const AddProjectCard = ({ roles, onEditRole, onDeleteRole }) => {
         <Stack spacing={3}>
           <Box>
             <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
-              <AssignmentIcon sx={{ color: ACCENTURE_COLORS.corePurple2, mr: 1, fontSize: 18 }} />
+              <AssignmentIcon
+                sx={{
+                  color: theme.palette.primary.main,
+                  mr: 1,
+                  fontSize: 18,
+                }}
+              />
               <Typography fontWeight={600} color="text.primary">
                 Project title
               </Typography>
@@ -215,15 +224,27 @@ export const AddProjectCard = ({ roles, onEditRole, onDeleteRole }) => {
               value={projectData.title}
               onChange={handleInputChange}
               sx={{
-                ...formFieldStyles
+                ...formFieldStyles(theme),
               }}
             />
           </Box>
 
-          <Box sx={{ display: "flex", gap: 2, flexWrap: { xs: "wrap", sm: "nowrap" } }}>
+          <Box
+            sx={{
+              display: "flex",
+              gap: 2,
+              flexWrap: { xs: "wrap", sm: "nowrap" },
+            }}
+          >
             <Box sx={{ flex: 1, minWidth: { xs: "100%", sm: "45%" } }}>
               <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
-                <EventIcon sx={{ color: ACCENTURE_COLORS.corePurple2, mr: 1, fontSize: 18 }} />
+                <EventIcon
+                  sx={{
+                    color: theme.palette.primary.main,
+                    mr: 1,
+                    fontSize: 18,
+                  }}
+                />
                 <Typography fontWeight={600} color="text.primary">
                   Start Date
                 </Typography>
@@ -236,13 +257,19 @@ export const AddProjectCard = ({ roles, onEditRole, onDeleteRole }) => {
                 onChange={handleInputChange}
                 size="small"
                 sx={{
-                  ...formFieldStyles
+                  ...formFieldStyles(theme),
                 }}
               />
             </Box>
             <Box sx={{ flex: 1, minWidth: { xs: "100%", sm: "45%" } }}>
               <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
-                <EventIcon sx={{ color: ACCENTURE_COLORS.corePurple2, mr: 1, fontSize: 18 }} />
+                <EventIcon
+                  sx={{
+                    color: theme.palette.primary.main,
+                    mr: 1,
+                    fontSize: 18,
+                  }}
+                />
                 <Typography fontWeight={600} color="text.primary">
                   End Date
                 </Typography>
@@ -255,7 +282,7 @@ export const AddProjectCard = ({ roles, onEditRole, onDeleteRole }) => {
                 onChange={handleInputChange}
                 size="small"
                 sx={{
-                  ...formFieldStyles
+                  ...formFieldStyles(theme),
                 }}
               />
             </Box>
@@ -264,7 +291,13 @@ export const AddProjectCard = ({ roles, onEditRole, onDeleteRole }) => {
           {/* Selección de cliente */}
           <Box>
             <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
-              <BusinessIcon sx={{ color: ACCENTURE_COLORS.corePurple2, mr: 1, fontSize: 18 }} />
+              <BusinessIcon
+                sx={{
+                  color: theme.palette.primary.main,
+                  mr: 1,
+                  fontSize: 18,
+                }}
+              />
               <Typography fontWeight={600} color="text.primary">
                 Client
               </Typography>
@@ -278,7 +311,7 @@ export const AddProjectCard = ({ roles, onEditRole, onDeleteRole }) => {
               size="small"
               disabled={loadingClients}
               sx={{
-                ...formFieldStyles
+                ...formFieldStyles(theme),
               }}
             >
               <MenuItem value="">-- Select Client --</MenuItem>
@@ -290,10 +323,22 @@ export const AddProjectCard = ({ roles, onEditRole, onDeleteRole }) => {
             </TextField>
           </Box>
 
-          <Box sx={{ display: "flex", gap: 2, flexWrap: { xs: "wrap", sm: "nowrap" } }}>
+          <Box
+            sx={{
+              display: "flex",
+              gap: 2,
+              flexWrap: { xs: "wrap", sm: "nowrap" },
+            }}
+          >
             <Box sx={{ flex: 1, minWidth: { xs: "100%", sm: "45%" } }}>
               <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
-                <PriorityHighIcon sx={{ color: ACCENTURE_COLORS.corePurple2, mr: 1, fontSize: 18 }} />
+                <PriorityHighIcon
+                  sx={{
+                    color: theme.palette.primary.main,
+                    mr: 1,
+                    fontSize: 18,
+                  }}
+                />
                 <Typography fontWeight={600} color="text.primary">
                   Priority
                 </Typography>
@@ -306,7 +351,7 @@ export const AddProjectCard = ({ roles, onEditRole, onDeleteRole }) => {
                 onChange={handleInputChange}
                 size="small"
                 sx={{
-                  ...formFieldStyles
+                  ...formFieldStyles(theme),
                 }}
               >
                 <MenuItem value="Low">Low</MenuItem>
@@ -316,14 +361,14 @@ export const AddProjectCard = ({ roles, onEditRole, onDeleteRole }) => {
             </Box>
             <Box sx={{ flex: 1, minWidth: { xs: "100%", sm: "45%" } }}>
               <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
-                <Box 
-                  component="span" 
-                  sx={{ 
-                    width: 18, 
-                    height: 18, 
-                    borderRadius: "50%", 
-                    bgcolor: ACCENTURE_COLORS.corePurple2, 
-                    mr: 1 
+                <Box
+                  component="span"
+                  sx={{
+                    width: 18,
+                    height: 18,
+                    borderRadius: "50%",
+                    bgcolor: theme.palette.primary.main,
+                    mr: 1,
                   }}
                 />
                 <Typography fontWeight={600} color="text.primary">
@@ -338,7 +383,7 @@ export const AddProjectCard = ({ roles, onEditRole, onDeleteRole }) => {
                 onChange={handleInputChange}
                 size="small"
                 sx={{
-                  ...formFieldStyles
+                  ...formFieldStyles(theme),
                 }}
               >
                 <MenuItem value="Not Started">Not Started</MenuItem>
@@ -350,7 +395,13 @@ export const AddProjectCard = ({ roles, onEditRole, onDeleteRole }) => {
 
           <Box>
             <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
-              <DescriptionIcon sx={{ color: ACCENTURE_COLORS.corePurple2, mr: 1, fontSize: 18 }} />
+              <DescriptionIcon
+                sx={{
+                  color: theme.palette.primary.main,
+                  mr: 1,
+                  fontSize: 18,
+                }}
+              />
               <Typography fontWeight={600} color="text.primary">
                 Description
               </Typography>
@@ -364,7 +415,7 @@ export const AddProjectCard = ({ roles, onEditRole, onDeleteRole }) => {
               value={projectData.description}
               onChange={handleInputChange}
               sx={{
-                ...formFieldStyles
+                ...formFieldStyles(theme),
               }}
             />
           </Box>
@@ -372,41 +423,43 @@ export const AddProjectCard = ({ roles, onEditRole, onDeleteRole }) => {
       </Box>
 
       {/* Sección de roles */}
-      <Box sx={{ mb: 4, flexGrow: 1, display: "flex", flexDirection: "column" }}>
-        <Box 
-          sx={{ 
-            display: "flex", 
-            justifyContent: "space-between", 
+      <Box
+        sx={{ mb: 4, flexGrow: 1, display: "flex", flexDirection: "column" }}
+      >
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
             alignItems: "center",
             mb: 2,
           }}
         >
-          <Typography 
-            variant="h6" 
-            fontWeight={600} 
-            color={ACCENTURE_COLORS.corePurple3}
+          <Typography
+            variant="h6"
+            fontWeight={600}
+            color={theme.palette.accenture.colors.corePurple3}
           >
             Project Roles
           </Typography>
-          <Chip 
-            label={`${roles.length} ${roles.length === 1 ? 'role' : 'roles'}`}
+          <Chip
+            label={`${roles.length} ${roles.length === 1 ? "role" : "roles"}`}
             size="small"
-            sx={{ 
-              ...chipStyles(),
+            sx={{
+              ...chipStyles(theme),
               fontWeight: 600,
-              backgroundColor: ACCENTURE_COLORS.accentPurple5,
-              color: ACCENTURE_COLORS.corePurple2
+              backgroundColor: theme.palette.accenture.colors.accentPurple5,
+              color: theme.palette.primary.main,
             }}
           />
         </Box>
-        
+
         {/* Lista de roles */}
         <Box
           sx={{
             borderRadius: 2,
-            border: "1px solid",
-            borderColor: "rgba(0,0,0,0.08)",
-            bgcolor: "rgba(255,255,255,0.6)",
+            border: (theme) =>
+              `1px solid ${theme.palette.accenture.colors.lightGray}`,
+            bgcolor: theme.palette.background.paper,
             p: 0,
             flexGrow: 1,
             minHeight: 200,
@@ -414,7 +467,7 @@ export const AddProjectCard = ({ roles, onEditRole, onDeleteRole }) => {
             position: "relative",
             boxShadow: "inset 0 1px 3px rgba(0,0,0,0.02)",
             display: "flex",
-            flexDirection: "column"
+            flexDirection: "column",
           }}
         >
           <Box
@@ -431,33 +484,41 @@ export const AddProjectCard = ({ roles, onEditRole, onDeleteRole }) => {
                 borderRadius: "4px",
               },
               "&::-webkit-scrollbar-thumb": {
-                backgroundColor: ACCENTURE_COLORS.accentPurple5,
+                backgroundColor: theme.palette.accenture.colors.accentPurple5,
                 borderRadius: "4px",
                 "&:hover": {
-                  backgroundColor: ACCENTURE_COLORS.accentPurple4,
-                }
+                  backgroundColor: theme.palette.accenture.colors.accentPurple4,
+                },
               },
             }}
           >
             {roles.length > 0 ? (
               <Stack spacing={1.5} sx={{ py: 1 }}>
                 {roles.map((role, index) => (
-                  <Fade key={role.id} in={true} timeout={300} style={{ transitionDelay: `${index * 50}ms` }}>
+                  <Fade
+                    key={role.id}
+                    in={true}
+                    timeout={300}
+                    style={{ transitionDelay: `${index * 50}ms` }}
+                  >
                     <Card
                       variant="outlined"
-                      sx={{ 
+                      sx={{
                         borderRadius: 2,
                         boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
-                        borderColor: "rgba(0,0,0,0.06)",
+                        borderColor: theme.palette.accenture.colors.lightGray,
                         transition: "all 0.2s ease",
                         "&:hover": {
                           boxShadow: "0 3px 8px rgba(0,0,0,0.08)",
-                          borderColor: ACCENTURE_COLORS.accentPurple4,
-                          transform: "translateY(-2px)"
-                        }
+                          borderColor:
+                            theme.palette.accenture.colors.accentPurple4,
+                          transform: "translateY(-2px)",
+                        },
                       }}
                     >
-                      <CardContent sx={{ p: "12px 16px", "&:last-child": { pb: "12px" } }}>
+                      <CardContent
+                        sx={{ p: "12px 16px", "&:last-child": { pb: "12px" } }}
+                      >
                         <Box
                           sx={{
                             display: "flex",
@@ -466,57 +527,81 @@ export const AddProjectCard = ({ roles, onEditRole, onDeleteRole }) => {
                           }}
                         >
                           <Box>
-                            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                              <Typography variant="subtitle2" fontWeight={600} color={ACCENTURE_COLORS.corePurple3}>
+                            <Box
+                              sx={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 1,
+                              }}
+                            >
+                              <Typography
+                                variant="subtitle2"
+                                fontWeight={600}
+                                color={
+                                  theme.palette.accenture.colors.corePurple3
+                                }
+                              >
                                 {role.name}
                               </Typography>
-                              <Chip 
-                                label={role.area} 
-                                size="small" 
-                                sx={{ 
-                                  height: 20, 
+                              <Chip
+                                label={role.area}
+                                size="small"
+                                sx={{
+                                  height: 20,
                                   fontSize: "0.625rem",
                                   fontWeight: 500,
-                                  color: ACCENTURE_COLORS.corePurple2,
-                                  bgcolor: `${ACCENTURE_COLORS.accentPurple5}90`
+                                  color: theme.palette.primary.main,
+                                  bgcolor: `${theme.palette.accenture.colors.accentPurple5}90`,
                                 }}
                               />
                             </Box>
-                            
+
                             {/* Mostrar skills como chips */}
                             {role.skills && role.skills.length > 0 && (
-                              <Box sx={{ mt: 1, display: "flex", flexWrap: "wrap", gap: 0.5 }}>
+                              <Box
+                                sx={{
+                                  mt: 1,
+                                  display: "flex",
+                                  flexWrap: "wrap",
+                                  gap: 0.5,
+                                }}
+                              >
                                 {role.skills.map((skill, idx) => (
                                   <Chip
                                     key={idx}
                                     label={`${skill.name} (${skill.years}y)`}
                                     size="small"
-                                    sx={{ 
+                                    sx={{
                                       height: 20,
-                                      fontSize: "0.625rem", 
+                                      fontSize: "0.625rem",
                                       fontWeight: 500,
-                                      bgcolor: `${ACCENTURE_COLORS.corePurple1}15`,
-                                      color: ACCENTURE_COLORS.corePurple2,
-                                      border: `1px solid ${ACCENTURE_COLORS.accentPurple4}30`
+                                      bgcolor: `${theme.palette.accenture.colors.corePurple1}15`,
+                                      color:
+                                        theme.palette.accenture.colors
+                                          .corePurple2,
+                                      border: `1px solid ${theme.palette.accenture.colors.accentPurple4}30`,
                                     }}
                                   />
                                 ))}
                               </Box>
                             )}
                           </Box>
-                          
+
                           <Box sx={{ display: "flex", gap: 1 }}>
-                            <IconButton 
+                            <IconButton
                               size="small"
                               onClick={() => onEditRole(role)}
-                              sx={{ 
-                                color: ACCENTURE_COLORS.corePurple1,
-                                bgcolor: `${ACCENTURE_COLORS.accentPurple5}90`,
+                              sx={{
+                                color:
+                                  theme.palette.accenture.colors.corePurple1,
+                                bgcolor: `${theme.palette.accenture.colors.accentPurple5}90`,
                                 width: 28,
                                 height: 28,
-                                '&:hover': {
-                                  bgcolor: ACCENTURE_COLORS.accentPurple5,
-                                }
+                                "&:hover": {
+                                  bgcolor:
+                                    theme.palette.accenture.colors
+                                      .accentPurple5,
+                                },
                               }}
                             >
                               <EditIcon sx={{ fontSize: 16 }} />
@@ -524,38 +609,46 @@ export const AddProjectCard = ({ roles, onEditRole, onDeleteRole }) => {
                             <IconButton
                               size="small"
                               onClick={() => onDeleteRole(role.id)}
-                              sx={{ 
+                              sx={{
                                 color: "white",
-                                backgroundColor: ACCENTURE_COLORS.red,
+                                backgroundColor:
+                                  theme.palette.accenture.colors.red,
                                 width: 28,
                                 height: 28,
                                 opacity: 0.8,
-                                '&:hover': {
-                                  backgroundColor: ACCENTURE_COLORS.red,
-                                  opacity: 1
-                                }
+                                "&:hover": {
+                                  backgroundColor:
+                                    theme.palette.accenture.colors.red,
+                                  opacity: 1,
+                                },
                               }}
                             >
                               <DeleteIcon sx={{ fontSize: 16 }} />
                             </IconButton>
                           </Box>
                         </Box>
-                        
+
                         {/* Mostrar descripción si existe */}
                         {role.description && (
                           <Box sx={{ mt: 1 }}>
-                            <Divider sx={{ my: 1, borderColor: "rgba(0,0,0,0.04)" }} />
-                            <Typography 
-                              variant="body2" 
-                              color="text.secondary" 
-                              sx={{ 
+                            <Divider
+                              sx={{
+                                my: 1,
+                                borderColor:
+                                  theme.palette.accenture.colors.lightGray,
+                              }}
+                            />
+                            <Typography
+                              variant="body2"
+                              color="text.secondary"
+                              sx={{
                                 fontStyle: "italic",
                                 fontSize: "0.75rem",
-                                lineHeight: 1.4
+                                lineHeight: 1.4,
                               }}
                             >
-                              {role.description.length > 120 
-                                ? `${role.description.slice(0, 120)}...` 
+                              {role.description.length > 120
+                                ? `${role.description.slice(0, 120)}...`
                                 : role.description}
                             </Typography>
                           </Box>
@@ -566,22 +659,24 @@ export const AddProjectCard = ({ roles, onEditRole, onDeleteRole }) => {
                 ))}
               </Stack>
             ) : (
-              <Box sx={{ 
-                p: 3, 
-                textAlign: "center", 
-                height: "100%", 
-                display: "flex", 
-                alignItems: "center", 
-                justifyContent: "center",
-                minHeight: 150
-              }}>
+              <Box
+                sx={{
+                  p: 3,
+                  textAlign: "center",
+                  height: "100%",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  minHeight: 150,
+                }}
+              >
                 <Box>
-                  <Typography 
-                    variant="body1" 
-                    color="text.secondary" 
-                    sx={{ 
+                  <Typography
+                    variant="body1"
+                    color="text.secondary"
+                    sx={{
                       fontWeight: 500,
-                      mb: 1
+                      mb: 1,
                     }}
                   >
                     No roles added yet
@@ -597,9 +692,9 @@ export const AddProjectCard = ({ roles, onEditRole, onDeleteRole }) => {
       </Box>
 
       {/* Contenedor para los botones */}
-      <Box 
-        sx={{ 
-          display: "flex", 
+      <Box
+        sx={{
+          display: "flex",
           justifyContent: "center",
           pt: 2,
           mt: "auto",
@@ -609,15 +704,17 @@ export const AddProjectCard = ({ roles, onEditRole, onDeleteRole }) => {
           variant="contained"
           onClick={handleCreateTemporaryProject}
           disabled={loading}
-          startIcon={loading ? <CircularProgress size={20} color="inherit" /> : null}
-          sx={{ 
-            ...primaryButtonStyles,
+          startIcon={
+            loading ? <CircularProgress size={20} color="inherit" /> : null
+          }
+          sx={{
+            ...primaryButtonStyles(theme),
             minWidth: 130,
             mx: 1,
-            backgroundColor: ACCENTURE_COLORS.corePurple1,
+            backgroundColor: theme.palette.accenture.colors.corePurple1,
             "&:hover": {
-              backgroundColor: ACCENTURE_COLORS.corePurple2,
-            }
+              backgroundColor: theme.palette.primary.main,
+            },
           }}
         >
           ASSIGN ROLES
@@ -626,16 +723,16 @@ export const AddProjectCard = ({ roles, onEditRole, onDeleteRole }) => {
           variant="outlined"
           onClick={handleCancel}
           disabled={loading}
-          sx={{ 
-            ...outlineButtonStyles,
+          sx={{
+            ...outlineButtonStyles(theme),
             minWidth: 130,
             mx: 1,
-            borderColor: ACCENTURE_COLORS.accentPurple1,
-            color: ACCENTURE_COLORS.accentPurple1,
+            borderColor: theme.palette.accenture.colors.accentPurple1,
+            color: theme.palette.accenture.colors.accentPurple1,
             "&:hover": {
-              borderColor: ACCENTURE_COLORS.accentPurple1,
-              backgroundColor: `${ACCENTURE_COLORS.accentPurple1}10`,
-            }
+              borderColor: theme.palette.accenture.colors.accentPurple1,
+              backgroundColor: `${theme.palette.accenture.colors.accentPurple1}10`,
+            },
           }}
         >
           CANCEL
@@ -649,13 +746,13 @@ export const AddProjectCard = ({ roles, onEditRole, onDeleteRole }) => {
         onClose={() => setSnackbar({ ...snackbar, open: false })}
         anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
       >
-        <Alert 
-          onClose={() => setSnackbar({ ...snackbar, open: false })} 
+        <Alert
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
           severity={snackbar.severity}
-          sx={{ 
-            width: '100%',
+          sx={{
+            width: "100%",
             borderRadius: 2,
-            boxShadow: "0 4px 12px rgba(0,0,0,0.15)"
+            boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
           }}
         >
           {snackbar.message}
