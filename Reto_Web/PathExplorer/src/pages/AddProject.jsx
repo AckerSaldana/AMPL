@@ -1,10 +1,13 @@
 import React, { useState } from "react";
-import { Box, Grid, Typography, Paper } from "@mui/material";
+import { Box, Grid, Typography, Paper, useTheme } from "@mui/material";
 import { AddProjectCard } from "../components/AddProjectCard";
 import { AddRoleCard } from "../components/AddRoleCard";
 import { ACCENTURE_COLORS, contentPaperStyles } from "../styles/styles";
+import { useDarkMode } from "../contexts/DarkModeContext";
 
 const AddProject = () => {
+  const theme = useTheme();
+  const { darkMode } = useDarkMode();
   // Estado compartido entre componentes para los roles
   const [projectRoles, setProjectRoles] = useState([]);
   const [selectedRoleForEdit, setSelectedRoleForEdit] = useState(null);
@@ -56,7 +59,11 @@ const AddProject = () => {
       <Box mb={4} sx={{ px: 1 }}>
         <Typography 
           variant="h4" 
-          sx={{ fontWeight: 600, mb: 3 }}
+          sx={{ 
+            fontWeight: 600, 
+            mb: 3,
+            color: darkMode ? '#ffffff' : 'inherit'
+          }}
         >
           Create New Project
         </Typography>
@@ -70,6 +77,9 @@ const AddProject = () => {
             sx={{ 
               ...contentPaperStyles,
               height: "auto", // Cambiamos a altura automática
+              bgcolor: darkMode ? '#1e1e1e' : '#ffffff',
+              border: darkMode ? '1px solid rgba(255, 255, 255, 0.12)' : 'none',
+              boxShadow: darkMode ? '0 2px 8px rgba(255, 255, 255, 0.04)' : contentPaperStyles.boxShadow,
               "&::before": {
                 content: '""',
                 position: "absolute",
@@ -96,6 +106,9 @@ const AddProject = () => {
             sx={{ 
               ...contentPaperStyles,
               height: "auto", // Cambiamos a altura automática
+              bgcolor: darkMode ? '#1e1e1e' : '#ffffff',
+              border: darkMode ? '1px solid rgba(255, 255, 255, 0.12)' : 'none',
+              boxShadow: darkMode ? '0 2px 8px rgba(255, 255, 255, 0.04)' : contentPaperStyles.boxShadow,
               "&::before": {
                 content: '""',
                 position: "absolute",

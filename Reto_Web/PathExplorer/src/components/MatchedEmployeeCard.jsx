@@ -5,6 +5,7 @@ import PersonIcon from "@mui/icons-material/Person";
 import TipsAndUpdatesIcon from "@mui/icons-material/TipsAndUpdates";
 import BuildIcon from "@mui/icons-material/Build";
 import { ACCENTURE_COLORS } from "../styles/styles";
+import { useDarkMode } from "../contexts/DarkModeContext";
 
 const MatchedEmployeeCard = ({ 
   name, 
@@ -15,6 +16,7 @@ const MatchedEmployeeCard = ({
   weights = { technical: 60, contextual: 40 },
   onSelect 
 }) => {
+  const { darkMode } = useDarkMode();
   
   // Determinar el color del score basado en el porcentaje
   const getScoreColor = (value) => {
@@ -35,12 +37,13 @@ const MatchedEmployeeCard = ({
         borderRadius: 1.5,
         transition: "all 0.2s ease-in-out",
         border: "1px solid",
-        borderColor: "rgba(0,0,0,0.08)",
+        borderColor: darkMode ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.08)",
+        bgcolor: darkMode ? "rgba(255,255,255,0.03)" : 'transparent',
         "&:hover": {
-          boxShadow: "0 3px 8px rgba(0,0,0,0.08)",
+          boxShadow: darkMode ? "0 3px 8px rgba(255,255,255,0.08)" : "0 3px 8px rgba(0,0,0,0.08)",
           borderColor: ACCENTURE_COLORS.accentPurple4,
           transform: "translateY(-2px)",
-          backgroundColor: "rgba(255,255,255,0.9)",
+          backgroundColor: darkMode ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.9)",
         },
       }}
       onClick={onSelect}
@@ -51,10 +54,10 @@ const MatchedEmployeeCard = ({
           width: 48, 
           height: 48, 
           mr: 2.5, 
-          backgroundColor: `${ACCENTURE_COLORS.corePurple1}15`,
-          color: ACCENTURE_COLORS.corePurple2,
+          backgroundColor: darkMode ? 'rgba(161, 0, 255, 0.15)' : `${ACCENTURE_COLORS.corePurple1}15`,
+          color: darkMode ? '#a67aff' : ACCENTURE_COLORS.corePurple2,
           fontWeight: "bold",
-          border: `1px solid ${ACCENTURE_COLORS.accentPurple5}`
+          border: darkMode ? '1px solid rgba(161, 0, 255, 0.3)' : `1px solid ${ACCENTURE_COLORS.accentPurple5}`
         }}
       >
         {!avatar && <PersonIcon />}
@@ -63,8 +66,10 @@ const MatchedEmployeeCard = ({
         <Typography 
           fontWeight={600} 
           variant="subtitle2"
-          color={ACCENTURE_COLORS.corePurple3}
-          sx={{ mb: 0.5 }}
+          sx={{ 
+            mb: 0.5,
+            color: darkMode ? '#ffffff' : ACCENTURE_COLORS.corePurple3
+          }}
         >
           {name}
         </Typography>
@@ -75,9 +80,9 @@ const MatchedEmployeeCard = ({
             sx={{ 
               height: 20, 
               fontSize: "0.7rem",
-              backgroundColor: `${ACCENTURE_COLORS.corePurple1}10`,
-              color: ACCENTURE_COLORS.corePurple2,
-              border: `1px solid ${ACCENTURE_COLORS.accentPurple4}30`
+              backgroundColor: darkMode ? 'rgba(161, 0, 255, 0.08)' : `${ACCENTURE_COLORS.corePurple1}10`,
+              color: darkMode ? 'rgba(255, 255, 255, 0.7)' : ACCENTURE_COLORS.corePurple2,
+              border: darkMode ? '1px solid rgba(161, 0, 255, 0.2)' : `1px solid ${ACCENTURE_COLORS.accentPurple4}30`
             }}
           />
           <Chip
@@ -86,9 +91,9 @@ const MatchedEmployeeCard = ({
             sx={{ 
               height: 20, 
               fontSize: "0.7rem",
-              backgroundColor: `${ACCENTURE_COLORS.corePurple1}10`,
-              color: ACCENTURE_COLORS.corePurple2,
-              border: `1px solid ${ACCENTURE_COLORS.accentPurple4}30`
+              backgroundColor: darkMode ? 'rgba(161, 0, 255, 0.08)' : `${ACCENTURE_COLORS.corePurple1}10`,
+              color: darkMode ? 'rgba(255, 255, 255, 0.7)' : ACCENTURE_COLORS.corePurple2,
+              border: darkMode ? '1px solid rgba(161, 0, 255, 0.2)' : `1px solid ${ACCENTURE_COLORS.accentPurple4}30`
             }}
           />
           <Chip
@@ -97,9 +102,9 @@ const MatchedEmployeeCard = ({
             sx={{ 
               height: 20, 
               fontSize: "0.7rem",
-              backgroundColor: `${ACCENTURE_COLORS.corePurple1}10`,
-              color: ACCENTURE_COLORS.corePurple2,
-              border: `1px solid ${ACCENTURE_COLORS.accentPurple4}30`
+              backgroundColor: darkMode ? 'rgba(161, 0, 255, 0.08)' : `${ACCENTURE_COLORS.corePurple1}10`,
+              color: darkMode ? 'rgba(255, 255, 255, 0.7)' : ACCENTURE_COLORS.corePurple2,
+              border: darkMode ? '1px solid rgba(161, 0, 255, 0.2)' : `1px solid ${ACCENTURE_COLORS.accentPurple4}30`
             }}
           />
         </Box>
@@ -145,8 +150,10 @@ const MatchedEmployeeCard = ({
           >{`${score || 0}%`}</Typography>
           <Typography 
             variant="caption" 
-            color="text.secondary"
-            sx={{ fontSize: "0.7rem" }}
+            sx={{ 
+              fontSize: "0.7rem",
+              color: darkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary'
+            }}
           >
             Match Score
           </Typography>
@@ -156,12 +163,12 @@ const MatchedEmployeeCard = ({
         size="small" 
         color="primary"
         sx={{ 
-          backgroundColor: `${ACCENTURE_COLORS.accentPurple5}90`,
-          color: ACCENTURE_COLORS.corePurple1,
+          backgroundColor: darkMode ? 'rgba(161, 0, 255, 0.15)' : `${ACCENTURE_COLORS.accentPurple5}90`,
+          color: darkMode ? '#a67aff' : ACCENTURE_COLORS.corePurple1,
           width: 32,
           height: 32,
           '&:hover': {
-            backgroundColor: ACCENTURE_COLORS.accentPurple5,
+            backgroundColor: darkMode ? 'rgba(161, 0, 255, 0.25)' : ACCENTURE_COLORS.accentPurple5,
           }
         }}
       >

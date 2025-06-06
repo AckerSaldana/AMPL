@@ -12,15 +12,17 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import SchoolIcon from "@mui/icons-material/School";
 import WorkspacePremiumIcon from "@mui/icons-material/WorkspacePremium";
 import { ACCENTURE_COLORS } from "../styles/styles";
+import { useDarkMode } from "../contexts/DarkModeContext";
 
 const SelectedCertificates = ({ certificates, onCertificateRemove }) => {
+  const { darkMode } = useDarkMode();
   return (
     <Paper
       elevation={0}
       sx={{
         borderRadius: 2,
-        border: "1px solid rgba(0,0,0,0.08)",
-        bgcolor: "white",
+        border: darkMode ? "1px solid rgba(255,255,255,0.12)" : "1px solid rgba(0,0,0,0.08)",
+        bgcolor: darkMode ? "rgba(255,255,255,0.05)" : "white",
         height: "400px",
         display: "flex",
         flexDirection: "column",
@@ -38,22 +40,23 @@ const SelectedCertificates = ({ certificates, onCertificateRemove }) => {
           <Typography
             variant="subtitle2"
             fontWeight={600}
-            color={ACCENTURE_COLORS.corePurple2}
             sx={{
               display: "flex",
               alignItems: "center",
               gap: 1,
+              color: darkMode ? '#ffffff' : ACCENTURE_COLORS.corePurple2
             }}
           >
-            <WorkspacePremiumIcon fontSize="small" />
+            <WorkspacePremiumIcon fontSize="small" sx={{ color: darkMode ? ACCENTURE_COLORS.accentPurple3 : 'inherit' }} />
             Selected Certificates
           </Typography>
           <Chip
             label={`${certificates.length} certificates`}
             size="small"
             sx={{
-              bgcolor: `${ACCENTURE_COLORS.corePurple1}15`,
-              color: ACCENTURE_COLORS.corePurple2,
+              bgcolor: darkMode ? 'rgba(161, 0, 255, 0.15)' : `${ACCENTURE_COLORS.corePurple1}15`,
+              color: darkMode ? '#a67aff' : ACCENTURE_COLORS.corePurple2,
+              border: darkMode ? '1px solid rgba(161, 0, 255, 0.3)' : 'none',
               fontWeight: 600,
               height: 20,
               fontSize: "0.625rem",
@@ -72,14 +75,14 @@ const SelectedCertificates = ({ certificates, onCertificateRemove }) => {
               width: "6px",
             },
             "&::-webkit-scrollbar-track": {
-              backgroundColor: "rgba(0,0,0,0.02)",
+              backgroundColor: darkMode ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.02)",
               borderRadius: "3px",
             },
             "&::-webkit-scrollbar-thumb": {
-              backgroundColor: ACCENTURE_COLORS.accentPurple5,
+              backgroundColor: darkMode ? "rgba(161, 0, 255, 0.3)" : ACCENTURE_COLORS.accentPurple5,
               borderRadius: "3px",
               "&:hover": {
-                backgroundColor: ACCENTURE_COLORS.accentPurple4,
+                backgroundColor: darkMode ? "rgba(161, 0, 255, 0.5)" : ACCENTURE_COLORS.accentPurple4,
               },
             },
           }}
@@ -94,10 +97,10 @@ const SelectedCertificates = ({ certificates, onCertificateRemove }) => {
                 p: 2,
                 borderBottom:
                   index < certificates.length - 1 ? "1px solid" : "none",
-                borderColor: "rgba(0,0,0,0.04)",
+                borderColor: darkMode ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.04)",
                 transition: "background-color 0.2s ease",
                 "&:hover": {
-                  backgroundColor: "rgba(0,0,0,0.01)",
+                  backgroundColor: darkMode ? "rgba(255,255,255,0.02)" : "rgba(0,0,0,0.01)",
                 },
                 minWidth: 0,
               }}
@@ -118,8 +121,8 @@ const SelectedCertificates = ({ certificates, onCertificateRemove }) => {
                     width: 32,
                     height: 32,
                     borderRadius: "8px",
-                    backgroundColor: `${ACCENTURE_COLORS.corePurple1}15`,
-                    color: ACCENTURE_COLORS.corePurple2,
+                    backgroundColor: darkMode ? 'rgba(161, 0, 255, 0.15)' : `${ACCENTURE_COLORS.corePurple1}15`,
+                    color: darkMode ? '#a67aff' : ACCENTURE_COLORS.corePurple2,
                     fontWeight: "bold",
                     fontSize: "0.85rem",
                   }}
@@ -131,18 +134,17 @@ const SelectedCertificates = ({ certificates, onCertificateRemove }) => {
                   <Typography
                     variant="body2"
                     fontWeight={500}
-                    color={ACCENTURE_COLORS.corePurple3}
                     sx={{
                       overflow: "hidden",
                       textOverflow: "ellipsis",
                       whiteSpace: "nowrap",
+                      color: darkMode ? '#ffffff' : ACCENTURE_COLORS.corePurple3
                     }}
                   >
                     {cert.title}
                   </Typography>
                   <Typography
                     variant="caption"
-                    color="text.secondary"
                     sx={{
                       display: "flex",
                       alignItems: "center",
@@ -150,6 +152,7 @@ const SelectedCertificates = ({ certificates, onCertificateRemove }) => {
                       overflow: "hidden",
                       textOverflow: "ellipsis",
                       whiteSpace: "nowrap",
+                      color: darkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary'
                     }}
                   >
                     {cert.issuer} • {cert.type}
@@ -157,7 +160,6 @@ const SelectedCertificates = ({ certificates, onCertificateRemove }) => {
                   {cert.description && (
                     <Typography
                       variant="caption"
-                      color="text.secondary"
                       sx={{
                         display: "block",
                         overflow: "hidden",
@@ -165,6 +167,7 @@ const SelectedCertificates = ({ certificates, onCertificateRemove }) => {
                         whiteSpace: "nowrap",
                         mt: 0.5,
                         opacity: 0.8,
+                        color: darkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary'
                       }}
                     >
                       {cert.description}
@@ -213,21 +216,21 @@ const SelectedCertificates = ({ certificates, onCertificateRemove }) => {
         >
           <Typography
             variant="body2"
-            color="text.secondary"
             sx={{
               fontWeight: 500,
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
               gap: 1,
+              color: darkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary'
             }}
           >
             <SchoolIcon
-              sx={{ fontSize: 36, color: ACCENTURE_COLORS.accentPurple3 }}
+              sx={{ fontSize: 36, color: darkMode ? ACCENTURE_COLORS.accentPurple3 : ACCENTURE_COLORS.accentPurple3 }}
             />
             No certificates selected yet
           </Typography>
-          <Typography variant="caption" color="text.secondary">
+          <Typography variant="caption" sx={{ color: darkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary' }}>
             Add certificates from the list on the left
           </Typography>
         </Box>
