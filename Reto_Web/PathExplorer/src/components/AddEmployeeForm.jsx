@@ -51,7 +51,7 @@ const steps = [
 /**
  * Main component for employee registration with CV parsing using AI
  */
-const AddEmployeeForm = ({ open, onClose }) => {
+const AddEmployeeForm = ({ open, onClose, onSuccess }) => {
   const fileInputRef = useRef(null);
   
   // Active step state for the stepper
@@ -625,7 +625,12 @@ const handleInputChange = (field, value) => {
         severity: "success"
       });
       
-      // 6. Cerrar el modal después de un tiempo
+      // 6. Llamar al callback onSuccess si existe
+      if (onSuccess) {
+        onSuccess();
+      }
+      
+      // 7. Cerrar el modal después de un tiempo
       setTimeout(() => {
         handleClose();
       }, 2000);
