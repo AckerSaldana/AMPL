@@ -17,15 +17,13 @@ export default defineConfig({
     // Prevenir que se eliminen estilos condicionales en producción
     cssCodeSplit: true,
     sourcemap: false,
-    minify: 'terser',
-    terserOptions: {
-      compress: {
-        drop_console: true,
-        drop_debugger: true,
-        // Mantener condicionales para dark mode
-        dead_code: false,
-        conditionals: false,
-      },
+    minify: 'esbuild',
+    // Configuración para esbuild para mantener el código de dark mode
+    esbuildOptions: {
+      drop: ['console', 'debugger'],
+      // Mantener el código para dark mode
+      treeShaking: true,
+      pure: [],
     },
   },
   // Asegurar que los estilos inline se mantengan
