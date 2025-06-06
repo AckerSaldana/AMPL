@@ -11,9 +11,7 @@
   line-height: 1.5;
   font-weight: 400;
 
-  color: #333333; /* Color de texto oscuro */
-  background-color: #FFFFFF; /* Fondo blanco */
-
+  /* Removemos colores hardcodeados para permitir que MUI maneje los temas */
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -38,7 +36,7 @@ body {
   padding: 0;
   width: 100%; 
   min-height: 100vh;
-  background-color: #FFFFFF; 
+  /* Removemos background-color para que MUI CssBaseline lo maneje */
   overflow-x: hidden; 
   font-family: 'Graphik', sans-serif;
 }
