@@ -1,7 +1,8 @@
 // src/hooks/useUserDataOptimized.js
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "../supabase/supabaseClient";
 import useAuth from "./useAuth";
+import eventBus, { EVENTS } from "../utils/eventBus";
 
 // Cache for storing fetched data
 const dataCache = new Map();
@@ -23,8 +24,10 @@ const useUserDataOptimized = () => {
   });
   const [error, setError] = useState(null);
   const abortController = useRef(null);
+  const [refreshKey, setRefreshKey] = useState(0);
 
-  useEffect(() => {
+  // Fetch all data in parallel
+  const fetchAllData = useCallback(async (skipCache = false) => {
     if (!user) {
       setLoading({
         profile: false,
@@ -35,14 +38,11 @@ const useUserDataOptimized = () => {
       return;
     }
 
-    // Create new abort controller for this fetch cycle
-    abortController.current = new AbortController();
-
-    // Check cache first
+    // Check cache first (unless skipCache is true)
     const cacheKey = `user-data-${user.id}`;
     const cachedData = dataCache.get(cacheKey);
     
-    if (cachedData && Date.now() - cachedData.timestamp < CACHE_DURATION) {
+    if (!skipCache && cachedData && Date.now() - cachedData.timestamp < CACHE_DURATION) {
       setData(cachedData.data);
       setLoading({
         profile: false,
@@ -53,55 +53,65 @@ const useUserDataOptimized = () => {
       return;
     }
 
-    // Fetch all data in parallel
-    const fetchAllData = async () => {
-      try {
-        const [profileData, projectsData, certificationsData, suggestedCertsData] = await Promise.all([
-          fetchUserProfile(user.id),
-          fetchUserProjects(user.id),
-          fetchUserCertifications(user.id),
-          fetchSuggestedCertifications(user.id)
-        ]);
+    setLoading({
+      profile: true,
+      projects: true,
+      certifications: true,
+      timeline: true
+    });
 
-        // Generate timeline from projects and certifications
-        const timelineData = generateTimeline(projectsData, certificationsData, suggestedCertsData);
+    try {
+      const [profileData, projectsData, certificationsData, suggestedCertsData] = await Promise.all([
+        fetchUserProfile(user.id),
+        fetchUserProjects(user.id),
+        fetchUserCertifications(user.id),
+        fetchSuggestedCertifications(user.id)
+      ]);
 
-        const newData = {
-          profile: profileData,
-          projects: projectsData,
-          certifications: certificationsData,
-          timeline: timelineData
-        };
+      // Generate timeline from projects and certifications
+      const timelineData = generateTimeline(projectsData, certificationsData, suggestedCertsData);
 
-        // Update cache
-        dataCache.set(cacheKey, {
-          data: newData,
-          timestamp: Date.now()
+      const newData = {
+        profile: profileData,
+        projects: projectsData,
+        certifications: certificationsData,
+        timeline: timelineData
+      };
+
+      // Update cache
+      dataCache.set(cacheKey, {
+        data: newData,
+        timestamp: Date.now()
+      });
+
+      // Only update state if component is still mounted
+      if (!abortController.current || !abortController.current.signal.aborted) {
+        setData(newData);
+        setLoading({
+          profile: false,
+          projects: false,
+          certifications: false,
+          timeline: false
         });
-
-        // Only update state if component is still mounted
-        if (!abortController.current.signal.aborted) {
-          setData(newData);
-          setLoading({
-            profile: false,
-            projects: false,
-            certifications: false,
-            timeline: false
-          });
-        }
-      } catch (err) {
-        if (!abortController.current.signal.aborted) {
-          console.error("Error fetching user data:", err);
-          setError(err.message);
-          setLoading({
-            profile: false,
-            projects: false,
-            certifications: false,
-            timeline: false
-          });
-        }
       }
-    };
+    } catch (err) {
+      if (!abortController.current || !abortController.current.signal.aborted) {
+        console.error("Error fetching user data:", err);
+        setError(err.message);
+        setLoading({
+          profile: false,
+          projects: false,
+          certifications: false,
+          timeline: false
+        });
+      }
+    }
+  }, [user]);
+
+  // Initial fetch
+  useEffect(() => {
+    // Create new abort controller for this fetch cycle
+    abortController.current = new AbortController();
 
     fetchAllData();
 
@@ -111,6 +121,23 @@ const useUserDataOptimized = () => {
         abortController.current.abort();
       }
     };
+  }, [fetchAllData, refreshKey]);
+
+  // Listen for AI cert added events
+  useEffect(() => {
+    const handleAICertAdded = () => {
+      console.log("AI cert added event received in useUserDataOptimized");
+      // Force refresh by invalidating cache and triggering re-fetch
+      if (user) {
+        const cacheKey = `user-data-${user.id}`;
+        dataCache.delete(cacheKey);
+        setRefreshKey(prev => prev + 1);
+      }
+    };
+
+    const unsubscribe = eventBus.on(EVENTS.AI_CERT_ADDED, handleAICertAdded);
+
+    return unsubscribe;
   }, [user]);
 
   // Fetch user profile with optimized query
@@ -279,7 +306,8 @@ const useUserDataOptimized = () => {
       name: cert.Certifications?.title || "Certification",
       issuer: cert.Certifications?.issuer || "Unknown",
       type: "certification",
-      displayDate: "Recently added"
+      displayDate: "AI suggested",
+      isSuggested: true
     }));
   };
 
@@ -300,7 +328,8 @@ const useUserDataOptimized = () => {
         displayDate: cert.date
       }));
 
-    return [...projectItems, ...certificationItems, ...suggestedCerts].sort((a, b) => {
+    // Combine all items and sort, but keep suggested certifications at the top
+    const regularItems = [...projectItems, ...certificationItems].sort((a, b) => {
       const getStartDate = (item) => {
         if (item.type === "project" && item.startDate) return new Date(item.startDate);
         if (item.type === "certification" && item.completedDate) return new Date(item.completedDate);
@@ -309,6 +338,9 @@ const useUserDataOptimized = () => {
 
       return getStartDate(b) - getStartDate(a);
     });
+
+    // Put suggested certifications first, then regular items
+    return [...suggestedCerts, ...regularItems];
   };
 
   // Helper functions
@@ -385,11 +417,13 @@ const useUserDataOptimized = () => {
   ];
 
   // Method to invalidate cache
-  const invalidateCache = () => {
+  const invalidateCache = useCallback(() => {
     if (user) {
-      dataCache.delete(`user-data-${user.id}`);
+      const cacheKey = `user-data-${user.id}`;
+      dataCache.delete(cacheKey);
+      setRefreshKey(prev => prev + 1);
     }
-  };
+  }, [user]);
 
   return {
     userProfile: data.profile,

@@ -187,6 +187,51 @@ const ProjectCard = ({ project, darkMode = false }) => {
         {/* Spacer to push content to consistent positions */}
         <Box sx={{ flexGrow: 1, minHeight: 8 }} />
 
+        {/* Supervisor Section */}
+        {project.supervisor && (
+          <Box sx={{ mb: 2 }}>
+            <Typography
+              variant="body2"
+              sx={{ 
+                mb: 0.5, 
+                fontWeight: 600, 
+                fontSize: "0.75rem",
+                color: darkMode ? 'rgba(255,255,255,0.9)' : ACCENTURE_COLORS.corePurple3
+              }}
+            >
+              Supervisor:
+            </Typography>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              <Avatar
+                alt={project.supervisor.name}
+                src={project.supervisor.avatar || undefined}
+                sx={{
+                  width: 28,
+                  height: 28,
+                  fontSize: "0.7rem",
+                  bgcolor: project.supervisor.avatar
+                    ? "transparent"
+                    : ACCENTURE_COLORS.corePurple1,
+                  border: darkMode ? "2px solid rgba(255,255,255,0.1)" : "2px solid #fff",
+                }}
+              >
+                {!project.supervisor.avatar && project.supervisor.name
+                  ? project.supervisor.name.charAt(0).toUpperCase()
+                  : ""}
+              </Avatar>
+              <Typography
+                variant="body2"
+                sx={{
+                  fontSize: "0.75rem",
+                  color: darkMode ? 'rgba(255,255,255,0.8)' : ACCENTURE_COLORS.darkGray,
+                }}
+              >
+                {project.supervisor.name}
+              </Typography>
+            </Box>
+          </Box>
+        )}
+
         {/* Team Section - consistent height */}
         <Box>
           <Typography

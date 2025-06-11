@@ -233,7 +233,7 @@ const Dashboard = () => {
 
         // 3. User skills count
         supabase
-          .from("UserSkills")
+          .from("UserSkill")
           .select("skill_ID", { count: 'exact' })
           .eq("user_ID", user.id),
 
@@ -251,7 +251,7 @@ const Dashboard = () => {
             name,
             category,
             type,
-            UserSkills!inner(user_ID)
+            UserSkill!inner(user_ID)
           `)
           .limit(5),
 
@@ -324,8 +324,8 @@ const Dashboard = () => {
           id: skill.skill_ID,
           name: skill.name,
           category: skill.category || skill.type,
-          popularityPercentage: Math.round((skill.UserSkills?.length / totalCount) * 100) || 50,
-          userCount: skill.UserSkills?.length || 0,
+          popularityPercentage: Math.round((skill.UserSkill?.length / totalCount) * 100) || 50,
+          userCount: skill.UserSkill?.length || 0,
           projectCount: Math.floor(Math.random() * 10) + 1
         }));
         
@@ -521,6 +521,7 @@ const Dashboard = () => {
           <Grid item xs={6} md={3}>
             <Paper
               elevation={0}
+              onClick={() => navigate('/user')}
               sx={{
                 p: 3,
                 borderRadius: 2,

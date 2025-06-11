@@ -64,7 +64,7 @@ const ProjectDashboard = () => {
         supabase
           .from("Project")
           .select(
-            "projectID, title, description, status, logo, progress, start_date, end_date, priority"
+            "projectID, title, description, status, logo, progress, start_date, end_date, priority, supervisor_id, Supervisor:User!supervisor_id(user_id, name, profile_pic)"
           ),
         supabase
           .from("UserRole")
@@ -118,6 +118,11 @@ const ProjectDashboard = () => {
         assignedDate: project.start_date,
         dueDate: project.end_date,
         priority: project.priority,
+        supervisor: project.Supervisor ? {
+          id: project.Supervisor.user_id,
+          name: project.Supervisor.name,
+          avatar: project.Supervisor.profile_pic
+        } : null,
       }));
 
       // Sort projects by priority

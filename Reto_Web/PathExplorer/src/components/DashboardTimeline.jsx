@@ -169,9 +169,9 @@ const DashboardTimelineItem = ({ item, isLast = false, profilePurple, index, dar
                   <Typography
                     variant="caption"
                     sx={{ 
-                      color: theme.palette.text.secondary,
+                      color: item.isSuggested ? profilePurple : theme.palette.text.secondary,
                       fontSize: "0.8rem",
-                      fontWeight: 500
+                      fontWeight: item.isSuggested ? 600 : 500
                     }}
                   >
                     {dateDisplay}
@@ -188,9 +188,11 @@ const DashboardTimelineItem = ({ item, isLast = false, profilePurple, index, dar
               minWidth: 100
             }}>
               <Chip
-                icon={item.status ? <TrendingUpIcon sx={{ fontSize: '14px !important' }} /> : null}
+                icon={item.status && !item.isSuggested ? <TrendingUpIcon sx={{ fontSize: '14px !important' }} /> : null}
                 label={
-                  item.status === 'approved' 
+                  item.isSuggested
+                    ? 'AI Suggested'
+                    : item.status === 'approved' 
                     ? 'Approved'
                     : item.status === 'Completed'
                     ? 'Completed'
@@ -203,12 +205,16 @@ const DashboardTimelineItem = ({ item, isLast = false, profilePurple, index, dar
                   height: 24,
                   fontSize: '0.7rem',
                   fontWeight: 600,
-                  bgcolor: item.status === 'Completed' || item.status === 'approved'
+                  bgcolor: item.isSuggested
+                    ? alpha(profilePurple, 0.15)
+                    : item.status === 'Completed' || item.status === 'approved'
                     ? alpha(ACCENTURE_COLORS.green, 0.15)
                     : item.status === 'In Progress'
                     ? alpha(ACCENTURE_COLORS.orange, 0.15)
                     : alpha(profilePurple, 0.1),
-                  color: item.status === 'Completed' || item.status === 'approved'
+                  color: item.isSuggested
+                    ? profilePurple
+                    : item.status === 'Completed' || item.status === 'approved'
                     ? '#4caf50'
                     : item.status === 'In Progress'
                     ? ACCENTURE_COLORS.orange

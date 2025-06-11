@@ -31,7 +31,8 @@ import {
   People as PeopleIcon,
   Assignment as AssignmentIcon,
   Flag as FlagIcon,
-  Insights as InsightsIcon
+  Insights as InsightsIcon,
+  SupervisorAccount as SupervisorAccountIcon
 } from "@mui/icons-material";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "../supabase/supabaseClient.js";
@@ -114,7 +115,7 @@ const ProjectDetail = () => {
       const { data: projectData, error: projectError } = await supabase
         .from("Project")
         .select(
-          "projectID, title, description, status, logo, progress, start_date, end_date, priority"
+          "projectID, title, description, status, logo, progress, start_date, end_date, priority, supervisor_id, Supervisor:User!supervisor_id(user_id, name, last_name, profile_pic)"
         )
         .eq("projectID", projectId)
         .single();
@@ -1231,6 +1232,77 @@ const ProjectDetail = () => {
           </Box>
         </Box>
       </Paper>
+
+      {/* Supervisor section */}
+      {project.Supervisor && (
+        <Paper 
+          elevation={0}
+          sx={{ 
+            p: { xs: 3, sm: 4 }, 
+            borderRadius: 3,
+            mb: 3,
+            border: "1px solid",
+            borderColor: darkMode ? alpha("#fff", 0.1) : alpha("#000", 0.05),
+            boxShadow: darkMode ? '0 4px 20px rgba(0, 0, 0, 0.3)' : '0 4px 20px rgba(0, 0, 0, 0.03)',
+            bgcolor: theme.palette.background.paper
+          }}
+        >
+          <Box sx={{ 
+            display: "flex", 
+            alignItems: "center", 
+            mb: 3
+          }}>
+            <SupervisorAccountIcon sx={{ color: ACCENTURE_COLORS.corePurple1, mr: 1.5 }} />
+            <Typography variant="h6" fontWeight={600} sx={{ color: darkMode ? '#ffffff' : ACCENTURE_COLORS.corePurple3 }}>
+              Project Supervisor
+            </Typography>
+          </Box>
+          
+          <Divider sx={{ mb: 3, opacity: 0.6 }} />
+
+          <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+            <Avatar 
+              src={project.Supervisor.profile_pic} 
+              alt={project.Supervisor.name}
+              sx={{ 
+                width: 64, 
+                height: 64,
+                boxShadow: `0 4px 12px ${alpha(ACCENTURE_COLORS.corePurple1, 0.2)}`,
+                border: `3px solid ${alpha(ACCENTURE_COLORS.corePurple1, 0.2)}`,
+                bgcolor: project.Supervisor.profile_pic ? "transparent" : ACCENTURE_COLORS.corePurple1,
+              }}
+            >
+              {!project.Supervisor.profile_pic && project.Supervisor.name
+                ? project.Supervisor.name.charAt(0).toUpperCase()
+                : ""}
+            </Avatar>
+            <Box>
+              <Typography 
+                variant="h6" 
+                fontWeight={600}
+                sx={{ 
+                  color: darkMode ? '#ffffff' : ACCENTURE_COLORS.corePurple3,
+                  mb: 0.5
+                }}
+              >
+                {project.Supervisor.name} {project.Supervisor.last_name}
+              </Typography>
+              <Chip
+                label="Manager"
+                size="small"
+                sx={{ 
+                  height: 24, 
+                  fontSize: "0.75rem",
+                  fontWeight: 500,
+                  bgcolor: alpha(ACCENTURE_COLORS.corePurple1, 0.1),
+                  color: ACCENTURE_COLORS.corePurple1,
+                  border: `1px solid ${alpha(ACCENTURE_COLORS.corePurple1, 0.2)}`
+                }}
+              />
+            </Box>
+          </Box>
+        </Paper>
+      )}
 
       {/* Team section - Enhanced with card hover effects and better spacing */}
       <Paper 
