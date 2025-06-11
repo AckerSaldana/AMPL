@@ -101,6 +101,56 @@ export const supabaseAdmin = createClient(
   supabaseServiceRoleKey
 );
 
+// Function to fetch user certifications from Supabase
+async function fetchUserCertifications(userIds) {
+  try {
+    console.log(`Fetching certifications for ${userIds.length} users...`);
+    
+    // Fetch user certifications from UserCertifications table
+    const { data: userCertifications, error } = await supabaseAdmin
+      .from('UserCertifications')
+      .select(`
+        user_ID,
+        certification_ID,
+        Certifications!certification_ID (
+          certification_id,
+          title,
+          description
+        )
+      `)
+      .in('user_ID', userIds);
+    
+    if (error) {
+      console.error('Error fetching user certifications:', error);
+      return {};
+    }
+    
+    // Group certifications by user_ID
+    const certificationsByUser = {};
+    
+    userCertifications.forEach(userCert => {
+      const userId = userCert.user_ID;
+      if (!certificationsByUser[userId]) {
+        certificationsByUser[userId] = [];
+      }
+      
+      if (userCert.Certifications) {
+        certificationsByUser[userId].push({
+          certification_id: userCert.Certifications.certification_id,
+          name: userCert.Certifications.title,
+          description: userCert.Certifications.description
+        });
+      }
+    });
+    
+    console.log(`Fetched certifications for ${Object.keys(certificationsByUser).length} users`);
+    return certificationsByUser;
+  } catch (error) {
+    console.error('Error in fetchUserCertifications:', error);
+    return {};
+  }
+}
+
 // Inicializamos caches (TTL: 1 día)
 const embeddingCache = new NodeCache({ stdTTL: 86400 });
 const parserCache = new NodeCache({ stdTTL: 3600 }); // Cache para el parser de CV (1 hora)
@@ -116,6 +166,41 @@ const getOpenAIApiKey = () => {
   
   return apiKey;
 };
+
+// ======== AGREGAR AL INICIO DEL ARCHIVO (DESPUÉS DE LOS IMPORTS) ========
+
+// Caché avanzada para matching con timestamp awareness
+const matchingCache = new NodeCache({ stdTTL: 300 }); // 5 minutos por defecto
+
+// Función para generar clave de caché para matching con información de timestamp
+function generateMatchingCacheKey(role, employees) {
+  if (!role || !employees || !employees.length) return null;
+  
+  // Extraer solo los IDs de empleados y ordenarlos para consistencia
+  const employeeIds = employees
+    .map(e => e.id)
+    .filter(Boolean)
+    .sort();
+  
+  if (!employeeIds.length) return null;
+  
+  // Generar hash reducido del rol para identificarlo de manera única
+  const roleId = role.id || 'unknown';
+  const roleHash = generateCacheKey(JSON.stringify({
+    id: role.id,
+    name: role.name || role.role,
+    skills: (role.skills || []).map(s => s.id)
+  })).substring(0, 10);
+  
+  // Obtener la última fecha de actualización entre todos los empleados
+  const latestUpdate = employees.reduce((latest, employee) => {
+    const empDate = employee.updated_at || employee.updatedAt || '2000-01-01';
+    return new Date(empDate) > new Date(latest) ? empDate : latest;
+  }, '2000-01-01');
+  
+  // Crear una clave que incorpore el timestamp para invalidación automática
+  return `match_${roleId}_${roleHash}_${latestUpdate.substring(0, 10)}`;
+}
 
 if (!supabaseUrl || !supabaseServiceRoleKey) {
   console.warn("Advertencia: Variables de entorno de Supabase no configuradas en las fuentes primarias");
@@ -202,6 +287,184 @@ export async function testAPIKey() {
     return false;
   }
 }
+
+/**
+ * Función de pre-filtrado para descartar candidatos sin skills relevantes
+ * @returns {Object} resultado con calificaciones y explicación
+ */
+function preEvaluateCandidate(roleSkills, employeeSkills, roleCertifications = [], employeeCertifications = []) {
+  if (!roleSkills || !roleSkills.length || !employeeSkills || !employeeSkills.length) {
+    return {
+      qualified: false,
+      technicalScore: 0,
+      contextualScore: 50, // Neutral
+      combinedScore: 5, // Muy bajo pero no cero
+      reason: "El candidato no tiene habilidades registradas o el rol no especifica habilidades requeridas",
+      certificationScore: 0,
+      certificationDetails: []
+    };
+  }
+  
+  // Convertir arrays a maps para búsqueda rápida
+  const roleSkillIds = new Set(roleSkills.map(skill => String(skill.id || skill.skill_ID)));
+  const employeeSkillIds = new Set(employeeSkills.map(skill => String(skill.skill_ID || skill.id)));
+  
+  // Verificar si hay alguna coincidencia de habilidades
+  let matchingSkills = 0;
+  for (const skillId of employeeSkillIds) {
+    if (roleSkillIds.has(skillId)) {
+      matchingSkills++;
+    }
+  }
+  
+  // Calcular porcentaje de coincidencia
+  const matchPercentage = (matchingSkills / roleSkillIds.size) * 100;
+  
+  // Verificar si tiene TODAS las habilidades requeridas
+  const hasAllSkills = matchingSkills >= roleSkillIds.size;
+  
+  // NUEVO: Evaluar certificaciones
+  let certificationScore = 100; // Empezar con puntuación completa
+  const certificationDetails = [];
+  
+  if (roleCertifications && roleCertifications.length > 0) {
+    const roleCertIds = new Set(roleCertifications.map(cert => String(cert.id || cert.certification_id)));
+    const employeeCertIds = new Set(employeeCertifications.map(cert => String(cert.certification_id || cert.id)));
+    
+    // Debug logging
+    console.log(`Role requires certifications: ${Array.from(roleCertIds).join(', ')}`);
+    console.log(`Employee has certifications: ${Array.from(employeeCertIds).join(', ')}`);
+    
+    let matchingCerts = 0;
+    for (const certId of roleCertIds) {
+      if (employeeCertIds.has(certId)) {
+        matchingCerts++;
+        certificationDetails.push({
+          certId,
+          status: 'matched',
+          weight: 1
+        });
+      } else {
+        certificationDetails.push({
+          certId,
+          status: 'missing',
+          weight: 1
+        });
+      }
+    }
+    
+    // Calcular puntuación de certificaciones
+    if (roleCertIds.size > 0) {
+      certificationScore = (matchingCerts / roleCertIds.size) * 100;
+      console.log(`Certification matching: ${matchingCerts}/${roleCertIds.size} = ${certificationScore}%`);
+    }
+  }
+  
+  // Criterios de descalificación más generosos
+  if (matchingSkills === 0) {
+    return {
+      qualified: false,
+      technicalScore: 0,
+      contextualScore: 50, // Neutral
+      combinedScore: 5, // Muy bajo pero no cero
+      reason: "El candidato no tiene ninguna de las habilidades requeridas para el rol",
+      certificationScore,
+      certificationDetails
+    };
+  }
+  
+  // Candidatos con muy pocas habilidades relevantes también reciben puntuaciones muy bajas
+  // Pero ahora somos más generosos - solo descalificamos si tiene menos del 10% (antes era 15%)
+  if (matchPercentage < 10) {
+    return {
+      qualified: false,
+      technicalScore: 10,
+      contextualScore: 50, // Neutral
+      combinedScore: 15,
+      reason: `El candidato solo tiene ${matchingSkills} de ${roleSkillIds.size} habilidades requeridas (${matchPercentage.toFixed(1)}%)`,
+      certificationScore,
+      certificationDetails
+    };
+  }
+  
+  // Si tiene todas las habilidades, nota especial
+  if (hasAllSkills) {
+    return {
+      qualified: true,
+      matchingSkills,
+      totalRequired: roleSkillIds.size,
+      matchPercentage,
+      completeMatch: true,
+      note: "El candidato tiene TODAS las habilidades requeridas",
+      certificationScore,
+      certificationDetails
+    };
+  }
+  
+  // Si pasa las verificaciones mínimas, entonces es elegible para evaluación completa
+  return {
+    qualified: true,
+    matchingSkills,
+    totalRequired: roleSkillIds.size,
+    matchPercentage,
+    certificationScore,
+    certificationDetails
+  };
+}
+
+  // ======== FUNCIÓN PARA PROCESAMIENTO EN PARALELO ========
+
+/**
+ * Procesa lotes de empleados en paralelo para obtener resultados más rápido
+ */
+async function parallelBatchProcessWithGPT(role, employees, skillMap) {
+  const BATCH_SIZE = 8; // Tamaño óptimo de lote para balance rendimiento/precisión
+  
+  // 1. Calcular pesos dinámicos una sola vez (más eficiente)
+  const { alpha, beta, certWeight } = calculateDynamicWeights(
+    role.description, 
+    role.skills, 
+    skillMap,
+    role.certifications || role.certificates || []
+  );
+  console.log(`Pesos para todos los lotes - Técnico: ${Math.round(alpha * 100)}%, Contextual: ${Math.round(beta * 100)}%, Certificaciones: ${Math.round(certWeight * 100)}%`);
+  
+  // 2. Dividir empleados en lotes de tamaño fijo
+  const batches = [];
+  for (let i = 0; i < employees.length; i += BATCH_SIZE) {
+    batches.push(employees.slice(i, i + BATCH_SIZE));
+  }
+  
+  console.log(`Procesando ${employees.length} candidatos en ${batches.length} lotes en paralelo`);
+  
+  try {
+    // 3. Procesar todos los lotes en paralelo usando Promise.all
+    const startTime = Date.now();
+    
+    // Esta es la parte clave: procesamiento paralelo
+    const batchResultsPromises = batches.map(batch => 
+      matchCandidatesWithGPT(role, batch, skillMap)
+    );
+    
+    const batchResults = await Promise.all(batchResultsPromises);
+    
+    // 4. Consolidar resultados
+    const allResults = batchResults.flat();
+    
+    // 5. Ordenar por puntuación
+    allResults.sort((a, b) => b.combinedScore - a.combinedScore);
+    
+    const endTime = Date.now();
+    console.log(`Procesamiento en paralelo completado en ${endTime - startTime}ms`);
+    
+    return allResults;
+  } catch (error) {
+    console.error(`Error en procesamiento paralelo: ${error.message}`);
+    // En caso de error, usar método fallback
+    return fallbackExperienceMatching(role, employees, alpha, beta);
+  }
+}
+
 
 // Preprocesamiento del texto
 export function preprocessText(text, maxLength = 1000) {
@@ -590,10 +853,27 @@ function ensureSkillMap(skillMapInput, role, employees) {
 }
 
 // Función de pesos dinámicos basada en la descripción y skills del rol
-export function calculateDynamicWeights(roleDescription = "", roleSkills = [], skillMap = {}) {
-  // Default weights with new specific limits: technical between 85-95%, contextual between 5-15%
-  let alpha = 0.90, beta = 0.10; 
-  console.log("Calculating dynamic weights based on skills and role description");
+export function calculateDynamicWeights(roleDescription = "", roleSkills = [], skillMap = {}, roleCertifications = []) {
+  // Default weights with new specific limits, now including certifications
+  let alpha = 0.85, beta = 0.08, certWeight = 0.07; 
+  console.log("Calculating dynamic weights based on skills, certifications, and role description");
+  
+  // If role has required certifications, adjust weights dynamically
+  if (roleCertifications && roleCertifications.length > 0) {
+    // Base certification weight based on number of required certifications
+    const certCount = roleCertifications.length;
+    
+    // More certifications = higher weight (up to 30% for 5+ certifications)
+    // Increased from 20% to 30% to make certifications more important
+    certWeight = Math.min(0.30, 0.10 + (certCount * 0.05));
+    
+    // Adjust other weights proportionally
+    const remainingWeight = 1 - certWeight;
+    alpha = remainingWeight * 0.90; // 90% of remaining for technical
+    beta = remainingWeight * 0.10;  // 10% of remaining for contextual
+    
+    console.log(`Role requires ${certCount} certifications, adjusting weights...`);
+  }
   
   // Validación adicional de skillMap
   if (!skillMap || typeof skillMap !== 'object') {
@@ -829,26 +1109,26 @@ export function calculateDynamicWeights(roleDescription = "", roleSkills = [], s
     }
   }
   
-  // Calculate dynamic weights based on importance, with new stricter limits
+  // Calculate dynamic weights based on importance, with new stricter limits (90-95% for technical)
   const totalImportance = technicalImportance + softImportance;
   if (totalImportance > 0) {
     // Calculate initial proportion based on importance
     let rawRatio = technicalImportance / totalImportance;
     
-    // Map this ratio to the new range (85-95% for technical)
+    // Map this ratio to the new range (90-95% for technical)
     // Higher rawRatio means more technical weighting
-    alpha = 0.85 + (rawRatio * 0.10); // Ajustado para el rango 85-95%
+    alpha = 0.90 + (rawRatio * 0.05); // Ajustado para el rango 90-95%
     
     // Beta is simply the complement to make sure they sum to 1
     beta = 1 - alpha;
     
-    // Apply hard limits to ensure we're always in the 5-15% range for contextual
+    // Apply hard limits to ensure we're always in the 5-10% range for contextual
     if (beta < 0.05) {  // Mínimo 5% contextual
       beta = 0.05;
       alpha = 0.95;     // Máximo 95% técnico
-    } else if (beta > 0.15) {  // Máximo 15% contextual
-      beta = 0.15;
-      alpha = 0.85;     // Mínimo 85% técnico
+    } else if (beta > 0.10) {  // Máximo 10% contextual
+      beta = 0.10;
+      alpha = 0.90;     // Mínimo 90% técnico
     }
   }
   
@@ -860,51 +1140,87 @@ export function calculateDynamicWeights(roleDescription = "", roleSkills = [], s
     if (descLower.includes("highly technical") || 
         descLower.includes("technical expert") ||
         (descLower.includes("architect") && descLower.includes("senior"))) {
-      alpha = 0.95;
-      beta = 0.05;
+      if (certWeight > 0) {
+        // If certifications are required, maintain their weight
+        const remainingWeight = 1 - certWeight;
+        alpha = remainingWeight * 0.95;
+        beta = remainingWeight * 0.05;
+      } else {
+        alpha = 0.95;
+        beta = 0.05;
+      }
       console.log("Special adjustment: Highly technical role");
     } 
     // Detect client/culture-focused roles - increase contextual to maximum allowed
     else if ((descLower.includes("culture") || descLower.includes("cultural fit")) && 
              (descLower.includes("soft skills")) ||
              (descLower.includes("client") && descLower.includes("relationship"))) {
-      alpha = 0.85;
-      beta = 0.15;
+      if (certWeight > 0) {
+        const remainingWeight = 1 - certWeight;
+        alpha = remainingWeight * 0.85;
+        beta = remainingWeight * 0.15;
+      } else {
+        alpha = 0.90;
+        beta = 0.10;
+      }
       console.log("Special adjustment: Role focused on soft skills/culture");
     }
     // Detect technical leadership roles - moderate technical focus
     else if ((descLower.includes("technical lead")) && 
              (descLower.includes("team"))) {
-      alpha = 0.90;
-      beta = 0.10;
+      if (certWeight > 0) {
+        const remainingWeight = 1 - certWeight;
+        alpha = remainingWeight * 0.92;
+        beta = remainingWeight * 0.08;
+      } else {
+        alpha = 0.92;
+        beta = 0.08;
+      }
       console.log("Special adjustment: Technical leadership role");
     }
     // Detect project management roles - balance towards more contextual
     else if ((descLower.includes("project manager")) &&
              (descLower.includes("management"))) {
-      alpha = 0.85;
-      beta = 0.15;
+      if (certWeight > 0) {
+        const remainingWeight = 1 - certWeight;
+        alpha = remainingWeight * 0.85;
+        beta = remainingWeight * 0.15;
+      } else {
+        alpha = 0.90;
+        beta = 0.10;
+      }
       console.log("Special adjustment: Project management role");
+    }
+    // Detect certification-heavy roles
+    else if (roleCertifications.length >= 3 || 
+             (descLower.includes("certified") || descLower.includes("certification"))) {
+      // Increase certification weight for roles that emphasize certifications
+      certWeight = Math.min(0.25, certWeight * 1.5);
+      const remainingWeight = 1 - certWeight;
+      alpha = remainingWeight * 0.85;
+      beta = remainingWeight * 0.15;
+      console.log("Special adjustment: Certification-heavy role");
     }
   }
   
   // Final check to ensure they sum exactly to 1.0
-  const finalSum = alpha + beta;
-  if (finalSum !== 1.0) {
+  const finalSum = alpha + beta + certWeight;
+  if (Math.abs(finalSum - 1.0) > 0.001) {
     const factor = 1.0 / finalSum;
     alpha *= factor;
     beta *= factor;
+    certWeight *= factor;
   }
   
   // Round to two decimal places for clarity
   alpha = Math.round(alpha * 100) / 100;
   beta = Math.round(beta * 100) / 100;
+  certWeight = Math.round(certWeight * 100) / 100;
   
-  console.log(`Calculated weights - Technical: ${Math.round(alpha * 100)}%, Contextual: ${Math.round(beta * 100)}%`);
-  return { alpha, beta };
+  console.log(`Calculated weights - Technical: ${Math.round(alpha * 100)}%, Contextual: ${Math.round(beta * 100)}%, Certifications: ${Math.round(certWeight * 100)}%`);
+  return { alpha, beta, certWeight };
 }
 
-// Modified function to emphasize years of experience and use proficiency as a bonus
 export function calculateSkillMatch(employeeSkills, roleSkills, employeeName = "Employee", roleName = "Role") {
   console.log(`Calculating skill compatibility for ${employeeName} with role ${roleName}`);
   
@@ -913,12 +1229,14 @@ export function calculateSkillMatch(employeeSkills, roleSkills, employeeName = "
     return 0;
   }
   
+  // Mapas para búsqueda rápida
   const roleSkillsMap = {};
   roleSkills.forEach((skill) => {
     const skillId = skill.id || skill.skill_ID;
     if (skillId) {
       roleSkillsMap[skillId] = { 
-        importance: skill.importance || 1
+        importance: skill.importance || 1,
+        years: skill.years || 0
       };
     }
   });
@@ -937,72 +1255,138 @@ export function calculateSkillMatch(employeeSkills, roleSkills, employeeName = "
   console.log(`The role requires ${Object.keys(roleSkillsMap).length} skills`);
   console.log(`The employee has ${Object.keys(employeeSkillsMap).length} skills`);
   
-  // Adjust weights: emphasize years of experience more, treat proficiency as a bonus
-  const YEARS_WEIGHT = 0.8;      // Increased from 0.4 to 0.8
-  const PROFICIENCY_BONUS = 0.2; // Reduced to be a bonus factor
+  // Verificar si tiene todas las habilidades requeridas
+  const totalRequiredSkills = Object.keys(roleSkillsMap).length;
+  const matchedRequiredSkills = Object.keys(roleSkillsMap).filter(skillId => 
+    employeeSkillsMap[skillId]
+  ).length;
+  const hasAllSkills = matchedRequiredSkills === totalRequiredSkills;
   
-  let totalImportance = 0;
-  let matchScore = 0;
-  let matchedSkills = 0;
+  console.log(`Employee has ${matchedRequiredSkills}/${totalRequiredSkills} required skills`);
+  
+  // Verificar cumplimiento exquisito (todas las habilidades con años iguales o superiores)
+  const exactYearsMatch = hasAllSkills && Object.keys(roleSkillsMap).every(skillId => {
+    const requiredYears = roleSkillsMap[skillId].years || 0;
+    const actualYears = employeeSkillsMap[skillId]?.yearExp || 0;
+    return actualYears >= requiredYears;
+  });
+  
+  if (exactYearsMatch) {
+    console.log("⭐ MATCH PERFECTO: Tiene todas las habilidades con años iguales/superiores");
+  }
+  
+  // Cálculo base por habilidad individual
+  let basicScore = 0;
+  let totalWeightedImportance = 0;
+  
+  // Detalles para logging
+  const skillDetails = [];
   
   for (const skillId in roleSkillsMap) {
     const roleSkill = roleSkillsMap[skillId];
-    const skillImportance = roleSkill.importance || 1;
-    totalImportance += skillImportance;
+    const importance = roleSkill.importance || 1;
+    totalWeightedImportance += importance;
     
     if (employeeSkillsMap[skillId]) {
-      matchedSkills++;
       const employeeSkill = employeeSkillsMap[skillId];
+      const requiredYears = roleSkill.years || 0;
+      const actualYears = employeeSkill.yearExp || 0;
       
-      // Calculate years match score - this is now the primary factor
-      // Each year of experience is worth 10% of the maximum score
-      // Up to a maximum of 100% for 10+ years
-      const yearsOfExperience = employeeSkill.yearExp || 0;
-      const yearsMatchScore = Math.min(yearsOfExperience * 0.1, 1.0);
-      
-      // Proficiency is now a bonus on top of years
-      let proficiencyBonus = 0;
-      switch (employeeSkill.proficiency) {
-        case "Expert":
-          proficiencyBonus = 1.0;
-          break;
-        case "Advanced":
-          proficiencyBonus = 0.75;
-          break;
-        case "Intermediate":
-          proficiencyBonus = 0.5;
-          break;
-        case "Medium":
-          proficiencyBonus = 0.5;
-          break;
-        case "High":
-          proficiencyBonus = 0.75;
-          break;
-        case "Low":
-          proficiencyBonus = 0.25;
-          break;
-        default:
-          proficiencyBonus = 0.25;
+      // Base por años requeridos (sin importar proficiency)
+      let yearScore;
+      if (requiredYears === 0 || actualYears >= requiredYears) {
+        // Cumple o excede los años requeridos
+        const extraYears = Math.max(0, actualYears - requiredYears);
+        yearScore = 90 + Math.min(extraYears * 2, 10); // 90-100% basado en años extra
+      } else {
+        // Tiene menos años de los requeridos
+        yearScore = Math.max(70, Math.round((actualYears / requiredYears) * 90)); // Mínimo 70%
       }
       
-      // Combine years score and proficiency bonus
-      const skillScore = (yearsMatchScore * YEARS_WEIGHT + proficiencyBonus * PROFICIENCY_BONUS) * skillImportance;
-      matchScore += skillScore;
+      // Bonus por proficiency
+      let proficiencyBonus = 0;
+      switch (employeeSkill.proficiency) {
+        case "High":
+          proficiencyBonus = 8; // +8%
+          break;
+        case "Medium":
+          proficiencyBonus = 5; // +5%
+          break;
+        case "Low":
+          proficiencyBonus = 3; // +3%
+          break;
+        case "Basic":
+        default:
+          proficiencyBonus = 0; // Sin bonus
+      }
+      
+      // Limitar la puntuación total a 100
+      const skillScore = Math.min(100, yearScore + proficiencyBonus);
+      
+      // Aplicar importancia
+      basicScore += skillScore * importance;
+      
+      skillDetails.push({
+        id: skillId,
+        yearScore,
+        proficiencyBonus,
+        skillScore,
+        importance
+      });
     }
   }
   
-  // Calculate percentage of matching skills (with reduced weight)
-  const skillCoveragePercent = (matchedSkills / Math.max(Object.keys(roleSkillsMap).length, 1)) * 100;
+  // Cálculo del score base (porcentaje del máximo posible)
+  let finalScore = totalWeightedImportance > 0 
+                   ? Math.round((basicScore / (totalWeightedImportance * 100)) * 100) 
+                   : 0;
   
-  // Calculate final score - years now have much more importance
-  let finalScore = totalImportance > 0 ? (matchScore / totalImportance) * 95 + (skillCoveragePercent * 0.05) : 0;
+  // LÓGICA MEJORADA PARA PUNTUACIONES FINALES:
   
-  // Limit to 100%
-  finalScore = Math.min(Math.floor(finalScore), 100);
+  // 1. Si tiene TODAS las habilidades con años exactos/superiores: mínimo 90%
+  if (exactYearsMatch) {
+    finalScore = Math.max(finalScore, 90);
+    console.log("Aplicando puntuación mínima de 90% por match perfecto");
+  }
+  // 2. Si tiene TODAS las habilidades (independiente de años): mínimo 85%
+  else if (hasAllSkills) {
+    finalScore = Math.max(finalScore, 85);
+    console.log("Aplicando puntuación mínima de 85% por tener todas las habilidades");
+  }
   
-  console.log(`Matched skills: ${matchedSkills}/${Object.keys(roleSkillsMap).length} (${skillCoveragePercent.toFixed(1)}%)`);
+  // 3. Penalización más estricta para candidatos sin todas las habilidades
+  if (matchedRequiredSkills > 0 && !hasAllSkills) {
+    const coverageRatio = matchedRequiredSkills / totalRequiredSkills;
+    
+    // Penalización más severa para candidatos sin todas las habilidades
+    if (coverageRatio >= 0.9) {
+      // Falta solo 1 habilidad - máximo 75%
+      finalScore = Math.min(finalScore, 75);
+      console.log(`Falta 1 habilidad - limitando score técnico a máximo 75%`);
+    } else if (coverageRatio >= 0.8) {
+      // Faltan pocas habilidades - máximo 70%
+      finalScore = Math.min(finalScore, 70);
+      console.log(`Faltan algunas habilidades (${Math.round(coverageRatio * 100)}%) - limitando a máximo 70%`);
+    } else if (coverageRatio >= 0.5) {
+      // Faltan muchas habilidades - máximo 60%
+      finalScore = Math.min(finalScore, 60);
+      console.log(`Faltan muchas habilidades (${Math.round(coverageRatio * 100)}%) - limitando a máximo 60%`);
+    } else {
+      // Faltan la mayoría de habilidades - máximo 40%
+      finalScore = Math.min(finalScore, 40);
+      console.log(`Faltan la mayoría de habilidades - limitando a máximo 40%`);
+    }
+  }
+  
+  // Mostrar detalles de cálculo
+  if (skillDetails.length > 0) {
+    console.log("Detalles de skills evaluadas:");
+    skillDetails.forEach(detail => {
+      console.log(`- Skill ${detail.id}: Años ${detail.yearScore}% + Proficiency ${detail.proficiencyBonus}% = ${detail.skillScore}% (Importancia: ${detail.importance})`);
+    });
+  }
+  
   console.log(`Technical score calculated: ${finalScore}%`);
-  
   return finalScore;
 }
 
@@ -1020,10 +1404,17 @@ function prepareRoleData(role) {
     importance: skill.importance || 1
   }));
   
+  // Extraer certificaciones requeridas
+  const certifications = (enhancedRole.certifications || enhancedRole.certificates || []).map(cert => ({
+    id: String(cert.id || cert.certification_id),
+    name: cert.name || cert.title || cert.certification_name || "Certificación"
+  }));
+  
   return {
     name: enhancedRole.role || enhancedRole.name || "Rol sin nombre",
     description: enhancedRole.description || "",
-    skills: skills
+    skills: skills,
+    certifications: certifications
   };
 }
 
@@ -1039,12 +1430,19 @@ function prepareCandidatesData(employees) {
       proficiency: skill.proficiency || "Low"
     }));
     
+    // Extraer certificaciones del empleado
+    const certifications = (emp.certifications || []).map(cert => ({
+      id: String(cert.certification_id || cert.id),
+      name: cert.name || cert.title || "Certificación"
+    }));
+    
     return {
       id: emp.id,
       index: index,
       name: emp.name,
       bio: emp.about || emp.bio || "", 
-      skills: skills
+      skills: skills,
+      certifications: certifications
     };
   });
 }
@@ -1052,7 +1450,7 @@ function prepareCandidatesData(employees) {
 /**
  * Crea prompt optimizado para análisis completo (técnico y contextual) basado solo en about
  */
-function createComprehensiveMatchingPrompt(roleData, candidatesData, alpha, beta) {
+function createComprehensiveMatchingPrompt(roleData, candidatesData, alpha, beta, certWeight = 0) {
   // Limitar a 10 candidatos por lote para no exceder límites de tokens
   const MAX_CANDIDATES_PER_BATCH = 10;
   const candidatesToProcess = candidatesData.slice(0, MAX_CANDIDATES_PER_BATCH);
@@ -1060,76 +1458,213 @@ function createComprehensiveMatchingPrompt(roleData, candidatesData, alpha, beta
   // Convertir pesos a porcentajes
   const technicalWeight = Math.round(alpha * 100);
   const contextualWeight = Math.round(beta * 100);
+  const certificationWeight = Math.round(certWeight * 100);
+  
+  const aspectCount = certificationWeight > 0 ? "TRES" : "DOS";
+  const certificationAspect = certificationWeight > 0 ? 
+    `\n3. Compatibilidad de CERTIFICACIONES: basada en certificaciones requeridas vs obtenidas (${certificationWeight}% del peso total)` : "";
   
   return `
-Analiza la compatibilidad entre un rol y varios candidatos, evaluando DOS ASPECTOS:
-1. Compatibilidad TÉCNICA: basada en años de experiencia para cada habilidad (${technicalWeight}% del peso total)
-2. Compatibilidad CONTEXTUAL: basada en alineación entre descripción del rol y la bio/about del candidato (${contextualWeight}% del peso total)
+════════════════════════════════════════════════════════════════════════════════
+                           ANÁLISIS DE COMPATIBILIDAD ROL-CANDIDATOS
+════════════════════════════════════════════════════════════════════════════════
 
-ROL:
+📋 TAREA: Evalúa qué tan bien cada candidato cumple con los requisitos del rol.
+
+⚖️ PESOS DE EVALUACIÓN:
+   • Habilidades Técnicas: ${technicalWeight}%
+   • Contexto/Experiencia: ${contextualWeight}%${certificationWeight > 0 ? `
+   • Certificaciones: ${certificationWeight}%` : ''}
+
+════════════════════════════════════════════════════════════════════════════════
+                                    DATOS DEL ROL
+════════════════════════════════════════════════════════════════════════════════
+
 ${JSON.stringify(roleData, null, 2)}
 
-CANDIDATOS:
+💡 IMPORTANTE: Las habilidades requeridas están en el array "skills" arriba.
+              SOLO evalúa esas habilidades específicas.
+
+════════════════════════════════════════════════════════════════════════════════
+                                    CANDIDATOS
+════════════════════════════════════════════════════════════════════════════════
+
 ${JSON.stringify(candidatesToProcess, null, 2)}
 
-INSTRUCCIONES:
+════════════════════════════════════════════════════════════════════════════════
+                              REGLAS FUNDAMENTALES
+════════════════════════════════════════════════════════════════════════════════
 
-PARA EVALUACIÓN TÉCNICA (${technicalWeight}%):
-1. Para cada candidato, evalúa si tiene las habilidades requeridas por el rol.
-2. PRIORIZA ESPECIALMENTE candidatos que tengan mas habilidades o todas las habilidades requeridas por el rol.
-3. Compara los años de experiencia del candidato con los años requeridos para cada habilidad.
-4. Asigna puntuaciones siguiendo estas reglas MEJORADAS:
-   - Si el candidato tiene exactamente los años requeridos: 100%
-   - Si el candidato tiene más años: 100% + bonus de 5% por cada año adicional (máximo 20% extra)
-   - Si el candidato tiene menos años: Porcentaje más generoso (ej: 2 años de 3 requeridos = 75%)
-5. Calcula un score técnico (0-100) para cada candidato.
+🎯 REGLA #1: SOLO EVALÚA LAS HABILIDADES DEL ROL
+   • Si el rol requiere skills [8, 12], SOLO evalúa esas dos
+   • NO des puntos por otras skills que tenga el candidato
+   • Ignora completamente skills no requeridas
 
-PARA EVALUACIÓN CONTEXTUAL (${contextualWeight}%):
-1. Analiza ÚNICAMENTE la bio/about del candidato para evaluar alineación con la descripción del rol.
-2. Identifica palabras clave, experiencia indicada, intereses y valores mencionados en la bio.
-3. No inventes ni asumas experiencia que no esté mencionada explícitamente en la bio.
-4. Sé GENEROSO en la evaluación contextual cuando veas términos relacionados con la descripción del rol.
-5. Asigna un score contextual (0-100) basado en esta alineación.
-6. Si la bio está vacía o es muy limitada, asigna un valor de 70 (más generoso).
+🎯 REGLA #2: JERARQUÍA DE PUNTUACIÓN
+   • Candidatos COMPLETOS (todas skills + certs) → 85-100% score final
+   • Candidatos con todas skills (sin certs) → 70-85% score final  
+   • Candidatos incompletos → <70% score final
 
-PARA SCORE FINAL:
-1. Combina ambos scores usando las ponderaciones exactas: (${technicalWeight}% × Score Técnico) + (${contextualWeight}% × Score Contextual)
-2. El score final debe estar entre 65 y 100, con un mínimo de 65 para cualquier candidato que tenga al menos una habilidad relevante.
+🔍 ANTES DE EMPEZAR - VERIFICACIÓN OBLIGATORIA:
+   Para cada candidato, identifica EXACTAMENTE qué skills tiene:
+   - Mira su array "skills" 
+   - Lista solo los IDs que SÍ están en ese array
+   - NO asumas que tiene skills que no están listadas
 
-FORMATO DE RESPUESTA:
-Responde con un objeto JSON con esta estructura exacta:
+════════════════════════════════════════════════════════════════════════════════
+                            CÓMO EVALUAR HABILIDADES
+════════════════════════════════════════════════════════════════════════════════
+
+📊 EVALUACIÓN TÉCNICA (${technicalWeight}% del total):
+
+⚠️⚠️⚠️ ADVERTENCIA CRÍTICA ⚠️⚠️⚠️
+NUNCA asignes una skill a un candidato si NO está en su array "skills"
+Si el candidato NO tiene la skill 8, NO puedes decir que la tiene
+
+1️⃣ IDENTIFICA las habilidades requeridas del rol:
+   - Busca el array "skills" del rol
+   - Anota EXACTAMENTE los IDs (ej: rol requiere [8, 12])
+
+2️⃣ VERIFICA qué skills tiene REALMENTE cada candidato:
+   - Busca el array "skills" del candidato
+   - SOLO cuenta las skills que SÍ están en ese array
+   - NO INVENTES skills que no están
+
+3️⃣ CALCULA el score técnico - FÓRMULA EXACTA:
+   
+   Score Técnico = (Skills que tiene / Skills requeridas) × Factor de ajuste
+   
+   Factores de ajuste:
+   ✅ Tiene TODAS (2/2) → Factor 0.85 a 1.0 → Score: 85-100%
+   ⚠️ Le falta 1 (1/2) → Factor 0.50 a 0.70 → Score: 50-70%
+   ❌ Le falta más (0/2) → Factor 0.10 a 0.20 → Score: 10-20%
+   
+   IMPORTANTE: NO des el mismo score a candidatos diferentes
+   - Si uno tiene 2/2 skills → Dale 90-95% técnico
+   - Si otro tiene 1/2 skills → Dale 60-65% técnico
+   - NUNCA les des 50% a ambos
+
+4️⃣ VERIFICACIÓN PASO A PASO:
+   Ejemplo: Rol requiere skills [8, 12]
+   
+   • Acker tiene skills: [7, 8, 12, 20, 45, ...más]
+     - ¿Tiene skill 8? SÍ ✅ (está en su array)
+     - ¿Tiene skill 12? SÍ ✅ (está en su array)
+     - Resultado: 2/2 skills → Dale 90-95% técnico
+   
+   • Leonardo tiene skills: [5, 10, 12, 45, 70]
+     - ¿Tiene skill 8? NO ❌ (NO está en su array)
+     - ¿Tiene skill 12? SÍ ✅ (está en su array)
+     - Resultado: 1/2 skills → Dale 60-65% técnico
+     
+   ⚠️ NUNCA des el mismo score técnico a ambos
+   ⚠️ Leonardo NO puede tener score 100 en skill 8 porque NO LA TIENE
+
+════════════════════════════════════════════════════════════════════════════════
+                            CÓMO EVALUAR CONTEXTO
+════════════════════════════════════════════════════════════════════════════════
+
+💬 EVALUACIÓN CONTEXTUAL (${contextualWeight}% del total):
+
+1️⃣ Lee SOLO el campo "bio" del candidato
+2️⃣ Compara con la descripción del rol
+3️⃣ Asigna 0-100% según qué tan alineados estén
+4️⃣ Si la bio está vacía → 50% (neutral)
+${certificationWeight > 0 ? `
+════════════════════════════════════════════════════════════════════════════════
+                         CÓMO EVALUAR CERTIFICACIONES
+════════════════════════════════════════════════════════════════════════════════
+
+🎓 EVALUACIÓN DE CERTIFICACIONES (${certificationWeight}% del total):
+
+1️⃣ IDENTIFICA las certificaciones requeridas en el rol
+2️⃣ CUENTA cuántas tiene el candidato:
+   ✅ Tiene TODAS → 100% certificaciones
+   ⚠️ Tiene algunas → % proporcional
+   ❌ No tiene ninguna → 0% certificaciones
+` : ''}
+════════════════════════════════════════════════════════════════════════════════
+                           CÁLCULO DEL SCORE FINAL
+════════════════════════════════════════════════════════════════════════════════
+
+📐 FÓRMULA:
+   Score Final = (Técnico × ${technicalWeight}%) + (Contextual × ${contextualWeight}%)${certificationWeight > 0 ? ` + (Certificaciones × ${certificationWeight}%)` : ''}
+
+📊 EJEMPLO DE CÁLCULO CORRECTO:
+   • Acker (2/2 skills + certs):
+     - Técnico: 92% × ${technicalWeight}% = ${(92 * technicalWeight / 100).toFixed(1)}
+     - Contextual: 70% × ${contextualWeight}% = ${(70 * contextualWeight / 100).toFixed(1)}${certificationWeight > 0 ? `
+     - Certificaciones: 100% × ${certificationWeight}% = ${(100 * certificationWeight / 100).toFixed(1)}` : ''}
+     - TOTAL: ${(92 * technicalWeight / 100 + 70 * contextualWeight / 100 + (certificationWeight > 0 ? 100 * certificationWeight / 100 : 0)).toFixed(1)}%
+   
+   • Leonardo (1/2 skills, sin certs):
+     - Técnico: 62% × ${technicalWeight}% = ${(62 * technicalWeight / 100).toFixed(1)}
+     - Contextual: 70% × ${contextualWeight}% = ${(70 * contextualWeight / 100).toFixed(1)}${certificationWeight > 0 ? `
+     - Certificaciones: 0% × ${certificationWeight}% = 0.0` : ''}
+     - TOTAL: ${(62 * technicalWeight / 100 + 70 * contextualWeight / 100).toFixed(1)}%
+
+⚠️ VERIFICACIÓN: Acker DEBE tener score final MAYOR que Leonardo
+⚠️ NO pueden tener el mismo score combinado (48.6)
+
+════════════════════════════════════════════════════════════════════════════════
+                              FORMATO DE RESPUESTA
+════════════════════════════════════════════════════════════════════════════════
+
 {
   "candidates": [
     {
       "id": "id_del_candidato",
-      "name": "nombre_del_candidato",
+      "name": "nombre_del_candidato", 
       "technicalScore": 85,
-      "contextualScore": 70,
+      "contextualScore": 70,${certificationWeight > 0 ? '\n      "certificationScore": 90,' : ''}
       "combinedScore": 82,
       "matchDetails": [
-        {"skillId": "id_habilidad", "skillName": "nombre_habilidad", "required": 3, "actual": 5, "score": 108}
-      ]
+        {
+          "skillId": "id_habilidad",
+          "skillName": "nombre_habilidad", 
+          "required": 3,
+          "actual": 5,  // DEBE ser 0 si el candidato NO tiene esta skill
+          "score": 108, // DEBE ser 0 si el candidato NO tiene esta skill
+          "importance": 4,
+          "proficiency": "High" // DEBE ser "None" si NO tiene la skill
+        }
+      ]${certificationWeight > 0 ? ',\n      "certificationDetails": [\n        {\n          "certId": "id_cert",\n          "certName": "nombre_cert",\n          "hasIt": true\n        }\n      ]' : ''}
     }
   ]
 }
 
-IMPORTANTE: 
-- Aplica los pesos exactamente como se indica (${technicalWeight}% técnico, ${contextualWeight}% contextual).
-- Sé generoso en tus evaluaciones para dar puntuaciones más altas.
-- El score técnico debe basarse ÚNICAMENTE en los años de experiencia de las habilidades coincidentes.
-- El score contextual debe basarse ÚNICAMENTE en el contenido del campo "bio" del candidato.
-- Incluye el nombre de la habilidad en los detalles del match para mejorar la explicabilidad.
-- Asigna scores que reflejen un rango más generoso entre 65-100 para candidatos con al menos algunas habilidades relevantes.
+════════════════════════════════════════════════════════════════════════════════
+                           RECORDATORIO FINAL
+════════════════════════════════════════════════════════════════════════════════
+
+❗ NO INVENTES HABILIDADES: Solo evalúa las skills que están en "skills" del rol
+❗ RESPETA LA JERARQUÍA: Completo > Incompleto SIEMPRE
+❗ SÉ CONSISTENTE: Verifica que tus scores tengan sentido
+
+🚨 ERRORES COMUNES A EVITAR:
+   ❌ NO asignes skill 8 a alguien que tiene [5, 10, 12, 45, 70]
+   ❌ NO des scores altos a candidatos incompletos
+   ❌ NO inventes que un candidato tiene una skill si no está en su array
+
+✅ VERIFICACIÓN FINAL ANTES DE RESPONDER:
+   1. ¿Cada skill en matchDetails realmente existe en el array del candidato?
+   2. ¿Los candidatos completos tienen scores más altos que los incompletos?
+   3. ¿Los scores técnicos son DIFERENTES para candidatos con diferente número de skills?
+   4. Si Acker tiene 2/2 skills y Leonardo tiene 1/2:
+      - ¿Acker tiene score técnico 90%+ y Leonardo 60-65%?
+      - ¿El score final de Acker es MAYOR que el de Leonardo?
+      - ¿NO tienen el mismo combinedScore?
 `;
 }
 
 /**
  * Método fallback basado en reglas (sin GPT) para cuando la API no está disponible
  */
-function fallbackExperienceMatching(role, employees, alpha, beta) {
+function fallbackExperienceMatching(role, employees, alpha, beta, certWeight = 0) {
   console.log("Usando método fallback para matching...");
   
   const roleSkills = role.skills || [];
+  const roleCertifications = role.certifications || role.certificates || [];
   
   return employees.map(employee => {
     // Calcular score técnico
@@ -1138,8 +1673,33 @@ function fallbackExperienceMatching(role, employees, alpha, beta) {
     // Calcular score contextual simple basado en coincidencia de palabras clave
     const contextualScore = calculateSimpleContextualScore(role.description, employee.about || employee.bio || "");
     
+    // Calcular score de certificaciones
+    let certificationScore = 100; // Por defecto, asumimos que no hay certificaciones requeridas
+    if (roleCertifications.length > 0) {
+      const employeeCertifications = employee.certifications || [];
+      const roleCertIds = new Set(roleCertifications.map(cert => String(cert.id || cert.certification_id)));
+      const employeeCertIds = new Set(employeeCertifications.map(cert => String(cert.certification_id || cert.id)));
+      
+      let matchingCerts = 0;
+      for (const certId of roleCertIds) {
+        if (employeeCertIds.has(certId)) {
+          matchingCerts++;
+        }
+      }
+      
+      certificationScore = roleCertIds.size > 0 ? (matchingCerts / roleCertIds.size) * 100 : 100;
+    }
+    
     // Combinar scores según los pesos
-    const combinedScore = Math.min(Math.round(alpha * technicalScore + beta * contextualScore), 100);
+    let combinedScore = Math.min(
+      Math.round(alpha * technicalScore + beta * contextualScore + certWeight * certificationScore), 
+      100
+    );
+    
+    // BONUS: Si tiene todas las habilidades Y certificaciones, garantizar alta puntuación
+    if (technicalScore >= 85 && certificationScore === 100 && certWeight > 0) {
+      combinedScore = Math.max(combinedScore, 92);
+    }
     
     return {
       id: employee.id,
@@ -1147,6 +1707,7 @@ function fallbackExperienceMatching(role, employees, alpha, beta) {
       avatar: employee.avatar,
       technicalScore: technicalScore,
       contextualScore: contextualScore,
+      certificationScore: certificationScore,
       combinedScore: combinedScore
     };
   }).sort((a, b) => b.combinedScore - a.combinedScore);
@@ -1240,20 +1801,58 @@ function calculateSimpleContextualScore(roleDescription, employeeAbout) {
 /**
  * Procesa resultados completos de GPT y los mapea al formato esperado
  */
-function processComprehensiveResults(gptCandidates, originalEmployees, alpha, beta) {
+function processComprehensiveResults(gptCandidates, originalEmployees, alpha, beta, certWeight = 0) {
   return gptCandidates.map(candidate => {
     // Buscar el empleado original para obtener datos adicionales
     const originalEmployee = originalEmployees.find(emp => emp.id === candidate.id);
     
     // Verificar y normalizar puntuaciones
-    const technicalScore = Math.min(Math.round(candidate.technicalScore || 0), 100);
+    let technicalScore = Math.min(Math.round(candidate.technicalScore || 0), 100);
     const contextualScore = Math.min(Math.round(candidate.contextualScore || 0), 100);
+    const certificationScore = Math.min(Math.round(candidate.certificationScore || 100), 100);
+    
+    // Determinar si el candidato tiene todas las habilidades requeridas verificando matchDetails
+    let hasAllRequiredSkills = false;
+    
+    if (candidate.matchDetails && candidate.matchDetails.length > 0) {
+      // Para determinar esto correctamente, necesitamos comparar con las habilidades del rol
+      // Como aproximación, verificamos si tiene alguna habilidad crítica con baja puntuación
+      const hasCriticalSkillsMissing = candidate.matchDetails.some(detail => 
+        (detail.importance >= 4) && (detail.score < 50)
+      );
+      
+      // Si no faltan habilidades críticas, consideramos que posiblemente tiene todas las importantes
+      if (!hasCriticalSkillsMissing && technicalScore >= 65) {
+        hasAllRequiredSkills = true;
+        console.log(`Candidato ${candidate.name || candidate.id} tiene todas o casi todas las habilidades requeridas`);
+        
+        // Asegurar un mínimo de 65% para candidatos con todas las habilidades
+        if (technicalScore < 65) {
+          console.log(`Ajustando score técnico de ${technicalScore} a 65 como mínimo para candidato con todas las habilidades`);
+          technicalScore = 65;
+        }
+      }
+      
+      // Aplicar penalización más suave si faltan habilidades críticas
+      if (hasCriticalSkillsMissing && !hasAllRequiredSkills) {
+        const penaltyFactor = 0.2; // Reducido del 0.3 anterior para ser más generoso
+        const originalScore = technicalScore;
+        technicalScore = Math.max(Math.round(technicalScore * (1 - penaltyFactor)), 10);
+        console.log(`Aplicando penalización reducida por habilidades críticas faltantes: ${penaltyFactor * 100}% (${originalScore} → ${technicalScore})`);
+      }
+    }
     
     // Recalcular el score combinado para asegurar que se usan los pesos correctos
-    const combinedScore = Math.min(
-      Math.round(alpha * technicalScore + beta * contextualScore), 
+    let combinedScore = Math.min(
+      Math.round(alpha * technicalScore + beta * contextualScore + certWeight * certificationScore), 
       100
     );
+    
+    // BONUS: Si tiene TODAS las habilidades Y certificaciones perfectas, garantizar alta puntuación
+    if (technicalScore >= 85 && certificationScore === 100 && certWeight > 0) {
+      combinedScore = Math.max(combinedScore, 92);
+      console.log("Aplicando bonus por tener todas las habilidades Y todas las certificaciones");
+    }
     
     return {
       id: candidate.id,
@@ -1261,9 +1860,11 @@ function processComprehensiveResults(gptCandidates, originalEmployees, alpha, be
       avatar: originalEmployee?.avatar || null,
       technicalScore: technicalScore,
       contextualScore: contextualScore,
+      certificationScore: certificationScore,
       combinedScore: combinedScore,
       // Incluir detalles del match si están disponibles
-      matchDetails: candidate.matchDetails || []
+      matchDetails: candidate.matchDetails || [],
+      certificationDetails: candidate.certificationDetails || []
     };
   });
 }
@@ -1278,36 +1879,80 @@ function processComprehensiveResults(gptCandidates, originalEmployees, alpha, be
 export async function matchCandidatesWithGPT(role, employees, skillMap = {}) {
   console.log(`Iniciando matching con GPT-4o-mini para ${employees.length} candidatos...`);
   
+  // NUEVO: Validación inicial de candidatos
+  const preFilteredCandidates = [];
+  const disqualifiedCandidates = [];
+  
+  for (const employee of employees) {
+    const evaluation = preEvaluateCandidate(role.skills, employee.skills);
+    
+    if (evaluation.qualified) {
+      preFilteredCandidates.push(employee);
+    } else {
+      disqualifiedCandidates.push({
+        id: employee.id,
+        name: employee.name || "Candidato sin nombre",
+        avatar: employee.avatar || null,
+        technicalScore: evaluation.technicalScore,
+        contextualScore: evaluation.contextualScore,
+        combinedScore: evaluation.combinedScore,
+        disqualified: true,
+        reason: evaluation.reason
+      });
+    }
+  }
+  
+  console.log(`Pre-filtrado completado: ${preFilteredCandidates.length} candidatos calificados, ${disqualifiedCandidates.length} descalificados`);
+  
+  // Si no hay candidatos calificados, devolver solo los descalificados
+  if (preFilteredCandidates.length === 0) {
+    console.log("No hay candidatos calificados, omitiendo llamada a GPT");
+    return disqualifiedCandidates;
+  }
+  
   // Verificar si hay una clave de API válida
   const apiKey = getOpenAIApiKey();
   if (apiKey === 'dummy-key-for-deployment') {
     console.warn('No hay API Key válida, usando matching basado en reglas...');
     // Calcular pesos dinámicos con la función existente pero asegurando los nuevos límites
-    const { alpha, beta } = calculateDynamicWeights(role.description, role.skills, skillMap);
-    console.log(`Pesos calculados en modo fallback - Técnico: ${Math.round(alpha * 100)}%, Contextual: ${Math.round(beta * 100)}%`);
+    const { alpha, beta, certWeight } = calculateDynamicWeights(
+      role.description, 
+      role.skills, 
+      skillMap,
+      role.certifications || role.certificates || []
+    );
+    console.log(`Pesos calculados en modo fallback - Técnico: ${Math.round(alpha * 100)}%, Contextual: ${Math.round(beta * 100)}%, Certificaciones: ${Math.round(certWeight * 100)}%`);
     
-    // Fallback a método basado en reglas
-    return fallbackExperienceMatching(role, employees, alpha, beta);
+    // Fallback a método basado en reglas (solo para candidatos pre-filtrados)
+    const matchedCandidates = fallbackExperienceMatching(role, preFilteredCandidates, alpha, beta, certWeight);
+    
+    // Combinar con candidatos descalificados
+    return [...matchedCandidates, ...disqualifiedCandidates].sort((a, b) => b.combinedScore - a.combinedScore);
   }
   
   try {
-    // 1. Calcular pesos dinámicos primero (asegurando límites: técnico 80-90%, contextual 10-20%)
-    const { alpha, beta } = calculateDynamicWeights(role.description, role.skills, skillMap);
-    console.log(`Pesos calculados - Técnico: ${Math.round(alpha * 100)}%, Contextual: ${Math.round(beta * 100)}%`);
+    // 1. Calcular pesos dinámicos primero (asegurando límites: técnico 90-95%, contextual 5-10%)
+    const { alpha, beta, certWeight } = calculateDynamicWeights(
+      role.description, 
+      role.skills, 
+      skillMap,
+      role.certifications || role.certificates || []
+    );
+    console.log(`Pesos calculados - Técnico: ${Math.round(alpha * 100)}%, Contextual: ${Math.round(beta * 100)}%, Certificaciones: ${Math.round(certWeight * 100)}%`);
     
     // 2. Preparar datos para el análisis
     const roleData = prepareRoleData(role);
-    const candidatesData = prepareCandidatesData(employees);
+    const candidatesData = prepareCandidatesData(preFilteredCandidates);
     
     // 3. Crear prompt optimizado para análisis (basando lo contextual solo en about)
-    const prompt = createComprehensiveMatchingPrompt(roleData, candidatesData, alpha, beta);
+    const prompt = createComprehensiveMatchingPrompt(roleData, candidatesData, alpha, beta, certWeight);
     
     console.log("Enviando solicitud a GPT-4o-mini...");
     const startTime = Date.now();
     
     // 4. Llamar a GPT-4o-mini para analizar todos los candidatos a la vez
     const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: "gpt-4.1-nano",
       messages: [
         { 
           role: "system", 
@@ -1332,17 +1977,28 @@ export async function matchCandidatesWithGPT(role, employees, skillMap = {}) {
     }
     
     // 7. Mapear resultados a formato esperado por el frontend y asegurar los pesos correctos
-    const processedResults = processComprehensiveResults(matchResults.candidates, employees, alpha, beta);
+    const processedResults = processComprehensiveResults(matchResults.candidates, preFilteredCandidates, alpha, beta, certWeight);
     
-    // 8. Ordenar por puntuación
-    processedResults.sort((a, b) => b.combinedScore - a.combinedScore);
+    // 8. Combinar con candidatos descalificados
+    const finalResults = [...processedResults, ...disqualifiedCandidates];
     
-    return processedResults;
+    // 9. Ordenar por puntuación
+    finalResults.sort((a, b) => b.combinedScore - a.combinedScore);
+    
+    return finalResults;
   } catch (error) {
     console.error("Error en el matching con GPT:", error);
-    // En caso de error, usar método fallback
-    const { alpha, beta } = calculateDynamicWeights(role.description, role.skills, skillMap);
-    return fallbackExperienceMatching(role, employees, alpha, beta);
+    // En caso de error, usar método fallback solo con candidatos pre-filtrados
+    const { alpha, beta, certWeight } = calculateDynamicWeights(
+      role.description, 
+      role.skills, 
+      skillMap,
+      role.certifications || role.certificates || []
+    );
+    const matchedCandidates = fallbackExperienceMatching(role, preFilteredCandidates, alpha, beta, certWeight);
+    
+    // Combinar con candidatos descalificados
+    return [...matchedCandidates, ...disqualifiedCandidates].sort((a, b) => b.combinedScore - a.combinedScore);
   }
 }
 
@@ -1404,75 +2060,220 @@ function ensureDiverseSelection(similarities, employees, baseTopN) {
   return selectedCandidates;
 }
 
+// ======== FUNCIÓN OPTIMIZADA DE FILTRADO Y MATCHING ========
+
 /**
- * Proceso optimizado de matching usando embeddings para filtrar candidatos
- * @param {Object} role - Rol a cubrir
- * @param {Array} employees - Lista completa de empleados
- * @param {Object} skillMap - Mapa de habilidades (opcional)
- * @param {Number} topN - Número de candidatos a filtrar (opcional)
- * @returns {Promise<Array>} - Resultados de matching completos
+ * Versión optimizada del filtrado GPT con consciencia de caché y procesamiento en paralelo
  */
-export async function filteredGPTMatching(role, employees, skillMap = {}, topN = 15) {
+export async function optimizedFilteredGPTMatching(role, employees, skillMap = {}, topN = 15) {
   console.log(`Iniciando proceso de matching optimizado para ${employees.length} candidatos...`);
   const startTime = Date.now();
   
-  // FASE 1: Filtrado con embeddings (solo para selección)
-  console.log(`Fase 1: Preseleccionando candidatos con embeddings...`);
-  const roleText = role.description || `Role: ${role.role || role.name}`;
-  const employeeTexts = employees.map(emp => emp.bio || emp.about || `Employee: ${emp.name}`);
+  // PASO 1: Verificar caché primero
+  const cacheKey = generateMatchingCacheKey(role, employees);
   
-  // Obtener embeddings
-  const allTexts = [roleText, ...employeeTexts];
-  const allEmbeddings = await getBatchEmbeddings(allTexts);
-  const roleEmbedding = allEmbeddings[0];
-  const employeeEmbeddings = allEmbeddings.slice(1);
+  if (cacheKey) {
+    const cachedResults = matchingCache.get(cacheKey);
+    if (cachedResults) {
+      console.log(`Cache hit! Resultados recuperados de caché con clave ${cacheKey}`);
+      return cachedResults;
+    }
+    console.log(`Cache miss. Procesando matching completo para clave ${cacheKey}`);
+  }
   
-  // Calcular similitudes para rankear candidatos
-  const similarities = [];
-  for (let i = 0; i < employeeEmbeddings.length; i++) {
-    const similarity = cosineSimilarity(roleEmbedding, employeeEmbeddings[i]);
-    similarities.push({
-      id: employees[i].id,
-      index: i,
-      similarity: similarity
+  // NUEVO PASO: Pre-filtrado estricto para descalificar candidatos sin skills relevantes
+  console.log("Pre-filtrado de candidatos basado en habilidades requeridas...");
+  const preEvaluationResults = [];
+  const qualifiedCandidates = [];
+  const disqualifiedCandidates = [];
+  
+  // Log role requirements
+  console.log(`Role requires ${role.skills.length} skills:`, role.skills.map(s => s.id || s.skill_ID));
+  console.log(`Role requires ${(role.certifications || role.certificates || []).length} certifications:`, 
+    (role.certifications || role.certificates || []).map(c => c.id || c.certification_id));
+  
+  for (const employee of employees) {
+    console.log(`\nEvaluating ${employee.name}:`);
+    console.log(`- Has skills:`, employee.skills.map(s => s.skill_ID || s.id));
+    console.log(`- Has certifications:`, employee.certifications.map(c => c.certification_id || c.id));
+    
+    const evaluation = preEvaluateCandidate(
+      role.skills, 
+      employee.skills,
+      role.certifications || role.certificates || [],
+      employee.certifications || []
+    );
+    
+    if (evaluation.qualified) {
+      qualifiedCandidates.push({
+        ...employee,
+        preEvaluation: evaluation
+      });
+      console.log(`✓ Candidato ${employee.name || employee.id} calificado con ${evaluation.matchingSkills}/${evaluation.totalRequired} habilidades coincidentes (${evaluation.matchPercentage.toFixed(1)}%) - Certificaciones: ${evaluation.certificationScore}%`);
+    } else {
+      disqualifiedCandidates.push({
+        ...employee,
+        preEvaluation: evaluation
+      });
+      console.log(`✗ Candidato ${employee.name || employee.id} descalificado: ${evaluation.reason}`);
+    }
+    
+    preEvaluationResults.push({
+      id: employee.id,
+      name: employee.name,
+      evaluation
     });
   }
   
-  // Ordenar por similitud y seleccionar los mejores
+  console.log(`Pre-filtrado completado: ${qualifiedCandidates.length} candidatos calificados, ${disqualifiedCandidates.length} descalificados`);
+  
+  // Si no hay candidatos calificados, devolver resultados del pre-filtrado
+  if (qualifiedCandidates.length === 0) {
+    console.log("No hay candidatos calificados, devolviendo resultados del pre-filtrado");
+    const finalResults = disqualifiedCandidates.map(candidate => ({
+      id: candidate.id,
+      name: candidate.name || "Candidato sin nombre",
+      avatar: candidate.avatar || null,
+      technicalScore: candidate.preEvaluation.technicalScore,
+      contextualScore: candidate.preEvaluation.contextualScore,
+      certificationScore: candidate.preEvaluation.certificationScore || 0,
+      combinedScore: candidate.preEvaluation.combinedScore,
+      matchDetails: [{
+        skillId: "N/A",
+        skillName: "Habilidades faltantes",
+        required: role.skills.length,
+        actual: 0,
+        score: 0,
+        importance: 5
+      }]
+    }));
+    
+    // Ordenar de mayor a menor, aunque todos tendrán puntuaciones muy bajas
+    finalResults.sort((a, b) => b.combinedScore - a.combinedScore);
+    
+    // Guardar en caché para futuras consultas
+    if (cacheKey) {
+      matchingCache.set(cacheKey, finalResults);
+      console.log(`Resultados guardados en caché con clave ${cacheKey}`);
+    }
+    
+    return finalResults;
+  }
+  
+  // PASO 2: Filtrado rápido con embeddings en lotes paralelos
+  console.log(`Fase 1: Preseleccionando candidatos con embeddings...`);
+  const roleText = role.description || `Role: ${role.role || role.name}`;
+  
+  // Dividir en lotes para procesar embeddings en paralelo
+  const EMBEDDING_BATCH_SIZE = 50;
+  const embeddingBatches = [];
+  
+  for (let i = 0; i < qualifiedCandidates.length; i += EMBEDDING_BATCH_SIZE) {
+    embeddingBatches.push(qualifiedCandidates.slice(i, i + EMBEDDING_BATCH_SIZE));
+  }
+  
+  // Crear función para procesar un lote de embeddings
+  const processEmbeddingBatch = async (batch) => {
+    const batchTexts = batch.map(emp => emp.bio || emp.about || `Employee: ${emp.name}`);
+    const allTexts = [roleText, ...batchTexts];
+    const allEmbeddings = await getBatchEmbeddings(allTexts);
+    
+    // El primer embedding corresponde al rol
+    const roleEmbedding = allEmbeddings[0];
+    const employeeEmbeddings = allEmbeddings.slice(1);
+    
+    // Calcular similitudes
+    return batch.map((employee, i) => ({
+      id: employee.id,
+      similarity: cosineSimilarity(roleEmbedding, employeeEmbeddings[i])
+    }));
+  };
+  
+  // Procesar todos los lotes en paralelo
+  const embeddingResults = await Promise.all(
+    embeddingBatches.map(batch => processEmbeddingBatch(batch))
+  );
+  
+  // Consolidar resultados
+  const similarities = embeddingResults.flat();
+  
+  // Ordenar por similitud
   similarities.sort((a, b) => b.similarity - a.similarity);
   
-  // Determinar número óptimo de candidatos con valores aumentados
-  const baseTopN = employees.length <= 5 ? employees.length : 
-                   employees.length <= 30 ? Math.ceil(employees.length * 0.7) : 15; // Aumentado a 25
+  // Seleccionar de forma adaptativa (más inteligente)
+  const optimalTopN = qualifiedCandidates.length <= 5 ? qualifiedCandidates.length : 
+                      qualifiedCandidates.length <= 20 ? Math.ceil(qualifiedCandidates.length * 0.8) :
+                      qualifiedCandidates.length <= 50 ? Math.ceil(qualifiedCandidates.length * 0.6) : 
+                      Math.min(25, Math.ceil(qualifiedCandidates.length * 0.3)); // No más de 25
   
-  // Selección mejorada con diversidad
-  const topCandidates = ensureDiverseSelection(similarities, employees, baseTopN);
+  // Tomar los mejores candidatos
+  const topCandidates = similarities.slice(0, optimalTopN);
   
-  console.log(`Fase 1 completada: ${topCandidates.length} candidatos preseleccionados`);
+  // Seleccionar empleados correspondientes
+  const selectedEmployees = topCandidates
+    .map(candidate => qualifiedCandidates.find(emp => emp.id === candidate.id))
+    .filter(Boolean);
   
-  // FASE 2: Evaluación detallada SOLO con GPT (sin influencia de embeddings)
-  console.log(`Fase 2: Evaluación detallada con GPT-4o-mini...`);
+  console.log(`Fase 1 completada: ${selectedEmployees.length} candidatos preseleccionados`);
   
-  // Seleccionar solo los candidatos preseleccionados
-  const selectedEmployees = topCandidates.map(candidate => 
-    employees.find(emp => emp.id === candidate.id)
-  ).filter(emp => emp !== undefined);
+  // PASO 3: Procesamiento paralelo con GPT en lotes
+  console.log(`Fase 2: Evaluación detallada con procesamiento paralelo...`);
   
-  // Verificar API Key
+  // Verificar si tenemos API Key para GPT
   const apiKey = getOpenAIApiKey();
+  let results;
+  
   if (apiKey === 'dummy-key-for-deployment') {
     console.warn('No hay API Key válida, usando evaluación basada en reglas...');
-    const { alpha, beta } = calculateDynamicWeights(role.description, role.skills, skillMap);
-    return fallbackExperienceMatching(role, selectedEmployees, alpha, beta);
+    const { alpha, beta, certWeight } = calculateDynamicWeights(
+      role.description, 
+      role.skills, 
+      skillMap,
+      role.certifications || role.certificates || []
+    );
+    results = fallbackExperienceMatching(role, selectedEmployees, alpha, beta, certWeight);
   } else {
-    // Usar el procesamiento por lotes para evaluar candidatos
-    const results = await batchProcessWithGPT(role, selectedEmployees, skillMap);
-    
-    const endTime = Date.now();
-    console.log(`Proceso completo realizado en ${endTime - startTime}ms`);
-    
-    return results;
+    // Usar el procesamiento en paralelo para evaluar candidatos
+    results = await parallelBatchProcessWithGPT(role, selectedEmployees, skillMap);
   }
+  
+  // PASO ADICIONAL: Combinar resultados del GPT con candidatos descalificados
+  const combinedResults = [
+    ...results, // Resultados del procesamiento GPT para candidatos calificados
+    
+    // Añadir candidatos descalificados con puntuación mínima
+    ...disqualifiedCandidates.map(candidate => ({
+      id: candidate.id,
+      name: candidate.name || "Candidato sin nombre",
+      avatar: candidate.avatar || null,
+      technicalScore: candidate.preEvaluation.technicalScore,
+      contextualScore: candidate.preEvaluation.contextualScore,
+      certificationScore: candidate.preEvaluation.certificationScore || 0,
+      combinedScore: candidate.preEvaluation.combinedScore,
+      matchDetails: [{
+        skillId: "N/A",
+        skillName: "Habilidades faltantes",
+        required: role.skills.length,
+        actual: 0,
+        score: 0,
+        importance: 5
+      }]
+    }))
+  ];
+  
+  // Ordenar resultados finales
+  combinedResults.sort((a, b) => b.combinedScore - a.combinedScore);
+  
+  // Guardar resultados en caché con la clave que incluye timestamp
+  if (cacheKey) {
+    matchingCache.set(cacheKey, combinedResults);
+    console.log(`Resultados guardados en caché con clave ${cacheKey}`);
+  }
+  
+  const endTime = Date.now();
+  console.log(`Proceso completo realizado en ${endTime - startTime}ms`);
+  
+  return combinedResults;
 }
 
 //==============================================================================
@@ -1780,7 +2581,7 @@ async function analyzeWithOpenAI(cvText, availableSkills = [], availableRoles = 
     
     // Crear prompt optimizado para extraer datos específicos
     const skillsForPrompt = availableSkills.length > 0 
-      ? availableSkills.map(s => s.name || s).slice(0, 100).join(', ') // Limitamos a 50 skills para no sobrecargar
+      ? availableSkills.map(s => s.name || s).slice(0, 300).join(', ') 
       : "JavaScript, HTML, CSS, React, Angular, Node.js, Python, Java, SQL, Scrum, Agile, AWS, Communication, Teamwork";
       
     const rolesForPrompt = availableRoles.length > 0
@@ -2155,10 +2956,12 @@ Habilidades: JavaScript, React, Node.js, HTML, CSS`;
 app.use(express.json());
 
 
-// Endpoint para matching: Procesa la solicitud y devuelve los resultados
+// ======== ENDPOINT ACTUALIZADO DE MATCHING ========
+
+// Reemplazar ambas versiones del endpoint /api/getMatches con esta versión optimizada
 app.post("/getMatches", async (req, res) => {
   try {
-    console.log("Solicitud POST recibida en /getMatches");
+    console.log("Solicitud POST recibida en /api/getMatches");
     
     const { role, employees, skillMap: rawSkillMap } = req.body;
     if (!role || !employees || !Array.isArray(employees) || employees.length === 0) {
@@ -2169,46 +2972,48 @@ app.post("/getMatches", async (req, res) => {
     console.log(`Procesando matching para rol: ${role.role || 'sin nombre'}`);
     console.log(`Candidatos a procesar: ${employees.length}`);
     
+    // Fetch certifications for all employees
+    const employeeIds = employees.map(emp => emp.id || emp.user_id);
+    const certificationsByUser = await fetchUserCertifications(employeeIds);
+    
+    // Log certification data
+    console.log("Certifications fetched from database:");
+    Object.entries(certificationsByUser).forEach(([userId, certs]) => {
+      console.log(`User ${userId}: ${certs.length} certifications - ${certs.map(c => c.name).join(', ')}`);
+    });
+    
+    // Normalizar timestamps de actualización para el sistema de caché y agregar certificaciones
+    const employeesWithNormalizedTimestamps = employees.map(emp => {
+      const empId = emp.id || emp.user_id;
+      const userCerts = certificationsByUser[empId] || [];
+      console.log(`Assigning ${userCerts.length} certifications to employee ${emp.name} (ID: ${empId})`);
+      
+      return {
+        ...emp,
+        // Asegurar que todos tengan una fecha de actualización para el sistema de caché
+        updatedAt: emp.updated_at || emp.updatedAt || new Date().toISOString(),
+        // Add certifications from database - ONLY from the fetched data
+        certifications: userCerts
+      };
+    });
+    
     // Asegurar que el skillMap sea válido
-    const skillMap = ensureSkillMap(rawSkillMap, role, employees);
+    const skillMap = ensureSkillMap(rawSkillMap, role, employeesWithNormalizedTimestamps);
     console.log(`Mapa de skills: ${Object.keys(skillMap).length} skills disponibles`);
     
-    // Calcular pesos dinámicos con los límites especificados (técnico: 85-95%, contextual: 5-15%)
-    const { alpha, beta } = calculateDynamicWeights(role.description, role.skills, skillMap);
-    console.log(`Pesos calculados - Técnico: ${Math.round(alpha * 100)}%, Contextual: ${Math.round(beta * 100)}%`);
+    // Calcular pesos dinámicos incluyendo certificaciones
+    const { alpha, beta, certWeight } = calculateDynamicWeights(
+      role.description, 
+      role.skills, 
+      skillMap,
+      role.certifications || role.certificates || []
+    );
+    console.log(`Pesos calculados - Técnico: ${Math.round(alpha * 100)}%, Contextual: ${Math.round(beta * 100)}%, Certificaciones: ${Math.round(certWeight * 100)}%`);
     
-    // Comprobar que los pesos están dentro de los rangos especificados
-    let technicalWeight = Math.round(alpha * 100);
-    let contextualWeight = Math.round(beta * 100);
-    let adjustedAlpha = alpha;
-    let adjustedBeta = beta;
+    // Usar la versión optimizada del filtrado con consciencia de actualizaciones
+    const matches = await optimizedFilteredGPTMatching(role, employeesWithNormalizedTimestamps, skillMap);
     
-    if (technicalWeight < 85 || technicalWeight > 95 || contextualWeight < 5 || contextualWeight > 15) {
-      console.warn("Pesos fuera de rango, ajustando a los límites especificados");
-      // Ajuste forzado a los límites
-      adjustedAlpha = Math.min(Math.max(alpha, 0.85), 0.95);
-      adjustedBeta = 1 - adjustedAlpha;
-      
-      // Actualizar para logs
-      technicalWeight = Math.round(adjustedAlpha * 100);
-      contextualWeight = Math.round(adjustedBeta * 100);
-      console.log(`Pesos ajustados - Técnico: ${technicalWeight}%, Contextual: ${contextualWeight}%`);
-    }
-    
-    // Determinar número óptimo de candidatos para filtrado
-    const topN = employees.length <= 5 ? employees.length : 
-               employees.length <= 30 ? Math.ceil(employees.length * 0.7) : 25;
-    
-    // Usar el nuevo método optimizado
-    console.log(`Iniciando filtrado y evaluación de candidatos...`);
-    const startTime = Date.now();
-    
-    const matches = await filteredGPTMatching(role, employees, skillMap, topN);
-    
-    const endTime = Date.now();
-    console.log(`Procesamiento completado en ${endTime - startTime}ms`);
-    
-    // Agregar explicabilidad a los primeros 5 candidatos
+    // Agregar explicabilidad a los primeros 10 candidatos
     const matchesWithExplanations = matches.slice(0, 10).map(match => {
       // Generar explicaciones por candidato
       const explanation = {
@@ -2220,7 +3025,8 @@ app.post("/getMatches", async (req, res) => {
         })) || [],
         technicalScore: match.technicalScore,
         contextualScore: match.contextualScore,
-        summary: `Compatibilidad técnica: ${match.technicalScore}%, Compatibilidad contextual: ${match.contextualScore}%`
+        certificationScore: match.certificationScore || 0,
+        summary: `Compatibilidad técnica: ${match.technicalScore}%, Compatibilidad contextual: ${match.contextualScore}%, Certificaciones: ${match.certificationScore || 0}%`
       };
       
       return {
@@ -2233,19 +3039,20 @@ app.post("/getMatches", async (req, res) => {
     res.json({
       matches: matchesWithExplanations,
       weights: {
-        technical: technicalWeight,
-        contextual: contextualWeight
+        technical: Math.round(alpha * 100),
+        contextual: Math.round(beta * 100),
+        certification: Math.round(certWeight * 100)
       },
       totalCandidates: employees.length,
-      message: "Matching procesado exitosamente con enfoque optimizado"
+      message: "Matching procesado exitosamente con enfoque optimizado y consciente de actualizaciones"
     });
   } catch (error) {
-    console.error("Error en /getMatches:", error);
+    console.error("Error en /api/getMatches:", error);
     res.status(500).json({ error: error.message });
   }
 });
 
-// Duplicar para /api/getMatches con el mismo código
+// Reemplazar ambas versiones del endpoint /api/getMatches con esta versión optimizada
 app.post("/api/getMatches", async (req, res) => {
   try {
     console.log("Solicitud POST recibida en /api/getMatches");
@@ -2259,46 +3066,48 @@ app.post("/api/getMatches", async (req, res) => {
     console.log(`Procesando matching para rol: ${role.role || 'sin nombre'}`);
     console.log(`Candidatos a procesar: ${employees.length}`);
     
+    // Fetch certifications for all employees
+    const employeeIds = employees.map(emp => emp.id || emp.user_id);
+    const certificationsByUser = await fetchUserCertifications(employeeIds);
+    
+    // Log certification data
+    console.log("Certifications fetched from database:");
+    Object.entries(certificationsByUser).forEach(([userId, certs]) => {
+      console.log(`User ${userId}: ${certs.length} certifications - ${certs.map(c => c.name).join(', ')}`);
+    });
+    
+    // Normalizar timestamps de actualización para el sistema de caché y agregar certificaciones
+    const employeesWithNormalizedTimestamps = employees.map(emp => {
+      const empId = emp.id || emp.user_id;
+      const userCerts = certificationsByUser[empId] || [];
+      console.log(`Assigning ${userCerts.length} certifications to employee ${emp.name} (ID: ${empId})`);
+      
+      return {
+        ...emp,
+        // Asegurar que todos tengan una fecha de actualización para el sistema de caché
+        updatedAt: emp.updated_at || emp.updatedAt || new Date().toISOString(),
+        // Add certifications from database - ONLY from the fetched data
+        certifications: userCerts
+      };
+    });
+    
     // Asegurar que el skillMap sea válido
-    const skillMap = ensureSkillMap(rawSkillMap, role, employees);
+    const skillMap = ensureSkillMap(rawSkillMap, role, employeesWithNormalizedTimestamps);
     console.log(`Mapa de skills: ${Object.keys(skillMap).length} skills disponibles`);
     
-    // Calcular pesos dinámicos con los límites especificados (técnico: 85-95%, contextual: 5-15%)
-    const { alpha, beta } = calculateDynamicWeights(role.description, role.skills, skillMap);
-    console.log(`Pesos calculados - Técnico: ${Math.round(alpha * 100)}%, Contextual: ${Math.round(beta * 100)}%`);
+    // Calcular pesos dinámicos incluyendo certificaciones
+    const { alpha, beta, certWeight } = calculateDynamicWeights(
+      role.description, 
+      role.skills, 
+      skillMap,
+      role.certifications || role.certificates || []
+    );
+    console.log(`Pesos calculados - Técnico: ${Math.round(alpha * 100)}%, Contextual: ${Math.round(beta * 100)}%, Certificaciones: ${Math.round(certWeight * 100)}%`);
     
-    // Comprobar que los pesos están dentro de los rangos especificados
-    let technicalWeight = Math.round(alpha * 100);
-    let contextualWeight = Math.round(beta * 100);
-    let adjustedAlpha = alpha;
-    let adjustedBeta = beta;
+    // Usar la versión optimizada del filtrado con consciencia de actualizaciones
+    const matches = await optimizedFilteredGPTMatching(role, employeesWithNormalizedTimestamps, skillMap);
     
-    if (technicalWeight < 85 || technicalWeight > 95 || contextualWeight < 5 || contextualWeight > 15) {
-      console.warn("Pesos fuera de rango, ajustando a los límites especificados");
-      // Ajuste forzado a los límites
-      adjustedAlpha = Math.min(Math.max(alpha, 0.85), 0.95);
-      adjustedBeta = 1 - adjustedAlpha;
-      
-      // Actualizar para logs
-      technicalWeight = Math.round(adjustedAlpha * 100);
-      contextualWeight = Math.round(adjustedBeta * 100);
-      console.log(`Pesos ajustados - Técnico: ${technicalWeight}%, Contextual: ${contextualWeight}%`);
-    }
-    
-    // Determinar número óptimo de candidatos para filtrado
-    const topN = employees.length <= 5 ? employees.length : 
-               employees.length <= 30 ? Math.ceil(employees.length * 0.7) : 25;
-    
-    // Usar el nuevo método optimizado
-    console.log(`Iniciando filtrado y evaluación de candidatos...`);
-    const startTime = Date.now();
-    
-    const matches = await filteredGPTMatching(role, employees, skillMap, topN);
-    
-    const endTime = Date.now();
-    console.log(`Procesamiento completado en ${endTime - startTime}ms`);
-    
-    // Agregar explicabilidad a los primeros 5 candidatos
+    // Agregar explicabilidad a los primeros 10 candidatos
     const matchesWithExplanations = matches.slice(0, 10).map(match => {
       // Generar explicaciones por candidato
       const explanation = {
@@ -2310,7 +3119,8 @@ app.post("/api/getMatches", async (req, res) => {
         })) || [],
         technicalScore: match.technicalScore,
         contextualScore: match.contextualScore,
-        summary: `Compatibilidad técnica: ${match.technicalScore}%, Compatibilidad contextual: ${match.contextualScore}%`
+        certificationScore: match.certificationScore || 0,
+        summary: `Compatibilidad técnica: ${match.technicalScore}%, Compatibilidad contextual: ${match.contextualScore}%, Certificaciones: ${match.certificationScore || 0}%`
       };
       
       return {
@@ -2323,11 +3133,12 @@ app.post("/api/getMatches", async (req, res) => {
     res.json({
       matches: matchesWithExplanations,
       weights: {
-        technical: technicalWeight,
-        contextual: contextualWeight
+        technical: Math.round(alpha * 100),
+        contextual: Math.round(beta * 100),
+        certification: Math.round(certWeight * 100)
       },
       totalCandidates: employees.length,
-      message: "Matching procesado exitosamente con enfoque optimizado"
+      message: "Matching procesado exitosamente con enfoque optimizado y consciente de actualizaciones"
     });
   } catch (error) {
     console.error("Error en /api/getMatches:", error);
@@ -2343,6 +3154,29 @@ app.get('/test', (req, res) => {
 app.get('/api/test', (req, res) => {
   console.log("Solicitud de prueba recibida en /api/test");
   res.json({ status: 'ok', message: 'Servidor funcionando correctamente' });
+});
+
+// Test endpoint for certification fetching
+app.get('/api/test-certifications/:userId', async (req, res) => {
+  try {
+    const userId = req.params.userId;
+    console.log(`Testing certification fetch for user: ${userId}`);
+    
+    const certifications = await fetchUserCertifications([userId]);
+    
+    res.json({
+      success: true,
+      userId: userId,
+      certifications: certifications[userId] || [],
+      message: `Found ${(certifications[userId] || []).length} certifications for user ${userId}`
+    });
+  } catch (error) {
+    console.error('Error in test-certifications:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
 });
 
 // Endpoint para probar la API Key directamente
@@ -2523,18 +3357,32 @@ app.post("/api/admin/create-employee", async (req, res) => {
 function createSkillMapFromDatabase(allDbSkills) {
   const skillMap = {};
   
+  console.log(`Creating skill map from ${allDbSkills.length} skills`);
+  
   allDbSkills.forEach(skill => {
     if (skill && skill.skill_ID) {
-      skillMap[skill.skill_ID] = {
-        id: skill.skill_ID,
-        name: skill.name || `Skill #${skill.skill_ID}`,
+      // Store with both string and number versions of the ID for better matching
+      const skillId = skill.skill_ID;
+      const skillData = {
+        id: skillId,
+        name: skill.name || `Skill #${skillId}`,
         category: skill.category || "",
         type: skill.type || "Technical",
         description: skill.description || ""
       };
+      
+      // Store with original ID
+      skillMap[skillId] = skillData;
+      // Also store with string version
+      skillMap[String(skillId)] = skillData;
+      // If it's a string that looks like a number, also store as number
+      if (typeof skillId === 'string' && !isNaN(skillId)) {
+        skillMap[Number(skillId)] = skillData;
+      }
     }
   });
   
+  console.log(`Skill map created with ${Object.keys(skillMap).length} entries`);
   return skillMap;
 }
 
@@ -2749,16 +3597,63 @@ app.post("/api/virtual-assistant/chat", async (req, res) => {
       .map(cert => {
         // Get skill names from the skill_acquired array
         const certSkills = [];
-        if (cert.skill_acquired && Array.isArray(cert.skill_acquired)) {
-          cert.skill_acquired.forEach(skillId => {
-            const skill = skillMap[skillId];
-            if (skill) {
+        
+        // Try multiple ways to get skills
+        const skillArray = cert.skill_acquired || cert.skills || cert.skill_IDs || [];
+        
+        if (skillArray && Array.isArray(skillArray) && skillArray.length > 0) {
+          console.log(`\nProcessing cert "${cert.title}" with skills: ${JSON.stringify(skillArray)}`);
+          
+          skillArray.forEach(skillItem => {
+            // Handle different formats: could be ID, object with id, or object with name
+            let skillId = null;
+            let skillName = null;
+            
+            if (typeof skillItem === 'number' || typeof skillItem === 'string') {
+              skillId = skillItem;
+            } else if (typeof skillItem === 'object') {
+              skillId = skillItem.id || skillItem.skill_ID || skillItem.skillId;
+              skillName = skillItem.name || skillItem.skill_name;
+            }
+            
+            if (skillId && skillMap[skillId]) {
+              const skill = skillMap[skillId];
               certSkills.push({
                 id: skillId,
                 name: skill.name
               });
+              console.log(`  - Mapped skill ID ${skillId} to "${skill.name}"`);
+            } else if (skillName) {
+              // If we have a name but no valid ID mapping, use the name directly
+              certSkills.push({
+                id: skillId || 'unknown',
+                name: skillName
+              });
+              console.log(`  - Using skill name directly: "${skillName}"`);
+            } else {
+              console.log(`  - WARNING: Could not process skill item: ${JSON.stringify(skillItem)}`);
             }
           });
+        } else {
+          console.log(`\nWARNING: Cert "${cert.title}" has no valid skill array`);
+          
+          // FALLBACK: Try to extract skills from title or description
+          const titleLower = cert.title?.toLowerCase() || '';
+          const descLower = cert.description?.toLowerCase() || '';
+          
+          // Check if any known skills are mentioned in title or description
+          if (allDbSkills && allDbSkills.length > 0) {
+            allDbSkills.forEach(skill => {
+              const skillNameLower = skill.name?.toLowerCase();
+              if (skillNameLower && (titleLower.includes(skillNameLower) || descLower.includes(skillNameLower))) {
+                certSkills.push({
+                  id: skill.skill_ID,
+                  name: skill.name
+                });
+                console.log(`  - Found skill "${skill.name}" in title/description`);
+              }
+            });
+          }
         }
         
         return {
@@ -2772,6 +3667,19 @@ app.post("/api/virtual-assistant/chat", async (req, res) => {
       });
     
     console.log(`After filtering, ${formattedAvailableCertifications.length} certifications available to recommend`);
+    
+    // Debug: Show certifications with and without skills
+    const certsWithSkills = formattedAvailableCertifications.filter(c => c.skills && c.skills.length > 0);
+    const certsWithoutSkills = formattedAvailableCertifications.filter(c => !c.skills || c.skills.length === 0);
+    console.log(`  - ${certsWithSkills.length} certifications have skills`);
+    console.log(`  - ${certsWithoutSkills.length} certifications have NO skills`);
+    
+    if (certsWithoutSkills.length > 0) {
+      console.log(`Certifications without skills:`);
+      certsWithoutSkills.slice(0, 5).forEach(c => {
+        console.log(`  - "${c.title}" by ${c.issuer}`);
+      });
+    }
       
     // 11. INTENT-SPECIFIC PROCESSING - Filtrar y procesar según la intención
     
@@ -2831,7 +3739,20 @@ app.post("/api/virtual-assistant/chat", async (req, res) => {
         response: {
           sender: "bot",
           text: validatedResponse,
-          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          messageType: 'certification_recommendation',
+          metadata: {
+            certifications: topCertifications.map(cert => ({
+              id: cert.id,
+              title: cert.title,
+              issuer: cert.issuer,
+              description: cert.description,
+              skills: cert.skills,
+              type: cert.type,
+              relevanceScore: cert.relevanceScore,
+              matchDetails: cert.matchDetails
+            }))
+          }
         }
       });
     }
@@ -2839,34 +3760,20 @@ app.post("/api/virtual-assistant/chat", async (req, res) => {
     else if (intent.type === 'skill_certification_match' && intent.focus) {
       // Este intent maneja específicamente preguntas sobre qué certificaciones enseñan una habilidad particular
       
-      // Filtrar certificaciones que explícitamente proporcionan la habilidad solicitada Y que el usuario no tenga
-      const skillSpecificCerts = formattedAvailableCertifications.filter(cert => 
-        cert.skills.some(skill => 
-          skill.name.toLowerCase().includes(intent.focus.toLowerCase())
-        ) || 
-        (cert.description && cert.description.toLowerCase().includes(intent.focus.toLowerCase()))
+      // Usar el algoritmo mejorado de ranking para encontrar las mejores certificaciones
+      const rankedCerts = rankCertificationsByRelevance(
+        formattedAvailableCertifications,
+        formattedSkills,
+        userGoals,
+        intent.focus,
+        formattedCertifications
       );
       
-      // Ordenar por relevancia - priorizar coincidencias exactas de skill
-      const rankedCerts = skillSpecificCerts.sort((a, b) => {
-        // Priorizar certificaciones con coincidencia exacta de nombre de skill
-        const aExactMatch = a.skills.some(s => s.name.toLowerCase() === intent.focus.toLowerCase());
-        const bExactMatch = b.skills.some(s => s.name.toLowerCase() === intent.focus.toLowerCase());
-        
-        if (aExactMatch && !bExactMatch) return -1;
-        if (!aExactMatch && bExactMatch) return 1;
-        
-        // Si ambos o ninguno tienen coincidencias exactas, priorizar por número de skills coincidentes
-        const aMatchCount = a.skills.filter(s => 
-          s.name.toLowerCase().includes(intent.focus.toLowerCase())
-        ).length;
-        
-        const bMatchCount = b.skills.filter(s => 
-          s.name.toLowerCase().includes(intent.focus.toLowerCase())
-        ).length;
-        
-        return bMatchCount - aMatchCount;
-      });
+      // Incluir todas las certificaciones con cualquier relevancia
+      const relevantCerts = rankedCerts.filter(cert => {
+        // Incluir cualquier certificación con score positivo
+        return cert.relevanceScore > 0;
+      }).slice(0, 5); // Limitar a 5 certificaciones
       
       // Usar prompt especializado para mapeo de skill a certificación
       const systemPrompt = createSkillCertificationMatchPrompt(
@@ -2906,19 +3813,39 @@ app.post("/api/virtual-assistant/chat", async (req, res) => {
         response: {
           sender: "bot",
           text: validatedResponse,
-          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          messageType: 'skill_certification_match',
+          metadata: {
+            focusSkill: intent.focus,
+            certifications: relevantCerts.map(cert => ({
+              id: cert.id,
+              title: cert.title,
+              issuer: cert.issuer,
+              description: cert.description,
+              skills: cert.skills,
+              type: cert.type,
+              relevanceScore: cert.relevanceScore,
+              matchDetails: cert.matchDetails
+            }))
+          }
         }
       });
     }
     // C. Para preguntas sobre desarrollo de habilidades específicas
     else if (intent.type === 'skill_development' && intent.focus) {
-      // Filtrar certificaciones relevantes para esta habilidad Y que el usuario no tenga
-      const relevantCertifications = formattedAvailableCertifications.filter(cert => 
-        cert.skills.some(skill => 
-          skill.name.toLowerCase().includes(intent.focus.toLowerCase())
-        ) || 
-        (cert.description && cert.description.toLowerCase().includes(intent.focus.toLowerCase()))
+      // Usar el algoritmo mejorado de ranking para encontrar las mejores certificaciones
+      const rankedCertifications = rankCertificationsByRelevance(
+        formattedAvailableCertifications,
+        formattedSkills,
+        userGoals,
+        intent.focus,
+        formattedCertifications
       );
+      
+      // Incluir todas las certificaciones con cualquier relevancia para skill development
+      const relevantCertifications = rankedCertifications.filter(cert => {
+        return cert.relevanceScore > 0; // Incluir cualquier certificación con relevancia positiva
+      }).slice(0, 5); // Limitar a 5 certificaciones
       
       // Verificar si el usuario ya tiene esta habilidad
       const userHasSkill = formattedSkills.some(skill => 
@@ -2967,7 +3894,21 @@ app.post("/api/virtual-assistant/chat", async (req, res) => {
         response: {
           sender: "bot",
           text: validatedResponse,
-          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          messageType: 'skill_development',
+          metadata: {
+            focusSkill: intent.focus,
+            certifications: relevantCertifications.map(cert => ({
+              id: cert.id,
+              title: cert.title,
+              issuer: cert.issuer,
+              description: cert.description,
+              skills: cert.skills,
+              type: cert.type,
+              relevanceScore: cert.relevanceScore,
+              matchDetails: cert.matchDetails
+            }))
+          }
         }
       });
     }
@@ -3019,12 +3960,47 @@ app.post("/api/virtual-assistant/chat", async (req, res) => {
     // Enviar respuesta general validada
     const currentTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     
+    // Detectar si la respuesta incluye certificaciones y agregar metadata
+    let metadata = null;
+    
+    // Si el intent tiene un focus skill, buscar certificaciones relevantes
+    if (intent.focus || (intent.type === 'skill_development' || intent.type === 'certification_recommendation')) {
+      const rankedCertifications = rankCertificationsByRelevance(
+        formattedAvailableCertifications,
+        formattedSkills,
+        userGoals,
+        intent.focus,
+        formattedCertifications
+      );
+      
+      // Incluir certificaciones relevantes - ser más inclusivo
+      const relevantCerts = rankedCertifications.filter(cert => cert.relevanceScore > 0).slice(0, 5);
+      
+      if (relevantCerts.length > 0) {
+        metadata = {
+          messageType: intent.type,
+          focusSkill: intent.focus,
+          certifications: relevantCerts.map(cert => ({
+            id: cert.id,
+            title: cert.title,
+            issuer: cert.issuer,
+            description: cert.description,
+            skills: cert.skills,
+            type: cert.type,
+            relevanceScore: cert.relevanceScore,
+            matchDetails: cert.matchDetails
+          }))
+        };
+      }
+    }
+    
     return res.json({
       success: true,
       response: {
         sender: "bot",
         text: validatedResponse,
-        time: currentTime
+        time: currentTime,
+        ...(metadata && { metadata })
       }
     });
     
@@ -3036,6 +4012,122 @@ app.post("/api/virtual-assistant/chat", async (req, res) => {
     });
   }
 });
+
+/**
+ * Normalizar nombre de skill para comparación
+ */
+function normalizeSkillName(skillName) {
+  if (!skillName) return '';
+  
+  // Convertir a minúsculas y eliminar espacios extra
+  let normalized = skillName.toLowerCase().trim();
+  
+  // Mapeo de variaciones comunes a nombres estándar
+  const skillMappings = {
+    // JavaScript variations
+    'js': 'javascript',
+    'node': 'node.js',
+    'nodejs': 'node.js',
+    'react.js': 'react',
+    'reactjs': 'react',
+    'vue.js': 'vue',
+    'vuejs': 'vue',
+    'angular.js': 'angular',
+    'angularjs': 'angular',
+    
+    // Programming languages
+    'c#': 'csharp',
+    'c sharp': 'csharp',
+    '.net': 'dotnet',
+    'dot net': 'dotnet',
+    'golang': 'go',
+    
+    // Cloud platforms
+    'amazon web services': 'aws',
+    'google cloud platform': 'gcp',
+    'google cloud': 'gcp',
+    'ms azure': 'azure',
+    'microsoft azure': 'azure',
+    
+    // DevOps
+    'k8s': 'kubernetes',
+    'kube': 'kubernetes',
+    'ci cd': 'ci/cd',
+    'cicd': 'ci/cd',
+    
+    // Data
+    'ml': 'machine learning',
+    'ai': 'artificial intelligence',
+    'bi': 'business intelligence',
+    
+    // Other
+    'ux': 'user experience',
+    'ui': 'user interface',
+    'pm': 'project management',
+    'agile scrum': 'scrum',
+    'full stack': 'fullstack',
+    'full-stack': 'fullstack',
+    'front end': 'frontend',
+    'front-end': 'frontend',
+    'back end': 'backend',
+    'back-end': 'backend'
+  };
+  
+  // Aplicar mapeo si existe
+  return skillMappings[normalized] || normalized;
+}
+
+/**
+ * Verificar si dos nombres de skill coinciden (con fuzzy matching)
+ */
+function skillsMatch(skill1, skill2, allowPartial = true) {
+  if (!skill1 || !skill2) return false;
+  
+  // Convertir a string si es necesario
+  const str1 = String(skill1).trim();
+  const str2 = String(skill2).trim();
+  
+  if (!str1 || !str2) return false;
+  
+  const normalized1 = normalizeSkillName(str1);
+  const normalized2 = normalizeSkillName(str2);
+  
+  // Coincidencia exacta
+  if (normalized1 === normalized2) return true;
+  
+  // También verificar coincidencia exacta sin normalizar (case insensitive)
+  if (str1.toLowerCase() === str2.toLowerCase()) return true;
+  
+  if (allowPartial) {
+    // Coincidencia parcial - una contiene a la otra
+    if (normalized1.includes(normalized2) || normalized2.includes(normalized1)) {
+      return true;
+    }
+    
+    // También verificar con strings originales
+    const lower1 = str1.toLowerCase();
+    const lower2 = str2.toLowerCase();
+    if (lower1.includes(lower2) || lower2.includes(lower1)) {
+      return true;
+    }
+    
+    // Coincidencia por palabras clave
+    const words1 = normalized1.split(/[\s\-_]+/); // Split por espacio, guion, underscore
+    const words2 = normalized2.split(/[\s\-_]+/);
+    
+    // Si comparten al menos una palabra significativa (más de 2 caracteres)
+    const significantWords1 = words1.filter(w => w.length > 2);
+    const significantWords2 = words2.filter(w => w.length > 2);
+    
+    for (const word1 of significantWords1) {
+      for (const word2 of significantWords2) {
+        if (word1 === word2) return true;
+      }
+    }
+  }
+  
+  return false;
+}
 
 /**
  * Detectar la intención del usuario a partir de su mensaje
@@ -3060,7 +4152,8 @@ function detectUserIntent(message) {
     'certification to improve my', 'how to get certified in',
     'best way to learn', 'what certification should I get for',
     'what cert gives', 'what cert provides', 'cert that teaches',
-    'certificacion para', 'certificacion que enseñe', 'certifica en'
+    'certificacion para', 'certificacion que enseñe', 'certifica en',
+    'certification in', 'get certified on', 'certification about'
   ];
   
   const skillDevelopmentPatterns = [
@@ -3075,16 +4168,37 @@ function detectUserIntent(message) {
     'next level', 'senior', 'lead'
   ];
   
-  // Lista de tecnologías y habilidades comunes para detectar
+  // Lista ampliada de tecnologías y habilidades comunes para detectar
   const techKeywords = [
-    'kubernetes', 'k8s', 'docker', 'containers', 'cloud native',
-    'react', 'javascript', 'typescript', 'node.js', 'angular', 'vue',
-    'python', 'java', 'c#', '.net', 'golang', 'ruby', 'php',
-    'aws', 'azure', 'gcp', 'cloud', 'devops', 'ci/cd', 'jenkins',
-    'machine learning', 'ai', 'data science', 'big data', 'analytics',
-    'agile', 'scrum', 'project management', 'leadership', 'architecture',
-    'security', 'cybersecurity', 'networking', 'blockchain',
-    'ui/ux', 'frontend', 'backend', 'fullstack', 'mobile', 'ios', 'android'
+    // Cloud & DevOps
+    'kubernetes', 'k8s', 'docker', 'containers', 'cloud native', 'microservices',
+    'aws', 'amazon web services', 'azure', 'microsoft azure', 'gcp', 'google cloud', 
+    'cloud', 'devops', 'ci/cd', 'jenkins', 'gitlab', 'terraform', 'ansible',
+    
+    // Programming Languages
+    'react', 'javascript', 'typescript', 'node.js', 'nodejs', 'angular', 'vue', 'svelte',
+    'python', 'java', 'c#', 'csharp', '.net', 'dotnet', 'golang', 'go', 'ruby', 'php',
+    'rust', 'kotlin', 'swift', 'objective-c', 'scala', 'r programming',
+    
+    // Data & AI
+    'machine learning', 'ml', 'artificial intelligence', 'ai', 'deep learning',
+    'data science', 'data analysis', 'big data', 'analytics', 'business intelligence',
+    'tableau', 'power bi', 'spark', 'hadoop', 'sql', 'nosql', 'mongodb', 'postgresql',
+    
+    // Methodologies & Management
+    'agile', 'scrum', 'kanban', 'project management', 'product management',
+    'leadership', 'team management', 'architecture', 'solution architecture',
+    'enterprise architecture', 'software architecture',
+    
+    // Security & Infrastructure
+    'security', 'cybersecurity', 'information security', 'cloud security',
+    'networking', 'network administration', 'blockchain', 'cryptography',
+    'ethical hacking', 'penetration testing',
+    
+    // Design & Development
+    'ui/ux', 'ui', 'ux', 'user experience', 'user interface', 'design',
+    'frontend', 'backend', 'fullstack', 'full stack', 'mobile', 'ios', 'android',
+    'web development', 'api', 'rest api', 'graphql', 'microservices architecture'
   ];
   
   // Detectar intención primaria
@@ -3096,6 +4210,7 @@ function detectUserIntent(message) {
     intentType = 'skill_certification_match';
     
     // Extraer la habilidad específica que se está preguntando
+    // Primero buscar coincidencias exactas
     for (const keyword of techKeywords) {
       if (query.includes(keyword)) {
         intentFocus = keyword;
@@ -3110,8 +4225,25 @@ function detectUserIntent(message) {
         if (query.includes(pattern)) {
           const afterPattern = query.split(pattern)[1]?.trim();
           if (afterPattern && afterPattern.length > 2) {
-            // Extraer las primeras palabras como posible habilidad
-            intentFocus = afterPattern.split(/\s+/).slice(0, 3).join(' ');
+            // Limpiar el texto extrañdo
+            let extractedSkill = afterPattern
+              .split(/[.?!,]/)[0] // Detener en puntuación
+              .trim()
+              .replace(/\s+(and|or|with|using|by|through)\s+.*/, '') // Remover conectores
+              .trim();
+            
+            // Verificar si la skill extrañda existe en nuestra lista ampliada
+            for (const keyword of techKeywords) {
+              if (extractedSkill.includes(keyword) || keyword.includes(extractedSkill.toLowerCase())) {
+                intentFocus = keyword;
+                break;
+              }
+            }
+            
+            // Si no se encuentra en la lista, usar la extracción como está
+            if (!intentFocus && extractedSkill.length > 2 && extractedSkill.length < 50) {
+              intentFocus = extractedSkill;
+            }
             break;
           }
         }
@@ -3138,10 +4270,30 @@ function detectUserIntent(message) {
   
   // Detectar enfoque específico (habilidad o tecnología) si aún no se ha establecido
   if (!intentFocus) {
+    // Primero buscar coincidencias exactas
     for (const keyword of techKeywords) {
       if (query.includes(keyword)) {
         intentFocus = keyword;
         break;
+      }
+    }
+    
+    // Si no se encuentra, buscar con normalización
+    if (!intentFocus) {
+      // Extraer posibles skills del query
+      const words = query.split(/\s+/);
+      for (const word of words) {
+        const normalizedWord = normalizeSkillName(word);
+        
+        // Verificar si la palabra normalizada coincide con alguna skill conocida
+        for (const keyword of techKeywords) {
+          if (skillsMatch(word, keyword, true)) {
+            intentFocus = keyword;
+            break;
+          }
+        }
+        
+        if (intentFocus) break;
       }
     }
   }
@@ -3179,78 +4331,222 @@ function rankCertificationsByRelevance(certifications, userSkills, userGoals, fo
   
   console.log(`After additional filtering in ranking: ${filteredCertifications.length} certifications`);
   
+  // Crear un mapa de skills del usuario para búsqueda eficiente con normalización
+  const userSkillsMap = new Map();
+  userSkills.forEach(skill => {
+    const normalized = normalizeSkillName(skill.name);
+    userSkillsMap.set(normalized, skill);
+    // También guardar con el nombre original para compatibilidad
+    userSkillsMap.set(skill.name.toLowerCase(), skill);
+  });
+  
   return filteredCertifications.map(cert => {
     let relevanceScore = 0;
+    let matchDetails = {
+      exactSkillMatches: [],
+      partialSkillMatches: [],
+      goalAlignments: [],
+      skillGaps: [],
+      userSkillComplementarity: 0
+    };
     
     // 1. Si se especificó una habilidad de enfoque, priorizar certificaciones relacionadas
     if (focusSkill) {
-      // Verificar coincidencia exacta con cualquier habilidad de certificación
-      const exactSkillMatch = cert.skills.some(skill => 
-        skill.name.toLowerCase() === focusSkill.toLowerCase()
-      );
+      const normalizedFocusSkill = normalizeSkillName(focusSkill);
+      console.log(`\nSearching for skill: "${focusSkill}" (normalized: "${normalizedFocusSkill}") in cert: ${cert.title}`);
       
-      // Verificar coincidencia parcial
-      const partialSkillMatch = cert.skills.some(skill => 
-        skill.name.toLowerCase().includes(focusSkill.toLowerCase()) ||
-        focusSkill.toLowerCase().includes(skill.name.toLowerCase())
-      );
+      // Verificar coincidencia con skills de la certificación usando normalización
+      if (cert.skills && Array.isArray(cert.skills) && cert.skills.length > 0) {
+        console.log(`Cert skills: ${cert.skills.map(s => s.name || s).join(', ')}`);
+        
+        cert.skills.forEach(skill => {
+          const skillName = skill.name || skill; // Handle both {name: "skill"} and "skill" formats
+          console.log(`  Comparing "${skillName}" with "${focusSkill}"`);
+          
+          // Coincidencia exacta normalizada
+          if (skillsMatch(skillName, focusSkill, false)) {
+            relevanceScore += 200; // Máxima prioridad para coincidencias exactas
+            matchDetails.exactSkillMatches.push(skillName);
+            console.log(`    -> EXACT MATCH! Score: ${relevanceScore}`);
+          }
+          // Coincidencia parcial normalizada
+          else if (skillsMatch(skillName, focusSkill, true)) {
+            relevanceScore += 100; // Alta prioridad para coincidencias parciales
+            matchDetails.partialSkillMatches.push(skillName);
+            console.log(`    -> PARTIAL MATCH! Score: ${relevanceScore}`);
+          }
+        });
+      } else {
+        console.log(`  WARNING: cert.skills is empty or invalid for "${cert.title}"`);
+        // Even without skills array, check if the certification might be relevant based on title
+        if (cert.title) {
+          const titleWords = cert.title.toLowerCase().split(/\s+/);
+          const focusWords = focusSkill.toLowerCase().split(/\s+/);
+          
+          for (const titleWord of titleWords) {
+            for (const focusWord of focusWords) {
+              if (titleWord.includes(focusWord) || focusWord.includes(titleWord)) {
+                relevanceScore += 80; // Good score for title match when no skills array
+                console.log(`    -> Found "${focusWord}" in title! Score: ${relevanceScore}`);
+                break;
+              }
+            }
+          }
+        }
+      }
       
-      // Verificar descripción para mención de la habilidad
-      const descriptionMatch = cert.description && 
-        cert.description.toLowerCase().includes(focusSkill.toLowerCase());
+      // Verificar descripción para mención de la habilidad (con normalización)
+      if (cert.description) {
+        const descLower = cert.description.toLowerCase();
+        const focusSkillLower = normalizedFocusSkill.toLowerCase();
+        
+        // Buscar tanto el skill normalizado como el original
+        if (descLower.includes(focusSkillLower) || descLower.includes(focusSkill.toLowerCase())) {
+          relevanceScore += 50; // Prioridad media para menciones en la descripción
+          
+          // Bonus si la habilidad aparece múltiples veces
+          const occurrences1 = (descLower.match(new RegExp(focusSkillLower, 'g')) || []).length;
+          const occurrences2 = (descLower.match(new RegExp(focusSkill.toLowerCase(), 'g')) || []).length;
+          const totalOccurrences = Math.max(occurrences1, occurrences2);
+          relevanceScore += Math.min(totalOccurrences * 5, 25); // Hasta 25 puntos extra
+        }
+      }
       
-      // Asignar puntuaciones basadas en la calidad de la coincidencia
-      if (exactSkillMatch) {
-        relevanceScore += 100; // Máxima prioridad para coincidencias exactas
-      } else if (partialSkillMatch) {
-        relevanceScore += 50; // Alta prioridad para coincidencias parciales
-      } else if (descriptionMatch) {
-        relevanceScore += 30; // Prioridad media para menciones en la descripción
+      // Verificar título de la certificación también
+      if (cert.title) {
+        const titleLower = cert.title.toLowerCase();
+        if (titleLower.includes(focusSkill.toLowerCase()) || titleLower.includes(normalizedFocusSkill)) {
+          relevanceScore += 75; // Alta prioridad si el skill está en el título
+          console.log(`    -> Found "${focusSkill}" in certification title! Score: ${relevanceScore}`);
+        }
+      }
+      
+      // Si no hay coincidencias directas, dar un score base para que aparezca en resultados
+      if (relevanceScore === 0) {
+        // Si tiene skills, dar un poco más de score
+        if (cert.skills && cert.skills.length > 0) {
+          relevanceScore = 10; // Score base con skills
+        } else {
+          relevanceScore = 5; // Score mínimo sin skills
+        }
+        console.log(`    -> Base score assigned: ${relevanceScore}`);
       }
     }
     
-    // 2. Relevancia basada en skills del usuario
-    // Priorizar certificaciones que complementen skills existentes
-    userSkills.forEach(userSkill => {
-      cert.skills.forEach(certSkill => {
-        // Si la certificación tiene una skill relacionada con una que ya tiene el usuario
-        if (certSkill.name.toLowerCase().includes(userSkill.name.toLowerCase()) ||
-            userSkill.name.toLowerCase().includes(certSkill.name.toLowerCase())) {
-          relevanceScore += 5;
-          
-          // Bonus si la proficiency del usuario es alta (building on strengths)
-          if (userSkill.proficiency === 'High' || userSkill.proficiency === 'Expert') {
-            relevanceScore += 3;
-          }
-        }
-      });
-    });
+    // 2. Análisis de skills del usuario vs certificación (mejorado)
+    let skillComplementScore = 0;
+    let newSkillsCount = 0;
     
-    // 3. Relevancia basada en objetivos del usuario
-    userGoals.forEach(goal => {
-      if (goal.goal) {
-        const goalKeywords = goal.goal.toLowerCase().split(/\s+/);
-        
-        // Verificar si la certificación tiene skills relacionadas con palabras clave de los objetivos
-        cert.skills.forEach(skill => {
-          goalKeywords.forEach(keyword => {
-            if (skill.name.toLowerCase().includes(keyword) || 
-                (cert.description && cert.description.toLowerCase().includes(keyword))) {
-              relevanceScore += 10; // Alto valor a certificaciones alineadas con objetivos
-              
-              // Bonus adicional para objetivos a corto plazo
-              if (goal.timeframe === 'Short-term') {
-                relevanceScore += 5;
-              }
-            }
-          });
-        });
+    cert.skills.forEach(certSkill => {
+      const certSkillLower = certSkill.name.toLowerCase();
+      let isNewSkill = true;
+      
+      // Verificar si es una skill que el usuario ya tiene usando matching normalizado
+      for (const [userSkillName, userSkillData] of userSkillsMap) {
+        if (skillsMatch(certSkill.name, userSkillData.name, true)) {
+          isNewSkill = false;
+          
+          // Skill complementaria - el usuario ya tiene base
+          skillComplementScore += 8;
+          
+          // Bonus basado en proficiency actual
+          switch (userSkillData.proficiency) {
+            case 'Low':
+            case 'Basic':
+              skillComplementScore += 10; // Alto valor para mejorar skills básicas
+              break;
+            case 'Medium':
+              skillComplementScore += 7; // Valor medio para skills intermedias
+              break;
+            case 'High':
+            case 'Expert':
+              skillComplementScore += 4; // Menor valor para skills ya dominadas
+              break;
+          }
+          
+          // Bonus si el usuario tiene pocos años de experiencia
+          if (userSkillData.yearsExperience < 2) {
+            skillComplementScore += 5;
+          }
+          break;
+        }
+      }
+      
+      if (isNewSkill) {
+        newSkillsCount++;
+        matchDetails.skillGaps.push(certSkill.name);
       }
     });
     
+    // Balance entre skills nuevas y complementarias
+    relevanceScore += skillComplementScore;
+    relevanceScore += newSkillsCount * 15; // Valor por cada skill nueva
+    matchDetails.userSkillComplementarity = skillComplementScore;
+    
+    // 3. Análisis mejorado de objetivos del usuario
+    userGoals.forEach(goal => {
+      if (goal.goal) {
+        const goalLower = goal.goal.toLowerCase();
+        
+        // Extraer palabras clave más relevantes (filtrar palabras comunes)
+        const stopWords = ['the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'from', 'as', 'is', 'was', 'are', 'been'];
+        const goalKeywords = goalLower.split(/\s+/).filter(word => 
+          word.length > 2 && !stopWords.includes(word)
+        );
+        
+        let goalMatchScore = 0;
+        
+        // Verificar coincidencias con skills de la certificación
+        cert.skills.forEach(skill => {
+          const skillLower = skill.name.toLowerCase();
+          goalKeywords.forEach(keyword => {
+            if (skillLower.includes(keyword)) {
+              goalMatchScore += 15;
+              matchDetails.goalAlignments.push(`${skill.name} aligns with goal keyword: ${keyword}`);
+            }
+          });
+        });
+        
+        // Verificar coincidencias en la descripción
+        if (cert.description) {
+          const descLower = cert.description.toLowerCase();
+          goalKeywords.forEach(keyword => {
+            if (descLower.includes(keyword)) {
+              goalMatchScore += 8;
+            }
+          });
+        }
+        
+        // Multiplicador basado en timeframe del objetivo
+        switch (goal.timeframe) {
+          case 'Short-term':
+            goalMatchScore *= 1.5; // 50% más peso para objetivos a corto plazo
+            break;
+          case 'Mid-term':
+            goalMatchScore *= 1.2; // 20% más peso para objetivos a medio plazo
+            break;
+          case 'Long-term':
+            goalMatchScore *= 1.0; // Peso normal para objetivos a largo plazo
+            break;
+        }
+        
+        relevanceScore += goalMatchScore;
+      }
+    });
+    
+    // 4. Factor de diversidad de skills (certificaciones que cubren múltiples áreas)
+    const skillDiversityBonus = Math.min(cert.skills.length * 3, 15); // Hasta 15 puntos por diversidad
+    relevanceScore += skillDiversityBonus;
+    
+    // 5. Penalización si la certificación no tiene skills definidas
+    if (!cert.skills || cert.skills.length === 0) {
+      relevanceScore *= 0.5; // Reducir score a la mitad
+    }
+    
     return {
       ...cert,
-      relevanceScore
+      relevanceScore: Math.round(relevanceScore),
+      matchDetails // Para debugging si es necesario
     };
   }).sort((a, b) => b.relevanceScore - a.relevanceScore);
 }
@@ -3273,39 +4569,65 @@ function createCertificationRecommendationPrompt(userData, userSkills, userGoals
     .map(cert => cert.title || "")
     .filter(Boolean)
     .join(', ');
+  
+  // Analizar el perfil del usuario para personalizar mejor
+  const userLevel = userData.level || 1;
+  const experienceLevel = userLevel <= 3 ? 'early-career' : userLevel <= 6 ? 'mid-level' : 'senior';
+  
+  // Identificar skills gaps
+  const allCertSkills = new Set();
+  certifications.forEach(cert => {
+    cert.skills.forEach(skill => allCertSkills.add(skill.name.toLowerCase()));
+  });
+  
+  const userSkillNames = new Set(userSkills.map(s => s.name.toLowerCase()));
+  const potentialNewSkills = [...allCertSkills].filter(skill => !userSkillNames.has(skill));
 
-  return `You are Accenture Career AI, an assistant specialized in providing personalized certification recommendations.
+  return `You are Accenture Career AI, an expert in career development and certification guidance for Accenture employees.
 
-IMPORTANT INSTRUCTION:
-- ABSOLUTELY NEVER recommend certifications that the user already has. User currently has these certifications: ${userCurrentCertsList || 'None'}.
-- ONLY recommend certifications from the provided list below. Do not invent or suggest certifications not listed.
-- ONLY recommend skills from this explicit list: ${availableSkillsList}
-- Keep your responses concise: 2-4 sentences per certification, max 3 certifications total.
-- Focus on matching the most relevant certifications to the user's needs.
-- Only talk about topics related to Accenture, career development, and professional growth within the company.
-- Do not discuss unrelated topics or provide general advice outside of Accenture's context.
-- If the user asks about something unrelated to Accenture, careers or certifications, politely redirect the conversation back to these topics.
-- If asked about skills, ONLY mention skills from the list of available skills provided above.
-- NEVER invent, create, or suggest skills or certifications that are not in the provided lists, even if they seem relevant.
+IMPORTANT RULES:
+- ABSOLUTELY NEVER recommend certifications the user already has: ${userCurrentCertsList || 'None'}
+- ONLY recommend from the certifications listed below
+- ONLY mention skills from this list: ${availableSkillsList}
+- Be concise and specific: 2-3 sentences per certification, maximum 3 certifications
+- Focus on certifications that align with the user's career stage and goals
 
-USER PROFILE:
-- Name: ${userData.name || 'User'}
-- Level: ${userData.level || 1}
-- Current Skills: ${userSkills.map(s => s.name).join(', ')}
-- Goals: ${userGoals.map(g => g.goal || 'Not specified').join(', ')}
-- Current Certifications: ${userCurrentCertsList || 'None'}
+USER PROFILE ANALYSIS:
+- Name: ${userData.name || 'User'} (Level ${userLevel} - ${experienceLevel})
+- Current Skills: ${userSkills.map(s => `${s.name} (${s.proficiency})`).join(', ')}
+- Career Goals: ${userGoals.map(g => `${g.timeframe}: ${g.goal}`).join(' | ')}
+- Skills they could develop: ${potentialNewSkills.slice(0, 5).join(', ')}
+${focusSkill ? `\n- SPECIFIC INTEREST: ${focusSkill.toUpperCase()} certifications` : ''}
 
-${focusSkill ? `The user is specifically interested in certifications related to ${focusSkill.toUpperCase()}.` : ''}
+AVAILABLE CERTIFICATIONS (ranked by relevance):
+${certifications.length > 0 ? certifications.slice(0, 5).map((cert, index) => `
+${index + 1}. **${cert.title}** by ${cert.issuer}
+   - Skills: ${cert.skills.map(s => s.name).join(', ')}
+   - Why relevant: ${cert.matchDetails ? 
+     (cert.matchDetails.exactSkillMatches.length > 0 ? `Exact match for ${cert.matchDetails.exactSkillMatches.join(', ')}` :
+      cert.matchDetails.goalAlignments.length > 0 ? `Aligns with your goals` :
+      cert.matchDetails.skillGaps.length > 0 ? `Teaches new skills: ${cert.matchDetails.skillGaps.slice(0, 2).join(', ')}` :
+      'Complements existing skills') : 'Relevant to your profile'}
+`).join('') : 'No suitable certifications found.'}
 
-AVAILABLE CERTIFICATIONS (ONLY recommend from this list - these are certifications the user does NOT already have):
-${certifications.length > 0 ? certifications.map((cert, index) => `
-${index + 1}. ${cert.title} by ${cert.issuer}
-   - Skills covered: ${cert.skills.map(s => s.name).join(', ')}
-   - Description: ${cert.description || 'Not available'}
-`).join('') : 'No suitable certifications found that the user doesn\'t already have.'}
+YOUR TASK:
+1. Recommend 1-3 certifications that best match the user's needs
+2. For each certification explain:
+   - The specific value for their career at Accenture
+   - How it addresses their goals or skill gaps
+   - Why it's appropriate for their level (${experienceLevel})
+3. If asked about unrelated topics, redirect to Accenture career development
 
-YOUR RESPONSE MUST:
-1. Be brief and direct - focus on 1-3 most relevant certifications
+FORMAT:
+"Based on your profile and goals, I recommend:
+
+**1. [Certification Name]** by [Issuer]
+This certification [specific benefit]. It's ideal for your ${experienceLevel} stage because [reason].
+
+**2. [Certification Name]** by [Issuer]
+[Why this cert specifically helps achieve their stated goals]."
+
+If no relevant certifications exist, say: "I don't see certifications in our current catalog that match your specific needs. Let me help you explore other development opportunities at Accenture."
 2. Include certification title, issuer, and briefly why it's relevant
 3. Use concise bullet points instead of lengthy paragraphs
 4. Only recommend certifications from the list above
@@ -3342,65 +4664,72 @@ function createSkillCertificationMatchPrompt(userData, focusSkill, relevantCerti
     .filter(Boolean)
     .join(', ');
   
-  // Crear una lista de certificaciones relevantes disponibles
-  const availableCertsList = (relevantCertifications || [])
-    .map(cert => cert.title || "")
-    .filter(Boolean)
-    .join(', ');
+  // Categorizar las certificaciones por relevancia
+  const exactMatches = [];
+  const strongMatches = [];
+  const relatedMatches = [];
   
-  return `You are Accenture Career AI, an assistant specialized in recommending certifications for specific skills.
+  relevantCertifications.forEach(cert => {
+    if (cert.relevanceScore >= 150) {
+      exactMatches.push(cert);
+    } else if (cert.relevanceScore >= 75) {
+      strongMatches.push(cert);
+    } else if (cert.relevanceScore >= 40) {
+      relatedMatches.push(cert);
+    }
+  });
+  
+  return `You are Accenture Career AI, a specialized assistant for certification recommendations.
 
-IMPORTANT INSTRUCTION: The user is asking about certifications that teach or improve ${focusSkill.toUpperCase()} skills. 
-Your response MUST focus ONLY on listing certifications from our database that specifically teach this skill.
+USER REQUEST: Certifications for learning ${focusSkill.toUpperCase()}
 
 CRITICAL RULES:
-- ABSOLUTELY NEVER recommend certifications that the user already has. User currently has these certifications: ${userCurrentCertsList || 'None'}.
-- ONLY recommend skills from this explicit list: ${availableSkillsList}
-- ONLY recommend certifications from this explicit list: ${availableCertsList}
-- Only provide information related to Accenture, career development at Accenture, and certifications available to Accenture employees.
-- Do not discuss topics unrelated to Accenture's professional environment.
-- If asked about topics unrelated to Accenture, certifications, or career development, politely redirect the conversation back to these topics.
-- NEVER invent, create, or suggest skills or certifications that are not in the provided lists, even if they seem relevant.
+- User already has: ${userCurrentCertsList || 'None'} - NEVER recommend these
+- ONLY recommend from the certifications listed below
+- ONLY mention skills from: ${availableSkillsList}
+- Focus exclusively on Accenture career development
 
-USER QUERY FOCUS: ${focusSkill.toUpperCase()} skill
-USER CURRENT CERTIFICATIONS: ${userCurrentCertsList || 'None'}
+ANALYSIS OF AVAILABLE CERTIFICATIONS:
 
-CERTIFICATIONS AVAILABLE THAT TEACH ${focusSkill.toUpperCase()} (user does NOT already have these):
-${relevantCertifications.length > 0 ? relevantCertifications.map((cert, index) => `
-${index + 1}. ${cert.title} by ${cert.issuer}
-   - Skills covered: ${cert.skills.map(s => s.name).join(', ')}
-   - Description: ${cert.description || 'Not available'}
-`).join('') : 'No specific certifications found for this skill in our database that the user doesn\'t already have.'}
+${exactMatches.length > 0 ? `EXACT MATCHES (directly teach ${focusSkill}):
+${exactMatches.map((cert, i) => `${i + 1}. **${cert.title}** by ${cert.issuer}
+   - Primary focus on ${focusSkill}
+   - Additional skills: ${cert.skills.map(s => s.name).filter(s => s.toLowerCase() !== focusSkill.toLowerCase()).join(', ') || 'None'}`).join('\n')}` : ''}
 
-YOUR RESPONSE REQUIREMENTS:
-1. List ONLY the certifications from above that specifically teach ${focusSkill.toUpperCase()} skills
-2. For each certification, briefly explain:
-   - What specific aspects of ${focusSkill} it covers
-   - Why it's valuable for learning this skill
-   - Any prerequisites or difficulty level
-3. List certifications in order of relevance to ${focusSkill}
-4. NEVER mention or recommend any certification that appears in the USER CURRENT CERTIFICATIONS list
-5. If no certifications are found, clearly state that we don't currently have certifications specifically for ${focusSkill} in our database that the user doesn't already have
-6. Keep your response concise and focused
-7. Only discuss topics related to Accenture, certifications, and career development within Accenture
-8. ONLY mention skills from the AVAILABLE SKILLS list provided above
-9. Never invent new certifications or skills not listed above
+${strongMatches.length > 0 ? `STRONG MATCHES (significant ${focusSkill} content):
+${strongMatches.map((cert, i) => `${i + 1}. **${cert.title}** by ${cert.issuer}
+   - Includes ${focusSkill} training
+   - Full skill set: ${cert.skills.map(s => s.name).join(', ')}`).join('\n')}` : ''}
 
-FORMAT EXAMPLE:
-"Here are the certifications in our database that specifically teach ${focusSkill} skills:
+${relatedMatches.length > 0 ? `RELATED CERTIFICATIONS (some ${focusSkill} coverage):
+${relatedMatches.map((cert, i) => `${i + 1}. **${cert.title}** by ${cert.issuer}
+   - Skills: ${cert.skills.map(s => s.name).join(', ')}`).join('\n')}` : ''}
 
-### 1. [Certification Name] by [Provider]
-- **Focus**: [Specific aspects of the skill covered]
-- **Value**: [Why it's beneficial for this skill]
-- **Level**: [Beginner/Intermediate/Advanced]
+${exactMatches.length === 0 && strongMatches.length === 0 && relatedMatches.length === 0 ? 
+  `No certifications found for ${focusSkill} that you don't already have.` : ''}
 
-### 2. [Certification Name] by [Provider]
-- **Focus**: [Specific aspects of the skill covered]
-- **Value**: [Why it's beneficial for this skill]
-- **Level**: [Beginner/Intermediate/Advanced]"
+YOUR RESPONSE STRUCTURE:
+1. Start with the best matches for learning ${focusSkill}
+2. For each recommended certification (max 3-4), explain:
+   - How extensively it covers ${focusSkill}
+   - What specific ${focusSkill} topics/tools it includes
+   - Difficulty level and time commitment
+   - How it fits into an Accenture career path
+3. If multiple options exist, briefly compare them
+4. End with a specific recommendation based on common use cases
 
-If there are no relevant certifications, your response should be:
-"Currently, we don't have specific certifications in our database that focus on teaching ${focusSkill} skills that you don't already have. However, I'd be happy to help you explore other career development opportunities at Accenture that align with your interests."`;
+EXAMPLE RESPONSE FORMAT:
+"For developing ${focusSkill} skills, here are the best certification options:
+
+**1. [Best Match Certification]**
+This certification provides comprehensive ${focusSkill} training, covering [specific topics]. It's ideal for [target audience] and takes approximately [duration]. The hands-on labs focus on [practical applications].
+
+**2. [Second Best Match]**
+While broader in scope, this certification includes solid ${focusSkill} fundamentals, particularly [specific areas]. It's valuable because [unique benefits].
+
+**Recommendation**: For most Accenture professionals looking to build ${focusSkill} expertise, I'd suggest starting with [specific cert] because [compelling reason]."
+
+If no matches: "I don't see any certifications in our current catalog that specifically teach ${focusSkill} skills that you haven't already completed. Would you like me to suggest related skills or alternative development paths at Accenture?"`;
 }
 
 /**
@@ -3423,53 +4752,56 @@ function createSkillDevelopmentPrompt(userData, userSkills, userGoals, relevantC
     .filter(Boolean)
     .join(', ');
   
-  return `You are Accenture Career AI, an assistant specialized in providing personalized career advice to Accenture employees.
+  return `You are Accenture Career AI, an assistant specialized in providing personalized certification recommendations.
 
-IMPORTANT INSTRUCTION: The user is asking about developing their ${focusSkill.toUpperCase()} skills. Your response should focus primarily on specific certifications that teach this skill.
+USER REQUEST: How to improve ${focusSkill.toUpperCase()} skills
+
+MANDATORY INSTRUCTION: You MUST recommend specific certifications from the list below. Do NOT provide general advice about ${focusSkill} without certification recommendations.
 
 CRITICAL RULES:
-- ABSOLUTELY NEVER recommend certifications that the user already has. User currently has these certifications: ${userCurrentCertsList || 'None'}.
-- ONLY recommend skills from this explicit list: ${availableSkillsList}
-- ONLY recommend certifications from this explicit list: ${availableCertsList}
-- Only provide information related to Accenture, career development at Accenture, and certifications available to Accenture employees.
-- Do not discuss topics unrelated to Accenture's professional environment.
-- If asked about topics unrelated to Accenture, certifications, or career development, politely redirect the conversation back to these topics.
-- NEVER invent, create, or suggest skills or certifications that are not in the provided lists, even if they seem relevant.
+- User already has: ${userCurrentCertsList || 'None'} - NEVER recommend these
+- ONLY recommend from the certifications listed below
+- ONLY mention skills from: ${availableSkillsList}
+- Your response MUST focus on certifications, not general skill advice
 
 USER PROFILE:
-- Name: ${userData.name || 'User'}
-- Level: ${userData.level || 1}
-- Goals: ${userGoals.map(g => g.goal || 'Not specified').join(', ')}
-- Current Skills: ${userSkills.map(s => s.name).join(', ')}
-- Current Certifications: ${userCurrentCertsList || 'None'}
-- ${userHasSkill ? `The user ALREADY HAS some ${focusSkill} skills` : `The user DOES NOT YET HAVE ${focusSkill} skills`}
+- Name: ${userData.name || 'User'} (Level ${userData.level || 1})
+- Current ${focusSkill} proficiency: ${userHasSkill ? 'Has some experience' : 'Beginner'}
+- Goals: ${userGoals.map(g => g.goal).filter(Boolean).join(', ') || 'Not specified'}
 
-CERTIFICATIONS THAT TEACH ${focusSkill.toUpperCase()} SKILLS (user does NOT already have these):
-${relevantCertifications.length > 0 ? relevantCertifications.map((cert, index) => `
-${index + 1}. ${cert.title} by ${cert.issuer}
-   - Skills covered: ${cert.skills.map(s => s.name).join(', ')}
-   - Description: ${cert.description || 'Not available'}
-`).join('') : 'No specific certifications found for this skill in our database that the user doesn\'t already have.'}
+AVAILABLE CERTIFICATIONS FOR ${focusSkill.toUpperCase()}:
+${relevantCertifications.length > 0 ? 
+  `Found ${relevantCertifications.length} certifications that can help with ${focusSkill} skills:
 
-YOUR PRIMARY TASK:
-1. Recommend the most relevant certifications from the list above that will help the user develop ${focusSkill} skills
-2. NEVER recommend any certification listed in the user's Current Certifications
-3. For each recommended certification, explain:
-   - What specific aspects of ${focusSkill} it teaches
-   - Why it's particularly valuable for the user's goals and current skill level
-   - How it complements their existing skills
-4. Only provide information relevant to Accenture and the user's career at Accenture
-5. If asked about topics unrelated to certifications, skills, or career at Accenture, politely redirect to relevant topics
-6. ONLY mention skills from the AVAILABLE SKILLS list provided above
-7. ONLY recommend certifications from the CERTIFICATIONS list provided above
+${relevantCertifications.slice(0, 5).map((cert, index) => `
+${index + 1}. **${cert.title}** by ${cert.issuer}
+   - Skills: ${cert.skills.map(s => s.name).join(', ') || 'Skills information not available'}
+   - Relevance: ${cert.matchDetails?.exactSkillMatches?.length > 0 ? `Direct ${focusSkill} training` : 
+                  cert.matchDetails?.partialSkillMatches?.length > 0 ? `Includes ${focusSkill} concepts` :
+                  cert.title.toLowerCase().includes(focusSkill.toLowerCase()) ? `${focusSkill} in title` :
+                  'May include related skills'}
+`).join('')}` : 
+  `No specific ${focusSkill} certifications found in our current catalog that you haven't already completed.`}
 
-YOUR RESPONSE STRUCTURE:
-1. Brief introduction to the importance of ${focusSkill} (1-2 sentences only)
-2. List of recommended certifications from our database (2-3 most relevant ones)
-3. Brief learning path suggestion (1-2 sentences)
+RESPONSE FORMAT (REQUIRED):
+"To improve your ${focusSkill} skills, I recommend these certifications:
 
-If no certifications in our database teach this skill that the user doesn't already have, clearly state:
-"Currently, we don't have specific certifications in our database that focus on teaching ${focusSkill} skills that you don't already have. However, I'd be happy to help you explore other career development opportunities at Accenture that align with your interests."`;
+**1. [Certification Name]** by [Issuer]
+This certification will help you [specific benefit]. It covers [key topics] and is ideal for [your level].
+
+**2. [Certification Name]** by [Issuer]
+[Why this certification helps with ${focusSkill}]. Perfect for [use case].
+
+**Recommendation**: Start with [specific cert] because [compelling reason based on user profile]."
+
+DO NOT:
+- Explain what ${focusSkill} is
+- Give general tips about learning ${focusSkill}
+- Discuss ${focusSkill} concepts without certification context
+- Provide advice unrelated to certifications
+
+If no relevant certifications exist:
+"I don't see any ${focusSkill} certifications in our current catalog that you haven't already completed. Would you like me to suggest certifications for related skills?"`;
 }
 
 function createGeneralPrompt(contextData) {
@@ -3493,53 +4825,60 @@ function createGeneralPrompt(contextData) {
     .filter(Boolean)
     .join(', ');
 
-  return `You are Accenture Career AI, an assistant specialized in providing personalized career advice to Accenture employees.
+  return `You are Accenture Career AI, an assistant specialized in certification recommendations and career development.
 
-IMPORTANT RULES:
-- ABSOLUTELY NEVER recommend certifications that the user already has. User currently has these certifications: ${userCurrentCertsList || 'None'}.
-- Only provide information related to Accenture, career development at Accenture, and certifications available to Accenture employees.
-- Do not discuss topics unrelated to Accenture's professional environment.
-- If asked about topics unrelated to Accenture, certifications, or career development, politely redirect the conversation back to these topics.
-- When specifically asked about certifications, ONLY recommend certifications from this explicit list: ${availableCertsList}
-- If no specific certifications are available in our database for this topic, provide general career advice instead.
+CRITICAL RULES:
+- User already has: ${userCurrentCertsList || 'None'} - NEVER recommend these
+- When discussing skills or learning, ALWAYS recommend specific certifications
+- ONLY recommend from available certifications: ${availableCertsList}
+- ONLY mention skills from: ${availableSkillsList}
 
 USER PROFILE:
-- Name: ${contextData.user.name} ${contextData.user.lastName}
-- Level: ${contextData.user.level}
-- About: ${contextData.user.about || 'Not specified'}
-- Goals: ${contextData.user.goals.map(g => `${g.timeframe}: ${g.goal || 'Not specified'}`).join(', ')}
+- Name: ${contextData.user.name} ${contextData.user.lastName} (Level ${contextData.user.level})
+- Goals: ${contextData.user.goals.map(g => `${g.timeframe}: ${g.goal}`).join(' | ')}
 - Current Skills: ${contextData.user.skills.map(s => s.name).join(', ')}
-- Current Certifications: ${userCurrentCertsList || 'None'}
 
 USER QUERY: "${contextData.query}"
-DETECTED INTENT: ${contextData.intent.type}${contextData.intent.focus ? `, Focus: ${contextData.intent.focus}` : ''}
+INTENT: ${contextData.intent.type}${contextData.intent.focus ? ` - Focus: ${contextData.intent.focus}` : ''}
 
-YOUR RESPONSE REQUIREMENTS:
-1. Answer the user's specific question directly and comprehensively
-2. Provide personalized advice based on their profile, skills, and goals
-3. Structure your response with clear sections using markdown (bold, lists, etc.)
-4. ${conciseInstruction}
-5. When mentioning certifications, be specific and only reference certifications in our database
-6. NEVER recommend any certification listed in the user's Current Certifications
-7. When asked about skills, provide general skill categories needed for the role or position. Don't worry about exact skill names matching a database.
-8. Only discuss topics related to Accenture, certifications, and career development within Accenture
-9. If asked about topics unrelated to Accenture, politely redirect the conversation
+${contextData.intent.focus && contextData.availableCertifications.length > 0 ? `
+RELEVANT CERTIFICATIONS FOR ${contextData.intent.focus.toUpperCase()}:
+${contextData.availableCertifications
+  .filter(cert => cert.skills.some(s => s.name.toLowerCase().includes(contextData.intent.focus.toLowerCase())))
+  .slice(0, 5)
+  .map((cert, i) => `${i + 1}. **${cert.title}** by ${cert.issuer}
+   - Skills: ${cert.skills.map(s => s.name).join(', ')}`)
+  .join('\n')}
+` : ''}
 
-DO NOT:
-- Provide generic career advice that ignores the specific question
-- Ignore the specific context of the user's query
-- Present information in vague or overly general terms
-- Discuss topics unrelated to Accenture's professional environment
+RESPONSE REQUIREMENTS:
+1. If the query mentions ANY skill, learning, or improvement:
+   - MUST recommend specific certifications
+   - Explain how each certification helps
+   - Use the beautiful card format
+2. ${conciseInstruction}
+3. Structure with markdown formatting
+4. Focus on Accenture career development
+
+RESPONSE STRUCTURE FOR SKILL QUERIES:
+"To [improve/learn/develop] [skill], I recommend these certifications:
+
+**1. [Certification Name]** by [Issuer]
+[How it helps with the skill]. [Why it's good for their level].
+
+**2. [Certification Name]** by [Issuer]
+[Specific benefits]. [Alignment with goals].
+
+**Recommendation**: [Which to start with and why]."
+
+NEVER:
+- Give general advice without certifications
+- Explain concepts without certification context
 - Recommend certifications the user already has
-- Make up specific certification names that are not in the provided certifications list
+- Discuss topics unrelated to Accenture
 
-FORMATTING GUIDELINES:
-- Use **bold** for important terms, skill names, and certification titles
-- Use ### for section headers
-- Use numbered lists (1., 2., etc.) for steps or prioritized recommendations
-- Use bullet points (*) for features, benefits, or characteristics
-
-Remember to be direct, specific, and relevant to the user's actual question.`;
+If no relevant certifications exist:
+"I don't see specific certifications for [topic] in our current catalog. Would you like me to suggest related certifications that might help?"`;
 }
 
 /**

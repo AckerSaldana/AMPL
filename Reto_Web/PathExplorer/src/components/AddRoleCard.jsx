@@ -16,7 +16,7 @@ import {
   Stack,
   Paper,
   Fade,
-  Tooltip
+  Tooltip,
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 import PersonIcon from "@mui/icons-material/Person";
@@ -27,31 +27,39 @@ import TimerIcon from "@mui/icons-material/Timer";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../supabase/supabaseClient";
-import { 
-  ACCENTURE_COLORS, 
-  formFieldStyles, 
-  primaryButtonStyles, 
+import {
+  ACCENTURE_COLORS,
+  formFieldStyles,
+  primaryButtonStyles,
   outlineButtonStyles,
-  chipStyles
+  chipStyles,
 } from "../styles/styles";
+import CertificatePicker from "../components/CertificatePicker.jsx";
+import SelectedCertificates from "../components/SelectedCertificates.jsx";
+import { useDarkMode } from "../contexts/DarkModeContext";
 
-export const AddRoleCard = ({ onRoleCreated, onCancel, initialRole = null }) => {
+export const AddRoleCard = ({
+  onRoleCreated,
+  onCancel,
+  initialRole = null,
+}) => {
   const theme = useTheme();
+  const { darkMode } = useDarkMode();
   const navigate = useNavigate();
-  
-  // Estado para el rol - Eliminado yearsOfExperience
+
   const [roleData, setRoleData] = useState({
-    id: Date.now(), // ID temporal
+    id: Date.now(),
     name: "",
     area: "FRONTEND",
     description: "",
-    skills: []
+    skills: [],
   });
 
   // Estado para las skills disponibles de la base de datos
   const [availableSkills, setAvailableSkills] = useState([]);
   const [loadingSkills, setLoadingSkills] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [roleCertificates, setRoleCertificates] = useState([]);
 
   // Cargar datos del rol si estamos editando
   useEffect(() => {
@@ -61,15 +69,21 @@ export const AddRoleCard = ({ onRoleCreated, onCancel, initialRole = null }) => 
         name: initialRole.name || "",
         area: initialRole.area || "FRONTEND",
         description: initialRole.description || "",
-        skills: initialRole.skills?.map(skill => ({
-          id: skill.id || skill.skill_ID, // Asegurar que tenemos un ID
-          name: skill.name,
-          years: skill.years
-        })) || []
+        skills:
+          initialRole.skills?.map((skill) => ({
+            id: skill.id || skill.skill_ID,
+            name: skill.name,
+            years: skill.years,
+          })) || [],
       });
+
+      // Cargar certificados si existen
+      if (initialRole.certificates && Array.isArray(initialRole.certificates)) {
+        setRoleCertificates(initialRole.certificates);
+      }
     }
   }, [initialRole]);
-  
+
   // Cargar skills desde la base de datos
   useEffect(() => {
     const fetchSkills = async () => {
@@ -78,17 +92,17 @@ export const AddRoleCard = ({ onRoleCreated, onCancel, initialRole = null }) => 
         const { data, error } = await supabase
           .from("Skill")
           .select("skill_ID, name, description, category, type");
-        
+
         if (error) throw error;
-        
+
         // Transformar datos para el formato que necesitamos
-        const formattedSkills = data.map(skill => ({
+        const formattedSkills = data.map((skill) => ({
           id: skill.skill_ID,
           name: skill.name,
           description: skill.description || skill.category || "Skill",
-          type: skill.type || "Technical" // Por defecto es técnica si no hay valor
+          type: skill.type || "Technical", // Por defecto es técnica si no hay valor
         }));
-        
+
         setAvailableSkills(formattedSkills);
       } catch (error) {
         console.error("Error fetching skills:", error);
@@ -107,8 +121,9 @@ export const AddRoleCard = ({ onRoleCreated, onCancel, initialRole = null }) => 
 
   // Filtrado de habilidades
   const filteredSkills = availableSkills.filter(
-    skill => skill.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-             skill.description.toLowerCase().includes(searchTerm.toLowerCase())
+    (skill) =>
+      skill.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      skill.description.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   // Estados UI
@@ -137,24 +152,27 @@ export const AddRoleCard = ({ onRoleCreated, onCancel, initialRole = null }) => 
 
   const handleAddSkill = (skillId) => {
     // Encontrar la skill por ID
-    const skillToAdd = availableSkills.find(skill => skill.id === skillId);
-    
+    const skillToAdd = availableSkills.find((skill) => skill.id === skillId);
+
     if (!skillToAdd) {
       console.error(`Skill with ID ${skillId} not found`);
       return;
     }
-    
+
     // Verificar si la habilidad ya existe
-    if (!roleData.skills.some(skill => skill.id === skillId)) {
+    if (!roleData.skills.some((skill) => skill.id === skillId)) {
       setRoleData({
         ...roleData,
-        skills: [...roleData.skills, { 
-          id: skillId, 
-          skill_ID: skillId, // Añadir para compatibilidad
-          name: skillToAdd.name,
-          years: 1,
-          importance: 1 // Añadir para compatibilidad con el API de matching
-        }]
+        skills: [
+          ...roleData.skills,
+          {
+            id: skillId,
+            skill_ID: skillId, // Añadir para compatibilidad
+            name: skillToAdd.name,
+            years: 1,
+            importance: 1, // Añadir para compatibilidad con el API de matching
+          },
+        ],
       });
     } else {
       // Mostrar mensaje de que la habilidad ya existe
@@ -186,35 +204,37 @@ export const AddRoleCard = ({ onRoleCreated, onCancel, initialRole = null }) => 
 
     try {
       setLoading(true);
-      
+
       // Preparar el rol con el formato esperado para RoleAssign - Sin yearsOfExperience
+      // Dentro de handleSubmit, actualiza el objeto formattedRole:
       const formattedRole = {
         id: roleData.id,
         name: roleData.name,
         area: roleData.area,
         description: roleData.description,
-        skills: roleData.skills.map(skill => ({
+        skills: roleData.skills.map((skill) => ({
           id: skill.id,
-          skill_ID: skill.id, // Asegurar que tenemos skill_ID para compatibilidad
+          skill_ID: skill.id,
           name: skill.name,
           years: skill.years,
-          importance: skill.importance || 1 // Asegurar que tenemos importancia para el matching
-        }))
+          importance: skill.importance || 1,
+        })),
+        certificates: roleCertificates,
       };
-      
+
       // Llamar al callback con los datos del rol
-      if (typeof onRoleCreated === 'function') {
+      if (typeof onRoleCreated === "function") {
         onRoleCreated(formattedRole);
-        
+
         // Si todo va bien, mostrar mensaje de éxito
         setSnackbar({
           open: true,
-          message: initialRole 
-            ? "Role updated successfully" 
+          message: initialRole
+            ? "Role updated successfully"
             : "Role added successfully",
           severity: "success",
         });
-        
+
         // Limpiar formulario si no estamos editando
         if (!initialRole) {
           setRoleData({
@@ -222,12 +242,15 @@ export const AddRoleCard = ({ onRoleCreated, onCancel, initialRole = null }) => 
             name: "",
             area: "FRONTEND",
             description: "",
-            skills: []
+            skills: [],
           });
+          setRoleCertificates([]);
         }
       } else {
         console.error("onRoleCreated is not a function", onRoleCreated);
-        throw new Error("Error al guardar el rol: onRoleCreated no es una función");
+        throw new Error(
+          "Error al guardar el rol: onRoleCreated no es una función"
+        );
       }
     } catch (error) {
       console.error("Error saving role:", error);
@@ -241,53 +264,81 @@ export const AddRoleCard = ({ onRoleCreated, onCancel, initialRole = null }) => 
     }
   };
 
+  // Manejar certificados
+  const handleAddCertificate = (certificate) => {
+    if (!roleCertificates.some((cert) => cert.id === certificate.id)) {
+      setRoleCertificates([...roleCertificates, certificate]);
+    } else {
+      setSnackbar({
+        open: true,
+        message: "This certificate is already in your list",
+        severity: "info",
+      });
+    }
+  };
+
+  const handleRemoveCertificate = (index) => {
+    const newCertificates = [...roleCertificates];
+    newCertificates.splice(index, 1);
+    setRoleCertificates(newCertificates);
+  };
+
   return (
     <Box sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
       {/* Encabezado */}
       <Box sx={{ mb: 3 }}>
-        <Typography variant="h6" fontWeight={600} color={ACCENTURE_COLORS.corePurple3} gutterBottom>
+        <Typography
+          variant="h6"
+          fontWeight={600}
+          sx={{ color: darkMode ? '#ffffff' : ACCENTURE_COLORS.corePurple3 }}
+          gutterBottom
+        >
           {initialRole ? "Edit Role" : "Create Role"}
         </Typography>
-        <Typography variant="body2" color="text.secondary">
-          {initialRole 
-            ? "Update the details and skills for this role" 
+        <Typography variant="body2" sx={{ color: darkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary' }}>
+          {initialRole
+            ? "Update the details and skills for this role"
             : "Define a new role for the project by providing details and required skills"}
         </Typography>
       </Box>
 
-      {/* Contenido Principal */}
+      {/* Role Information - Full Width */}
       <Grid container spacing={3} sx={{ mb: 3, flexGrow: 0 }}>
-        {/* Columna izquierda: Detalles del rol */}
-        <Grid item xs={12} md={6}>
-          <Paper 
-            elevation={0} 
-            sx={{ 
-              p: 2.5, 
+        <Grid item xs={12}>
+          <Paper
+            elevation={0}
+            sx={{
+              p: 2.5,
               borderRadius: 2,
-              bgcolor: "rgba(255,255,255,0.8)",
-              border: "1px solid rgba(0,0,0,0.05)"
+              bgcolor: darkMode ? "rgba(255,255,255,0.05)" : "rgba(255,255,255,0.8)",
+              border: darkMode ? "1px solid rgba(255,255,255,0.12)" : "1px solid rgba(0,0,0,0.05)",
             }}
           >
-            <Typography 
-              variant="subtitle2" 
-              fontWeight={600} 
-              sx={{ 
-                color: ACCENTURE_COLORS.corePurple2,
+            <Typography
+              variant="subtitle2"
+              fontWeight={600}
+              sx={{
+                color: darkMode ? '#ffffff' : ACCENTURE_COLORS.corePurple2,
                 mb: 2,
                 pb: 1,
-                borderBottom: `1px solid ${ACCENTURE_COLORS.accentPurple5}`,
+                borderBottom: darkMode ? '1px solid rgba(161, 0, 255, 0.3)' : `1px solid ${ACCENTURE_COLORS.accentPurple5}`,
                 display: "flex",
                 alignItems: "center",
-                gap: 1
+                gap: 1,
               }}
             >
-              <PersonIcon fontSize="small" />
+              <PersonIcon fontSize="small" sx={{ color: darkMode ? ACCENTURE_COLORS.accentPurple3 : 'inherit' }} />
               Role Information
             </Typography>
-            
-            <Stack spacing={2.5}>
-              <Box>
-                <Typography fontWeight={600} mb={0.5} color="text.primary" fontSize="0.875rem">
+
+            <Grid container spacing={3}>
+              <Grid item xs={12} md={4}>
+                <Typography
+                  fontWeight={600}
+                  mb={0.5}
+                  sx={{ color: darkMode ? '#ffffff' : 'text.primary' }}
+                  fontSize="0.875rem"
+                >
                   Role name *
                 </Typography>
                 <TextField
@@ -302,14 +353,37 @@ export const AddRoleCard = ({ onRoleCreated, onCancel, initialRole = null }) => 
                     ...formFieldStyles,
                     "& .MuiOutlinedInput-root": {
                       ...formFieldStyles["& .MuiOutlinedInput-root"],
-                      backgroundColor: "rgba(255,255,255,0.6)",
+                      backgroundColor: darkMode ? "rgba(255,255,255,0.05)" : "rgba(255,255,255,0.6)",
+                      color: darkMode ? '#ffffff' : 'inherit',
+                      '& fieldset': {
+                        borderColor: darkMode ? 'rgba(255, 255, 255, 0.23)' : 'rgba(0,0,0,0.06)',
+                      },
+                      '&:hover fieldset': {
+                        borderColor: darkMode ? 'rgba(161, 0, 255, 0.6)' : `${ACCENTURE_COLORS.corePurple1}40`,
+                      },
+                      '&.Mui-focused': {
+                        '& fieldset': {
+                          borderColor: ACCENTURE_COLORS.corePurple1,
+                        },
+                      },
+                    },
+                    '& .MuiInputBase-input': {
+                      '&::placeholder': {
+                        color: darkMode ? 'rgba(255, 255, 255, 0.5)' : 'rgba(0, 0, 0, 0.5)',
+                        opacity: 1
+                      }
                     }
                   }}
                 />
-              </Box>
-              
-              <Box>
-                <Typography fontWeight={600} mb={0.5} color="text.primary" fontSize="0.875rem">
+              </Grid>
+
+              <Grid item xs={12} md={4}>
+                <Typography
+                  fontWeight={600}
+                  mb={0.5}
+                  sx={{ color: darkMode ? '#ffffff' : 'text.primary' }}
+                  fontSize="0.875rem"
+                >
                   Area
                 </Typography>
                 <TextField
@@ -323,7 +397,19 @@ export const AddRoleCard = ({ onRoleCreated, onCancel, initialRole = null }) => 
                     ...formFieldStyles,
                     "& .MuiOutlinedInput-root": {
                       ...formFieldStyles["& .MuiOutlinedInput-root"],
-                      backgroundColor: "rgba(255,255,255,0.6)",
+                      backgroundColor: darkMode ? "rgba(255,255,255,0.05)" : "rgba(255,255,255,0.6)",
+                      color: darkMode ? '#ffffff' : 'inherit',
+                      '& fieldset': {
+                        borderColor: darkMode ? 'rgba(255, 255, 255, 0.23)' : 'rgba(0,0,0,0.06)',
+                      },
+                      '&:hover fieldset': {
+                        borderColor: darkMode ? 'rgba(161, 0, 255, 0.6)' : `${ACCENTURE_COLORS.corePurple1}40`,
+                      },
+                      '&.Mui-focused': {
+                        '& fieldset': {
+                          borderColor: ACCENTURE_COLORS.corePurple1,
+                        },
+                      },
                     }
                   }}
                 >
@@ -335,16 +421,21 @@ export const AddRoleCard = ({ onRoleCreated, onCancel, initialRole = null }) => 
                   <MenuItem value="QA">QA</MenuItem>
                   <MenuItem value="MOBILE">MOBILE</MenuItem>
                 </TextField>
-              </Box>
-              
-              <Box>
-                <Typography fontWeight={600} mb={0.5} color="text.primary" fontSize="0.875rem">
+              </Grid>
+
+              <Grid item xs={12} md={4}>
+                <Typography
+                  fontWeight={600}
+                  mb={0.5}
+                  sx={{ color: darkMode ? '#ffffff' : 'text.primary' }}
+                  fontSize="0.875rem"
+                >
                   Description
                 </Typography>
                 <TextField
                   fullWidth
                   multiline
-                  rows={4}
+                  rows={2}
                   name="description"
                   value={roleData.description}
                   onChange={handleInputChange}
@@ -353,59 +444,81 @@ export const AddRoleCard = ({ onRoleCreated, onCancel, initialRole = null }) => 
                     ...formFieldStyles,
                     "& .MuiOutlinedInput-root": {
                       ...formFieldStyles["& .MuiOutlinedInput-root"],
-                      backgroundColor: "rgba(255,255,255,0.6)",
+                      backgroundColor: darkMode ? "rgba(255,255,255,0.05)" : "rgba(255,255,255,0.6)",
+                      color: darkMode ? '#ffffff' : 'inherit',
+                      '& fieldset': {
+                        borderColor: darkMode ? 'rgba(255, 255, 255, 0.23)' : 'rgba(0,0,0,0.06)',
+                      },
+                      '&:hover fieldset': {
+                        borderColor: darkMode ? 'rgba(161, 0, 255, 0.6)' : `${ACCENTURE_COLORS.corePurple1}40`,
+                      },
+                      '&.Mui-focused': {
+                        '& fieldset': {
+                          borderColor: ACCENTURE_COLORS.corePurple1,
+                        },
+                      },
+                    },
+                    '& .MuiInputBase-input': {
+                      '&::placeholder': {
+                        color: darkMode ? 'rgba(255, 255, 255, 0.5)' : 'rgba(0, 0, 0, 0.5)',
+                        opacity: 1
+                      }
                     }
                   }}
                 />
-              </Box>
-            </Stack>
+              </Grid>
+            </Grid>
           </Paper>
         </Grid>
-        
-        {/* Columna derecha: Habilidades */}
+      </Grid>
+
+      {/* Skills Section */}
+      <Grid container spacing={3} sx={{ mb: 3, flexGrow: 1 }}>
+        {/* Available Skills - Left Column */}
         <Grid item xs={12} md={6}>
-          <Paper 
-            elevation={0} 
-            sx={{ 
-              p: 2.5, 
+          <Paper
+            elevation={0}
+            sx={{
+              p: 2.5,
               borderRadius: 2,
-              bgcolor: "rgba(255,255,255,0.8)",
-              border: "1px solid rgba(0,0,0,0.05)",
-              height: "100%",
+              bgcolor: darkMode ? "rgba(255,255,255,0.05)" : "rgba(255,255,255,0.8)",
+              border: darkMode ? "1px solid rgba(255,255,255,0.12)" : "1px solid rgba(0,0,0,0.05)",
+              height: "400px",
               display: "flex",
-              flexDirection: "column"
+              flexDirection: "column",
             }}
           >
-            <Typography 
-              variant="subtitle2" 
-              fontWeight={600} 
-              sx={{ 
-                color: ACCENTURE_COLORS.corePurple2,
+            <Typography
+              variant="subtitle2"
+              fontWeight={600}
+              sx={{
+                color: darkMode ? '#ffffff' : ACCENTURE_COLORS.corePurple2,
                 mb: 2,
                 pb: 1,
-                borderBottom: `1px solid ${ACCENTURE_COLORS.accentPurple5}`,
+                borderBottom: darkMode ? '1px solid rgba(161, 0, 255, 0.3)' : `1px solid ${ACCENTURE_COLORS.accentPurple5}`,
                 display: "flex",
                 alignItems: "center",
-                justifyContent: "space-between"
+                justifyContent: "space-between",
               }}
             >
               <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                <CategoryIcon fontSize="small" />
+                <CategoryIcon fontSize="small" sx={{ color: darkMode ? ACCENTURE_COLORS.accentPurple3 : 'inherit' }} />
                 Available Skills
               </Box>
-              <Chip 
-                label={`${availableSkills.length} total`} 
+              <Chip
+                label={`${availableSkills.length} total`}
                 size="small"
                 sx={{
                   height: 20,
                   fontSize: "0.625rem",
-                  bgcolor: ACCENTURE_COLORS.accentPurple5,
-                  color: ACCENTURE_COLORS.corePurple2,
-                  fontWeight: 600
+                  bgcolor: darkMode ? 'rgba(161, 0, 255, 0.15)' : ACCENTURE_COLORS.accentPurple5,
+                  color: darkMode ? '#a67aff' : ACCENTURE_COLORS.corePurple2,
+                  border: darkMode ? '1px solid rgba(161, 0, 255, 0.3)' : 'none',
+                  fontWeight: 600,
                 }}
               />
             </Typography>
-            
+
             {/* Buscador de skills */}
             <TextField
               fullWidth
@@ -418,51 +531,81 @@ export const AddRoleCard = ({ onRoleCreated, onCancel, initialRole = null }) => 
                 ...formFieldStyles,
                 "& .MuiOutlinedInput-root": {
                   ...formFieldStyles["& .MuiOutlinedInput-root"],
-                  backgroundColor: "white",
+                  backgroundColor: darkMode ? "rgba(255,255,255,0.05)" : "white",
                   borderRadius: 6,
-                  fontSize: "0.8rem"
+                  fontSize: "0.8rem",
+                  color: darkMode ? '#ffffff' : 'inherit',
+                  '& fieldset': {
+                    borderColor: darkMode ? 'rgba(255, 255, 255, 0.23)' : 'rgba(0,0,0,0.06)',
+                  },
+                  '&:hover fieldset': {
+                    borderColor: darkMode ? 'rgba(161, 0, 255, 0.6)' : `${ACCENTURE_COLORS.corePurple1}40`,
+                  },
+                  '&.Mui-focused': {
+                    '& fieldset': {
+                      borderColor: ACCENTURE_COLORS.corePurple1,
+                    },
+                  },
+                },
+                '& .MuiInputBase-input': {
+                  '&::placeholder': {
+                    color: darkMode ? 'rgba(255, 255, 255, 0.5)' : 'rgba(0, 0, 0, 0.5)',
+                    opacity: 1
+                  }
                 }
               }}
             />
-            
-            <Box sx={{ 
-              height: "250px",
-              overflow: "hidden",
-              position: "relative",
-              borderRadius: 2,
-              bgcolor: "rgba(255,255,255,0.5)",
-              border: "1px solid rgba(0,0,0,0.03)",
-              boxShadow: "inset 0 1px 3px rgba(0,0,0,0.02)",
-              display: "flex",
-              flexDirection: "column"
-            }}>
-              <Box sx={{ 
-                height: "100%",
-                overflowY: "auto",
-                py: 1,
-                "&::-webkit-scrollbar": {
-                  width: "6px",
-                },
-                "&::-webkit-scrollbar-track": {
-                  backgroundColor: "rgba(0,0,0,0.02)",
-                  borderRadius: "3px",
-                },
-                "&::-webkit-scrollbar-thumb": {
-                  backgroundColor: ACCENTURE_COLORS.accentPurple5,
-                  borderRadius: "3px",
-                  "&:hover": {
-                    backgroundColor: ACCENTURE_COLORS.accentPurple4,
-                  }
-                },
-              }}>
+
+            <Box
+              sx={{
+                flexGrow: 1,
+                overflow: "hidden",
+                position: "relative",
+                borderRadius: 2,
+                bgcolor: darkMode ? "rgba(255,255,255,0.03)" : "rgba(255,255,255,0.5)",
+                border: darkMode ? "1px solid rgba(255,255,255,0.08)" : "1px solid rgba(0,0,0,0.03)",
+                boxShadow: darkMode ? "inset 0 1px 3px rgba(255,255,255,0.02)" : "inset 0 1px 3px rgba(0,0,0,0.02)",
+                display: "flex",
+                flexDirection: "column",
+              }}
+            >
+              <Box
+                sx={{
+                  height: "100%",
+                  overflowY: "auto",
+                  py: 1,
+                  "&::-webkit-scrollbar": {
+                    width: "6px",
+                  },
+                  "&::-webkit-scrollbar-track": {
+                    backgroundColor: darkMode ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.02)",
+                    borderRadius: "3px",
+                  },
+                  "&::-webkit-scrollbar-thumb": {
+                    backgroundColor: darkMode ? "rgba(161, 0, 255, 0.3)" : ACCENTURE_COLORS.accentPurple5,
+                    borderRadius: "3px",
+                    "&:hover": {
+                      backgroundColor: darkMode ? "rgba(161, 0, 255, 0.5)" : ACCENTURE_COLORS.accentPurple4,
+                    },
+                  },
+                }}
+              >
                 {loadingSkills ? (
-                  <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
-                    <CircularProgress size={24} sx={{ color: ACCENTURE_COLORS.corePurple1 }} />
+                  <Box sx={{ display: "flex", justifyContent: "center", p: 3 }}>
+                    <CircularProgress
+                      size={24}
+                      sx={{ color: ACCENTURE_COLORS.corePurple1 }}
+                    />
                   </Box>
                 ) : filteredSkills.length > 0 ? (
                   <Stack spacing={1} sx={{ px: 1.5 }}>
                     {filteredSkills.map((skill, index) => (
-                      <Fade key={skill.id} in={true} timeout={300} style={{ transitionDelay: `${index * 30}ms` }}>
+                      <Fade
+                        key={skill.id}
+                        in={true}
+                        timeout={300}
+                        style={{ transitionDelay: `${index * 30}ms` }}
+                      >
                         <Box
                           sx={{
                             display: "flex",
@@ -470,65 +613,66 @@ export const AddRoleCard = ({ onRoleCreated, onCancel, initialRole = null }) => 
                             alignItems: "center",
                             p: 1.5,
                             borderRadius: 1.5,
-                            bgcolor: "white",
-                            boxShadow: "0 1px 2px rgba(0,0,0,0.03)",
-                            border: "1px solid rgba(0,0,0,0.04)",
+                            bgcolor: darkMode ? "rgba(255,255,255,0.02)" : "white",
+                            boxShadow: darkMode ? "0 1px 2px rgba(255,255,255,0.03)" : "0 1px 2px rgba(0,0,0,0.03)",
+                            border: darkMode ? "1px solid rgba(255,255,255,0.08)" : "1px solid rgba(0,0,0,0.04)",
                             cursor: "pointer",
                             transition: "all 0.2s ease",
                             "&:hover": {
-                              boxShadow: "0 2px 4px rgba(0,0,0,0.06)",
+                              boxShadow: darkMode ? "0 2px 4px rgba(255,255,255,0.06)" : "0 2px 4px rgba(0,0,0,0.06)",
                               borderColor: ACCENTURE_COLORS.accentPurple4,
                               transform: "translateY(-1px)",
                             },
                           }}
                         >
                           <Box display="flex" alignItems="center" gap={1.5}>
-                            <Box 
-                              sx={{ 
-                                width: 28, 
-                                height: 28, 
+                            <Box
+                              sx={{
+                                width: 28,
+                                height: 28,
                                 borderRadius: "6px",
-                                backgroundColor: `${ACCENTURE_COLORS.corePurple1}15`,
+                                backgroundColor: darkMode ? 'rgba(161, 0, 255, 0.15)' : `${ACCENTURE_COLORS.corePurple1}15`,
                                 display: "flex",
                                 alignItems: "center",
                                 justifyContent: "center",
-                                color: ACCENTURE_COLORS.corePurple2,
+                                color: darkMode ? '#a67aff' : ACCENTURE_COLORS.corePurple2,
                                 fontWeight: "bold",
                                 fontSize: "0.7rem",
-                                flexShrink: 0
+                                flexShrink: 0,
                               }}
                             >
                               {skill.name[0].toUpperCase()}
                             </Box>
                             <Box>
-                              <Typography 
-                                variant="body2" 
-                                fontWeight={500} 
-                                color={ACCENTURE_COLORS.corePurple3}
+                              <Typography
+                                variant="body2"
+                                fontWeight={500}
+                                sx={{ color: darkMode ? '#ffffff' : ACCENTURE_COLORS.corePurple3 }}
                                 fontSize="0.8rem"
                               >
                                 {skill.name}
                               </Typography>
-                              <Typography 
-                                variant="caption" 
-                                color="text.secondary"
-                                sx={{ 
+                              <Typography
+                                variant="caption"
+                                sx={{
                                   fontSize: "0.7rem",
                                   display: "flex",
                                   alignItems: "center",
-                                  gap: 0.5
+                                  gap: 0.5,
+                                  color: darkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary'
                                 }}
                               >
-                                <Box 
-                                  component="span" 
-                                  sx={{ 
-                                    width: 8, 
-                                    height: 8, 
-                                    borderRadius: "50%", 
-                                    bgcolor: skill.type === "Soft" 
-                                      ? ACCENTURE_COLORS.accentPurple1 
-                                      : ACCENTURE_COLORS.corePurple2 
-                                  }} 
+                                <Box
+                                  component="span"
+                                  sx={{
+                                    width: 8,
+                                    height: 8,
+                                    borderRadius: "50%",
+                                    bgcolor:
+                                      skill.type === "Soft"
+                                        ? ACCENTURE_COLORS.accentPurple1
+                                        : ACCENTURE_COLORS.corePurple2,
+                                  }}
                                 />
                                 {skill.description}
                               </Typography>
@@ -539,21 +683,25 @@ export const AddRoleCard = ({ onRoleCreated, onCancel, initialRole = null }) => 
                               <IconButton
                                 size="small"
                                 onClick={() => handleAddSkill(skill.id)}
-                                disabled={roleData.skills.some(s => s.id === skill.id)}
+                                disabled={roleData.skills.some(
+                                  (s) => s.id === skill.id
+                                )}
                                 sx={{
                                   color: ACCENTURE_COLORS.corePurple1,
-                                  bgcolor: roleData.skills.some(s => s.id === skill.id)
-                                    ? `${ACCENTURE_COLORS.accentPurple4}50`
-                                    : `${ACCENTURE_COLORS.accentPurple5}90`,
+                                  bgcolor: roleData.skills.some(
+                                    (s) => s.id === skill.id
+                                  )
+                                    ? darkMode ? 'rgba(161, 0, 255, 0.08)' : `${ACCENTURE_COLORS.accentPurple4}50`
+                                    : darkMode ? 'rgba(161, 0, 255, 0.15)' : `${ACCENTURE_COLORS.accentPurple5}90`,
                                   width: 28,
                                   height: 28,
-                                  '&:hover': {
-                                    bgcolor: ACCENTURE_COLORS.accentPurple5,
+                                  "&:hover": {
+                                    bgcolor: darkMode ? 'rgba(161, 0, 255, 0.25)' : ACCENTURE_COLORS.accentPurple5,
                                   },
-                                  '&.Mui-disabled': {
-                                    bgcolor: `${ACCENTURE_COLORS.accentPurple4}30`,
-                                    color: `${ACCENTURE_COLORS.corePurple1}50`
-                                  }
+                                  "&.Mui-disabled": {
+                                    bgcolor: darkMode ? 'rgba(161, 0, 255, 0.05)' : `${ACCENTURE_COLORS.accentPurple4}30`,
+                                    color: darkMode ? 'rgba(161, 0, 255, 0.3)' : `${ACCENTURE_COLORS.corePurple1}50`,
+                                  },
                                 }}
                               >
                                 <AddCircleIcon sx={{ fontSize: 16 }} />
@@ -565,8 +713,8 @@ export const AddRoleCard = ({ onRoleCreated, onCancel, initialRole = null }) => 
                     ))}
                   </Stack>
                 ) : (
-                  <Box sx={{ textAlign: 'center', p: 3 }}>
-                    <Typography variant="body2" color="text.secondary">
+                  <Box sx={{ textAlign: "center", p: 3 }}>
+                    <Typography variant="body2" sx={{ color: darkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary' }}>
                       No skills match your search
                     </Typography>
                   </Box>
@@ -575,237 +723,287 @@ export const AddRoleCard = ({ onRoleCreated, onCancel, initialRole = null }) => 
             </Box>
           </Paper>
         </Grid>
-      </Grid>
-      
-      {/* Skills Selected - ESTA SECCIÓN ES LA QUE QUERÍAMOS HACER SCROLLABLE */}
-      <Box sx={{ flexGrow: 1, mb: 3, display: "flex", flexDirection: "column", minHeight: "200px" }}>
-        <Box 
-          sx={{ 
-            display: "flex", 
-            justifyContent: "space-between", 
-            alignItems: "center", 
-            mb: 2 
-          }}
-        >
-          <Typography 
-            variant="h6" 
-            fontWeight={600} 
-            color={ACCENTURE_COLORS.corePurple3}
+
+        {/* Selected Skills - Right Column */}
+        <Grid item xs={12} md={6}>
+          <Paper
+            elevation={0}
             sx={{
+              borderRadius: 2,
+              border: darkMode ? "1px solid rgba(255,255,255,0.12)" : "1px solid rgba(0,0,0,0.08)",
+              bgcolor: darkMode ? "rgba(255,255,255,0.05)" : "white",
+              height: "400px",
               display: "flex",
-              alignItems: "center",
-              gap: 1
+              flexDirection: "column",
             }}
           >
-            <AutoAwesomeIcon sx={{ fontSize: 20, color: ACCENTURE_COLORS.corePurple2 }} />
-            Selected Skills
-          </Typography>
-          <Chip 
-            label={`${roleData.skills.length} skills`} 
-            size="small" 
-            sx={{ 
-              bgcolor: `${ACCENTURE_COLORS.corePurple1}15`,
-              color: ACCENTURE_COLORS.corePurple2,
-              fontWeight: 600,
-              height: 24,
-              px: 0.5
-            }}
-          />
-        </Box>
-        <Paper
-          elevation={0}
-          sx={{
-            borderRadius: 2,
-            border: "1px solid rgba(0,0,0,0.08)",
-            bgcolor: "white",
-            flexGrow: 1,
-            display: "flex",
-            flexDirection: "column",
-            minHeight: 0 // Importante para que el scroll funcione correctamente dentro
-          }}
-        >
-          {roleData.skills.length > 0 ? (
-            <Box
-              sx={{
-                flexGrow: 1,
-                overflowY: "auto", // Solo esta sección tendrá scroll
-                "&::-webkit-scrollbar": {
-                  width: "6px",
-                },
-                "&::-webkit-scrollbar-track": {
-                  backgroundColor: "rgba(0,0,0,0.02)",
-                  borderRadius: "3px",
-                },
-                "&::-webkit-scrollbar-thumb": {
-                  backgroundColor: ACCENTURE_COLORS.accentPurple5,
-                  borderRadius: "3px",
-                  "&:hover": {
-                    backgroundColor: ACCENTURE_COLORS.accentPurple4,
-                  }
-                },
-              }}
-            >
-              {roleData.skills.map((skill, index) => (
-                <Box
-                  key={index}
+            <Box sx={{ p: 2.5, pb: 1 }}>
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  mb: 1,
+                }}
+              >
+                <Typography
+                  variant="subtitle2"
+                  fontWeight={600}
                   sx={{
                     display: "flex",
-                    justifyContent: "space-between",
                     alignItems: "center",
-                    p: 2,
-                    borderBottom: index < roleData.skills.length - 1 ? "1px solid" : "none",
-                    borderColor: "rgba(0,0,0,0.04)",
-                    transition: "background-color 0.2s ease",
-                    "&:hover": {
-                      backgroundColor: "rgba(0,0,0,0.01)",
-                    }
+                    gap: 1,
+                    color: darkMode ? '#ffffff' : ACCENTURE_COLORS.corePurple2
                   }}
                 >
-                  <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-                    <Box 
-                      sx={{ 
-                        width: 32, 
-                        height: 32, 
-                        borderRadius: "8px",
-                        backgroundColor: `${ACCENTURE_COLORS.corePurple1}15`,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        color: ACCENTURE_COLORS.corePurple2,
-                        fontWeight: "bold",
-                        fontSize: "0.85rem"
-                      }}
-                    >
-                      {skill.name[0].toUpperCase()}
-                    </Box>
-                    <Typography 
-                      variant="body2" 
-                      fontWeight={500}
-                      color={ACCENTURE_COLORS.corePurple3}
-                    >
-                      {skill.name}
-                    </Typography>
-                  </Box>
-                  <Box display="flex" alignItems="center" gap={1}>
-                    <Box 
-                      sx={{ 
-                        display: "flex", 
-                        alignItems: "center", 
-                        gap: 1,
-                        bgcolor: "rgba(0,0,0,0.02)",
-                        px: 1,
-                        py: 0.5,
-                        borderRadius: 1.5
-                      }}
-                    >
-                      <TimerIcon sx={{ fontSize: 16, color: ACCENTURE_COLORS.corePurple2 }} />
-                      <Typography 
-                        variant="caption" 
-                        color="text.secondary"
-                        fontWeight={500}
-                      >
-                        Years
-                      </Typography>
-                      <TextField
-                        size="small"
-                        type="number"
-                        value={skill.years}
-                        onChange={(e) => handleChangeYears(index, e.target.value)}
-                        inputProps={{ min: 0 }}
-                        InputProps={{
-                          sx: { 
-                            borderRadius: 1,
-                            height: 28,
-                            width: 50,
-                            py: 0,
-                            "& input": {
-                              p: 0.75,
-                              textAlign: "center"
-                            }
-                          }
-                        }}
-                      />
-                    </Box>
-                    <Tooltip title="Remove skill">
-                      <IconButton
-                        size="small"
-                        onClick={() => handleDeleteSkill(index)}
-                        sx={{ 
-                          color: "white",
-                          backgroundColor: ACCENTURE_COLORS.red,
-                          width: 28,
-                          height: 28,
-                          opacity: 0.8,
-                          '&:hover': {
-                            backgroundColor: ACCENTURE_COLORS.red,
-                            opacity: 1
-                          },
-                          ml: 0.5
-                        }}
-                      >
-                        <DeleteIcon sx={{ fontSize: 16 }} />
-                      </IconButton>
-                    </Tooltip>
-                  </Box>
-                </Box>
-              ))}
+                  <AutoAwesomeIcon fontSize="small" sx={{ color: darkMode ? ACCENTURE_COLORS.accentPurple3 : 'inherit' }} />
+                  Selected Skills
+                </Typography>
+                <Chip
+                  label={`${roleData.skills.length} skills`}
+                  size="small"
+                  sx={{
+                    bgcolor: darkMode ? 'rgba(161, 0, 255, 0.15)' : `${ACCENTURE_COLORS.corePurple1}15`,
+                    color: darkMode ? '#a67aff' : ACCENTURE_COLORS.corePurple2,
+                    border: darkMode ? '1px solid rgba(161, 0, 255, 0.3)' : 'none',
+                    fontWeight: 600,
+                    height: 20,
+                    fontSize: "0.625rem",
+                  }}
+                />
+              </Box>
             </Box>
-          ) : (
-            <Box sx={{ 
-              p: 4, 
-              textAlign: "center", 
-              display: "flex", 
-              flexDirection: "column",
-              alignItems: "center", 
-              justifyContent: "center",
-              height: "100%",
-              opacity: 0.7 
-            }}>
-              <Typography 
-                variant="body2" 
-                color="text.secondary"
-                sx={{ 
-                  fontWeight: 500,
+
+            {roleData.skills.length > 0 ? (
+              <Box
+                sx={{
+                  flexGrow: 1,
+                  overflowY: "auto",
+                  "&::-webkit-scrollbar": {
+                    width: "6px",
+                  },
+                  "&::-webkit-scrollbar-track": {
+                    backgroundColor: darkMode ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.02)",
+                    borderRadius: "3px",
+                  },
+                  "&::-webkit-scrollbar-thumb": {
+                    backgroundColor: darkMode ? "rgba(161, 0, 255, 0.3)" : ACCENTURE_COLORS.accentPurple5,
+                    borderRadius: "3px",
+                    "&:hover": {
+                      backgroundColor: darkMode ? "rgba(161, 0, 255, 0.5)" : ACCENTURE_COLORS.accentPurple4,
+                    },
+                  },
+                }}
+              >
+                {roleData.skills.map((skill, index) => (
+                  <Box
+                    key={index}
+                    sx={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      p: 2,
+                      borderBottom:
+                        index < roleData.skills.length - 1
+                          ? "1px solid"
+                          : "none",
+                      borderColor: darkMode ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.04)",
+                      transition: "background-color 0.2s ease",
+                      "&:hover": {
+                        backgroundColor: darkMode ? "rgba(255,255,255,0.02)" : "rgba(0,0,0,0.01)",
+                      },
+                    }}
+                  >
+                    <Box
+                      sx={{ display: "flex", alignItems: "center", gap: 1.5 }}
+                    >
+                      <Box
+                        sx={{
+                          width: 32,
+                          height: 32,
+                          borderRadius: "8px",
+                          backgroundColor: darkMode ? 'rgba(161, 0, 255, 0.15)' : `${ACCENTURE_COLORS.corePurple1}15`,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          color: darkMode ? '#a67aff' : ACCENTURE_COLORS.corePurple2,
+                          fontWeight: "bold",
+                          fontSize: "0.85rem",
+                        }}
+                      >
+                        {skill.name[0].toUpperCase()}
+                      </Box>
+                      <Typography
+                        variant="body2"
+                        fontWeight={500}
+                        sx={{ color: darkMode ? '#ffffff' : ACCENTURE_COLORS.corePurple3 }}
+                      >
+                        {skill.name}
+                      </Typography>
+                    </Box>
+                    <Box display="flex" alignItems="center" gap={1}>
+                      <Box
+                        sx={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 1,
+                          bgcolor: darkMode ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.02)",
+                          px: 1,
+                          py: 0.5,
+                          borderRadius: 1.5,
+                        }}
+                      >
+                        <TimerIcon
+                          sx={{
+                            fontSize: 16,
+                            color: darkMode ? ACCENTURE_COLORS.accentPurple3 : ACCENTURE_COLORS.corePurple2,
+                          }}
+                        />
+                        <Typography
+                          variant="caption"
+                          sx={{ color: darkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary' }}
+                          fontWeight={500}
+                        >
+                          Years
+                        </Typography>
+                        <TextField
+                          size="small"
+                          type="number"
+                          value={skill.years}
+                          onChange={(e) =>
+                            handleChangeYears(index, e.target.value)
+                          }
+                          inputProps={{ min: 0 }}
+                          InputProps={{
+                            sx: {
+                              borderRadius: 1,
+                              height: 28,
+                              width: 50,
+                              py: 0,
+                              "& input": {
+                                p: 0.75,
+                                textAlign: "center",
+                                color: darkMode ? '#ffffff' : 'inherit',
+                              },
+                              '& fieldset': {
+                                borderColor: darkMode ? 'rgba(255, 255, 255, 0.23)' : 'rgba(0,0,0,0.23)',
+                              },
+                              '&:hover fieldset': {
+                                borderColor: darkMode ? 'rgba(161, 0, 255, 0.6)' : `${ACCENTURE_COLORS.corePurple1}40`,
+                              },
+                              '&.Mui-focused fieldset': {
+                                borderColor: ACCENTURE_COLORS.corePurple1,
+                              },
+                            },
+                          }}
+                        />
+                      </Box>
+                      <Tooltip title="Remove skill">
+                        <IconButton
+                          size="small"
+                          onClick={() => handleDeleteSkill(index)}
+                          sx={{
+                            color: "white",
+                            backgroundColor: ACCENTURE_COLORS.red,
+                            width: 28,
+                            height: 28,
+                            opacity: 0.8,
+                            "&:hover": {
+                              backgroundColor: ACCENTURE_COLORS.red,
+                              opacity: 1,
+                            },
+                            ml: 0.5,
+                          }}
+                        >
+                          <DeleteIcon sx={{ fontSize: 16 }} />
+                        </IconButton>
+                      </Tooltip>
+                    </Box>
+                  </Box>
+                ))}
+              </Box>
+            ) : (
+              <Box
+                sx={{
+                  p: 4,
+                  textAlign: "center",
                   display: "flex",
                   flexDirection: "column",
                   alignItems: "center",
-                  gap: 1
+                  justifyContent: "center",
+                  height: "100%",
+                  opacity: 0.7,
                 }}
               >
-                <CategoryIcon sx={{ fontSize: 36, color: ACCENTURE_COLORS.accentPurple3 }} />
-                No skills selected yet
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
-                Add skills from the list above
-              </Typography>
-            </Box>
-          )}
-        </Paper>
-      </Box>
+                <Typography
+                  variant="body2"
+                  sx={{
+                    fontWeight: 500,
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    gap: 1,
+                    color: darkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary'
+                  }}
+                >
+                  <CategoryIcon
+                    sx={{ fontSize: 36, color: darkMode ? ACCENTURE_COLORS.accentPurple3 : ACCENTURE_COLORS.accentPurple3 }}
+                  />
+                  No skills selected yet
+                </Typography>
+                <Typography variant="caption" sx={{ color: darkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary' }}>
+                  Add skills from the list on the left
+                </Typography>
+              </Box>
+            )}
+          </Paper>
+        </Grid>
+      </Grid>
+
+      {/* Certificates Section */}
+      <Grid container spacing={3} sx={{ mb: 3, flexGrow: 0 }}>
+        {/* Available Certificates - Left Column */}
+        <Grid item xs={12} md={6}>
+          <CertificatePicker
+            onCertificateAdd={handleAddCertificate}
+            selectedCertificateIds={roleCertificates.map((cert) => cert.id)}
+          />
+        </Grid>
+
+        {/* Selected Certificates - Right Column */}
+        <Grid item xs={12} md={6}>
+          <SelectedCertificates
+            certificates={roleCertificates}
+            onCertificateRemove={handleRemoveCertificate}
+          />
+        </Grid>
+      </Grid>
 
       {/* Contenedor para los botones */}
-      <Box 
-        sx={{ 
-          display: "flex", 
+      <Box
+        sx={{
+          display: "flex",
           justifyContent: "center",
           pt: 2,
           mt: "auto",
-          flexShrink: 0
+          flexShrink: 0,
         }}
       >
         <Button
           variant="contained"
           onClick={handleSubmit}
           disabled={loading}
-          startIcon={loading ? <CircularProgress size={20} color="inherit" /> : null}
-          sx={{ 
+          startIcon={
+            loading ? <CircularProgress size={20} color="inherit" /> : null
+          }
+          sx={{
             ...primaryButtonStyles,
             minWidth: 130,
             mx: 1,
             backgroundColor: ACCENTURE_COLORS.corePurple1,
             "&:hover": {
               backgroundColor: ACCENTURE_COLORS.corePurple2,
-            }
+            },
           }}
         >
           {initialRole ? "UPDATE" : "CREATE"}
@@ -814,7 +1012,7 @@ export const AddRoleCard = ({ onRoleCreated, onCancel, initialRole = null }) => 
           variant="outlined"
           onClick={onCancel}
           disabled={loading}
-          sx={{ 
+          sx={{
             ...outlineButtonStyles,
             minWidth: 130,
             mx: 1,
@@ -823,7 +1021,7 @@ export const AddRoleCard = ({ onRoleCreated, onCancel, initialRole = null }) => 
             "&:hover": {
               borderColor: ACCENTURE_COLORS.accentPurple1,
               backgroundColor: `${ACCENTURE_COLORS.accentPurple1}10`,
-            }
+            },
           }}
         >
           CANCEL
@@ -837,13 +1035,13 @@ export const AddRoleCard = ({ onRoleCreated, onCancel, initialRole = null }) => 
         onClose={() => setSnackbar({ ...snackbar, open: false })}
         anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
       >
-        <Alert 
-          onClose={() => setSnackbar({ ...snackbar, open: false })} 
+        <Alert
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
           severity={snackbar.severity}
-          sx={{ 
-            width: '100%',
+          sx={{
+            width: "100%",
             borderRadius: 2,
-            boxShadow: "0 4px 12px rgba(0,0,0,0.15)"
+            boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
           }}
         >
           {snackbar.message}

@@ -8,6 +8,7 @@ on:
       - sprint3-web
       - sprint4-web
       - sprint5-web
+      - devfinal
 
 jobs:
   build_and_deploy:

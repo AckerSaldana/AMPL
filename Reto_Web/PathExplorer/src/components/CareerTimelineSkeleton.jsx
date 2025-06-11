@@ -1,8 +1,9 @@
 import React from "react";
 import { Box, Paper, Skeleton } from "@mui/material";
 import { ACCENTURE_COLORS } from "../styles/styles";
+import { useDarkMode } from "../contexts/DarkModeContext";
 
-const TimelineItemSkeleton = ({ isLast = false }) => {
+const TimelineItemSkeleton = ({ isLast = false, darkMode }) => {
   return (
     <Box
       sx={{
@@ -28,7 +29,7 @@ const TimelineItemSkeleton = ({ isLast = false }) => {
           width={{ xs: 36, md: 44 }}
           height={{ xs: 36, md: 44 }}
           sx={{ 
-            bgcolor: `${ACCENTURE_COLORS.corePurple1}15`,
+            bgcolor: darkMode ? 'rgba(255, 255, 255, 0.15)' : `${ACCENTURE_COLORS.corePurple1}15`,
             zIndex: 2 
           }}
         />
@@ -40,7 +41,7 @@ const TimelineItemSkeleton = ({ isLast = false }) => {
               height: "calc(100% + 40px)",
               position: "absolute",
               top: { xs: 36, md: 44 },
-              bgcolor: `${ACCENTURE_COLORS.corePurple1}40`,
+              bgcolor: darkMode ? 'rgba(255, 255, 255, 0.4)' : `${ACCENTURE_COLORS.corePurple1}40`,
               zIndex: 1,
             }}
           />
@@ -54,9 +55,9 @@ const TimelineItemSkeleton = ({ isLast = false }) => {
           sx={{
             p: { xs: 2, md: 3 },
             borderRadius: 2,
-            bgcolor: "#fff",
-            boxShadow: "0 2px 12px rgba(0, 0, 0, 0.03)",
-            border: `1px solid ${ACCENTURE_COLORS.corePurple1}10`,
+            bgcolor: darkMode ? "#2e2e2e" : "#fff",
+            boxShadow: darkMode ? "0 2px 12px rgba(0, 0, 0, 0.3)" : "0 2px 12px rgba(0, 0, 0, 0.03)",
+            border: darkMode ? "1px solid rgba(255,255,255,0.12)" : `1px solid ${ACCENTURE_COLORS.corePurple1}10`,
             position: "relative",
           }}
         >
@@ -66,7 +67,7 @@ const TimelineItemSkeleton = ({ isLast = false }) => {
             height={28} 
             sx={{ 
               mb: 1.5,
-              bgcolor: `${ACCENTURE_COLORS.corePurple1}10`,
+              bgcolor: darkMode ? 'rgba(255, 255, 255, 0.1)' : `${ACCENTURE_COLORS.corePurple1}10`,
             }} 
           />
 
@@ -76,7 +77,7 @@ const TimelineItemSkeleton = ({ isLast = false }) => {
               width={100} 
               height={24} 
               sx={{ 
-                bgcolor: `${ACCENTURE_COLORS.corePurple1}08`,
+                bgcolor: darkMode ? 'rgba(255, 255, 255, 0.08)' : `${ACCENTURE_COLORS.corePurple1}08`,
               }} 
             />
 
@@ -85,7 +86,7 @@ const TimelineItemSkeleton = ({ isLast = false }) => {
               width={120} 
               height={24} 
               sx={{ 
-                bgcolor: `${ACCENTURE_COLORS.corePurple1}08`,
+                bgcolor: darkMode ? 'rgba(255, 255, 255, 0.08)' : `${ACCENTURE_COLORS.corePurple1}08`,
               }} 
             />
           </Box>
@@ -96,7 +97,7 @@ const TimelineItemSkeleton = ({ isLast = false }) => {
             height={20} 
             sx={{ 
               mt: 1.5,
-              bgcolor: `${ACCENTURE_COLORS.corePurple1}06`,
+              bgcolor: darkMode ? 'rgba(255, 255, 255, 0.06)' : `${ACCENTURE_COLORS.corePurple1}06`,
             }} 
           />
           
@@ -105,7 +106,7 @@ const TimelineItemSkeleton = ({ isLast = false }) => {
             width="75%" 
             height={20} 
             sx={{ 
-              bgcolor: `${ACCENTURE_COLORS.corePurple1}06`,
+              bgcolor: darkMode ? 'rgba(255, 255, 255, 0.06)' : `${ACCENTURE_COLORS.corePurple1}06`,
             }} 
           />
         </Paper>
@@ -115,6 +116,7 @@ const TimelineItemSkeleton = ({ isLast = false }) => {
 };
 
 const CareerTimelineSkeleton = () => {
+  const { darkMode } = useDarkMode();
   // Create 3 timeline items
   return (
     <Box
@@ -132,15 +134,15 @@ const CareerTimelineSkeleton = () => {
           width: 6,
           top: 22,
           bottom: 22,
-          bgcolor: `${ACCENTURE_COLORS.corePurple1}20`,
+          bgcolor: darkMode ? 'rgba(255, 255, 255, 0.2)' : `${ACCENTURE_COLORS.corePurple1}20`,
           borderRadius: 4,
           zIndex: 1,
         }}
       />
       
-      <TimelineItemSkeleton />
-      <TimelineItemSkeleton />
-      <TimelineItemSkeleton isLast={true} />
+      <TimelineItemSkeleton darkMode={darkMode} />
+      <TimelineItemSkeleton darkMode={darkMode} />
+      <TimelineItemSkeleton darkMode={darkMode} isLast={true} />
     </Box>
   );
 };

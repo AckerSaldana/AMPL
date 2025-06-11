@@ -23,7 +23,7 @@ const accentureColors = {
   accentPurple: "#be82ff", // Light purple
 };
 
-const UserSkillsDisplay = ({ userId }) => {
+const UserSkillsDisplay = ({ userId, darkMode = false }) => {
   const theme = useTheme();
   const [skills, setSkills] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -132,7 +132,8 @@ const UserSkillsDisplay = ({ userId }) => {
           minHeight: 100, 
           borderRadius: 2,
           border: '1px solid',
-          borderColor: alpha(accentureColors.corePurple1, 0.1)
+          borderColor: darkMode ? 'rgba(255,255,255,0.12)' : alpha(accentureColors.corePurple1, 0.1),
+          backgroundColor: darkMode ? '#2e2e2e' : '#ffffff'
         }}
       >
         <CircularProgress size={30} sx={{ color: accentureColors.corePurple1 }} />
@@ -152,9 +153,9 @@ const UserSkillsDisplay = ({ userId }) => {
         sx={{ 
           p: 3,
           borderRadius: 2,
-          bgcolor: '#ffffff',
+          bgcolor: darkMode ? '#2e2e2e' : '#ffffff',
           border: '1px solid',
-          borderColor: alpha(accentureColors.corePurple1, 0.1)
+          borderColor: darkMode ? 'rgba(255,255,255,0.12)' : alpha(accentureColors.corePurple1, 0.1)
         }}
       >
         <Typography 
@@ -164,14 +165,14 @@ const UserSkillsDisplay = ({ userId }) => {
             fontWeight: "bold", 
             display: 'flex', 
             alignItems: 'center',
-            color: '#333333'
+            color: darkMode ? '#ffffff' : '#333333'
           }}
         >
           <CodeIcon sx={{ mr: 1, color: accentureColors.corePurple1 }} />
           Skills
         </Typography>
-        <Divider sx={{ mb: 2, borderColor: alpha(accentureColors.corePurple1, 0.1) }} />
-        <Typography variant="body2" color="text.secondary" align="center" sx={{ py: 2 }}>
+        <Divider sx={{ mb: 2, borderColor: darkMode ? 'rgba(255,255,255,0.12)' : alpha(accentureColors.corePurple1, 0.1) }} />
+        <Typography variant="body2" color={darkMode ? 'rgba(255,255,255,0.7)' : "text.secondary"} align="center" sx={{ py: 2 }}>
           No skills listed
         </Typography>
       </Paper>
@@ -184,9 +185,9 @@ const UserSkillsDisplay = ({ userId }) => {
       sx={{ 
         p: 3, 
         borderRadius: 2, 
-        bgcolor: '#ffffff',
+        bgcolor: darkMode ? '#2e2e2e' : '#ffffff',
         border: '1px solid',
-        borderColor: alpha(accentureColors.corePurple1, 0.1)
+        borderColor: darkMode ? 'rgba(255,255,255,0.12)' : alpha(accentureColors.corePurple1, 0.1)
       }}
     >
       <Typography 
@@ -202,7 +203,7 @@ const UserSkillsDisplay = ({ userId }) => {
         Skills
       </Typography>
       
-      <Divider sx={{ mb: 2.5, borderColor: alpha(accentureColors.corePurple1, 0.1) }} />
+      <Divider sx={{ mb: 2.5, borderColor: darkMode ? 'rgba(255,255,255,0.12)' : alpha(accentureColors.corePurple1, 0.1) }} />
       
       {/* Technical Skills */}
       {technicalSkills.length > 0 && (
@@ -215,7 +216,7 @@ const UserSkillsDisplay = ({ userId }) => {
               fontSize: '0.875rem', 
               display: 'flex', 
               alignItems: 'center',
-              color: accentureColors.corePurple2
+              color: darkMode ? accentureColors.accentPurple : accentureColors.corePurple2
             }}
           >
             <CodeIcon sx={{ fontSize: 16, mr: 0.8, color: accentureColors.corePurple2 }} />
@@ -228,8 +229,8 @@ const UserSkillsDisplay = ({ userId }) => {
                 key={skill.id}
                 label={`${skill.name}${skill.years > 0 ? ` · ${skill.years}y` : ''}`}
                 sx={{
-                  bgcolor: alpha(accentureColors.corePurple1, 0.08),
-                  color: accentureColors.corePurple2,
+                  bgcolor: darkMode ? alpha(accentureColors.corePurple1, 0.2) : alpha(accentureColors.corePurple1, 0.08),
+                  color: darkMode ? '#ffffff' : accentureColors.corePurple2,
                   fontWeight: 500,
                   fontSize: '0.8rem',
                   height: 28,
@@ -272,8 +273,8 @@ const UserSkillsDisplay = ({ userId }) => {
                 key={skill.id}
                 label={`${skill.name}${skill.years > 0 ? ` · ${skill.years}y` : ''}`}
                 sx={{
-                  bgcolor: alpha(accentureColors.accentPurple, 0.08),
-                  color: accentureColors.corePurple3,
+                  bgcolor: darkMode ? alpha(accentureColors.accentPurple, 0.2) : alpha(accentureColors.accentPurple, 0.08),
+                  color: darkMode ? '#ffffff' : accentureColors.corePurple3,
                   fontWeight: 500,
                   fontSize: '0.8rem',
                   height: 28,

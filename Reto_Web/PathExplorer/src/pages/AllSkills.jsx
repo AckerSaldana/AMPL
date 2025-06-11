@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import {
   Box,
   Typography,
@@ -11,6 +11,9 @@ import {
   IconButton,
   CircularProgress,
   alpha,
+  useTheme,
+  Pagination,
+  Stack,
 } from "@mui/material";
 import {
   ArrowBack,
@@ -24,7 +27,6 @@ import {
 
 import { useNavigate } from "react-router-dom";
 import { Bar } from "react-chartjs-2";
-import { useTheme } from "@mui/material/styles";
 import { supabase } from "../supabase/supabaseClient.js";
 import AddSkillModal from "../components/AddSkillModal.jsx";
 import { 
@@ -33,14 +35,18 @@ import {
   primaryButtonStyles, 
   outlineButtonStyles
 } from "../styles/styles.js";
+import { useDarkMode } from "../contexts/DarkModeContext";
 
 const AllSkills = () => {
-  const theme = useTheme();
   const navigate = useNavigate();
+  const theme = useTheme();
+  const { darkMode } = useDarkMode();
   const [skills, setSkills] = useState([]);
   const [skillFilter, setSkillFilter] = useState("All");
   const [sortOrder, setSortOrder] = useState("descending");
   const [searchTerm, setSearchTerm] = useState("");
+  const [page, setPage] = useState(0);
+  const [skillsPerPage] = useState(20); // Mostrar solo 20 skills por página
   const [statsData, setStatsData] = useState({
     totalSkills: 0,
     hardSkills: 0,
@@ -97,30 +103,46 @@ const AllSkills = () => {
     fetchSkills(); // Refresh the skills list
   };
 
-  // Filter and sort skills
-  const filteredSkills = skills
-    .filter((skill) => {
-      const matchesFilter = skillFilter === "All" || skill.type === skillFilter;
-      const matchesSearch = skill.name
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase());
-      return matchesFilter && matchesSearch;
-    })
-    .sort((a, b) => {
-      if (sortOrder === "ascending") {
-        return a.proficiency - b.proficiency;
-      } else {
-        return b.proficiency - a.proficiency;
-      }
-    });
+  // Filter and sort skills with memoization for performance
+  const filteredSkills = useMemo(() => {
+    return skills
+      .filter((skill) => {
+        const matchesFilter = skillFilter === "All" || skill.type === skillFilter;
+        const matchesSearch = skill.name
+          .toLowerCase()
+          .includes(searchTerm.toLowerCase());
+        return matchesFilter && matchesSearch;
+      })
+      .sort((a, b) => {
+        if (sortOrder === "ascending") {
+          return a.proficiency - b.proficiency;
+        } else {
+          return b.proficiency - a.proficiency;
+        }
+      });
+  }, [skills, skillFilter, searchTerm, sortOrder]);
 
-  // Prepare chart data
-  const chartData = {
-    labels: filteredSkills.map((skill) => skill.name),
+  // Paginated skills
+  const paginatedSkills = useMemo(() => {
+    const startIndex = page * skillsPerPage;
+    return filteredSkills.slice(startIndex, startIndex + skillsPerPage);
+  }, [filteredSkills, page, skillsPerPage]);
+
+  // Total pages
+  const totalPages = Math.ceil(filteredSkills.length / skillsPerPage);
+
+  // Reset page when filters change
+  useEffect(() => {
+    setPage(0);
+  }, [skillFilter, searchTerm, sortOrder]);
+
+  // Prepare chart data with memoization
+  const chartData = useMemo(() => ({
+    labels: paginatedSkills.map((skill) => skill.name),
     datasets: [
       {
-        data: filteredSkills.map((skill) => skill.proficiency),
-        backgroundColor: filteredSkills.map((skill) =>
+        data: paginatedSkills.map((skill) => skill.proficiency),
+        backgroundColor: paginatedSkills.map((skill) =>
           skill.type === "Hard"
             ? ACCENTURE_COLORS.corePurple1
             : ACCENTURE_COLORS.accentPurple2
@@ -129,7 +151,7 @@ const AllSkills = () => {
         borderRadius: 4,
       },
     ],
-  };
+  }), [paginatedSkills]);
 
   const toggleSortOrder = () => {
     setSortOrder(sortOrder === "ascending" ? "descending" : "ascending");
@@ -156,13 +178,14 @@ const AllSkills = () => {
     return (
       <Card sx={{
         borderRadius: 2,
-        boxShadow: "0 4px 6px rgba(0,0,0,0.04)",
+        boxShadow: darkMode ? "0 4px 6px rgba(0,0,0,0.3)" : "0 4px 6px rgba(0,0,0,0.04)",
         height: '100%',
         display: "flex",
         flexDirection: "column",
         overflow: "hidden",
         border: '1px solid',
-        borderColor: 'rgba(0,0,0,0.06)',
+        borderColor: darkMode ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.06)',
+        bgcolor: darkMode ? '#1e1e1e' : '#ffffff',
         position: 'relative',
         transition: 'all 0.2s',
         '&:hover': {
@@ -197,10 +220,10 @@ const AllSkills = () => {
               {icon}
             </Box>
             <Typography 
-              color="textSecondary" 
               sx={{ 
                 fontSize: '0.875rem',
                 fontWeight: 500,
+                color: darkMode ? 'rgba(255, 255, 255, 0.7)' : theme.palette.text.secondary,
               }}
             >
               {title}
@@ -274,7 +297,8 @@ const AllSkills = () => {
           sx={{
             fontWeight: 600,
             lineHeight: 1,
-            pt: 0.5 // Pequeño ajuste para centrar visualmente
+            pt: 0.5, // Pequeño ajuste para centrar visualmente
+            color: darkMode ? '#ffffff' : theme.palette.text.primary
           }}
         >
           All Skills
@@ -313,9 +337,10 @@ const AllSkills = () => {
       <Card 
         sx={{
           borderRadius: 2,
-          boxShadow: "0 4px 6px rgba(0,0,0,0.04)",
+          boxShadow: darkMode ? "0 4px 6px rgba(0,0,0,0.3)" : "0 4px 6px rgba(0,0,0,0.04)",
           mb: 4,
-          border: `1px solid ${ACCENTURE_COLORS.lightGray}`,
+          border: darkMode ? '1px solid rgba(255,255,255,0.12)' : `1px solid ${ACCENTURE_COLORS.lightGray}`,
+          bgcolor: darkMode ? '#1e1e1e' : '#ffffff',
         }}
       >
         <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
@@ -404,9 +429,11 @@ const AllSkills = () => {
       <Card 
         sx={{
           borderRadius: 2,
-          boxShadow: "0 4px 6px rgba(0,0,0,0.04)",
+          boxShadow: darkMode ? "0 4px 6px rgba(0,0,0,0.3)" : "0 4px 6px rgba(0,0,0,0.04)",
           mb: 4,
           overflow: 'hidden',
+          bgcolor: darkMode ? '#1e1e1e' : '#ffffff',
+          border: darkMode ? '1px solid rgba(255,255,255,0.12)' : 'none',
         }}
       >
         <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
@@ -416,11 +443,12 @@ const AllSkills = () => {
               mb: 3,
               fontWeight: 600,
               fontSize: '1.1rem',
+              color: darkMode ? '#ffffff' : theme.palette.text.primary
             }}
           >
             Skills Proficiency{" "}
             {filteredSkills.length > 0
-              ? `(${filteredSkills.length} skills)`
+              ? `(Showing ${Math.min((page + 1) * skillsPerPage, filteredSkills.length)} of ${filteredSkills.length} skills)`
               : ""}
           </Typography>
 
@@ -478,8 +506,19 @@ const AllSkills = () => {
           ) : filteredSkills.length > 0 ? (
             <Box 
               sx={{ 
-                height: Math.max(400, filteredSkills.length * 35),
-                px: { xs: 0, sm: 1 }
+                height: Math.min(600, Math.max(400, paginatedSkills.length * 30)),
+                px: { xs: 0, sm: 1 },
+                overflowY: paginatedSkills.length > 15 ? 'auto' : 'hidden',
+                '&::-webkit-scrollbar': {
+                  width: '8px',
+                },
+                '&::-webkit-scrollbar-track': {
+                  background: darkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)',
+                },
+                '&::-webkit-scrollbar-thumb': {
+                  background: darkMode ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)',
+                  borderRadius: '4px',
+                },
               }}
             >
               <Bar
@@ -488,10 +527,13 @@ const AllSkills = () => {
                   indexAxis: "y",
                   responsive: true,
                   maintainAspectRatio: false,
+                  animation: {
+                    duration: paginatedSkills.length > 50 ? 0 : 750,
+                  },
                   plugins: {
                     legend: { display: false },
                     tooltip: {
-                      backgroundColor: ACCENTURE_COLORS.black,
+                      backgroundColor: darkMode ? 'rgba(30,30,30,0.95)' : ACCENTURE_COLORS.black,
                       titleFont: {
                         size: 14,
                         weight: 'bold'
@@ -503,7 +545,7 @@ const AllSkills = () => {
                       callbacks: {
                         label: function (context) {
                           const skillIndex = context.dataIndex;
-                          const skill = filteredSkills[skillIndex];
+                          const skill = paginatedSkills[skillIndex];
                           return [
                             `Type: ${skill.type}`,
                             `Proficiency: ${skill.proficiency}%`,
@@ -517,7 +559,7 @@ const AllSkills = () => {
                       beginAtZero: true,
                       max: 100,
                       grid: {
-                        color: 'rgba(0,0,0,0.03)',
+                        color: darkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.03)',
                       },
                       title: {
                         display: true,
@@ -526,16 +568,17 @@ const AllSkills = () => {
                           size: 12,
                           weight: 500
                         },
-                        padding: { top: 10 }
+                        padding: { top: 10 },
+                        color: darkMode ? 'rgba(255,255,255,0.7)' : ACCENTURE_COLORS.darkGray
                       },
                       ticks: {
-                        color: ACCENTURE_COLORS.darkGray
+                        color: darkMode ? 'rgba(255,255,255,0.7)' : ACCENTURE_COLORS.darkGray
                       }
                     },
                     y: {
                       ticks: {
                         autoSkip: false,
-                        color: ACCENTURE_COLORS.black,
+                        color: darkMode ? '#ffffff' : ACCENTURE_COLORS.black,
                         font: {
                           weight: 500
                         }
@@ -587,6 +630,43 @@ const AllSkills = () => {
                   Clear Search
                 </Button>
               )}
+            </Box>
+          )}
+          
+          {/* Pagination controls */}
+          {filteredSkills.length > skillsPerPage && (
+            <Box sx={{ 
+              display: 'flex', 
+              justifyContent: 'center', 
+              mt: 3,
+              pt: 2,
+              borderTop: darkMode ? '1px solid rgba(255,255,255,0.12)' : '1px solid rgba(0,0,0,0.06)'
+            }}>
+              <Pagination 
+                count={totalPages} 
+                page={page + 1} 
+                onChange={(event, value) => setPage(value - 1)}
+                color="primary"
+                size="medium"
+                sx={{
+                  '& .MuiPaginationItem-root': {
+                    color: darkMode ? 'rgba(255,255,255,0.7)' : ACCENTURE_COLORS.darkGray,
+                    '&:hover': {
+                      backgroundColor: darkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
+                    },
+                    '&.Mui-selected': {
+                      backgroundColor: ACCENTURE_COLORS.corePurple1,
+                      color: '#ffffff',
+                      '&:hover': {
+                        backgroundColor: ACCENTURE_COLORS.corePurple1,
+                      }
+                    }
+                  },
+                  '& .MuiPaginationItem-icon': {
+                    color: darkMode ? 'rgba(255,255,255,0.7)' : ACCENTURE_COLORS.darkGray,
+                  }
+                }}
+              />
             </Box>
           )}
         </CardContent>

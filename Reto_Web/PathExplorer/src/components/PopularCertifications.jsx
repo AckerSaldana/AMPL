@@ -10,7 +10,8 @@ import {
   Stack,
   Grid,
   Divider,
-  Tooltip
+  Tooltip,
+  Skeleton
 } from "@mui/material";
 
 // Iconos
@@ -27,7 +28,7 @@ import StarIcon from "@mui/icons-material/Star";
 import PeopleAltOutlinedIcon from "@mui/icons-material/PeopleAltOutlined";
 import { useNavigate } from "react-router-dom";
 
-export const PopularCertifications = ({ certifications }) => {
+export const PopularCertifications = ({ certifications, loading = false, darkMode = false }) => {
   const navigate = useNavigate();
   
   // Match Dashboard profile color
@@ -54,14 +55,16 @@ export const PopularCertifications = ({ certifications }) => {
   };
   
   return (
-    <Box sx={{ height: '100%', p: 2 }}>
+    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       {/* Header */}
       <Box 
         sx={{ 
           display: 'flex', 
           alignItems: 'center',
           justifyContent: 'space-between',
-          mb: 3
+          p: 2,
+          borderBottom: '1px solid',
+          borderColor: darkMode ? 'rgba(255,255,255,0.12)' : alpha(profilePurple, 0.1)
         }}
       >
         <Box sx={{ display: 'flex', alignItems: 'center' }}>
@@ -72,7 +75,7 @@ export const PopularCertifications = ({ certifications }) => {
               fontSize: 20
             }} 
           />
-          <Typography variant="h6" fontWeight={500} sx={{ fontSize: '1.125rem' }}>
+          <Typography variant="h6" fontWeight={500} sx={{ fontSize: '1rem', color: darkMode ? '#ffffff' : '#000000' }}>
             Popular Certifications
           </Typography>
         </Box>
@@ -95,8 +98,25 @@ export const PopularCertifications = ({ certifications }) => {
       </Box>
       
       {/* Content - Card Grid Layout */}
-      <Grid container spacing={2}>
-        {certifications.length > 0 ? (
+      <Box sx={{ p: 2, flexGrow: 1, overflow: 'auto' }}>
+        <Grid container spacing={2}>
+          {loading ? (
+            // Skeleton loading
+            Array.from({ length: 3 }).map((_, index) => (
+              <Grid item xs={12} key={index}>
+                <Card elevation={0} sx={{ p: 2, borderRadius: 2, border: darkMode ? '1px solid rgba(255,255,255,0.12)' : `1px solid ${alpha(profilePurple, 0.1)}`, backgroundColor: darkMode ? '#3e3e3e' : '#ffffff' }}>
+                  <Stack direction="row" spacing={2} alignItems="center">
+                    <Skeleton variant="circular" width={40} height={40} />
+                    <Box sx={{ flex: 1 }}>
+                      <Skeleton variant="text" width="60%" height={24} />
+                      <Skeleton variant="text" width="40%" height={20} />
+                    </Box>
+                    <Skeleton variant="rectangular" width={60} height={30} sx={{ borderRadius: 1 }} />
+                  </Stack>
+                </Card>
+              </Grid>
+            ))
+          ) : certifications.length > 0 ? (
           certifications.map((cert, index) => {
             // Calculate star rating (0-5)
             const starRating = calculateStars(cert.popularity);
@@ -107,13 +127,17 @@ export const PopularCertifications = ({ certifications }) => {
                   elevation={0}
                   sx={{
                     borderRadius: 2,
-                    border: `1px solid ${alpha(profilePurple, 0.1)}`,
+                    border: darkMode ? '1px solid rgba(255,255,255,0.12)' : `1px solid ${alpha(profilePurple, 0.1)}`,
+                    backgroundColor: darkMode ? 'rgba(255, 255, 255, 0.03)' : '#ffffff',
                     transition: 'all 0.2s',
                     position: 'relative',
                     overflow: 'hidden',
                     '&:hover': {
-                      borderColor: alpha(profilePurple, 0.3),
-                      boxShadow: `0 4px 12px ${alpha(profilePurple, 0.08)}`,
+                      borderColor: darkMode ? alpha(profilePurple, 0.5) : alpha(profilePurple, 0.3),
+                      boxShadow: darkMode 
+                        ? `0 4px 12px ${alpha(profilePurple, 0.2)}`
+                        : `0 4px 12px ${alpha(profilePurple, 0.08)}`,
+                      backgroundColor: darkMode ? 'rgba(255, 255, 255, 0.05)' : '#ffffff',
                       '& .cert-number': {
                         opacity: 1
                       }
@@ -132,8 +156,8 @@ export const PopularCertifications = ({ certifications }) => {
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      bgcolor: alpha(profilePurple, 0.1),
-                      color: profilePurple,
+                      bgcolor: darkMode ? alpha(profilePurple, 0.2) : alpha(profilePurple, 0.1),
+                      color: darkMode ? alpha(profilePurple, 0.9) : profilePurple,
                       fontWeight: 700,
                       fontSize: '0.875rem',
                       opacity: 0.7,
@@ -147,8 +171,8 @@ export const PopularCertifications = ({ certifications }) => {
                     <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.5 }}>
                       <Avatar 
                         sx={{ 
-                          bgcolor: alpha(profilePurple, 0.08),
-                          color: profilePurple,
+                          bgcolor: darkMode ? alpha(profilePurple, 0.15) : alpha(profilePurple, 0.08),
+                          color: darkMode ? alpha(profilePurple, 0.9) : profilePurple,
                           mr: 2,
                           width: 42,
                           height: 42
@@ -158,12 +182,12 @@ export const PopularCertifications = ({ certifications }) => {
                       </Avatar>
                       
                       <Box sx={{ flex: 1 }}>
-                        <Typography variant="subtitle1" fontWeight={600}>
+                        <Typography variant="subtitle1" fontWeight={600} sx={{ color: darkMode ? '#ffffff' : '#000000' }}>
                           {cert.name}
                         </Typography>
                         
                         <Typography variant="caption" sx={{ 
-                          color: alpha(profilePurple, 0.8),
+                          color: darkMode ? 'rgba(255, 255, 255, 0.6)' : alpha(profilePurple, 0.8),
                           fontWeight: 500,
                           fontSize: '0.7rem',
                           textTransform: 'uppercase',
@@ -174,7 +198,7 @@ export const PopularCertifications = ({ certifications }) => {
                       </Box>
                     </Box>
                     
-                    <Divider sx={{ my: 1.5, borderColor: alpha(profilePurple, 0.08) }} />
+                    <Divider sx={{ my: 1.5, borderColor: darkMode ? 'rgba(255,255,255,0.12)' : alpha(profilePurple, 0.08) }} />
                     
                     <Box sx={{ 
                       display: 'flex', 
@@ -188,7 +212,9 @@ export const PopularCertifications = ({ certifications }) => {
                             key={i} 
                             sx={{ 
                               fontSize: '0.95rem',
-                              color: i < starRating ? profilePurple : alpha(profilePurple, 0.2),
+                              color: i < starRating 
+                                ? darkMode ? alpha(profilePurple, 0.8) : profilePurple 
+                                : darkMode ? 'rgba(255, 255, 255, 0.1)' : alpha(profilePurple, 0.2),
                               mr: 0.3
                             }} 
                           />
@@ -198,7 +224,7 @@ export const PopularCertifications = ({ certifications }) => {
                           sx={{ 
                             fontWeight: 600, 
                             ml: 0.5,
-                            color: 'text.secondary'
+                            color: darkMode ? 'rgba(255,255,255,0.7)' : 'text.secondary'
                           }}
                         >
                           {cert.popularity}%
@@ -235,16 +261,18 @@ export const PopularCertifications = ({ certifications }) => {
             <Box sx={{ 
               textAlign: 'center', 
               py: 4,
-              border: `1px dashed ${alpha(profilePurple, 0.2)}`,
+              border: darkMode ? '1px dashed rgba(255,255,255,0.2)' : `1px dashed ${alpha(profilePurple, 0.2)}`,
+              backgroundColor: darkMode ? '#2e2e2e' : 'transparent',
               borderRadius: 2
             }}>
-              <Typography variant="body2" color="text.secondary">
+              <Typography variant="body2" color={darkMode ? 'rgba(255,255,255,0.7)' : "text.secondary"}>
                 No popular certifications found
               </Typography>
             </Box>
           </Grid>
         )}
-      </Grid>
+        </Grid>
+      </Box>
     </Box>
   );
 };

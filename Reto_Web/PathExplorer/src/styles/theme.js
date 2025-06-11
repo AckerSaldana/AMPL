@@ -37,6 +37,9 @@ const theme = createTheme({
   shape: {
     borderRadius: 5,
   },
+  typography: {
+    fontFamily: 'Graphik-Medium, sans-serif',
+  },
 });
 
 export default theme;

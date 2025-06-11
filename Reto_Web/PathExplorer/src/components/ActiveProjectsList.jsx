@@ -23,7 +23,7 @@ import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import GroupIcon from "@mui/icons-material/Group";
 import { useNavigate } from "react-router-dom";
 
-export const ActiveProjectsList = ({ userId }) => {
+export const ActiveProjectsList = ({ userId, darkMode = false }) => {
   const [project, setProject] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -178,7 +178,7 @@ export const ActiveProjectsList = ({ userId }) => {
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
         <Box sx={{ display: 'flex', alignItems: 'center' }}>
           <WorkOutlineIcon sx={{ color: profilePurple, mr: 1.5 }} />
-          <Typography variant="h6" fontWeight={500}>
+          <Typography variant="h6" fontWeight={500} sx={{ color: darkMode ? '#ffffff' : '#000000' }}>
             Active Project
           </Typography>
         </Box>
@@ -200,12 +200,13 @@ export const ActiveProjectsList = ({ userId }) => {
           elevation={0}
           sx={{
             borderRadius: 2,
-            border: `1px solid ${alpha(profilePurple, 0.1)}`,
+            border: darkMode ? '1px solid rgba(255,255,255,0.12)' : `1px solid ${alpha(profilePurple, 0.1)}`,
+            backgroundColor: darkMode ? '#3e3e3e' : '#ffffff',
             overflow: 'hidden',
             transition: 'all 0.2s',
             '&:hover': {
-              borderColor: alpha(profilePurple, 0.3),
-              bgcolor: alpha(profilePurple, 0.02)
+              borderColor: darkMode ? alpha(profilePurple, 0.5) : alpha(profilePurple, 0.3),
+              bgcolor: darkMode ? alpha(profilePurple, 0.08) : alpha(profilePurple, 0.02)
             }
           }}
         >
@@ -213,7 +214,7 @@ export const ActiveProjectsList = ({ userId }) => {
             {/* Project header */}
             <Box sx={{ 
               p: 2.5, 
-              borderBottom: `1px solid ${alpha(profilePurple, 0.1)}`,
+              borderBottom: darkMode ? '1px solid rgba(255,255,255,0.12)' : `1px solid ${alpha(profilePurple, 0.1)}`,
               display: 'flex',
               alignItems: 'center'
             }}>
@@ -230,7 +231,7 @@ export const ActiveProjectsList = ({ userId }) => {
                 {project.id.substring(0, 2)}
               </Avatar>
               <Box sx={{ flex: 1 }}>
-                <Typography variant="h6" fontWeight={600} gutterBottom>
+                <Typography variant="h6" fontWeight={600} gutterBottom sx={{ color: darkMode ? '#ffffff' : '#000000' }}>
                   {project.title}
                 </Typography>
                 <Chip 
@@ -269,10 +270,10 @@ export const ActiveProjectsList = ({ userId }) => {
                     <CalendarTodayIcon fontSize="small" />
                   </Avatar>
                   <Box>
-                    <Typography variant="caption" color="text.secondary">
+                    <Typography variant="caption" color={darkMode ? 'rgba(255,255,255,0.7)' : "text.secondary"}>
                       Timeline
                     </Typography>
-                    <Typography variant="body2" fontWeight={500}>
+                    <Typography variant="body2" fontWeight={500} sx={{ color: darkMode ? '#ffffff' : '#000000' }}>
                       {formatDate(project.startDate)} - {formatDate(project.dueDate)}
                     </Typography>
                   </Box>
@@ -292,10 +293,10 @@ export const ActiveProjectsList = ({ userId }) => {
                     <GroupIcon fontSize="small" />
                   </Avatar>
                   <Box>
-                    <Typography variant="caption" color="text.secondary">
+                    <Typography variant="caption" color={darkMode ? 'rgba(255,255,255,0.7)' : "text.secondary"}>
                       Team Size
                     </Typography>
-                    <Typography variant="body2" fontWeight={500}>
+                    <Typography variant="body2" fontWeight={500} sx={{ color: darkMode ? '#ffffff' : '#000000' }}>
                       {teamCount} members
                     </Typography>
                   </Box>
@@ -315,10 +316,10 @@ export const ActiveProjectsList = ({ userId }) => {
                     <AssignmentTurnedInIcon fontSize="small" />
                   </Avatar>
                   <Box>
-                    <Typography variant="caption" color="text.secondary">
+                    <Typography variant="caption" color={darkMode ? 'rgba(255,255,255,0.7)' : "text.secondary"}>
                       Tasks
                     </Typography>
-                    <Typography variant="body2" fontWeight={500}>
+                    <Typography variant="body2" fontWeight={500} sx={{ color: darkMode ? '#ffffff' : '#000000' }}>
                       {taskCount} total tasks
                     </Typography>
                   </Box>
@@ -338,10 +339,10 @@ export const ActiveProjectsList = ({ userId }) => {
                     <PriorityHighIcon fontSize="small" />
                   </Avatar>
                   <Box>
-                    <Typography variant="caption" color="text.secondary">
+                    <Typography variant="caption" color={darkMode ? 'rgba(255,255,255,0.7)' : "text.secondary"}>
                       Priority
                     </Typography>
-                    <Typography variant="body2" fontWeight={500}>
+                    <Typography variant="body2" fontWeight={500} sx={{ color: darkMode ? '#ffffff' : '#000000' }}>
                       {project.priority}
                     </Typography>
                   </Box>
@@ -375,11 +376,12 @@ export const ActiveProjectsList = ({ userId }) => {
             textAlign: 'center', 
             p: 3, 
             color: 'text.secondary',
-            border: `1px dashed ${alpha(profilePurple, 0.3)}`,
-            borderRadius: 2
+            border: darkMode ? '1px dashed rgba(255,255,255,0.2)' : `1px dashed ${alpha(profilePurple, 0.3)}`,
+            borderRadius: 2,
+            backgroundColor: darkMode ? '#2e2e2e' : 'transparent'
           }}
         >
-          <Typography variant="body1" sx={{ mb: 2 }}>No active project assigned</Typography>
+          <Typography variant="body1" sx={{ mb: 2, color: darkMode ? 'rgba(255,255,255,0.7)' : 'text.secondary' }}>No active project assigned</Typography>
           <Button
             variant="contained"
             sx={{

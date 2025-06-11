@@ -6,9 +6,11 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "postbuild": "node scripts/verify-build.js",
     "lint": "eslint .",
     "preview": "vite preview",
-    "start": "node server.js"
+    "start": "node server.js",
+    "build:check": "npm run build && npm run preview"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
@@ -25,6 +27,7 @@
     "express": "^5.1.0",
     "firebase-admin": "^13.3.0",
     "firebase-functions": "^6.3.2",
+    "framer-motion": "^12.12.1",
     "mathjs": "^14.4.0",
     "ml-kmeans": "^6.0.0",
     "multer": "^1.4.5-lts.2",
@@ -38,10 +41,12 @@
     "styled-components": "^6.1.16"
   },
   "devDependencies": {
+    "terser": "^5.31.0",
     "@eslint/js": "^9.21.0",
     "@types/react": "^19.0.10",
     "@types/react-dom": "^19.0.4",
     "@vitejs/plugin-react": "^4.3.4",
+    "cypress": "^14.3.3",
     "eslint": "^9.21.0",
     "eslint-plugin-react-hooks": "^5.1.0",
     "eslint-plugin-react-refresh": "^0.4.19",

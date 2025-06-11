@@ -1,11 +1,17 @@
+@font-face {
+  font-family: 'Graphik';
+  src: url('./fonts/Graphik-Bold.woff2') format('woff2');
+  font-weight: bold;
+  font-style: light;
+  font-display: swap;
+}
+
 :root {
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
 
-  color: #333333; /* Color de texto oscuro */
-  background-color: #FFFFFF; /* Fondo blanco */
-
+  /* Removemos colores hardcodeados para permitir que MUI maneje los temas */
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -14,6 +20,7 @@
   height: 100%;
   overflow: hidden;
 }
+
 
 a {
   font-weight: 500;
@@ -29,8 +36,9 @@ body {
   padding: 0;
   width: 100%; 
   min-height: 100vh;
-  background-color: #FFFFFF; 
+  /* Removemos background-color para que MUI CssBaseline lo maneje */
   overflow-x: hidden; 
+  font-family: 'Graphik', sans-serif;
 }
 
 h1 {
@@ -83,10 +91,3 @@ button:focus-visible {
   }
 }
 
-
-@font-face {
-  font-family: 'Graphik';
-  src: url('/fonts/Graphik-Bold.woff2') format('woff2');
-  font-weight: bold;
-  font-style: normal;
-}

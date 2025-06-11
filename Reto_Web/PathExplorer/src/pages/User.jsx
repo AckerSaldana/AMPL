@@ -21,6 +21,8 @@ import {
 import { supabase } from "../supabase/supabaseClient";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "@mui/material";
+import { useDarkMode } from "../contexts/DarkModeContext";
+import { getDarkModeStyles } from "../styles/darkModeStyles";
 
 // Icons
 import {
@@ -42,8 +44,10 @@ const useUserData = () => React.useContext(UserDataContext);
 // Main component
 const ProfilePage = () => {
   const theme = useTheme();
+  const { darkMode } = useDarkMode();
   const [isLoading, setIsLoading] = useState(true);
   const [userData, setUserData] = useState({
+
     userInfo: {
       firstName: "",
       lastName: "",
@@ -300,7 +304,6 @@ const ProfilePage = () => {
           p: { xs: 2, md: 3 },
           minHeight: "calc(100vh - 60px)",
           width: "100%",
-          backgroundColor: "#f8f9fa", // Light background from Accenture guidelines
         }}
       >
         <Box sx={{ width: "100%" }}>
@@ -334,6 +337,8 @@ const ProfilePage = () => {
 const BannerProfile = () => {
   const navigate = useNavigate();
   const theme = useTheme();
+  const { darkMode } = useDarkMode();
+  const darkModeStyles = getDarkModeStyles(darkMode);
   const { userInfo, isLoading } = useUserData();
   const { firstName, lastName, role, profilePic } = userInfo;
 
@@ -347,8 +352,8 @@ const BannerProfile = () => {
           width: "100%",
           borderRadius: 2,
           overflow: "hidden",
-          bgcolor: "#FFF",
-          boxShadow: "0 1px 2px rgba(0,0,0,0.04)"
+          bgcolor: darkMode ? theme.palette.background.paper : "#FFF",
+          boxShadow: darkMode ? "0 1px 2px rgba(0,0,0,0.3)" : "0 1px 2px rgba(0,0,0,0.04)"
         }}
       >
         <Skeleton variant="rectangular" width="100%" height="100%" />
@@ -487,6 +492,8 @@ const BannerProfile = () => {
 // Information component
 const Information = () => {
   const theme = useTheme();
+  const { darkMode } = useDarkMode();
+  const darkModeStyles = getDarkModeStyles(darkMode);
   const { userInfo, isLoading } = useUserData();
   const { fullName, phone, email, level, joinDate, lastProjectDate } = userInfo;
 
@@ -501,9 +508,10 @@ const Information = () => {
           flexDirection: "column", 
           gap: 1.5,
           borderRadius: 2,
-          boxShadow: "0 2px 10px rgba(0,0,0,0.04)",
-          bgcolor: "#FFF",
-          width: "100%"
+          boxShadow: darkMode ? "0 2px 10px rgba(0,0,0,0.3)" : "0 2px 10px rgba(0,0,0,0.04)",
+          bgcolor: darkMode ? theme.palette.background.paper : "#FFF",
+          width: "100%",
+          border: darkMode ? "1px solid rgba(255, 255, 255, 0.12)" : "none"
         }}
       >
         <Skeleton variant="text" width="40%" height={24} />
@@ -526,9 +534,10 @@ const Information = () => {
         flexDirection: "column", 
         gap: 1.5,
         borderRadius: 2,
-        boxShadow: "0 2px 10px rgba(0,0,0,0.04)",
-        bgcolor: "#FFF",
-        width: "100%"
+        boxShadow: darkMode ? "0 2px 10px rgba(0,0,0,0.3)" : "0 2px 10px rgba(0,0,0,0.04)",
+        bgcolor: darkMode ? theme.palette.background.paper : "#FFF",
+        width: "100%",
+        border: darkMode ? "1px solid rgba(255, 255, 255, 0.12)" : "none"
       }}
     >
       <Typography 
@@ -623,6 +632,8 @@ const Information = () => {
 // Skills component
 const SkillsCard = () => {
   const theme = useTheme();
+  const { darkMode } = useDarkMode();
+  const darkModeStyles = getDarkModeStyles(darkMode);
   const { userInfo, isLoading } = useUserData();
   const { skills } = userInfo;
 
@@ -637,9 +648,10 @@ const SkillsCard = () => {
           flexDirection: "column", 
           gap: 1.5,
           borderRadius: 2,
-          boxShadow: "0 2px 10px rgba(0,0,0,0.04)",
-          bgcolor: "#FFF",
-          width: "100%"
+          boxShadow: darkMode ? "0 2px 10px rgba(0,0,0,0.3)" : "0 2px 10px rgba(0,0,0,0.04)",
+          bgcolor: darkMode ? theme.palette.background.paper : "#FFF",
+          width: "100%",
+          border: darkMode ? "1px solid rgba(255, 255, 255, 0.12)" : "none"
         }}
       >
         <Skeleton variant="text" width="40%" height={24} />
@@ -662,9 +674,10 @@ const SkillsCard = () => {
         flexDirection: "column", 
         gap: 1.5,
         borderRadius: 2,
-        boxShadow: "0 2px 10px rgba(0,0,0,0.04)",
-        bgcolor: "#FFF",
-        width: "100%"
+        boxShadow: darkMode ? "0 2px 10px rgba(0,0,0,0.3)" : "0 2px 10px rgba(0,0,0,0.04)",
+        bgcolor: darkMode ? theme.palette.background.paper : "#FFF",
+        width: "100%",
+        border: darkMode ? "1px solid rgba(255, 255, 255, 0.12)" : "none"
       }}
     >
       <Typography 
@@ -709,6 +722,8 @@ const SkillsCard = () => {
 // Certifications Card component
 const CertificationsCard = () => {
   const theme = useTheme();
+  const { darkMode } = useDarkMode();
+  const darkModeStyles = getDarkModeStyles(darkMode);
   const navigate = useNavigate();
   const { certifications, certificationsLoading, formatDate } = useUserData();
 
@@ -723,9 +738,10 @@ const CertificationsCard = () => {
           flexDirection: "column", 
           gap: 1.5,
           borderRadius: 2,
-          boxShadow: "0 2px 10px rgba(0,0,0,0.04)",
-          bgcolor: "#FFF",
-          width: "100%"
+          boxShadow: darkMode ? "0 2px 10px rgba(0,0,0,0.3)" : "0 2px 10px rgba(0,0,0,0.04)",
+          bgcolor: darkMode ? theme.palette.background.paper : "#FFF",
+          width: "100%",
+          border: darkMode ? "1px solid rgba(255, 255, 255, 0.12)" : "none"
         }}
       >
         <Skeleton variant="text" width="40%" height={24} />
@@ -747,9 +763,10 @@ const CertificationsCard = () => {
         flexDirection: "column", 
         gap: 1.5,
         borderRadius: 2,
-        boxShadow: "0 2px 10px rgba(0,0,0,0.04)",
-        bgcolor: "#FFF",
-        width: "100%"
+        boxShadow: darkMode ? "0 2px 10px rgba(0,0,0,0.3)" : "0 2px 10px rgba(0,0,0,0.04)",
+        bgcolor: darkMode ? theme.palette.background.paper : "#FFF",
+        width: "100%",
+        border: darkMode ? "1px solid rgba(255, 255, 255, 0.12)" : "none"
       }}
     >
       <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
@@ -830,6 +847,8 @@ const CertificationsCard = () => {
 // Assignment percentage component
 const AssignmentPercentage = () => {
   const theme = useTheme();
+  const { darkMode } = useDarkMode();
+  const darkModeStyles = getDarkModeStyles(darkMode);
   const { userInfo, isLoading } = useUserData();
   const [progress, setProgress] = useState(0);
   const { percentage } = userInfo;
@@ -861,9 +880,10 @@ const AssignmentPercentage = () => {
           flexDirection: "column", 
           gap: 1.5,
           borderRadius: 2,
-          boxShadow: "0 2px 10px rgba(0,0,0,0.04)",
-          bgcolor: "#FFF",
-          width: "100%"
+          boxShadow: darkMode ? "0 2px 10px rgba(0,0,0,0.3)" : "0 2px 10px rgba(0,0,0,0.04)",
+          bgcolor: darkMode ? theme.palette.background.paper : "#FFF",
+          width: "100%",
+          border: darkMode ? "1px solid rgba(255, 255, 255, 0.12)" : "none"
         }}
       >
         <Skeleton variant="text" width="60%" height={24} />
@@ -887,9 +907,10 @@ const AssignmentPercentage = () => {
         flexDirection: "column", 
         gap: 1.5,
         borderRadius: 2,
-        boxShadow: "0 2px 10px rgba(0,0,0,0.04)",
-        bgcolor: "#FFF",
-        width: "100%"
+        boxShadow: darkMode ? "0 2px 10px rgba(0,0,0,0.3)" : "0 2px 10px rgba(0,0,0,0.04)",
+        bgcolor: darkMode ? theme.palette.background.paper : "#FFF",
+        width: "100%",
+        border: darkMode ? "1px solid rgba(255, 255, 255, 0.12)" : "none"
       }}
     >
       <Typography 
@@ -973,7 +994,9 @@ const AssignmentPercentage = () => {
 
 // Goals component
 const GoalsCard = () => {
-  const theme = useTheme(); 
+  const theme = useTheme();
+  const { darkMode } = useDarkMode();
+  const darkModeStyles = getDarkModeStyles(darkMode); 
   const { userInfo, isLoading } = useUserData();
   const { goals } = userInfo;
   const [shortTerm, midTerm, longTerm] = goals;
@@ -988,9 +1011,10 @@ const GoalsCard = () => {
           flexDirection: "column", 
           gap: 1.5,
           borderRadius: 2,
-          boxShadow: "0 2px 10px rgba(0,0,0,0.04)",
-          bgcolor: "#FFF",
-          width: "100%"
+          boxShadow: darkMode ? "0 2px 10px rgba(0,0,0,0.3)" : "0 2px 10px rgba(0,0,0,0.04)",
+          bgcolor: darkMode ? theme.palette.background.paper : "#FFF",
+          width: "100%",
+          border: darkMode ? "1px solid rgba(255, 255, 255, 0.12)" : "none"
         }}
       >
         <Skeleton variant="text" width="30%" height={24} />
@@ -1013,9 +1037,10 @@ const GoalsCard = () => {
         flexDirection: "column", 
         gap: 1.5,
         borderRadius: 2,
-        boxShadow: "0 2px 10px rgba(0,0,0,0.04)",
-        bgcolor: "#FFF",
-        width: "100%"
+        boxShadow: darkMode ? "0 2px 10px rgba(0,0,0,0.3)" : "0 2px 10px rgba(0,0,0,0.04)",
+        bgcolor: darkMode ? theme.palette.background.paper : "#FFF",
+        width: "100%",
+        border: darkMode ? "1px solid rgba(255, 255, 255, 0.12)" : "none"
       }}
     >
       <Typography 
@@ -1082,6 +1107,8 @@ const GoalsCard = () => {
 // About component
 const About = () => {
   const theme = useTheme();
+  const { darkMode } = useDarkMode();
+  const darkModeStyles = getDarkModeStyles(darkMode);
   const { userInfo, isLoading } = useUserData();
   const { about } = userInfo;
 
@@ -1096,9 +1123,10 @@ const About = () => {
           flexDirection: "column", 
           gap: 1.5,
           borderRadius: 2,
-          boxShadow: "0 2px 10px rgba(0,0,0,0.04)",
-          bgcolor: "#FFF",
-          width: "100%"
+          boxShadow: darkMode ? "0 2px 10px rgba(0,0,0,0.3)" : "0 2px 10px rgba(0,0,0,0.04)",
+          bgcolor: darkMode ? theme.palette.background.paper : "#FFF",
+          width: "100%",
+          border: darkMode ? "1px solid rgba(255, 255, 255, 0.12)" : "none"
         }}
       >
         <Skeleton variant="text" width="30%" height={24} />
@@ -1120,9 +1148,10 @@ const About = () => {
         flexDirection: "column", 
         gap: 1.5, 
         borderRadius: 2,
-        boxShadow: "0 2px 10px rgba(0,0,0,0.04)",
-        bgcolor: "#FFF",
-        width: "100%"
+        boxShadow: darkMode ? "0 2px 10px rgba(0,0,0,0.3)" : "0 2px 10px rgba(0,0,0,0.04)",
+        bgcolor: darkMode ? theme.palette.background.paper : "#FFF",
+        width: "100%",
+        border: darkMode ? "1px solid rgba(255, 255, 255, 0.12)" : "none"
       }}
     >
       <Typography 
@@ -1176,6 +1205,8 @@ const About = () => {
 // Past projects component
 const PastProjectsCard = () => {
   const theme = useTheme();
+  const { darkMode } = useDarkMode();
+  const darkModeStyles = getDarkModeStyles(darkMode);
   const { projects, isLoading } = useUserData();
 
   if (isLoading) {
@@ -1186,8 +1217,9 @@ const PastProjectsCard = () => {
           p: 2.5, 
           width: "100%",
           borderRadius: 2,
-          boxShadow: "0 2px 10px rgba(0,0,0,0.04)",
-          bgcolor: "#FFF"
+          boxShadow: darkMode ? "0 2px 10px rgba(0,0,0,0.3)" : "0 2px 10px rgba(0,0,0,0.04)",
+          bgcolor: darkMode ? theme.palette.background.paper : "#FFF",
+          border: darkMode ? "1px solid rgba(255, 255, 255, 0.12)" : "none"
         }}
       >
         <Skeleton variant="text" width="40%" height={24} />
@@ -1204,8 +1236,9 @@ const PastProjectsCard = () => {
         overflow: "auto", 
         width: "100%",
         borderRadius: 2,
-        boxShadow: "0 2px 10px rgba(0,0,0,0.04)",
-        bgcolor: "#FFF"
+        boxShadow: darkMode ? "0 2px 10px rgba(0,0,0,0.3)" : "0 2px 10px rgba(0,0,0,0.04)",
+        bgcolor: darkMode ? theme.palette.background.paper : "#FFF",
+        border: darkMode ? "1px solid rgba(255, 255, 255, 0.12)" : "none"
       }}
     >
       <Typography 

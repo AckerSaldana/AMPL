@@ -18,6 +18,7 @@ import {
   Divider,
   alpha,
   Fade,
+  useTheme,
 } from "@mui/material";
 import { Add, Close } from "@mui/icons-material";
 import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
@@ -27,8 +28,11 @@ import {
   primaryButtonStyles, 
   outlineButtonStyles 
 } from "../styles/styles.js";
+import { useDarkMode } from "../contexts/DarkModeContext";
 
 const AddSkillModal = ({ onSkillAdded }) => {
+  const theme = useTheme();
+  const { darkMode } = useDarkMode();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [snackbar, setSnackbar] = useState({
@@ -145,10 +149,12 @@ const AddSkillModal = ({ onSkillAdded }) => {
         TransitionComponent={Fade}
         transitionDuration={300}
         PaperProps={{
-          elevation: 12,
+          elevation: darkMode ? 0 : 12,
           sx: {
             borderRadius: 2,
-            overflow: 'hidden'
+            overflow: 'hidden',
+            bgcolor: darkMode ? '#1e1e1e' : '#ffffff',
+            border: darkMode ? '1px solid rgba(255, 255, 255, 0.12)' : 'none',
           }
         }}
       >
@@ -159,8 +165,8 @@ const AddSkillModal = ({ onSkillAdded }) => {
             justifyContent: 'space-between', 
             alignItems: 'center',
             p: '16px 24px',
-            bgcolor: alpha(ACCENTURE_COLORS.corePurple1, 0.03),
-            borderBottom: `1px solid ${alpha(ACCENTURE_COLORS.darkGray, 0.1)}`
+            bgcolor: darkMode ? 'rgba(161, 0, 255, 0.05)' : alpha(ACCENTURE_COLORS.corePurple1, 0.03),
+            borderBottom: darkMode ? '1px solid rgba(255, 255, 255, 0.12)' : `1px solid ${alpha(ACCENTURE_COLORS.darkGray, 0.1)}`
           }}
         >
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
@@ -174,7 +180,7 @@ const AddSkillModal = ({ onSkillAdded }) => {
               variant="h6" 
               sx={{ 
                 fontWeight: 600, 
-                color: ACCENTURE_COLORS.black,
+                color: darkMode ? '#ffffff' : ACCENTURE_COLORS.black,
                 fontSize: '1.1rem'
               }}
             >
@@ -185,10 +191,10 @@ const AddSkillModal = ({ onSkillAdded }) => {
             onClick={handleClose}
             size="small"
             sx={{ 
-              color: ACCENTURE_COLORS.darkGray,
+              color: darkMode ? 'rgba(255, 255, 255, 0.7)' : ACCENTURE_COLORS.darkGray,
               '&:hover': { 
-                color: ACCENTURE_COLORS.black,
-                bgcolor: alpha(ACCENTURE_COLORS.corePurple1, 0.05)
+                color: darkMode ? '#ffffff' : ACCENTURE_COLORS.black,
+                bgcolor: darkMode ? 'rgba(255, 255, 255, 0.08)' : alpha(ACCENTURE_COLORS.corePurple1, 0.05)
               }
             }}
           >
@@ -218,14 +224,15 @@ const AddSkillModal = ({ onSkillAdded }) => {
               sx={{
                 '& .MuiOutlinedInput-root': {
                   borderRadius: 1.5,
-                  backgroundColor: alpha(ACCENTURE_COLORS.white, 0.8),
+                  backgroundColor: darkMode ? 'rgba(255, 255, 255, 0.05)' : alpha(ACCENTURE_COLORS.white, 0.8),
                   transition: 'all 0.2s',
+                  color: darkMode ? '#ffffff' : 'inherit',
                   '& fieldset': {
-                    borderColor: alpha(ACCENTURE_COLORS.darkGray, 0.1),
+                    borderColor: darkMode ? 'rgba(255, 255, 255, 0.23)' : alpha(ACCENTURE_COLORS.darkGray, 0.1),
                     borderWidth: '1px',
                   },
                   '&:hover': {
-                    backgroundColor: ACCENTURE_COLORS.white,
+                    backgroundColor: darkMode ? 'rgba(255, 255, 255, 0.08)' : ACCENTURE_COLORS.white,
                     '& fieldset': {
                       borderColor: ACCENTURE_COLORS.corePurple1,
                     }
@@ -233,6 +240,10 @@ const AddSkillModal = ({ onSkillAdded }) => {
                   '&.Mui-focused fieldset': {
                     borderColor: ACCENTURE_COLORS.corePurple1,
                     borderWidth: '1px',
+                  },
+                  '& input::placeholder': {
+                    color: darkMode ? 'rgba(255, 255, 255, 0.5)' : 'rgba(0, 0, 0, 0.5)',
+                    opacity: 1
                   }
                 }
               }}
@@ -257,14 +268,15 @@ const AddSkillModal = ({ onSkillAdded }) => {
               sx={{
                 '& .MuiOutlinedInput-root': {
                   borderRadius: 1.5,
-                  backgroundColor: alpha(ACCENTURE_COLORS.white, 0.8),
+                  backgroundColor: darkMode ? 'rgba(255, 255, 255, 0.05)' : alpha(ACCENTURE_COLORS.white, 0.8),
                   transition: 'all 0.2s',
+                  color: darkMode ? '#ffffff' : 'inherit',
                   '& fieldset': {
-                    borderColor: alpha(ACCENTURE_COLORS.darkGray, 0.1),
+                    borderColor: darkMode ? 'rgba(255, 255, 255, 0.23)' : alpha(ACCENTURE_COLORS.darkGray, 0.1),
                     borderWidth: '1px',
                   },
                   '&:hover': {
-                    backgroundColor: ACCENTURE_COLORS.white,
+                    backgroundColor: darkMode ? 'rgba(255, 255, 255, 0.08)' : ACCENTURE_COLORS.white,
                     '& fieldset': {
                       borderColor: ACCENTURE_COLORS.corePurple1,
                     }
@@ -272,6 +284,10 @@ const AddSkillModal = ({ onSkillAdded }) => {
                   '&.Mui-focused fieldset': {
                     borderColor: ACCENTURE_COLORS.corePurple1,
                     borderWidth: '1px',
+                  },
+                  '& input::placeholder': {
+                    color: darkMode ? 'rgba(255, 255, 255, 0.5)' : 'rgba(0, 0, 0, 0.5)',
+                    opacity: 1
                   }
                 }
               }}
@@ -306,14 +322,15 @@ const AddSkillModal = ({ onSkillAdded }) => {
                 label="Skill Type"
                 sx={{
                   borderRadius: 1.5,
-                  backgroundColor: alpha(ACCENTURE_COLORS.white, 0.8),
+                  backgroundColor: darkMode ? 'rgba(255, 255, 255, 0.05)' : alpha(ACCENTURE_COLORS.white, 0.8),
                   transition: 'all 0.2s',
+                  color: darkMode ? '#ffffff' : 'inherit',
                   '& .MuiOutlinedInput-notchedOutline': {
-                    borderColor: alpha(ACCENTURE_COLORS.darkGray, 0.1),
+                    borderColor: darkMode ? 'rgba(255, 255, 255, 0.23)' : alpha(ACCENTURE_COLORS.darkGray, 0.1),
                     borderWidth: '1px',
                   },
                   '&:hover': {
-                    backgroundColor: ACCENTURE_COLORS.white,
+                    backgroundColor: darkMode ? 'rgba(255, 255, 255, 0.08)' : ACCENTURE_COLORS.white,
                     '& .MuiOutlinedInput-notchedOutline': {
                       borderColor: ACCENTURE_COLORS.corePurple1,
                     }
@@ -321,28 +338,34 @@ const AddSkillModal = ({ onSkillAdded }) => {
                   '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
                     borderColor: ACCENTURE_COLORS.corePurple1,
                     borderWidth: '1px',
+                  },
+                  '& .MuiSelect-icon': {
+                    color: darkMode ? 'rgba(255, 255, 255, 0.7)' : 'inherit'
                   }
                 }}
                 MenuProps={{
                   PaperProps: {
-                    elevation: 3,
+                    elevation: darkMode ? 0 : 3,
                     sx: {
                       mt: 1,
                       borderRadius: 2,
-                      boxShadow: `0 4px 12px ${alpha(ACCENTURE_COLORS.corePurple1, 0.08)}`,
+                      bgcolor: darkMode ? '#2e2e2e' : '#ffffff',
+                      border: darkMode ? '1px solid rgba(255, 255, 255, 0.12)' : 'none',
+                      boxShadow: darkMode ? '0 4px 12px rgba(0, 0, 0, 0.5)' : `0 4px 12px ${alpha(ACCENTURE_COLORS.corePurple1, 0.08)}`,
                       '& .MuiMenuItem-root': {
                         fontSize: '0.9rem',
                         py: 1.2,
                         px: 2,
+                        color: darkMode ? '#ffffff' : 'inherit',
                         '&:hover': {
-                          backgroundColor: alpha(ACCENTURE_COLORS.corePurple1, 0.04),
+                          backgroundColor: darkMode ? 'rgba(255, 255, 255, 0.08)' : alpha(ACCENTURE_COLORS.corePurple1, 0.04),
                         },
                         '&.Mui-selected': {
-                          backgroundColor: alpha(ACCENTURE_COLORS.corePurple1, 0.08),
-                          color: ACCENTURE_COLORS.corePurple1,
+                          backgroundColor: darkMode ? 'rgba(161, 0, 255, 0.2)' : alpha(ACCENTURE_COLORS.corePurple1, 0.08),
+                          color: darkMode ? ACCENTURE_COLORS.accentPurple3 : ACCENTURE_COLORS.corePurple1,
                           fontWeight: 500,
                           '&:hover': {
-                            backgroundColor: alpha(ACCENTURE_COLORS.corePurple1, 0.12),
+                            backgroundColor: darkMode ? 'rgba(161, 0, 255, 0.3)' : alpha(ACCENTURE_COLORS.corePurple1, 0.12),
                           }
                         }
                       }
@@ -351,7 +374,7 @@ const AddSkillModal = ({ onSkillAdded }) => {
                 }}
                 renderValue={(selected) => {
                   if (!selected) {
-                    return <Typography sx={{ color: 'text.secondary' }}>Select skill type</Typography>;
+                    return <Typography sx={{ color: darkMode ? 'rgba(255, 255, 255, 0.5)' : 'text.secondary' }}>Select skill type</Typography>;
                   }
                   return selected;
                 }}
@@ -382,14 +405,15 @@ const AddSkillModal = ({ onSkillAdded }) => {
               sx={{
                 '& .MuiOutlinedInput-root': {
                   borderRadius: 1.5,
-                  backgroundColor: alpha(ACCENTURE_COLORS.white, 0.8),
+                  backgroundColor: darkMode ? 'rgba(255, 255, 255, 0.05)' : alpha(ACCENTURE_COLORS.white, 0.8),
                   transition: 'all 0.2s',
+                  color: darkMode ? '#ffffff' : 'inherit',
                   '& fieldset': {
-                    borderColor: alpha(ACCENTURE_COLORS.darkGray, 0.1),
+                    borderColor: darkMode ? 'rgba(255, 255, 255, 0.23)' : alpha(ACCENTURE_COLORS.darkGray, 0.1),
                     borderWidth: '1px',
                   },
                   '&:hover': {
-                    backgroundColor: ACCENTURE_COLORS.white,
+                    backgroundColor: darkMode ? 'rgba(255, 255, 255, 0.08)' : ACCENTURE_COLORS.white,
                     '& fieldset': {
                       borderColor: ACCENTURE_COLORS.corePurple1,
                     }
@@ -397,6 +421,10 @@ const AddSkillModal = ({ onSkillAdded }) => {
                   '&.Mui-focused fieldset': {
                     borderColor: ACCENTURE_COLORS.corePurple1,
                     borderWidth: '1px',
+                  },
+                  '& textarea::placeholder': {
+                    color: darkMode ? 'rgba(255, 255, 255, 0.5)' : 'rgba(0, 0, 0, 0.5)',
+                    opacity: 1
                   }
                 }
               }}
@@ -404,18 +432,18 @@ const AddSkillModal = ({ onSkillAdded }) => {
           </Box>
         </DialogContent>
 
-        <Divider sx={{ mx: 2, borderColor: alpha(ACCENTURE_COLORS.darkGray, 0.08) }} />
+        <Divider sx={{ mx: 2, borderColor: darkMode ? 'rgba(255, 255, 255, 0.12)' : alpha(ACCENTURE_COLORS.darkGray, 0.08) }} />
         
         <DialogActions sx={{ px: 3, py: 2, justifyContent: 'space-between' }}>
           <Button 
             onClick={handleClose} 
             sx={{
               ...outlineButtonStyles,
-              color: ACCENTURE_COLORS.darkGray,
-              borderColor: alpha(ACCENTURE_COLORS.darkGray, 0.3),
+              color: darkMode ? 'rgba(255, 255, 255, 0.7)' : ACCENTURE_COLORS.darkGray,
+              borderColor: darkMode ? 'rgba(255, 255, 255, 0.23)' : alpha(ACCENTURE_COLORS.darkGray, 0.3),
               '&:hover': {
-                borderColor: ACCENTURE_COLORS.darkGray,
-                bgcolor: alpha(ACCENTURE_COLORS.darkGray, 0.05),
+                borderColor: darkMode ? 'rgba(255, 255, 255, 0.4)' : ACCENTURE_COLORS.darkGray,
+                bgcolor: darkMode ? 'rgba(255, 255, 255, 0.08)' : alpha(ACCENTURE_COLORS.darkGray, 0.05),
                 transform: 'translateY(-2px)',
               }
             }}

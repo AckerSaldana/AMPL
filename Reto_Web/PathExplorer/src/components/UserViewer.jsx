@@ -18,7 +18,9 @@ import {
   Paper,
   useMediaQuery,
   Tooltip,
+  Fade,
 } from "@mui/material";
+import { alpha } from "@mui/material/styles";
 import SearchIcon from "@mui/icons-material/Search";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import DownloadIcon from "@mui/icons-material/Download";
@@ -26,6 +28,7 @@ import AssessmentIcon from "@mui/icons-material/Assessment";
 import { supabase } from "../supabase/supabaseClient";
 import { useTheme } from "@mui/material/styles";
 import { ACCENTURE_COLORS } from "../styles/styles.js";
+import { useDarkMode } from '../contexts/DarkModeContext';
 
 // Importar pdfMake para la generación de PDF
 import pdfMake from "pdfmake/build/pdfmake";
@@ -59,6 +62,7 @@ Chart.register(
 
 const UserViewer = () => {
   const theme = useTheme();
+  const { darkMode } = useDarkMode();
 
   // Responsive breakpoints
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
@@ -168,89 +172,141 @@ const UserViewer = () => {
     }
   };
 
-  // Handle download user analytics - Función actualizada para generar un PDF con los datos del usuario
-  const handleDownloadAnalytics = async (userId) => {
+  // Función mejorada para generar el PDF de analytics del usuario
+// Función mejorada para generar el PDF de analytics del usuario
+const handleDownloadAnalytics = async (userId) => {
+  try {
+    setGeneratingPdf(true);
+    
+    // 1. Obtener todos los datos del usuario con validación
+    const { data: userData, error: userError } = await supabase
+      .from("User")
+      .select("*")
+      .eq("user_id", userId)
+      .single();
+
+    if (userError) throw new Error(`Error fetching user data: ${userError.message}`);
+    if (!userData) throw new Error("User not found");
+
+    // 2. Obtener las habilidades del usuario con validación
+    const { data: userSkills, error: skillsError } = await supabase
+      .from("UserSkill")
+      .select(`
+        proficiency, 
+        year_Exp,
+        skill:Skill (
+          skill_ID,
+          name,
+          category,
+          type,
+          description
+        )
+      `)
+      .eq("user_ID", userId);
+
+    if (skillsError) throw new Error(`Error fetching skills: ${skillsError.message}`);
+
+    // 3. Obtener las certificaciones del usuario con validación
+    const { data: userCertifications, error: certsError } = await supabase
+      .from("UserCertifications")
+      .select(`
+        status,
+        score,
+        valid_Until,
+        completed_Date,
+        certification:Certifications (
+          title,
+          issuer,
+          type,
+          description
+        )
+      `)
+      .eq("user_ID", userId);
+
+    if (certsError) throw new Error(`Error fetching certifications: ${certsError.message}`);
+
+    // Helper: Validación y formato seguro de fechas
+    const formatDate = (dateString) => {
+      if (!dateString) return "N/A";
+      
+      try {
+        const date = new Date(dateString);
+        // Verificar si la fecha es válida
+        if (isNaN(date.getTime())) return "Invalid date";
+        
+        const options = { year: 'numeric', month: 'long', day: 'numeric' };
+        return date.toLocaleDateString(undefined, options);
+      } catch (error) {
+        console.error("Error formatting date:", error);
+        return "N/A";
+      }
+    };
+
+    // Helper: Validación de array
+    const safeArray = (arr) => {
+      if (!arr || !Array.isArray(arr)) return [];
+      return arr;
+    };
+
+    // Tratar arreglos de manera segura
+    const validUserSkills = safeArray(userSkills);
+    const validUserCertifications = safeArray(userCertifications);
+
+    // Agrupar habilidades por tipo de forma segura
+    const softSkills = validUserSkills.filter(
+      (skill) => skill.skill?.type === "Soft Skill"
+    );
+    
+    const technicalSkills = validUserSkills.filter(
+      (skill) => skill.skill?.type === "Technical Skill"
+    );
+
+    // Agrupar certificaciones por estado de forma segura
+    const approvedCertifications = validUserCertifications.filter(
+      (cert) => cert.status === "approved"
+    );
+    
+    const pendingCertifications = validUserCertifications.filter(
+      (cert) => cert.status === "pending"
+    );
+    
+    const rejectedCertifications = validUserCertifications.filter(
+      (cert) => cert.status === "rejected"
+    );
+
+    // Calcular estadísticas con validación
+    const totalSkills = validUserSkills.length;
+    const totalCertifications = validUserCertifications.length;
+    const approvedCertificationsCount = approvedCertifications.length;
+    const pendingCertificationsCount = pendingCertifications.length;
+    const rejectedCertificationsCount = rejectedCertifications.length;
+    
+    // Calcular métricas adicionales para visualizaciones
+    const skillProficiencySum = validUserSkills.reduce((sum, skill) => {
+      const profValue = getProficiencyValue(skill.proficiency);
+      return !isNaN(profValue) ? sum + profValue : sum;
+    }, 0);
+    
+    const avgProficiency = totalSkills > 0 
+      ? Math.round(skillProficiencySum / totalSkills) 
+      : 0;
+    
+    const certificationRate = totalCertifications > 0
+      ? Math.round((approvedCertificationsCount / totalCertifications) * 100)
+      : 0;
+
+    // Crear gráfico de habilidades con manejo de errores
+    const skillsCanvas = document.createElement("canvas");
+    skillsCanvas.width = 500;
+    skillsCanvas.height = 300;
+    const skillsCtx = skillsCanvas.getContext("2d");
+    let skillsChartImage;
+
     try {
-      setGeneratingPdf(true);
-      
-      // 1. Obtener todos los datos del usuario
-      const { data: userData, error: userError } = await supabase
-        .from("User")
-        .select("*")
-        .eq("user_id", userId)
-        .single();
-
-      if (userError) throw userError;
-
-      // 2. Obtener las habilidades del usuario
-      const { data: userSkills, error: skillsError } = await supabase
-        .from("UserSkill")
-        .select(`
-          proficiency, 
-          year_Exp,
-          skill:Skill (
-            name,
-            category,
-            type,
-            description
-          )
-        `)
-        .eq("user_ID", userId);
-
-      if (skillsError) throw skillsError;
-
-      // 3. Obtener las certificaciones del usuario
-      const { data: userCertifications, error: certsError } = await supabase
-        .from("UserCertifications")
-        .select(`
-          status,
-          score,
-          valid_Until,
-          completed_Date,
-          certification:Certifications (
-            title,
-            issuer,
-            type,
-            description
-          )
-        `)
-        .eq("user_ID", userId);
-
-      if (certsError) throw certsError;
-
-      // Agrupar habilidades por tipo
-      const softSkills = userSkills.filter(
-        (skill) => skill.skill?.type === "Soft Skill"
-      );
-      
-      const technicalSkills = userSkills.filter(
-        (skill) => skill.skill?.type === "Technical Skill"
-      );
-
-      // Categorizar certificaciones por estado
-      const approvedCertifications = userCertifications.filter(
-        (cert) => cert.status === "approved"
-      );
-      
-      const pendingCertifications = userCertifications.filter(
-        (cert) => cert.status === "pending"
-      );
-
-      // Calcular estadísticas
-      const totalSkills = userSkills.length;
-      const totalCertifications = userCertifications.length;
-      const approvedCertificationsCount = approvedCertifications.length;
-
-      // Crear gráfico de habilidades
-      const skillsCanvas = document.createElement("canvas");
-      skillsCanvas.width = 500;
-      skillsCanvas.height = 300;
-      const skillsCtx = skillsCanvas.getContext("2d");
-
       // Preparar datos para el gráfico de barras de habilidades
-      const topSkills = [...userSkills]
+      const topSkills = [...validUserSkills]
         .sort((a, b) => getProficiencyValue(b.proficiency) - getProficiencyValue(a.proficiency))
-        .slice(0, 5);
+        .slice(0, 6); // Limitamos a 6 para mejor visualización
 
       new Chart(skillsCtx, {
         type: "bar",
@@ -261,7 +317,9 @@ const UserViewer = () => {
               label: "Proficiency",
               data: topSkills.map((skill) => getProficiencyValue(skill.proficiency)),
               backgroundColor: topSkills.map((skill) => getProficiencyColor(skill.proficiency)),
-              borderRadius: 4,
+              borderRadius: 5,
+              barThickness: 25,
+              maxBarThickness: 30
             },
           ],
         },
@@ -273,12 +331,46 @@ const UserViewer = () => {
               title: {
                 display: true,
                 text: "Proficiency Level",
+                font: {
+                  size: 12,
+                }
               },
+              grid: {
+                color: 'rgba(0, 0, 0, 0.06)',
+              },
+              ticks: {
+                callback: function(value) {
+                  return value + '%';
+                }
+              }
             },
+            x: {
+              grid: {
+                display: false,
+              },
+              ticks: {
+                padding: 5,
+                maxRotation: 45,
+                minRotation: 45,
+              }
+            }
           },
           plugins: {
             legend: {
               display: false,
+            },
+            title: {
+              display: true,
+              text: 'Top Skills by Proficiency',
+              font: {
+                size: 14,
+                weight: 'bold',
+              },
+              padding: {
+                top: 10,
+                bottom: 10
+              },
+              color: ACCENTURE_COLORS.corePurple1
             },
           },
           responsive: false,
@@ -286,368 +378,676 @@ const UserViewer = () => {
       });
 
       // Esperar a que el gráfico se renderice
-      await new Promise((resolve) => setTimeout(resolve, 100));
-      const skillsChartImage = skillsCanvas.toDataURL("image/png");
+      await new Promise((resolve) => setTimeout(resolve, 150));
+      skillsChartImage = skillsCanvas.toDataURL("image/png");
+    } catch (chartError) {
+      console.error("Error creating skills chart:", chartError);
+      
+      // Crear un placeholder si falla la creación del gráfico
+      skillsCtx.fillStyle = "#f8f4ff"; // Light purple background
+      skillsCtx.fillRect(0, 0, skillsCanvas.width, skillsCanvas.height);
+      skillsCtx.fillStyle = ACCENTURE_COLORS.corePurple1;
+      skillsCtx.font = "bold 18px sans-serif";
+      skillsCtx.textAlign = "center";
+      skillsCtx.fillText("Skills Chart Unavailable", skillsCanvas.width/2, skillsCanvas.height/2);
+      
+      skillsChartImage = skillsCanvas.toDataURL("image/png");
+    }
 
-      // Crear gráfico de distribución de tipos de habilidades (pie chart mejorado)
-      const distributionCanvas = document.createElement("canvas");
-      distributionCanvas.width = 300;
-      distributionCanvas.height = 300;
-      const distributionCtx = distributionCanvas.getContext("2d");
+    // Crear gráfico de distribución de tipos de habilidades con manejo de errores
+    const distributionCanvas = document.createElement("canvas");
+    distributionCanvas.width = 300;
+    distributionCanvas.height = 300;
+    const distributionCtx = distributionCanvas.getContext("2d");
+    let distributionChartImage;
+
+    try {
+      // Verificar que tenemos datos válidos para el gráfico
+      const hasSkillData = technicalSkills.length > 0 || softSkills.length > 0;
+      
+      if (!hasSkillData) {
+        throw new Error("No skill data available for chart");
+      }
+
+      // Preparar datos, incluyendo solo categorías con valores > 0
+      const skillsData = [];
+      const skillsLabels = [];
+      const skillsColors = [];
+      
+      if (technicalSkills.length > 0) {
+        skillsData.push(technicalSkills.length);
+        skillsLabels.push("Technical Skills");
+        skillsColors.push(ACCENTURE_COLORS.corePurple1);
+      }
+      
+      if (softSkills.length > 0) {
+        skillsData.push(softSkills.length);
+        skillsLabels.push("Soft Skills");
+        skillsColors.push(ACCENTURE_COLORS.accentPurple1);
+      }
 
       new Chart(distributionCtx, {
-        type: "pie", // Changing to pie instead of doughnut for better segment connection
+        type: "pie",
         data: {
-          labels: ["Technical Skills", "Soft Skills"],
+          labels: skillsLabels,
           datasets: [
             {
-              data: [technicalSkills.length, softSkills.length],
-              backgroundColor: [
-                ACCENTURE_COLORS.corePurple1,
-                ACCENTURE_COLORS.accentPurple3,
-              ],
-              borderColor: 'transparent', // No borders between segments
-              borderWidth: 0,
-              hoverBorderWidth: 0,
-              borderRadius: 0,
-              spacing: 0, // Ensures there's no spacing between segments
+              data: skillsData,
+              backgroundColor: skillsColors,
+              borderColor: 'white',
+              borderWidth: 2,
+              hoverOffset: 5,
               borderJoinStyle: 'round',
-              circumference: 360, // Full circle
-              rotation: 0, // Start at top
+              borderAlign: 'center',
+              spacing: 0,
               weight: 1
             },
           ],
         },
         options: {
           responsive: false,
-          radius: '90%', // Make it slightly smaller to ensure it's within canvas
+          circumference: 360,
+          radius: '90%',
           plugins: {
             legend: {
               position: 'bottom',
               labels: {
-                font: {
-                  size: 10
-                },
                 boxWidth: 12,
-                padding: 10
+                usePointStyle: true,
+                padding: 15,
+                font: {
+                  size: 11,
+                }
               }
             },
-            tooltip: {
-              enabled: false // Disable tooltips to ensure no hover effects
+            title: {
+              display: true,
+              text: 'Skills Distribution',
+              font: {
+                size: 14,
+                weight: 'bold',
+              },
+              color: ACCENTURE_COLORS.corePurple2,
+              padding: {
+                top: 10,
+                bottom: 10
+              }
             }
           },
-          layout: {
-            padding: 0
-          },
-          // Disable hover effects and animations that might cause rendering issues
-          hover: { mode: null },
+          // Desactivar animaciones para que el gráfico se renderice inmediatamente
           animation: {
-            animateRotate: false,
-            animateScale: false
-          },
-          elements: {
-            arc: {
-              borderWidth: 0,
-              borderAlign: 'center'
-            }
+            duration: 0
           }
         },
       });
 
-      await new Promise((resolve) => setTimeout(resolve, 100));
-      const distributionChartImage = distributionCanvas.toDataURL("image/png");
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      distributionChartImage = distributionCanvas.toDataURL("image/png");
+    } catch (chartError) {
+      console.error("Error creating distribution chart:", chartError);
+      
+      // Crear un placeholder si falla la creación del gráfico
+      distributionCtx.fillStyle = "#f8f4ff";
+      distributionCtx.fillRect(0, 0, distributionCanvas.width, distributionCanvas.height);
+      distributionCtx.fillStyle = ACCENTURE_COLORS.corePurple1;
+      distributionCtx.font = "bold 16px sans-serif";
+      distributionCtx.textAlign = "center";
+      distributionCtx.fillText("Distribution Chart Unavailable", distributionCanvas.width/2, distributionCanvas.height/2);
+      
+      distributionChartImage = distributionCanvas.toDataURL("image/png");
+    }
 
-      // Parse goals from array to separate bullet points
-      let goalsContent = [];
-      if (userData.goals && typeof userData.goals === 'string') {
-        try {
-          // Try to parse the goals if it's a JSON string
-          let goalsArray = JSON.parse(userData.goals);
-          if (Array.isArray(goalsArray)) {
-            goalsArray.forEach((goal, index) => {
-              if (goal && goal.trim() !== '') {
-                goalsContent.push({
+    // Crear gráfico de certificaciones
+    let certificationChartImage = null;
+    
+    if (totalCertifications > 0) {
+      try {
+        const certCanvas = document.createElement("canvas");
+        certCanvas.width = 250;
+        certCanvas.height = 250;
+        const certCtx = certCanvas.getContext("2d");
+        
+        // Preparar datos, incluyendo solo estados con valores > 0
+        const certData = [];
+        const certLabels = [];
+        const certColors = [];
+        
+        if (approvedCertificationsCount > 0) {
+          certData.push(approvedCertificationsCount);
+          certLabels.push("Approved");
+          certColors.push("#4caf50"); // Verde
+        }
+        
+        if (pendingCertificationsCount > 0) {
+          certData.push(pendingCertificationsCount);
+          certLabels.push("Pending");
+          certColors.push("#ff9800"); // Naranja
+        }
+        
+        if (rejectedCertificationsCount > 0) {
+          certData.push(rejectedCertificationsCount);
+          certLabels.push("Rejected");
+          certColors.push("#f44336"); // Rojo
+        }
+        
+        new Chart(certCtx, {
+          type: "pie",
+          data: {
+            labels: certLabels,
+            datasets: [
+              {
+                data: certData,
+                backgroundColor: certColors,
+                borderColor: 'white',
+                borderWidth: 2,
+                hoverOffset: 5,
+                borderJoinStyle: 'round',
+                borderAlign: 'center',
+                spacing: 0,
+                weight: 1
+              },
+            ],
+          },
+          options: {
+            responsive: false,
+            circumference: 360,
+            radius: '90%',
+            plugins: {
+              legend: {
+                position: 'bottom',
+                labels: {
+                  boxWidth: 12,
+                  usePointStyle: true,
+                  padding: 15,
+                  font: {
+                    size: 11,
+                  }
+                }
+              },
+              title: {
+                display: true,
+                text: 'Certification Status',
+                font: {
+                  size: 14,
+                  weight: 'bold',
+                },
+                color: ACCENTURE_COLORS.corePurple2,
+                padding: {
+                  top: 10,
+                  bottom: 10
+                }
+              }
+            },
+            // Desactivar animaciones para que el gráfico se renderice inmediatamente
+            animation: {
+              duration: 0
+            }
+          },
+        });
+        
+        await new Promise((resolve) => setTimeout(resolve, 300));
+        certificationChartImage = certCanvas.toDataURL("image/png");
+      } catch (chartError) {
+        console.error("Error creating certification chart:", chartError);
+        // Simplemente dejamos el gráfico como null y no lo incluimos
+      }
+    }
+
+    // Parse goals from array to separate bullet points con validación
+    let goalsContent = [];
+    if (userData.goals) {
+      try {
+        // Si es un string JSON, intentar parsearlo
+        if (typeof userData.goals === 'string') {
+          try {
+            const goalsArray = JSON.parse(userData.goals);
+            if (Array.isArray(goalsArray)) {
+              goalsContent = goalsArray
+                .filter(goal => goal && goal.trim() !== '')
+                .map((goal, index) => ({
                   text: goal,
                   style: 'bullet',
                   margin: [0, index === 0 ? 0 : 5, 0, 0]
-                });
-              }
-            });
-          } else {
+                }));
+            } else {
+              goalsContent.push({ text: userData.goals, style: 'paragraph' });
+            }
+          } catch (e) {
+            // Si no es JSON válido, usarlo como string
             goalsContent.push({ text: userData.goals, style: 'paragraph' });
           }
-        } catch (e) {
-          // If not valid JSON, just use as string
-          goalsContent.push({ text: userData.goals, style: 'paragraph' });
+        } 
+        // Si ya es un array, usarlo directamente
+        else if (Array.isArray(userData.goals)) {
+          goalsContent = userData.goals
+            .filter(goal => goal && goal.trim() !== '')
+            .map((goal, index) => ({
+              text: goal,
+              style: 'bullet',
+              margin: [0, index === 0 ? 0 : 5, 0, 0]
+            }));
         }
+      } catch (e) {
+        console.error("Error parsing goals:", e);
+        goalsContent = [];
       }
+    }
 
-      // Define Accenture color scheme
-      const colors = {
-        primary: ACCENTURE_COLORS.corePurple1,
-        secondary: ACCENTURE_COLORS.corePurple2, 
-        tertiary: ACCENTURE_COLORS.corePurple3,
-        accent1: ACCENTURE_COLORS.accentPurple1,
-        accent2: ACCENTURE_COLORS.accentPurple2,
-        light: "#ffffff",
-        text: "#000000",
-        lightText: "#96968c",
-        border: "#e6e6dc"
-      };
+    // Define Accenture color scheme
+    const colors = {
+      primary: ACCENTURE_COLORS.corePurple1,
+      secondary: ACCENTURE_COLORS.corePurple2, 
+      tertiary: ACCENTURE_COLORS.corePurple3,
+      accent1: ACCENTURE_COLORS.accentPurple1,
+      accent2: ACCENTURE_COLORS.accentPurple2,
+      light: "#ffffff",
+      text: "#000000",
+      lightText: "#75757a",
+      border: "#e6e6dc",
+      gradientLight: "#f5f0ff", // Light Purple background
+      success: "#4caf50",    // Verde
+      warning: "#ff9800",    // Naranja
+      error: "#f44336"       // Rojo
+    };
+    
+    // Funciones para elementos visuales avanzados
+    const createAccentShape = (shape) => {
+      switch(shape) {
+        case 'wave':
+          return `<svg width="100" height="10" viewBox="0 0 100 10">
+            <path d="M0,5 C10,0 15,10 25,5 C35,0 40,10 50,5 C60,0 65,10 75,5 C85,0 90,10 100,5" 
+            stroke="${colors.accent2}" stroke-width="2" fill="none" />
+          </svg>`;
+        case 'dots':
+          return `<svg width="100" height="10" viewBox="0 0 100 10">
+            <circle cx="10" cy="5" r="2" fill="${colors.primary}" />
+            <circle cx="25" cy="5" r="2" fill="${colors.accent2}" />
+            <circle cx="40" cy="5" r="2" fill="${colors.primary}" />
+            <circle cx="55" cy="5" r="2" fill="${colors.accent2}" />
+            <circle cx="70" cy="5" r="2" fill="${colors.primary}" />
+            <circle cx="85" cy="5" r="2" fill="${colors.accent2}" />
+          </svg>`;
+        default:
+          return `<svg width="100" height="4" viewBox="0 0 100 4">
+            <rect width="100" height="4" fill="${colors.primary}" />
+          </svg>`;
+      }
+    };
 
-      // Crear definición del documento PDF
-      const docDefinition = {
-        pageMargins: [40, 40, 40, 40],
-        content: [
-          // Encabezado
+    // Crear gráfico de progreso para proficiencia promedio
+    const createProgressBar = (percent, color) => {
+      return `<svg width="200" height="15" viewBox="0 0 200 15">
+        <rect width="200" height="8" rx="4" ry="4" fill="#f0f0f0" />
+        <rect width="${percent * 2}" height="8" rx="4" ry="4" fill="${color}" />
+      </svg>`;
+    };
+
+    const avgProficiencyColor = (() => {
+      if (avgProficiency >= 75) return colors.success;
+      if (avgProficiency >= 50) return colors.primary;
+      if (avgProficiency >= 25) return colors.warning;
+      return colors.error;
+    })();
+
+    const certRateColor = (() => {
+      if (certificationRate >= 75) return colors.success;
+      if (certificationRate >= 50) return colors.primary;
+      if (certificationRate >= 25) return colors.warning;
+      return colors.error;
+    })();
+
+    const avgProficiencyBar = createProgressBar(avgProficiency, avgProficiencyColor);
+    const certificationRateBar = createProgressBar(certificationRate, certRateColor);
+    
+    // Determinar distribución de páginas basada en cantidad de datos
+    const hasManyCertifications = validUserCertifications.length > 5;
+    const hasManySkills = validUserSkills.length > 10;
+    
+    // Crear definición del documento PDF con visualizaciones mejoradas
+    const docDefinition = {
+      pageMargins: [40, 40, 40, 40],
+      
+      // Control de saltos de página automáticos
+      pageBreakBefore: function(currentNode, followingNodesOnPage) {
+        // Evitar saltos de página innecesarios
+        if (currentNode.table && followingNodesOnPage.length > 2) {
+          return false;
+        }
+        return false;
+      },
+      
+      // Barra lateral con el color de Accenture 
+      background: function() {
+        return [
           {
-            stack: [
-              { 
-                svg: `<svg width="100" height="4" viewBox="0 0 100 4">
-                  <rect width="100" height="4" fill="${colors.primary}" />
-                </svg>`,
-                width: 530,
-                margin: [0, 0, 0, 20]
-              },
+            canvas: [
               {
-                text: `${userData.name} ${userData.last_name}`,
-                style: 'title',
-                margin: [0, 10, 0, 10]
-              },
-              {
-                text: `EMPLOYEE ANALYTICS REPORT`,
-                style: 'subtitle',
-                margin: [0, 0, 0, 20]
-              },
-              {
-                columns: [
-                  {
-                    stack: [
-                      { text: 'ROLE', style: 'coverLabel' },
-                      { 
-                        text: userData.permission || "N/A", 
-                        style: 'coverValue',
-                        margin: [0, 2, 0, 0]
-                      }
-                    ],
-                    width: '33%'
-                  },
-                  {
-                    stack: [
-                      { text: 'LEVEL', style: 'coverLabel' },
-                      { 
-                        text: userData.level || "N/A", 
-                        style: 'coverValue',
-                        margin: [0, 2, 0, 0]
-                      }
-                    ],
-                    width: '33%'
-                  },
-                  {
-                    stack: [
-                      { text: 'JOINED', style: 'coverLabel' },
-                      { 
-                        text: userData.enter_date ? new Date(userData.enter_date).toLocaleDateString() : "N/A", 
-                        style: 'coverValue',
-                        margin: [0, 2, 0, 0]
-                      }
-                    ],
-                    width: '33%'
-                  }
-                ],
-                margin: [0, 10, 0, 10]
-              },
-              {
-                text: `Generated on ${new Date().toLocaleDateString()}`,
-                style: 'date',
-                margin: [0, 30, 0, 0]
+                type: 'rect',
+                x: 0, y: 0,
+                w: 12,
+                h: 792,
+                color: colors.primary
               }
-            ],
-            alignment: 'left'
-          },
-          
-          // Resumen de estadísticas
-          {
-            text: 'Summary',
-            style: 'sectionTitle',
-            margin: [0, 30, 0, 10]
-          },
-          {
-            columns: [
-              {
-                width: '50%',
-                stack: [
-                  {
-                    table: {
-                      headerRows: 0,
-                      widths: ['40%', '60%'],
-                      body: [
-                        [
-                          { text: 'Total Skills:', style: 'tableKey' },
-                          { text: totalSkills, style: 'tableValue' }
-                        ],
-                        [
-                          { text: 'Technical Skills:', style: 'tableKey' },
-                          { text: technicalSkills.length, style: 'tableValue' }
-                        ],
-                        [
-                          { text: 'Soft Skills:', style: 'tableKey' },
-                          { text: softSkills.length, style: 'tableValue' }
-                        ],
-                      ]
+            ]
+          }
+        ];
+      },
+      
+      content: [
+        // Encabezado con estilo mejorado
+        {
+          stack: [
+            { 
+              svg: createAccentShape(),
+              width: 530,
+              margin: [0, 0, 0, 20]
+            },
+            {
+              text: `${userData.name || ""} ${userData.last_name || ""}`.trim() || "Employee Report",
+              style: 'title',
+              margin: [0, 10, 0, 10]
+            },
+            {
+              text: `EMPLOYEE ANALYTICS REPORT`,
+              style: 'subtitle',
+              margin: [0, 0, 0, 20]
+            },
+            {
+              columns: [
+                {
+                  stack: [
+                    { text: 'ROLE', style: 'coverLabel' },
+                    { 
+                      text: userData.permission || "N/A", 
+                      style: 'coverValue',
+                      margin: [0, 2, 0, 0]
+                    }
+                  ],
+                  width: '33%'
+                },
+                {
+                  stack: [
+                    { text: 'LEVEL', style: 'coverLabel' },
+                    { 
+                      text: userData.level || "N/A", 
+                      style: 'coverValue',
+                      margin: [0, 2, 0, 0]
+                    }
+                  ],
+                  width: '33%'
+                },
+                {
+                  stack: [
+                    { text: 'JOINED', style: 'coverLabel' },
+                    { 
+                      text: formatDate(userData.enter_date), 
+                      style: 'coverValue',
+                      margin: [0, 2, 0, 0]
+                    }
+                  ],
+                  width: '33%'
+                }
+              ],
+              margin: [0, 10, 0, 10]
+            },
+            // Indicador de disponibilidad
+            {
+              columns: [
+                { width: '35%', text: '' },
+                {
+                  width: '30%',
+                  stack: [
+                    { 
+                      text: 'AVAILABILITY', 
+                      style: 'coverLabel',
+                      alignment: 'center',
+                      margin: [0, 10, 0, 5]
                     },
-                    layout: 'noBorders'
-                  }
-                ]
-              },
-              {
-                width: '50%',
-                stack: [
-                  {
-                    table: {
-                      headerRows: 0,
-                      widths: ['60%', '40%'],
-                      body: [
-                        [
-                          { text: 'Total Certifications:', style: 'tableKey' },
-                          { text: totalCertifications, style: 'tableValue' }
-                        ],
-                        [
-                          { text: 'Approved Certifications:', style: 'tableKey' },
-                          { text: approvedCertificationsCount, style: 'tableValue' }
-                        ],
-                        [
-                          { text: 'Pending Certifications:', style: 'tableKey' },
-                          { text: pendingCertifications.length, style: 'tableValue' }
-                        ],
-                        [
-                          { text: 'Availability:', style: 'tableKey' },
-                          { 
-                            text: userData.availability_status ? 'Available' : 'Unavailable', 
-                            style: userData.availability_status ? 'availableValue' : 'unavailableValue' 
-                          }
-                        ],
-                      ]
-                    },
-                    layout: 'noBorders'
-                  }
-                ]
-              }
-            ],
-            margin: [0, 10, 0, 20]
-          },
-          
-          // Gráficos
-          {
-            text: 'Skills Distribution',
-            style: 'sectionTitle',
-            margin: [0, 10, 0, 10]
-          },
-          {
-            columns: [
-              {
-                width: '40%',
-                stack: [
-                  { 
-                    image: distributionChartImage, 
-                    width: 200,
-                    alignment: 'center',
-                    margin: [0, 0, 0, 0]
-                  }
-                ]
-              },
-              {
-                width: '60%',
-                stack: [
-                  {
-                    text: 'Top Skills by Proficiency',
-                    style: 'subsectionTitle',
-                    margin: [0, 0, 0, 10]
-                  },
-                  { 
-                    image: skillsChartImage, 
-                    width: 300,
-                    alignment: 'center',
-                    margin: [0, 0, 0, 0]
-                  }
-                ]
-              }
-            ],
-            margin: [0, 0, 0, 20]
-          },
-          
-          // Lista de habilidades
-          {
-            text: 'Skills Details',
-            style: 'sectionTitle',
-            pageBreak: 'before',
-            margin: [0, 0, 0, 10]
-          },
-          {
-            table: {
-              headerRows: 1,
-              widths: ['40%', '20%', '20%', '20%'],
-              body: [
-                [
-                  { text: 'Skill Name', style: 'tableHeader' },
-                  { text: 'Category', style: 'tableHeader' },
-                  { text: 'Type', style: 'tableHeader' },
-                  { text: 'Proficiency', style: 'tableHeader' }
-                ],
-                ...userSkills.map((skill) => [
-                  { text: skill.skill?.name || 'Unknown', style: 'tableCell' },
-                  { text: skill.skill?.category || 'N/A', style: 'tableCell' },
-                  { text: skill.skill?.type || 'N/A', style: 'tableCell' },
-                  { 
-                    text: skill.proficiency || 'N/A',
-                    style: 'tableCell',
-                  }
-                ])
+                    {
+                      table: {
+                        widths: ['*'],
+                        body: [
+                          [
+                            { 
+                              text: userData.availability_status ? 'AVAILABLE' : 'UNAVAILABLE', 
+                              style: userData.availability_status ? 'availableTag' : 'unavailableTag',
+                              alignment: 'center'
+                            }
+                          ]
+                        ]
+                      },
+                      layout: {
+                        hLineWidth: function() { return 0; },
+                        vLineWidth: function() { return 0; },
+                        fillColor: function() { 
+                          return userData.availability_status ? 
+                            'rgba(76, 175, 80, 0.1)' : 'rgba(244, 67, 54, 0.1)'; 
+                        },
+                      }
+                    }
+                  ]
+                },
+                { width: '35%', text: '' }
               ]
             },
-            layout: {
-              hLineWidth: function(i, node) {
-                return (i === 0 || i === 1 || i === node.table.body.length) ? 1 : 0.5;
-              },
-              vLineWidth: function() { return 0; },
-              hLineColor: function(i) { return i === 0 || i === 1 ? colors.primary : colors.border; },
-              fillColor: function(rowIndex, node, columnIndex) {
-                return (rowIndex === 0) ? colors.primary : null;
-              },
-              paddingTop: function() { return 6; },
-              paddingBottom: function() { return 6; }
+            {
+              text: `Generated on ${new Date().toLocaleDateString(undefined, {
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric'
+              })}`,
+              style: 'date',
+              margin: [0, 30, 0, 0]
             }
-          },
-          
-          // Certificaciones
+          ],
+          alignment: 'left'
+        },
+        
+        // Resumen de estadísticas con visualizaciones mejoradas
+        {
+          text: 'Performance Overview',
+          style: 'sectionTitle',
+          margin: [0, 40, 0, 10]
+        },
+        { 
+          svg: createAccentShape('wave'),
+          width: 100,
+          margin: [0, 0, 0, 15]
+        },
+        
+        // Indicadores de rendimiento con barras de progreso
+        {
+          columns: [
+            {
+              width: '50%',
+              stack: [
+                { 
+                  text: 'Average Skill Proficiency', 
+                  style: 'statLabel',
+                  margin: [0, 0, 0, 5]
+                },
+                {
+                  columns: [
+                    {
+                      svg: avgProficiencyBar,
+                      width: 150,
+                    },
+                    {
+                      text: `${avgProficiency}%`,
+                      style: 'statValue',
+                      width: 'auto',
+                      margin: [10, 0, 0, 0]
+                    }
+                  ],
+                  margin: [0, 0, 0, 15]
+                },
+                { 
+                  text: 'Certification Completion Rate', 
+                  style: 'statLabel',
+                  margin: [0, 0, 0, 5]
+                },
+                {
+                  columns: [
+                    {
+                      svg: certificationRateBar,
+                      width: 150,
+                    },
+                    {
+                      text: `${certificationRate}%`,
+                      style: 'statValue',
+                      width: 'auto',
+                      margin: [10, 0, 0, 0]
+                    }
+                  ],
+                  margin: [0, 0, 0, 15]
+                }
+              ]
+            },
+            {
+              width: '50%',
+              stack: [
+                {
+                  table: {
+                    headerRows: 0,
+                    widths: ['60%', '40%'],
+                    body: [
+                      [
+                        { text: 'Total Skills:', style: 'tableKey' },
+                        { text: totalSkills, style: 'tableValue' }
+                      ],
+                      [
+                        { text: 'Technical Skills:', style: 'tableKey' },
+                        { text: technicalSkills.length, style: 'tableValue' }
+                      ],
+                      [
+                        { text: 'Soft Skills:', style: 'tableKey' },
+                        { text: softSkills.length, style: 'tableValue' }
+                      ],
+                      [
+                        { text: 'Total Certifications:', style: 'tableKey' },
+                        { text: totalCertifications, style: 'tableValue' }
+                      ],
+                      [
+                        { text: 'Approved Certifications:', style: 'tableKey' },
+                        { text: approvedCertificationsCount, style: 'tableValue' }
+                      ],
+                      [
+                        { text: 'Pending Certifications:', style: 'tableKey' },
+                        { text: pendingCertificationsCount, style: 'tableValue' }
+                      ],
+                    ]
+                  },
+                  layout: {
+                    hLineWidth: function(i, node) {
+                      return 0.5;
+                    },
+                    vLineWidth: function() { return 0; },
+                    hLineColor: function() { return colors.border; },
+                    fillColor: function(rowIndex) {
+                      return rowIndex % 2 === 0 ? colors.gradientLight : null;
+                    },
+                    paddingTop: function() { return 4; },
+                    paddingBottom: function() { return 4; }
+                  }
+                }
+              ]
+            }
+          ],
+          margin: [0, 10, 0, 30]
+        },
+        
+        // Gráficos mejorados
+        {
+          text: 'Skills Analysis',
+          style: 'sectionTitle',
+          margin: [0, 10, 0, 10]
+        },
+        { 
+          svg: createAccentShape('wave'),
+          width: 100,
+          margin: [0, 0, 0, 15]
+        },
+        {
+          columns: [
+            {
+              width: totalCertifications > 0 ? '33%' : '50%',
+              stack: [
+                { 
+                  image: distributionChartImage, 
+                  width: 200,
+                  alignment: 'center',
+                  margin: [0, 0, 0, 10]
+                }
+              ]
+            },
+            {
+              width: totalCertifications > 0 ? '33%' : '50%',
+              stack: [
+                { 
+                  image: skillsChartImage, 
+                  width: 250,
+                  alignment: 'center',
+                  margin: [0, 0, 0, 10]
+                }
+              ]
+            },
+            ...(certificationChartImage ? [
+              {
+                width: '33%',
+                stack: [
+                  { 
+                    image: certificationChartImage, 
+                    width: 200,
+                    alignment: 'center',
+                    margin: [0, 0, 0, 10]
+                  }
+                ]
+              }
+            ] : [])
+          ],
+          margin: [0, 0, 0, 30]
+        },
+        
+        // Lista de habilidades
+        {
+          text: 'Skills Details',
+          style: 'sectionTitle',
+          pageBreak: hasManySkills ? 'before' : undefined,
+          margin: [0, 0, 0, 10]
+        },
+        { 
+          svg: createAccentShape('wave'),
+          width: 100,
+          margin: [0, 0, 0, 15]
+        },
+        
+        // Tabla con habilidades agrupadas por tipo para mejor organización
+        ...(validUserSkills.length > 0 ? [
+          // 1. Habilidades técnicas
           {
-            text: 'Certifications',
-            style: 'sectionTitle',
-            margin: [0, 30, 0, 10]
+            text: 'Technical Skills',
+            style: 'subsectionTitle',
+            margin: [0, 0, 0, 10]
           },
-          
-          ...(userCertifications.length > 0 ? [
+          ...(technicalSkills.length > 0 ? [
             {
               table: {
                 headerRows: 1,
                 widths: ['40%', '20%', '20%', '20%'],
                 body: [
                   [
-                    { text: 'Certification', style: 'tableHeader' },
-                    { text: 'Issuer', style: 'tableHeader' },
-                    { text: 'Status', style: 'tableHeader' },
-                    { text: 'Completed', style: 'tableHeader' }
+                    { text: 'Skill Name', style: 'tableHeader' },
+                    { text: 'Category', style: 'tableHeader' },
+                    { text: 'Experience', style: 'tableHeader' },
+                    { text: 'Proficiency', style: 'tableHeader' }
                   ],
-                  ...userCertifications.map((cert) => [
-                    { text: cert.certification?.title || 'Unknown', style: 'tableCell' },
-                    { text: cert.certification?.issuer || 'N/A', style: 'tableCell' },
+                  ...technicalSkills.map((skill) => [
+                    { text: skill.skill?.name || 'Unknown', style: 'tableCell' },
+                    { text: skill.skill?.category || 'N/A', style: 'tableCell' },
+                    { text: skill.year_Exp ? `${skill.year_Exp} year(s)` : 'N/A', style: 'tableCell' },
                     { 
-                      text: cert.status || 'N/A', 
-                      style: 'tableCell'
-                    },
-                    { 
-                      text: cert.completed_Date ? new Date(cert.completed_Date).toLocaleDateString() : 'In Progress', 
-                      style: 'tableCell' 
+                      text: skill.proficiency || 'N/A',
+                      style: `proficiency${skill.proficiency?.replace(/\s+/g, '') || 'NA'}`
                     }
                   ])
                 ]
@@ -659,7 +1059,7 @@ const UserViewer = () => {
                 vLineWidth: function() { return 0; },
                 hLineColor: function(i) { return i === 0 || i === 1 ? colors.primary : colors.border; },
                 fillColor: function(rowIndex, node, columnIndex) {
-                  return (rowIndex === 0) ? colors.primary : null;
+                  return (rowIndex === 0) ? colors.primary : (rowIndex % 2 === 0) ? colors.gradientLight : null;
                 },
                 paddingTop: function() { return 6; },
                 paddingBottom: function() { return 6; }
@@ -667,177 +1067,397 @@ const UserViewer = () => {
             }
           ] : [
             {
-              text: 'No certifications found for this employee.',
+              text: 'No technical skills recorded.',
               style: 'paragraph',
-              margin: [0, 10, 0, 20]
+              margin: [0, 0, 0, 10],
+              italics: true
             }
           ]),
           
-          // Metas (Goals)
-          ...(goalsContent.length > 0 ? [
+          // 2. Habilidades blandas (soft skills)
+          {
+            text: 'Soft Skills',
+            style: 'subsectionTitle',
+            margin: [0, 20, 0, 10]
+          },
+          ...(softSkills.length > 0 ? [
             {
-              text: 'Goals & Objectives',
-              style: 'sectionTitle',
-              margin: [0, 30, 0, 10]
-            },
-            ...goalsContent
-          ] : []),
-          
-          ...(userData.about ? [
-            {
-              text: 'About',
-              style: 'sectionTitle',
-              margin: [0, 30, 0, 10]
-            },
-            {
-              text: userData.about,
-              style: 'paragraph',
-              margin: [0, 10, 0, 20]
-            }
-          ] : [])
-        ],
-        
-        // Estilos
-        styles: {
-          title: { 
-            fontSize: 24, 
-            bold: true,
-            color: colors.primary,
-          },
-          subtitle: { 
-            fontSize: 14,
-            color: colors.secondary,
-          },
-          coverLabel: {
-            fontSize: 10,
-            color: colors.primary,
-            bold: true
-          },
-          coverValue: {
-            fontSize: 12,
-            color: colors.text
-          },
-          date: {
-            fontSize: 10,
-            color: colors.lightText,
-          },
-          sectionTitle: { 
-            fontSize: 16, 
-            bold: true, 
-            color: colors.primary,
-            margin: [0, 10, 0, 8]
-          },
-          subsectionTitle: {
-            fontSize: 14,
-            bold: true,
-            color: colors.secondary,
-          },
-          paragraph: { 
-            fontSize: 11,
-            lineHeight: 1.4,
-            alignment: 'justify',
-            color: colors.text
-          },
-          bullet: { 
-            fontSize: 11,
-            lineHeight: 1.4,
-            color: colors.text,
-            margin: [0, 2, 0, 0]
-          },
-          tableHeader: { 
-            bold: true, 
-            fontSize: 11,
-            color: 'white',
-            alignment: 'center',
-            fillColor: colors.primary
-          },
-          tableCell: {
-            fontSize: 10,
-            color: colors.text,
-            alignment: 'left'
-          },
-          tableKey: {
-            fontSize: 11,
-            bold: true,
-            alignment: 'right',
-            color: colors.secondary
-          },
-          tableValue: {
-            fontSize: 11,
-            color: colors.text
-          },
-          availableValue: {
-            fontSize: 11,
-            color: "#4caf50",
-            bold: true
-          },
-          unavailableValue: {
-            fontSize: 11,
-            color: "#f44336",
-            bold: true
-          }
-        },
-        
-        // Pie de página
-        footer: function(currentPage, pageCount) {
-          return {
-            columns: [
-              { 
-                text: `${userData.name} ${userData.last_name} - Analytics Report`, 
-                alignment: 'left',
-                fontSize: 8,
-                color: colors.lightText,
-                margin: [40, 0, 0, 0]
+              table: {
+                headerRows: 1,
+                widths: ['50%', '25%', '25%'],
+                body: [
+                  [
+                    { text: 'Skill Name', style: 'tableHeader' },
+                    { text: 'Category', style: 'tableHeader' },
+                    { text: 'Proficiency', style: 'tableHeader' }
+                  ],
+                  ...softSkills.map((skill) => [
+                    { text: skill.skill?.name || 'Unknown', style: 'tableCell' },
+                    { text: skill.skill?.category || 'N/A', style: 'tableCell' },
+                    { 
+                      text: skill.proficiency || 'N/A',
+                      style: `proficiency${skill.proficiency?.replace(/\s+/g, '') || 'NA'}`
+                    }
+                  ])
+                ]
               },
-              {
-                text: currentPage.toString() + ' of ' + pageCount,
-                alignment: 'right',
-                fontSize: 8,
-                color: colors.lightText,
-                margin: [0, 0, 40, 0]
+              layout: {
+                hLineWidth: function(i, node) {
+                  return (i === 0 || i === 1 || i === node.table.body.length) ? 1 : 0.5;
+                },
+                vLineWidth: function() { return 0; },
+                hLineColor: function(i) { return i === 0 || i === 1 ? colors.accent1 : colors.border; },
+                fillColor: function(rowIndex, node, columnIndex) {
+                  return (rowIndex === 0) ? colors.accent1 : (rowIndex % 2 === 0) ? colors.gradientLight : null;
+                },
+                paddingTop: function() { return 6; },
+                paddingBottom: function() { return 6; }
               }
-            ],
-            margin: [0, 10, 0, 0]
-          };
+            }
+          ] : [
+            {
+              text: 'No soft skills recorded.',
+              style: 'paragraph',
+              margin: [0, 0, 0, 10],
+              italics: true
+            }
+          ])
+        ] : [
+          {
+            text: 'No skills have been recorded for this employee.',
+            style: 'paragraph',
+            margin: [0, 10, 0, 20],
+            italics: true
+          }
+        ]),
+        
+        // Certificaciones
+        {
+          text: 'Certifications',
+          style: 'sectionTitle',
+          pageBreak: hasManyCertifications ? 'before' : undefined,
+          margin: [0, 30, 0, 10]
+        },
+        { 
+          svg: createAccentShape('wave'),
+          width: 100,
+          margin: [0, 0, 0, 15]
         },
         
-        // Estilo predeterminado - sin mencionar Arial para evitar errores
-        defaultStyle: { 
+        ...(validUserCertifications.length > 0 ? [
+          {
+            table: {
+              headerRows: 1,
+              widths: ['35%', '20%', '15%', '30%'],
+              body: [
+                [
+                  { text: 'Certification', style: 'tableHeader' },
+                  { text: 'Issuer', style: 'tableHeader' },
+                  { text: 'Status', style: 'tableHeader' },
+                  { text: 'Date Information', style: 'tableHeader' }
+                ],
+                ...validUserCertifications.map((cert) => [
+                  { text: cert.certification?.title || 'Unknown', style: 'tableCell' },
+                  { text: cert.certification?.issuer || 'N/A', style: 'tableCell' },
+                  { 
+                    text: cert.status || 'N/A', 
+                    style: `cert${cert.status?.replace(/\s+/g, '')?.toLowerCase() || 'unknown'}`
+                  },
+                  { 
+                    stack: [
+                      ...(cert.completed_Date ? [{
+                        text: `Completed: ${formatDate(cert.completed_Date)}`,
+                        style: 'certDate'
+                      }] : []),
+                      ...(cert.valid_Until ? [{
+                        text: `Valid until: ${formatDate(cert.valid_Until)}`,
+                        style: 'certDate',
+                        margin: [0, cert.completed_Date ? 3 : 0, 0, 0]
+                      }] : [])
+                    ]
+                  }
+                ])
+              ]
+            },
+            layout: {
+              hLineWidth: function(i, node) {
+                return (i === 0 || i === 1 || i === node.table.body.length) ? 1 : 0.5;
+              },
+              vLineWidth: function() { return 0; },
+              hLineColor: function(i) { return i === 0 || i === 1 ? colors.primary : colors.border; },
+              fillColor: function(rowIndex, node, columnIndex) {
+                return (rowIndex === 0) ? colors.primary : (rowIndex % 2 === 0) ? colors.gradientLight : null;
+              },
+              paddingTop: function() { return 6; },
+              paddingBottom: function() { return 6; }
+            }
+          }
+        ] : [
+          {
+            text: 'No certifications found for this employee.',
+            style: 'paragraph',
+            margin: [0, 10, 0, 20],
+            italics: true
+          }
+        ]),
+        
+        // Metas (Goals) y Objetivos
+        ...(goalsContent.length > 0 ? [
+          {
+            text: 'Goals & Objectives',
+            style: 'sectionTitle',
+            margin: [0, 30, 0, 10]
+          },
+          { 
+            svg: createAccentShape('wave'),
+            width: 100,
+            margin: [0, 0, 0, 15]
+          },
+          {
+            stack: [
+              // Si los contenidos son bullets, los encapsulamos en un contenedor decorativo
+              {
+                stack: goalsContent,
+                margin: [10, 10, 10, 10],
+                background: colors.gradientLight
+              }
+            ]
+          }
+        ] : []),
+        
+        // About / Bio (if available)
+        ...(userData.about ? [
+          {
+            text: 'About',
+            style: 'sectionTitle',
+            margin: [0, 30, 0, 10]
+          },
+          { 
+            svg: createAccentShape('wave'),
+            width: 100,
+            margin: [0, 0, 0, 15]
+          },
+          {
+            text: userData.about,
+            style: 'paragraph',
+            margin: [0, 10, 0, 20]
+          }
+        ] : [])
+      ],
+      
+      // Estilos mejorados con manejo de colores por estado
+      styles: {
+        title: { 
+          fontSize: 24, 
+          bold: true,
+          color: colors.primary,
+        },
+        subtitle: { 
+          fontSize: 14,
+          color: colors.secondary,
+        },
+        coverLabel: {
+          fontSize: 10,
+          color: colors.primary,
+          bold: true
+        },
+        coverValue: {
+          fontSize: 12,
+          color: colors.text
+        },
+        availableTag: {
+          fontSize: 12,
+          bold: true,
+          color: colors.success
+        },
+        unavailableTag: {
+          fontSize: 12,
+          bold: true,
+          color: colors.error
+        },
+        date: {
+          fontSize: 10,
+          color: colors.lightText,
+        },
+        sectionTitle: { 
+          fontSize: 16, 
+          bold: true, 
+          color: colors.primary,
+          margin: [0, 10, 0, 8]
+        },
+        subsectionTitle: {
+          fontSize: 14,
+          bold: true,
+          color: colors.secondary,
+        },
+        paragraph: { 
+          fontSize: 11,
+          lineHeight: 1.4,
+          alignment: 'justify',
+          color: colors.text
+        },
+        bullet: { 
+          fontSize: 11,
+          lineHeight: 1.4,
+          color: colors.text,
+          margin: [0, 2, 0, 0]
+        },
+        tableHeader: { 
+          bold: true, 
+          fontSize: 11,
+          color: 'white',
+          alignment: 'center',
+          fillColor: colors.primary
+        },
+        tableCell: {
+          fontSize: 10,
+          color: colors.text,
+          alignment: 'left'
+        },
+        tableKey: {
+          fontSize: 11,
+          bold: true,
+          alignment: 'right',
+          color: colors.secondary
+        },
+        tableValue: {
           fontSize: 11,
           color: colors.text
+        },
+        certDate: {
+          fontSize: 9,
+          color: colors.text
+        },
+        statLabel: {
+          fontSize: 11,
+          color: colors.secondary,
+          bold: true
+        },
+        statValue: {
+          fontSize: 12,
+          bold: true,
+          color: colors.primary
+        },
+        // Estilos para estados de certificaciones
+        certapproved: {
+          fontSize: 10,
+          color: colors.success,
+          bold: true
+        },
+        certpending: {
+          fontSize: 10,
+          color: colors.warning,
+          bold: true
+        },
+        certrejected: {
+          fontSize: 10,
+          color: colors.error,
+          bold: true
+        },
+        certunknown: {
+          fontSize: 10,
+          color: colors.lightText,
+          italics: true
+        },
+        // Estilos para niveles de proficiencia
+        proficiencyHigh: {
+          fontSize: 10,
+          color: colors.success,
+          bold: true
+        },
+        proficiencyMedium: {
+          fontSize: 10,
+          color: colors.primary,
+          bold: true
+        },
+        proficiencyLow: {
+          fontSize: 10,
+          color: colors.warning
+        },
+        proficiencyBasic: {
+          fontSize: 10,
+          color: colors.lightText
+        },
+        proficiencyNA: {
+          fontSize: 10,
+          color: colors.lightText,
+          italics: true
         }
-      };
-
-      // Generar y descargar el PDF
-      pdfMake.createPdf(docDefinition).download(`${userData.name}_${userData.last_name}_Analytics.pdf`);
+      },
       
-    } catch (error) {
-      console.error("Error generando PDF:", error);
-      alert("Error al generar el PDF. Por favor, inténtalo de nuevo.");
-    } finally {
-      setGeneratingPdf(false);
+      // Pie de página con colores accenture
+      footer: function(currentPage, pageCount) {
+        return {
+          columns: [
+            { 
+              text: `${userData.name || ""} ${userData.last_name || ""} - Analytics Report`.trim(), 
+              alignment: 'left',
+              fontSize: 8,
+              color: colors.lightText,
+              margin: [40, 0, 0, 0]
+            },
+            {
+              text: currentPage.toString() + ' | ' + pageCount,
+              alignment: 'right',
+              fontSize: 8,
+              color: colors.lightText,
+              margin: [0, 0, 40, 0]
+            }
+          ],
+          margin: [0, 20, 0, 0]
+        };
+      },
+      
+      // Estilo predeterminado sin mencionar fuentes específicas
+      defaultStyle: { 
+        fontSize: 11,
+        color: colors.text
+      }
+    };
+
+    // Generar y descargar el PDF con mejor manejo de errores
+    try {
+      const pdfDoc = pdfMake.createPdf(docDefinition);
+      pdfDoc.download(`${userData.name || "Employee"}_${userData.last_name || "Report"}_Analytics.pdf`);
+    } catch (pdfError) {
+      console.error("Error generating PDF document:", pdfError);
+      alert("Could not generate PDF document. Please try again or contact support.");
     }
-  };
+    
+  } catch (error) {
+    console.error("Error generating analytics PDF:", error);
+    alert("Error generating analytics report. Please try again.");
+  } finally {
+    setGeneratingPdf(false);
+  }
+};
 
   return (
     <Grid item xs={12} lg={6}>
-      <Card
-        sx={{
-          borderRadius: 2,
-          boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
-          height: "100%",
-          display: "flex",
-          flexDirection: "column",
-          overflow: "hidden",
-          border: "none",
-        }}
-      >
-        <CardContent sx={{ p: 0, flexGrow: 0, width: "100%" }}>
-          <Box 
-            sx={{ 
-              p: { xs: 2.5, md: 3 }, 
-              borderBottom: '1px solid rgba(0,0,0,0.03)' 
-            }}
+      <Fade in={true} timeout={2200}>
+        <Paper
+          elevation={0}
+          sx={{
+            borderRadius: 3,
+            background: darkMode ? '#1a1a1a' : '#fff',
+            border: `1px solid ${darkMode ? alpha(ACCENTURE_COLORS.accentPurple1, 0.15) : alpha(ACCENTURE_COLORS.accentPurple1, 0.08)}`,
+            height: "100%",
+            display: "flex",
+            flexDirection: "column",
+            overflow: "hidden",
+            transition: "all 0.3s ease",
+            "&:hover": {
+              boxShadow: `0 8px 24px ${darkMode ? alpha(ACCENTURE_COLORS.accentPurple1, 0.12) : alpha(ACCENTURE_COLORS.accentPurple1, 0.08)}`,
+            }
+          }}
+        >
+          <CardContent sx={{ p: 0, flexGrow: 0, width: "100%" }}>
+            <Box 
+              sx={{ 
+                p: { xs: 2.5, md: 3 }, 
+                borderBottom: `1px solid ${darkMode ? alpha(ACCENTURE_COLORS.accentPurple1, 0.1) : alpha(ACCENTURE_COLORS.accentPurple1, 0.05)}`,
+                background: darkMode ? `linear-gradient(135deg, ${alpha(ACCENTURE_COLORS.accentPurple1, 0.05)}, transparent)` : `linear-gradient(135deg, ${alpha(ACCENTURE_COLORS.accentPurple1, 0.02)}, transparent)`,
+              }}
           >
             <Typography
               variant="h6"
@@ -875,23 +1495,23 @@ const UserViewer = () => {
                     "& .MuiOutlinedInput-root": {
                       borderRadius: 1.5,
                       fontSize: "0.875rem",
-                      backgroundColor: "rgba(0,0,0,0.02)",
+                      backgroundColor: darkMode ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.02)",
                       transition: "background-color 0.2s, box-shadow 0.2s",
                       "&:hover": {
-                        backgroundColor: "rgba(0,0,0,0.03)",
-                        boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
+                        backgroundColor: darkMode ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.03)",
+                        boxShadow: darkMode ? "0 1px 3px rgba(255,255,255,0.08)" : "0 1px 3px rgba(0,0,0,0.04)",
                       },
                       "&.Mui-focused": {
-                        boxShadow: "0 1px 5px rgba(0,0,0,0.08)",
+                        boxShadow: darkMode ? "0 1px 5px rgba(255,255,255,0.12)" : "0 1px 5px rgba(0,0,0,0.08)",
                       },
                       "& fieldset": {
-                        borderColor: "transparent",
+                        borderColor: darkMode ? "rgba(255,255,255,0.2)" : "transparent",
                       },
                       "&:hover fieldset": {
-                        borderColor: "transparent",
+                        borderColor: darkMode ? "rgba(255,255,255,0.3)" : "transparent",
                       },
                       "&.Mui-focused fieldset": {
-                        borderColor: `${ACCENTURE_COLORS.corePurple1}50`,
+                        borderColor: `${ACCENTURE_COLORS.corePurple1}${darkMode ? '80' : '50'}`,
                       },
                     },
                   }}
@@ -906,23 +1526,23 @@ const UserViewer = () => {
                     "& .MuiOutlinedInput-root": {
                       borderRadius: 1.5,
                       fontSize: "0.875rem",
-                      backgroundColor: "rgba(0,0,0,0.02)",
+                      backgroundColor: darkMode ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.02)",
                       transition: "background-color 0.2s, box-shadow 0.2s",
                       "&:hover": {
-                        backgroundColor: "rgba(0,0,0,0.03)",
-                        boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
+                        backgroundColor: darkMode ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.03)",
+                        boxShadow: darkMode ? "0 1px 3px rgba(255,255,255,0.08)" : "0 1px 3px rgba(0,0,0,0.04)",
                       },
                       "&.Mui-focused": {
-                        boxShadow: "0 1px 5px rgba(0,0,0,0.08)",
+                        boxShadow: darkMode ? "0 1px 5px rgba(255,255,255,0.12)" : "0 1px 5px rgba(0,0,0,0.08)",
                       },
                       "& fieldset": {
-                        borderColor: "transparent",
+                        borderColor: darkMode ? "rgba(255,255,255,0.2)" : "transparent",
                       },
                       "&:hover fieldset": {
-                        borderColor: "transparent",
+                        borderColor: darkMode ? "rgba(255,255,255,0.3)" : "transparent",
                       },
                       "&.Mui-focused fieldset": {
-                        borderColor: `${ACCENTURE_COLORS.corePurple1}50`,
+                        borderColor: `${ACCENTURE_COLORS.corePurple1}${darkMode ? '80' : '50'}`,
                       },
                     },
                   }}
@@ -932,7 +1552,7 @@ const UserViewer = () => {
                     sx={{ 
                       fontSize: "0.875rem",
                       backgroundColor: "transparent",
-                      color: theme.palette.text.secondary
+                      color: darkMode ? 'rgba(255,255,255,0.7)' : theme.palette.text.secondary
                     }}
                   >
                     Role
@@ -946,7 +1566,7 @@ const UserViewer = () => {
                       fontSize: "0.875rem",
                       "&.MuiOutlinedInput-root": {
                         "& .MuiSvgIcon-root": {
-                          color: theme.palette.text.secondary,
+                          color: darkMode ? 'rgba(255,255,255,0.5)' : theme.palette.text.secondary,
                         },
                       },
                     }}
@@ -974,13 +1594,13 @@ const UserViewer = () => {
               width: "4px",
             },
             "&::-webkit-scrollbar-track": {
-              backgroundColor: "rgba(0,0,0,0.02)",
+              backgroundColor: darkMode ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.02)",
             },
             "&::-webkit-scrollbar-thumb": {
-              backgroundColor: "rgba(0,0,0,0.09)",
+              backgroundColor: darkMode ? "rgba(255,255,255,0.15)" : "rgba(0,0,0,0.09)",
               borderRadius: "4px",
               "&:hover": {
-                backgroundColor: "rgba(0,0,0,0.13)",
+                backgroundColor: darkMode ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.13)",
               },
             },
           }}
@@ -1046,16 +1666,16 @@ const UserViewer = () => {
                     p: 1.5,
                     mb: 1.5,
                     borderRadius: 1.5,
-                    backgroundColor: "rgba(0,0,0,0.01)",
+                    backgroundColor: darkMode ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.01)",
                     transition: "transform 0.2s, box-shadow 0.2s, border-color 0.2s",
                     "&:hover": {
                       transform: "translateY(-2px)",
-                      boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
-                      backgroundColor: `${ACCENTURE_COLORS.corePurple1}05`,
-                      borderColor: `${ACCENTURE_COLORS.corePurple1}30`,
+                      boxShadow: darkMode ? "0 2px 8px rgba(255,255,255,0.1)" : "0 2px 8px rgba(0,0,0,0.06)",
+                      backgroundColor: darkMode ? `${ACCENTURE_COLORS.corePurple1}15` : `${ACCENTURE_COLORS.corePurple1}05`,
+                      borderColor: `${ACCENTURE_COLORS.corePurple1}${darkMode ? '40' : '30'}`,
                     },
                     width: "100%",
-                    border: "1px solid rgba(0,0,0,0.03)",
+                    border: darkMode ? "1px solid rgba(255,255,255,0.08)" : "1px solid rgba(0,0,0,0.03)",
                   }}
                 >
                   <Box
@@ -1119,8 +1739,8 @@ const UserViewer = () => {
                             sx={{
                               height: 20,
                               fontSize: "0.7rem",
-                              backgroundColor: `${getPermissionColor(user.permission)}15`,
-                              color: getPermissionColor(user.permission),
+                              backgroundColor: darkMode ? `${getPermissionColor(user.permission)}25` : `${getPermissionColor(user.permission)}15`,
+                              color: darkMode ? getPermissionColor(user.permission) : getPermissionColor(user.permission),
                               fontWeight: 500,
                               borderRadius: "4px",
                             }}
@@ -1153,7 +1773,7 @@ const UserViewer = () => {
                             p: 0,
                             color: theme.palette.text.secondary,
                             "&:hover": {
-                              backgroundColor: `${ACCENTURE_COLORS.corePurple1}15`,
+                              backgroundColor: darkMode ? `${ACCENTURE_COLORS.corePurple1}25` : `${ACCENTURE_COLORS.corePurple1}15`,
                               color: ACCENTURE_COLORS.corePurple1,
                             },
                           }}
@@ -1177,7 +1797,7 @@ const UserViewer = () => {
                             p: 0,
                             color: theme.palette.text.secondary,
                             "&:hover": {
-                              backgroundColor: `${ACCENTURE_COLORS.corePurple1}15`,
+                              backgroundColor: darkMode ? `${ACCENTURE_COLORS.corePurple1}25` : `${ACCENTURE_COLORS.corePurple1}15`,
                               color: ACCENTURE_COLORS.corePurple1,
                             },
                           }}
@@ -1192,7 +1812,8 @@ const UserViewer = () => {
             </Box>
           )}
         </Box>
-      </Card>
+      </Paper>
+      </Fade>
     </Grid>
   );
 };

@@ -4,13 +4,12 @@ import "./index.css";
 import App from "./App.jsx";
 import Login from "./pages/Login.jsx";
 
-import { ThemeProvider } from "@mui/material/styles";
-import theme from "./styles/theme.js";
+import { DarkModeProvider } from "./contexts/DarkModeContext";
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
-    <ThemeProvider theme={theme}>
+    <DarkModeProvider>
       <App />
-    </ThemeProvider>
+    </DarkModeProvider>
   </StrictMode>
 );
