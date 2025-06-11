@@ -1100,13 +1100,22 @@ const ReportsSection = () => {
                 size="small"
                 sx={{
                   "& .MuiOutlinedInput-root": {
-                    borderRadius: 2,
-                    transition: "all 0.2s",
-                    "&:hover fieldset": {
-                      borderColor: ACCENTURE_COLORS.corePurple1,
+                    borderRadius: 1.5,
+                    fontSize: "0.875rem",
+                    backgroundColor: theme.palette.background.paper,
+                    transition: "all 0.2s, box-shadow 0.2s",
+                    border: darkMode ? "1px solid rgba(255,255,255,0.05)" : "1px solid rgba(0,0,0,0.03)",
+                    "&:hover": {
+                      boxShadow: darkMode ? "0 2px 4px rgba(255,255,255,0.04)" : "0 2px 4px rgba(0,0,0,0.04)",
+                      "& fieldset": {
+                        borderColor: ACCENTURE_COLORS.corePurple1,
+                      },
                     },
-                    "&.Mui-focused fieldset": {
-                      borderColor: ACCENTURE_COLORS.corePurple1,
+                    "&.Mui-focused": {
+                      boxShadow: darkMode ? "0 2px 8px rgba(255,255,255,0.08)" : "0 2px 8px rgba(0,0,0,0.08)",
+                      "& fieldset": {
+                        borderColor: alpha(ACCENTURE_COLORS.corePurple1, 0.5),
+                      },
                     },
                   },
                 }}
@@ -1119,24 +1128,6 @@ const ReportsSection = () => {
                 }}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                sx={{
-                  "& .MuiOutlinedInput-root": {
-                    borderRadius: 1.5,
-                    fontSize: "0.875rem",
-                    backgroundColor: theme.palette.background.paper,
-                    transition: "box-shadow 0.2s",
-                    border: darkMode ? "1px solid rgba(255,255,255,0.05)" : "1px solid rgba(0,0,0,0.03)",
-                    "&:hover": {
-                      boxShadow: darkMode ? "0 2px 4px rgba(255,255,255,0.04)" : "0 2px 4px rgba(0,0,0,0.04)",
-                    },
-                    "&.Mui-focused": {
-                      boxShadow: darkMode ? "0 2px 8px rgba(255,255,255,0.08)" : "0 2px 8px rgba(0,0,0,0.08)",
-                      "& fieldset": {
-                        borderColor: alpha(ACCENTURE_COLORS.corePurple1, 0.5),
-                      },
-                    },
-                  },
-                }}
               />
             </Grid>
             <Grid item xs={12} sm={5}>

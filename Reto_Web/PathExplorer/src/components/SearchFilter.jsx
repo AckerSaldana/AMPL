@@ -402,7 +402,6 @@ const SearchFilter = ({
       <AddEmployeeForm 
         open={addEmployeeOpen} 
         onClose={handleCloseAddEmployee} 
-        onSuccess={onAddEmployee}
         darkMode={darkMode}
         onSuccess={() => {
           handleCloseAddEmployee();

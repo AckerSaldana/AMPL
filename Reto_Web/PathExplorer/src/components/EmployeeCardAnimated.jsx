@@ -71,12 +71,12 @@ const EmployeeCardAnimated = ({ employee, onViewDetails, useModal = false, isLoa
   // Loading skeleton
   if (isLoading) {
     return (
-      <Paper sx={{ p: isSmallScreen ? 2 : 3, borderRadius: 3, height: 380, display: "flex", flexDirection: "column" }}>
-        <Box sx={{ display: "flex", alignItems: "center", mb: 2, flexShrink: 0 }}>
       <Paper sx={{ 
         p: isSmallScreen ? 2 : 3, 
         borderRadius: 3, 
-        height: "100%",
+        height: 380,
+        display: "flex",
+        flexDirection: "column",
         backgroundColor: darkMode ? '#1e1e1e' : '#ffffff',
         border: darkMode ? '1px solid rgba(255, 255, 255, 0.12)' : 'none'
       }}>
