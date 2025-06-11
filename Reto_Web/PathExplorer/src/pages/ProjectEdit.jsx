@@ -85,9 +85,11 @@ const ProjectEdit = () => {
     dueDate: "",
     priority: "Medium",
     status: "Not Started",
+    supervisorId: "",
   });
   const [progressValue, setProgressValue] = useState(0);
   const [teammates, setTeammates] = useState([]);
+  const [managers, setManagers] = useState([]);
 
   // Progress phases - adjusted for dark mode
   const phases = [
@@ -123,7 +125,7 @@ const ProjectEdit = () => {
       const { data: projectData, error } = await supabase
         .from("Project")
         .select(
-          "projectID, title, description, status, logo, progress, start_date, end_date, priority"
+          "projectID, title, description, status, logo, progress, start_date, end_date, priority, supervisor_id"
         )
         .eq("projectID", projectId)
         .single();
@@ -138,6 +140,7 @@ const ProjectEdit = () => {
         dueDate: projectData.end_date || "",
         priority: projectData.priority || "Medium",
         status: projectData.status || "Not Started",
+        supervisorId: projectData.supervisor_id || "",
       });
       
       if (projectData.logo && typeof projectData.logo === "string") {
@@ -156,6 +159,22 @@ const ProjectEdit = () => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Fetch managers data
+  const fetchManagers = async () => {
+    try {
+      const { data: managersData, error } = await supabase
+        .from("User")
+        .select("user_id, name, last_name, profile_pic")
+        .eq("permission", "manager");
+
+      if (error) throw error;
+
+      setManagers(managersData || []);
+    } catch (error) {
+      console.error("Error fetching managers:", error);
     }
   };
 
@@ -217,6 +236,7 @@ const ProjectEdit = () => {
         priority: overviewData.priority,
         status: "Completed",
         progress: 100,
+        supervisor_id: overviewData.supervisorId || null,
       };
 
       const { error: projectError } = await supabase
@@ -260,6 +280,7 @@ const ProjectEdit = () => {
   useEffect(() => {
     if (projectId) {
       fetchProjectDetails();
+      fetchManagers();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId]);
@@ -315,6 +336,7 @@ const ProjectEdit = () => {
         priority: overviewData.priority,
         status: overviewData.status,
         progress: progressValue,
+        supervisor_id: overviewData.supervisorId || null,
       };
 
       const { error } = await supabase
@@ -816,6 +838,48 @@ const ProjectEdit = () => {
                     <MenuItem value="In Progress">In Progress</MenuItem>
                     <MenuItem value="On Hold">On Hold</MenuItem>
                     <MenuItem value="Completed">Completed</MenuItem>
+                  </Select>
+                </FormControl>
+              </Box>
+
+              {/* Supervisor Select */}
+              <Box>
+                <Typography
+                  variant="subtitle2"
+                  fontWeight={500}
+                  sx={{ mb: 1, color: "text.secondary" }}
+                >
+                  Project Supervisor
+                </Typography>
+                <FormControl fullWidth size="small">
+                  <Select
+                    value={overviewData.supervisorId}
+                    onChange={(e) => handleOverviewChange("supervisorId", e.target.value)}
+                    displayEmpty
+                    sx={{
+                      backgroundColor: darkMode ? 'rgba(255, 255, 255, 0.05)' : 'transparent',
+                      "& .MuiSelect-select": {
+                        color: darkMode ? '#ffffff' : 'inherit',
+                      },
+                      "& .MuiOutlinedInput-notchedOutline": {
+                        borderColor: darkMode ? 'rgba(255, 255, 255, 0.23)' : "rgba(0, 0, 0, 0.23)",
+                      },
+                      "&:hover .MuiOutlinedInput-notchedOutline": {
+                        borderColor: alpha(accenturePurple1, 0.5),
+                      },
+                      "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+                        borderColor: accenturePurple1,
+                      },
+                    }}
+                  >
+                    <MenuItem value="">
+                      <em>No supervisor assigned</em>
+                    </MenuItem>
+                    {managers.map((manager) => (
+                      <MenuItem key={manager.user_id} value={manager.user_id}>
+                        {manager.name} {manager.last_name}
+                      </MenuItem>
+                    ))}
                   </Select>
                 </FormControl>
               </Box>
