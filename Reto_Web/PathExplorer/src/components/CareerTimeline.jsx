@@ -24,7 +24,7 @@ const defaultItem = {
   company: ""
 };
 
-const TimelineItem = ({ item = defaultItem, isLast = false, index = 0 }) => {
+const TimelineItem = ({ item = defaultItem, isLast = false, index = 0, darkMode = false }) => {
   // Combine default item with provided item to ensure all properties
   const safeItem = { ...defaultItem, ...item };
   
@@ -72,7 +72,7 @@ const TimelineItem = ({ item = defaultItem, isLast = false, index = 0 }) => {
           sx={{
             width: { xs: 36, md: 44 },
             height: { xs: 36, md: 44 },
-            bgcolor: "#fff",
+            bgcolor: darkMode ? '#1e1e1e' : "#fff",
             color: getColor(),
             border: `2px solid ${getColor()}`,
             boxShadow: `0 0 0 4px ${getColor()}10`,
@@ -126,13 +126,13 @@ const TimelineItem = ({ item = defaultItem, isLast = false, index = 0 }) => {
           sx={{
             p: { xs: 2, md: 3 },
             borderRadius: 2,
-            bgcolor: "#fff",
-            boxShadow: "0 2px 12px rgba(0, 0, 0, 0.03)",
-            border: `1px solid ${getColor()}10`,
+            bgcolor: darkMode ? '#1e1e1e' : "#fff",
+            boxShadow: darkMode ? "0 2px 12px rgba(255, 255, 255, 0.03)" : "0 2px 12px rgba(0, 0, 0, 0.03)",
+            border: darkMode ? '1px solid rgba(255,255,255,0.12)' : `1px solid ${getColor()}10`,
             position: "relative",
             transition: 'all 0.3s ease',
             "&:hover": {
-              boxShadow: "0 4px 20px rgba(0, 0, 0, 0.08)",
+              boxShadow: darkMode ? "0 4px 20px rgba(255, 255, 255, 0.08)" : "0 4px 20px rgba(0, 0, 0, 0.08)",
               transform: "translateY(-2px)",
               borderColor: `${getColor()}20`,
             },
@@ -142,7 +142,7 @@ const TimelineItem = ({ item = defaultItem, isLast = false, index = 0 }) => {
             variant="subtitle1"
             sx={{
               fontWeight: 500,
-              color: ACCENTURE_COLORS.black,
+              color: darkMode ? '#ffffff' : ACCENTURE_COLORS.black,
               mb: 1.5,
             }}
           >
@@ -163,7 +163,7 @@ const TimelineItem = ({ item = defaultItem, isLast = false, index = 0 }) => {
               />
               <Typography
                 variant="body2"
-                sx={{ color: ACCENTURE_COLORS.darkGray }}
+                sx={{ color: darkMode ? 'rgba(255,255,255,0.7)' : ACCENTURE_COLORS.darkGray }}
               >
                 {safeItem.displayDate}
               </Typography>
@@ -183,7 +183,7 @@ const TimelineItem = ({ item = defaultItem, isLast = false, index = 0 }) => {
                 />
                 <Typography
                   variant="body2"
-                  sx={{ color: ACCENTURE_COLORS.darkGray }}
+                  sx={{ color: darkMode ? 'rgba(255,255,255,0.7)' : ACCENTURE_COLORS.darkGray }}
                 >
                   {safeItem.role}
                 </Typography>
@@ -202,7 +202,7 @@ const TimelineItem = ({ item = defaultItem, isLast = false, index = 0 }) => {
                 />
                 <Typography
                   variant="body2"
-                  sx={{ color: ACCENTURE_COLORS.darkGray }}
+                  sx={{ color: darkMode ? 'rgba(255,255,255,0.7)' : ACCENTURE_COLORS.darkGray }}
                 >
                   {safeItem.issuer}
                 </Typography>
@@ -229,7 +229,7 @@ const TimelineItem = ({ item = defaultItem, isLast = false, index = 0 }) => {
   );
 };
 
-const CareerTimeline = ({ timelineItems = [] }) => {
+const CareerTimeline = ({ timelineItems = [], darkMode = false }) => {
   // Ensure timelineItems is an array
   const safeTimelineItems = Array.isArray(timelineItems) ? timelineItems : [];
   const [showLine, setShowLine] = useState(false);
@@ -256,6 +256,7 @@ const CareerTimeline = ({ timelineItems = [] }) => {
           item={item}
           index={index}
           isLast={index === safeTimelineItems.length - 1}
+          darkMode={darkMode}
         />
       ))}
 
@@ -266,10 +267,10 @@ const CareerTimeline = ({ timelineItems = [] }) => {
           sx={{
             p: 4,
             borderRadius: 2,
-            bgcolor: "#fff",
-            boxShadow: "0 2px 12px rgba(0, 0, 0, 0.03)",
+            bgcolor: darkMode ? '#1e1e1e' : "#fff",
+            boxShadow: darkMode ? "0 2px 12px rgba(255, 255, 255, 0.03)" : "0 2px 12px rgba(0, 0, 0, 0.03)",
             textAlign: "center",
-            border: `1px dashed ${ACCENTURE_COLORS.corePurple1}30`
+            border: darkMode ? '1px dashed rgba(255,255,255,0.2)' : `1px dashed ${ACCENTURE_COLORS.corePurple1}30`
           }}
         >
           <Typography

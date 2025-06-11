@@ -8,7 +8,6 @@ import {
   Chip,
   Button,
   Paper,
-  useTheme,
   alpha,
   CircularProgress,
   Tooltip,
@@ -24,6 +23,7 @@ import {
   Modal,
   Backdrop,
   Link,
+  useTheme,
 } from '@mui/material';
 
 // Icons
@@ -50,38 +50,40 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabase/supabaseClient';
 import { ACCENTURE_COLORS } from '../styles/styles';
 import SubmitCertification from './SubmitCertification';
+import { useDarkMode } from '../contexts/DarkModeContext';
 
 // Enhanced color palette with elegant variations
-const ELEGANT_COLORS = {
+const getElegantColors = (darkMode) => ({
   primary: ACCENTURE_COLORS.corePurple1, // Accenture purple
   primaryLight: ACCENTURE_COLORS.accentPurple3,
   primaryLighter: ACCENTURE_COLORS.accentPurple5,
   primaryDark: ACCENTURE_COLORS.corePurple3,
   secondary: '#FF395A', // Subtle accent for highlights
-  success: '#22A565',
-  warning: '#F2994A',
-  error: '#E53935',
-  neutral: '#F7F9FC',
-  neutralDark: '#E5E9F2',
-  textPrimary: '#2C3E50',
-  textSecondary: '#64748B',
-  cardBackground: '#FFFFFF',
+  success: darkMode ? '#4CAF50' : '#22A565',
+  warning: darkMode ? '#FF9800' : '#F2994A',
+  error: darkMode ? '#F44336' : '#E53935',
+  neutral: darkMode ? '#121212' : '#F7F9FC',
+  neutralDark: darkMode ? '#1e1e1e' : '#E5E9F2',
+  textPrimary: darkMode ? '#ffffff' : '#2C3E50',
+  textSecondary: darkMode ? 'rgba(255,255,255,0.7)' : '#64748B',
+  cardBackground: darkMode ? '#1e1e1e' : '#FFFFFF',
   gradientStart: ACCENTURE_COLORS.corePurple1,
   gradientEnd: ACCENTURE_COLORS.corePurple3,
-};
+  borderColor: darkMode ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.12)',
+});
 
 // Enhanced button styles
-const elegantButtonStyles = {
+const getElegantButtonStyles = (ELEGANT_COLORS, darkMode) => ({
   primary: {
     borderRadius: 8,
     fontWeight: 500,
-    boxShadow: '0 2px 6px rgba(92, 45, 145, 0.15)',
+    boxShadow: darkMode ? '0 2px 6px rgba(0, 0, 0, 0.3)' : '0 2px 6px rgba(92, 45, 145, 0.15)',
     textTransform: 'none',
     fontSize: '0.875rem',
     padding: '8px 20px',
     transition: 'all 0.2s ease-in-out',
     '&:hover': {
-      boxShadow: '0 4px 12px rgba(92, 45, 145, 0.25)',
+      boxShadow: darkMode ? '0 4px 12px rgba(0, 0, 0, 0.4)' : '0 4px 12px rgba(92, 45, 145, 0.25)',
       transform: 'translateY(-1px)',
     },
   },
@@ -95,7 +97,7 @@ const elegantButtonStyles = {
     color: ELEGANT_COLORS.primary,
     '&:hover': {
       borderColor: ELEGANT_COLORS.primaryDark,
-      backgroundColor: alpha(ELEGANT_COLORS.primary, 0.05),
+      backgroundColor: alpha(ELEGANT_COLORS.primary, darkMode ? 0.15 : 0.05),
     },
   },
   text: {
@@ -104,45 +106,49 @@ const elegantButtonStyles = {
     fontSize: '0.875rem',
     color: ELEGANT_COLORS.primary,
     '&:hover': {
-      backgroundColor: alpha(ELEGANT_COLORS.primary, 0.05),
+      backgroundColor: alpha(ELEGANT_COLORS.primary, darkMode ? 0.15 : 0.05),
     },
   },
-};
+});
 
 // Enhanced chip styles for status
-const elegantChipStyles = {
+const getElegantChipStyles = (ELEGANT_COLORS, darkMode) => ({
   approved: {
-    bgcolor: alpha(ELEGANT_COLORS.success, 0.08),
+    bgcolor: alpha(ELEGANT_COLORS.success, darkMode ? 0.15 : 0.08),
     color: ELEGANT_COLORS.success,
-    borderColor: alpha(ELEGANT_COLORS.success, 0.2),
+    borderColor: alpha(ELEGANT_COLORS.success, darkMode ? 0.3 : 0.2),
     '& .MuiChip-icon': {
       color: ELEGANT_COLORS.success,
     },
   },
   pending: {
-    bgcolor: alpha(ELEGANT_COLORS.warning, 0.08),
+    bgcolor: alpha(ELEGANT_COLORS.warning, darkMode ? 0.15 : 0.08),
     color: ELEGANT_COLORS.warning,
-    borderColor: alpha(ELEGANT_COLORS.warning, 0.2),
+    borderColor: alpha(ELEGANT_COLORS.warning, darkMode ? 0.3 : 0.2),
     '& .MuiChip-icon': {
       color: ELEGANT_COLORS.warning,
     },
   },
   rejected: {
-    bgcolor: alpha(ELEGANT_COLORS.error, 0.08),
+    bgcolor: alpha(ELEGANT_COLORS.error, darkMode ? 0.15 : 0.08),
     color: ELEGANT_COLORS.error,
-    borderColor: alpha(ELEGANT_COLORS.error, 0.2),
+    borderColor: alpha(ELEGANT_COLORS.error, darkMode ? 0.3 : 0.2),
     '& .MuiChip-icon': {
       color: ELEGANT_COLORS.error,
     },
   },
-};
+});
 
 // Fallback data - no longer used
 // const fallbackUserCertifications = [];
 
 const MyCertifications = () => {
-  const theme = useTheme();
   const navigate = useNavigate();
+  const theme = useTheme();
+  const { darkMode } = useDarkMode();
+  const ELEGANT_COLORS = getElegantColors(darkMode);
+  const elegantButtonStyles = getElegantButtonStyles(ELEGANT_COLORS, darkMode);
+  const elegantChipStyles = getElegantChipStyles(ELEGANT_COLORS, darkMode);
 
   // States
   const [activeTab, setActiveTab] = useState('all');
@@ -473,7 +479,7 @@ const MyCertifications = () => {
             borderRadius: 3,
             border: '1px solid',
             borderColor: alpha(ELEGANT_COLORS.error, 0.2),
-            bgcolor: alpha(ELEGANT_COLORS.error, 0.03),
+            bgcolor: alpha(ELEGANT_COLORS.error, darkMode ? 0.15 : 0.03),
             boxShadow: `0 10px 30px ${alpha(ELEGANT_COLORS.error, 0.05)}`,
           }}
         >
@@ -545,7 +551,6 @@ const MyCertifications = () => {
         width: "100%",
         p: { xs: 3, md: 4 },
         position: 'relative',
-        bgcolor: ELEGANT_COLORS.neutral,
         borderRadius: 3,
       }}
     >
@@ -656,7 +661,7 @@ const MyCertifications = () => {
                 borderRadius: 2,
                 minWidth: 200,
                 mt: 1,
-                boxShadow: '0 10px 30px rgba(0,0,0,0.08)',
+                boxShadow: darkMode ? '0 10px 30px rgba(0,0,0,0.3)' : '0 10px 30px rgba(0,0,0,0.08)',
                 overflow: 'visible',
                 '&:before': {
                   content: '""',
@@ -740,9 +745,9 @@ const MyCertifications = () => {
           mb: 4, 
           overflow: 'hidden',
           border: '1px solid',
-          borderColor: alpha('#000', 0.06),
-          bgcolor: 'white',
-          boxShadow: '0 5px 20px rgba(0,0,0,0.03)',
+          borderColor: darkMode ? alpha('#fff', 0.12) : alpha('#000', 0.06),
+          bgcolor: darkMode ? theme.palette.background.paper : 'white',
+          boxShadow: darkMode ? '0 5px 20px rgba(0,0,0,0.2)' : '0 5px 20px rgba(0,0,0,0.03)',
           position: 'relative',
           zIndex: 1,
         }}
@@ -872,15 +877,15 @@ const MyCertifications = () => {
                     borderRadius: 3,
                     overflow: 'hidden',
                     border: '1px solid',
-                    borderColor: alpha('#000', 0.06),
+                    borderColor: ELEGANT_COLORS.borderColor,
                     transition: 'all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1)',
                     height: '100%',
                     display: 'flex',
                     flexDirection: 'column',
                     position: 'relative',
-                    bgcolor: 'white',
+                    bgcolor: darkMode ? theme.palette.background.paper : 'white',
                     '&:hover': {
-                      boxShadow: '0 12px 24px rgba(0,0,0,0.06)',
+                      boxShadow: darkMode ? '0 12px 24px rgba(255,255,255,0.05)' : '0 12px 24px rgba(0,0,0,0.06)',
                       transform: 'translateY(-4px)',
                       borderColor: alpha(ELEGANT_COLORS.primary, 0.3),
                     }
@@ -906,7 +911,7 @@ const MyCertifications = () => {
                           : cert.status === 'pending' 
                             ? ELEGANT_COLORS.warning
                             : ELEGANT_COLORS.error,
-                        boxShadow: '0 0 0 2px rgba(255,255,255,0.9)',
+                        boxShadow: darkMode ? '0 0 0 2px rgba(0,0,0,0.5)' : '0 0 0 2px rgba(255,255,255,0.9)',
                         transition: 'all 0.2s ease',
                         '&:hover': {
                           transform: 'scale(1.2)',
@@ -950,12 +955,12 @@ const MyCertifications = () => {
                         left: 20,
                         width: 64,
                         height: 64,
-                        border: '4px solid white',
-                        boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                        bgcolor: 'white',
+                        border: darkMode ? '4px solid #1e1e1e' : '4px solid white',
+                        boxShadow: darkMode ? '0 4px 12px rgba(0,0,0,0.5)' : '0 4px 12px rgba(0,0,0,0.1)',
+                        bgcolor: theme.palette.background.paper,
                         transition: 'all 0.2s ease',
                         '.MuiPaper-root:hover &': {
-                          boxShadow: '0 6px 16px rgba(0,0,0,0.15)',
+                          boxShadow: darkMode ? '0 6px 16px rgba(0,0,0,0.6)' : '0 6px 16px rgba(0,0,0,0.15)',
                         }
                       }}
                     />
@@ -969,17 +974,17 @@ const MyCertifications = () => {
                         height: 24,
                         fontSize: '0.7rem',
                         fontWeight: 600,
-                        bgcolor: 'rgba(255,255,255,0.15)',
+                        bgcolor: darkMode ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.15)',
                         color: 'white',
                         borderRadius: 12,
                         backdropFilter: 'blur(4px)',
                         mb: 1.5,
-                        border: '0.5px solid rgba(255,255,255,0.3)',
+                        border: darkMode ? '0.5px solid rgba(255,255,255,0.2)' : '0.5px solid rgba(255,255,255,0.3)',
                         px: 1,
                         ml: 'auto',
                         transition: 'all 0.2s ease',
                         '&:hover': {
-                          bgcolor: 'rgba(255,255,255,0.25)',
+                          bgcolor: darkMode ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.25)',
                         }
                       }}
                     />
@@ -1051,7 +1056,7 @@ const MyCertifications = () => {
                         pb: 2,
                         mb: 2,
                         borderBottom: '1px solid',
-                        borderColor: alpha('#000', 0.06),
+                        borderColor: ELEGANT_COLORS.borderColor,
                       }}
                     >
                       {cert.certification.issuer}
@@ -1121,7 +1126,7 @@ const MyCertifications = () => {
                                 display: 'inline-block',
                                 width: 60,
                                 height: 8,
-                                bgcolor: alpha(ELEGANT_COLORS.primary, 0.1),
+                                bgcolor: alpha(ELEGANT_COLORS.primary, darkMode ? 0.2 : 0.1),
                                 borderRadius: 4,
                                 position: 'relative',
                                 overflow: 'hidden',
@@ -1151,7 +1156,7 @@ const MyCertifications = () => {
                         sx={{ 
                           mt: 2, 
                           p: 1.5, 
-                          bgcolor: alpha(ELEGANT_COLORS.error, 0.03),
+                          bgcolor: alpha(ELEGANT_COLORS.error, darkMode ? 0.15 : 0.03),
                           borderRadius: 2,
                           border: '1px solid',
                           borderColor: alpha(ELEGANT_COLORS.error, 0.1),
@@ -1183,7 +1188,7 @@ const MyCertifications = () => {
                         mt: 2,
                         pt: 2,
                         borderTop: '1px solid',
-                        borderColor: alpha('#000', 0.06),
+                        borderColor: ELEGANT_COLORS.borderColor,
                       }}
                     >
                       {/* Status indicator */}
@@ -1309,7 +1314,7 @@ const MyCertifications = () => {
               border: '1px dashed',
               borderColor: alpha(ELEGANT_COLORS.primary, 0.2),
               bgcolor: alpha(ELEGANT_COLORS.neutral, 0.8),
-              boxShadow: '0 6px 20px rgba(0,0,0,0.02)',
+              boxShadow: darkMode ? '0 6px 20px rgba(0,0,0,0.2)' : '0 6px 20px rgba(0,0,0,0.02)',
             }}
           >
             <Box
@@ -1403,7 +1408,7 @@ const MyCertifications = () => {
         BackdropProps={{
           timeout: 500,
           sx: { 
-            backgroundColor: alpha('#000', 0.6),
+            backgroundColor: alpha('#000', darkMode ? 0.8 : 0.6),
             backdropFilter: 'blur(8px)'
           }
         }}
@@ -1421,7 +1426,7 @@ const MyCertifications = () => {
               height: { xs: '90vh', sm: '85vh' },
               overflow: 'hidden',
               borderRadius: 3,
-              backgroundColor: '#ffffff',
+              backgroundColor: theme.palette.background.paper,
               position: 'relative',
               boxShadow: `0 20px 80px -12px ${alpha(ELEGANT_COLORS.primary, 0.35)}`,
               display: 'flex',
@@ -1436,8 +1441,8 @@ const MyCertifications = () => {
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 p: 2.5,
-                borderBottom: `1px solid ${alpha(ELEGANT_COLORS.primary, 0.1)}`,
-                background: `linear-gradient(135deg, ${alpha(ELEGANT_COLORS.primary, 0.03)} 0%, ${alpha(ELEGANT_COLORS.primary, 0.01)} 100%)`,
+                borderBottom: `1px solid ${alpha(ELEGANT_COLORS.primary, darkMode ? 0.2 : 0.1)}`,
+                background: `linear-gradient(135deg, ${alpha(ELEGANT_COLORS.primary, darkMode ? 0.1 : 0.03)} 0%, ${alpha(ELEGANT_COLORS.primary, darkMode ? 0.05 : 0.01)} 100%)`,
               }}
             >
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -1493,7 +1498,7 @@ const MyCertifications = () => {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              bgcolor: alpha(ELEGANT_COLORS.primary, 0.02),
+              bgcolor: alpha(ELEGANT_COLORS.primary, darkMode ? 0.05 : 0.02),
             }}>
               {selectedEvidence && selectedEvidence.endsWith('.pdf') ? (
                 <iframe

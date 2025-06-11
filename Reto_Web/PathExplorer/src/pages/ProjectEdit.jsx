@@ -7,7 +7,6 @@ import {
   Paper,
   Snackbar,
   Alert,
-  useTheme,
   TextField,
   FormControl,
   InputLabel,
@@ -26,10 +25,14 @@ import {
   DialogContent,
   DialogActions,
   Container,
-  IconButton
+  IconButton,
+  useTheme
 } from "@mui/material";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "../supabase/supabaseClient.js";
+import { useDarkMode } from "../contexts/DarkModeContext";
+import { getDarkModeStyles } from "../styles/darkModeStyles";
+import { ACCENTURE_COLORS } from "../styles/styles";
 
 // Icons
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
@@ -48,11 +51,12 @@ const ProjectEdit = () => {
   const projectId = id;
   const navigate = useNavigate();
   const theme = useTheme();
+  const { darkMode } = useDarkMode();
 
   // Core Accenture Colors
-  const accenturePurple1 = "#a100ff"; // Core Purple 1
-  const accenturePurple2 = "#7500c0"; // Core Purple 2
-  const accenturePurple3 = "#460073"; // Core Purple 3
+  const accenturePurple1 = ACCENTURE_COLORS.corePurple1;
+  const accenturePurple2 = ACCENTURE_COLORS.corePurple2;
+  const accenturePurple3 = ACCENTURE_COLORS.corePurple3;
   
   // Project state
   const [project, setProject] = useState(null);
@@ -85,14 +89,14 @@ const ProjectEdit = () => {
   const [progressValue, setProgressValue] = useState(0);
   const [teammates, setTeammates] = useState([]);
 
-  // Progress phases
+  // Progress phases - adjusted for dark mode
   const phases = [
-    { label: "Planning", value: 0, color: accenturePurple3 },
-    { label: "Design", value: 20, color: accenturePurple2 },
+    { label: "Planning", value: 0, color: darkMode ? "#7B4397" : accenturePurple3 },
+    { label: "Design", value: 20, color: darkMode ? "#9747FF" : accenturePurple2 },
     { label: "Development", value: 50, color: accenturePurple1 },
-    { label: "Testing", value: 70, color: "#be82ff" }, // Accent Purple 3
-    { label: "Deployment", value: 90, color: "#dcafff" }, // Accent Purple 4
-    { label: "Completed", value: 100, color: "#4caf50" }, // Green for completion
+    { label: "Testing", value: 70, color: darkMode ? "#C77DFF" : "#be82ff" },
+    { label: "Deployment", value: 90, color: darkMode ? "#E0AAFF" : "#dcafff" },
+    { label: "Completed", value: 100, color: darkMode ? "#66BB6A" : "#4caf50" },
   ];
 
   // Get the current phase based on progress value
@@ -359,7 +363,7 @@ const ProjectEdit = () => {
   }
 
   return (
-    <Box sx={{ width: "100%", height: "100%", p: 0, bgcolor: "#f8f9fa" }}>
+    <Box sx={{ width: "100%", height: "100%", p: 0 }}>
       {/* Header with title and actions */}
       <Box
         sx={{
@@ -371,7 +375,7 @@ const ProjectEdit = () => {
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          backgroundColor: alpha(accenturePurple1, 0.05),
+          backgroundColor: darkMode ? alpha(accenturePurple1, 0.1) : alpha(accenturePurple1, 0.05),
           borderRadius: 1
         }}
       >
@@ -382,12 +386,15 @@ const ProjectEdit = () => {
             variant="text"
             size="small"
             sx={{
-              color: "text.secondary",
+              color: darkMode ? "rgba(255, 255, 255, 0.7)" : "text.secondary",
               mb: 1,
               px: 1,
               py: 0.5,
               fontWeight: 500,
               textTransform: "none",
+              "&:hover": {
+                color: darkMode ? "rgba(255, 255, 255, 0.9)" : "text.primary",
+              }
             }}
           >
             Back to Project
@@ -480,9 +487,9 @@ const ProjectEdit = () => {
               sx={{ 
                 p: 3, 
                 borderRadius: 1, 
-                height: "100%",
-                bgcolor: "#ffffff",
-                border: `1px solid ${alpha('#000', 0.07)}`,
+                height: "auto",
+                bgcolor: theme.palette.background.paper,
+                border: `1px solid ${darkMode ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.12)'}`,
               }}
             >
             <Box
@@ -514,18 +521,18 @@ const ProjectEdit = () => {
                 <Box
                   sx={{
                     border: "1px dashed",
-                    borderColor: alpha(accenturePurple1, 0.3),
+                    borderColor: darkMode ? alpha(accenturePurple1, 0.5) : alpha(accenturePurple1, 0.3),
                     borderRadius: 1,
                     p: 3,
                     width: "100%",
                     display: "flex",
                     flexDirection: "column",
                     alignItems: "center",
-                    backgroundColor: alpha(accenturePurple1, 0.02),
+                    backgroundColor: darkMode ? alpha(accenturePurple1, 0.05) : alpha(accenturePurple1, 0.02),
                     transition: "all 0.2s ease",
                     "&:hover": {
                       borderColor: accenturePurple1,
-                      backgroundColor: alpha(accenturePurple1, 0.04),
+                      backgroundColor: darkMode ? alpha(accenturePurple1, 0.08) : alpha(accenturePurple1, 0.04),
                     },
                   }}
                 >
@@ -656,6 +663,10 @@ const ProjectEdit = () => {
                   placeholder="Enter project title"
                   sx={{
                     "& .MuiOutlinedInput-root": {
+                      backgroundColor: darkMode ? 'rgba(255, 255, 255, 0.05)' : 'transparent',
+                      "& .MuiOutlinedInput-input": {
+                        color: darkMode ? '#ffffff' : 'inherit',
+                      },
                       "&:hover .MuiOutlinedInput-notchedOutline": {
                         borderColor: alpha(accenturePurple1, 0.5),
                       },
@@ -687,6 +698,10 @@ const ProjectEdit = () => {
                   placeholder="Describe the project objectives and scope"
                   sx={{
                     "& .MuiOutlinedInput-root": {
+                      backgroundColor: darkMode ? 'rgba(255, 255, 255, 0.05)' : 'transparent',
+                      "& .MuiOutlinedInput-input": {
+                        color: darkMode ? '#ffffff' : 'inherit',
+                      },
                       "&:hover .MuiOutlinedInput-notchedOutline": {
                         borderColor: alpha(accenturePurple1, 0.5),
                       },
@@ -717,6 +732,10 @@ const ProjectEdit = () => {
                   InputLabelProps={{ shrink: true }}
                   sx={{
                     "& .MuiOutlinedInput-root": {
+                      backgroundColor: darkMode ? 'rgba(255, 255, 255, 0.05)' : 'transparent',
+                      "& .MuiOutlinedInput-input": {
+                        color: darkMode ? '#ffffff' : 'inherit',
+                      },
                       "&:hover .MuiOutlinedInput-notchedOutline": {
                         borderColor: alpha(accenturePurple1, 0.5),
                       },
@@ -742,8 +761,12 @@ const ProjectEdit = () => {
                     value={overviewData.priority}
                     onChange={(e) => handleOverviewChange("priority", e.target.value)}
                     sx={{
+                      backgroundColor: darkMode ? 'rgba(255, 255, 255, 0.05)' : 'transparent',
+                      "& .MuiSelect-select": {
+                        color: darkMode ? '#ffffff' : 'inherit',
+                      },
                       "& .MuiOutlinedInput-notchedOutline": {
-                        borderColor: "rgba(0, 0, 0, 0.23)",
+                        borderColor: darkMode ? 'rgba(255, 255, 255, 0.23)' : "rgba(0, 0, 0, 0.23)",
                       },
                       "&:hover .MuiOutlinedInput-notchedOutline": {
                         borderColor: alpha(accenturePurple1, 0.5),
@@ -774,8 +797,12 @@ const ProjectEdit = () => {
                     value={overviewData.status}
                     onChange={(e) => handleOverviewChange("status", e.target.value)}
                     sx={{
+                      backgroundColor: darkMode ? 'rgba(255, 255, 255, 0.05)' : 'transparent',
+                      "& .MuiSelect-select": {
+                        color: darkMode ? '#ffffff' : 'inherit',
+                      },
                       "& .MuiOutlinedInput-notchedOutline": {
-                        borderColor: "rgba(0, 0, 0, 0.23)",
+                        borderColor: darkMode ? 'rgba(255, 255, 255, 0.23)' : "rgba(0, 0, 0, 0.23)",
                       },
                       "&:hover .MuiOutlinedInput-notchedOutline": {
                         borderColor: alpha(accenturePurple1, 0.5),
@@ -807,8 +834,8 @@ const ProjectEdit = () => {
                 borderRadius: 1,
                 position: "relative",
                 overflow: "hidden",
-                bgcolor: "#ffffff",
-                border: `1px solid ${alpha('#000', 0.07)}`,
+                bgcolor: theme.palette.background.paper,
+                border: `1px solid ${darkMode ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.12)'}`,
                 boxShadow: "none",
               }}
             >
@@ -873,7 +900,7 @@ const ProjectEdit = () => {
                   sx={{
                     height: 8,
                     borderRadius: 5,
-                    backgroundColor: alpha('#000', 0.05),
+                    backgroundColor: darkMode ? 'rgba(255, 255, 255, 0.08)' : alpha('#000', 0.05),
                     "& .MuiLinearProgress-bar": {
                       backgroundColor: getColorForProgress(progressValue),
                       transition: "transform 0.8s ease-in-out",
@@ -894,9 +921,9 @@ const ProjectEdit = () => {
                         backgroundColor:
                           progressValue >= phase.value
                             ? phase.color
-                            : alpha('#000', 0.1),
+                            : darkMode ? alpha('#fff', 0.2) : alpha('#000', 0.1),
                         border:
-                          progressValue === phase.value ? `2px solid ${alpha('#000', 0.3)}` : "none",
+                          progressValue === phase.value ? `2px solid ${darkMode ? alpha('#fff', 0.5) : alpha('#000', 0.3)}` : "none",
                         transform:
                           progressValue === phase.value ? "scale(1.2)" : "scale(1)",
                         transition: "all 0.3s ease",
@@ -965,10 +992,10 @@ const ProjectEdit = () => {
               sx={{
                 p: 3,
                 borderRadius: 1,
-                bgcolor: "#ffffff",
-                border: `1px solid ${alpha('#000', 0.07)}`,
+                bgcolor: theme.palette.background.paper,
+                border: `1px solid ${darkMode ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.12)'}`,
                 boxShadow: "none",
-                flexGrow: 1,
+                maxHeight: "400px",
                 display: "flex",
                 flexDirection: "column",
               }}
@@ -997,11 +1024,11 @@ const ProjectEdit = () => {
                   pr: 1,
                   "&::-webkit-scrollbar": { width: "6px" },
                   "&::-webkit-scrollbar-thumb": {
-                    backgroundColor: alpha('#000', 0.2),
+                    backgroundColor: darkMode ? alpha('#fff', 0.2) : alpha('#000', 0.2),
                     borderRadius: "4px",
                   },
                   "&::-webkit-scrollbar-track": {
-                    backgroundColor: alpha('#000', 0.05),
+                    backgroundColor: darkMode ? alpha('#fff', 0.05) : alpha('#000', 0.05),
                     borderRadius: "4px",
                   },
                 }}
@@ -1014,9 +1041,9 @@ const ProjectEdit = () => {
                         p: 2,
                         mb: 2,
                         borderRadius: 1,
-                        backgroundColor: "background.paper",
+                        backgroundColor: darkMode ? alpha('#fff', 0.03) : "background.paper",
                         border: "1px solid",
-                        borderColor: alpha('#000', 0.08),
+                        borderColor: darkMode ? alpha('#fff', 0.08) : alpha('#000', 0.08),
                         boxShadow: "none",
                         display: "flex",
                         justifyContent: "space-between",
@@ -1070,6 +1097,12 @@ const ProjectEdit = () => {
         onClose={handleCloseFeedback}
         maxWidth="sm"
         fullWidth
+        PaperProps={{
+          sx: {
+            bgcolor: darkMode ? '#1e1e1e' : '#ffffff',
+            backgroundImage: 'none',
+          }
+        }}
       >
         <DialogTitle sx={{ textAlign: "center", pt: 2 }}>
           <Typography component="div" variant="h5" fontWeight={600}>
@@ -1094,6 +1127,20 @@ const ProjectEdit = () => {
                     [m.user_id]: e.target.value
                   }))
                 }
+                sx={{
+                  "& .MuiOutlinedInput-root": {
+                    backgroundColor: darkMode ? 'rgba(255, 255, 255, 0.05)' : 'transparent',
+                    "& .MuiOutlinedInput-input": {
+                      color: darkMode ? '#ffffff' : 'inherit',
+                    },
+                    "&:hover .MuiOutlinedInput-notchedOutline": {
+                      borderColor: alpha(accenturePurple1, 0.5),
+                    },
+                    "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+                      borderColor: accenturePurple1,
+                    },
+                  },
+                }}
               />
             </Box>
           ))}
@@ -1101,8 +1148,14 @@ const ProjectEdit = () => {
         <DialogActions sx={{ justifyContent: "center", mb: 1 }}>
           <Button
             variant="contained"
-            onClick={handleSubmitFeedback}          // <-- aquí
+            onClick={handleSubmitFeedback}
             disabled={saving}
+            sx={{
+              bgcolor: accenturePurple1,
+              "&:hover": {
+                bgcolor: accenturePurple2,
+              },
+            }}
           >
             Submit Feedback & Save changes
           </Button>

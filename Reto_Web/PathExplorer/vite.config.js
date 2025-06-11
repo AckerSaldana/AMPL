@@ -12,5 +12,22 @@ export default defineConfig({
         secure: false
       }
     }
+  },
+  build: {
+    // Prevenir que se eliminen estilos condicionales en producción
+    cssCodeSplit: true,
+    sourcemap: false,
+    minify: 'esbuild',
+    // Configuración para esbuild para mantener el código de dark mode
+    esbuildOptions: {
+      drop: ['console', 'debugger'],
+      // Mantener el código para dark mode
+      treeShaking: true,
+      pure: [],
+    },
+  },
+  // Asegurar que los estilos inline se mantengan
+  esbuild: {
+    keepNames: true,
   }
 })

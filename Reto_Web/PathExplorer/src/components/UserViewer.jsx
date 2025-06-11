@@ -28,6 +28,7 @@ import AssessmentIcon from "@mui/icons-material/Assessment";
 import { supabase } from "../supabase/supabaseClient";
 import { useTheme } from "@mui/material/styles";
 import { ACCENTURE_COLORS } from "../styles/styles.js";
+import { useDarkMode } from '../contexts/DarkModeContext';
 
 // Importar pdfMake para la generación de PDF
 import pdfMake from "pdfmake/build/pdfmake";
@@ -61,6 +62,7 @@ Chart.register(
 
 const UserViewer = () => {
   const theme = useTheme();
+  const { darkMode } = useDarkMode();
 
   // Responsive breakpoints
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
@@ -1437,15 +1439,15 @@ const handleDownloadAnalytics = async (userId) => {
           elevation={0}
           sx={{
             borderRadius: 3,
-            background: '#fff',
-            border: `1px solid ${alpha(ACCENTURE_COLORS.accentPurple1, 0.08)}`,
+            background: darkMode ? '#1a1a1a' : '#fff',
+            border: `1px solid ${darkMode ? alpha(ACCENTURE_COLORS.accentPurple1, 0.15) : alpha(ACCENTURE_COLORS.accentPurple1, 0.08)}`,
             height: "100%",
             display: "flex",
             flexDirection: "column",
             overflow: "hidden",
             transition: "all 0.3s ease",
             "&:hover": {
-              boxShadow: `0 8px 24px ${alpha(ACCENTURE_COLORS.accentPurple1, 0.08)}`,
+              boxShadow: `0 8px 24px ${darkMode ? alpha(ACCENTURE_COLORS.accentPurple1, 0.12) : alpha(ACCENTURE_COLORS.accentPurple1, 0.08)}`,
             }
           }}
         >
@@ -1453,8 +1455,8 @@ const handleDownloadAnalytics = async (userId) => {
             <Box 
               sx={{ 
                 p: { xs: 2.5, md: 3 }, 
-                borderBottom: `1px solid ${alpha(ACCENTURE_COLORS.accentPurple1, 0.05)}`,
-                background: `linear-gradient(135deg, ${alpha(ACCENTURE_COLORS.accentPurple1, 0.02)}, transparent)`,
+                borderBottom: `1px solid ${darkMode ? alpha(ACCENTURE_COLORS.accentPurple1, 0.1) : alpha(ACCENTURE_COLORS.accentPurple1, 0.05)}`,
+                background: darkMode ? `linear-gradient(135deg, ${alpha(ACCENTURE_COLORS.accentPurple1, 0.05)}, transparent)` : `linear-gradient(135deg, ${alpha(ACCENTURE_COLORS.accentPurple1, 0.02)}, transparent)`,
               }}
           >
             <Typography
@@ -1493,23 +1495,23 @@ const handleDownloadAnalytics = async (userId) => {
                     "& .MuiOutlinedInput-root": {
                       borderRadius: 1.5,
                       fontSize: "0.875rem",
-                      backgroundColor: "rgba(0,0,0,0.02)",
+                      backgroundColor: darkMode ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.02)",
                       transition: "background-color 0.2s, box-shadow 0.2s",
                       "&:hover": {
-                        backgroundColor: "rgba(0,0,0,0.03)",
-                        boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
+                        backgroundColor: darkMode ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.03)",
+                        boxShadow: darkMode ? "0 1px 3px rgba(255,255,255,0.08)" : "0 1px 3px rgba(0,0,0,0.04)",
                       },
                       "&.Mui-focused": {
-                        boxShadow: "0 1px 5px rgba(0,0,0,0.08)",
+                        boxShadow: darkMode ? "0 1px 5px rgba(255,255,255,0.12)" : "0 1px 5px rgba(0,0,0,0.08)",
                       },
                       "& fieldset": {
-                        borderColor: "transparent",
+                        borderColor: darkMode ? "rgba(255,255,255,0.2)" : "transparent",
                       },
                       "&:hover fieldset": {
-                        borderColor: "transparent",
+                        borderColor: darkMode ? "rgba(255,255,255,0.3)" : "transparent",
                       },
                       "&.Mui-focused fieldset": {
-                        borderColor: `${ACCENTURE_COLORS.corePurple1}50`,
+                        borderColor: `${ACCENTURE_COLORS.corePurple1}${darkMode ? '80' : '50'}`,
                       },
                     },
                   }}
@@ -1524,23 +1526,23 @@ const handleDownloadAnalytics = async (userId) => {
                     "& .MuiOutlinedInput-root": {
                       borderRadius: 1.5,
                       fontSize: "0.875rem",
-                      backgroundColor: "rgba(0,0,0,0.02)",
+                      backgroundColor: darkMode ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.02)",
                       transition: "background-color 0.2s, box-shadow 0.2s",
                       "&:hover": {
-                        backgroundColor: "rgba(0,0,0,0.03)",
-                        boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
+                        backgroundColor: darkMode ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.03)",
+                        boxShadow: darkMode ? "0 1px 3px rgba(255,255,255,0.08)" : "0 1px 3px rgba(0,0,0,0.04)",
                       },
                       "&.Mui-focused": {
-                        boxShadow: "0 1px 5px rgba(0,0,0,0.08)",
+                        boxShadow: darkMode ? "0 1px 5px rgba(255,255,255,0.12)" : "0 1px 5px rgba(0,0,0,0.08)",
                       },
                       "& fieldset": {
-                        borderColor: "transparent",
+                        borderColor: darkMode ? "rgba(255,255,255,0.2)" : "transparent",
                       },
                       "&:hover fieldset": {
-                        borderColor: "transparent",
+                        borderColor: darkMode ? "rgba(255,255,255,0.3)" : "transparent",
                       },
                       "&.Mui-focused fieldset": {
-                        borderColor: `${ACCENTURE_COLORS.corePurple1}50`,
+                        borderColor: `${ACCENTURE_COLORS.corePurple1}${darkMode ? '80' : '50'}`,
                       },
                     },
                   }}
@@ -1550,7 +1552,7 @@ const handleDownloadAnalytics = async (userId) => {
                     sx={{ 
                       fontSize: "0.875rem",
                       backgroundColor: "transparent",
-                      color: theme.palette.text.secondary
+                      color: darkMode ? 'rgba(255,255,255,0.7)' : theme.palette.text.secondary
                     }}
                   >
                     Role
@@ -1564,7 +1566,7 @@ const handleDownloadAnalytics = async (userId) => {
                       fontSize: "0.875rem",
                       "&.MuiOutlinedInput-root": {
                         "& .MuiSvgIcon-root": {
-                          color: theme.palette.text.secondary,
+                          color: darkMode ? 'rgba(255,255,255,0.5)' : theme.palette.text.secondary,
                         },
                       },
                     }}
@@ -1592,13 +1594,13 @@ const handleDownloadAnalytics = async (userId) => {
               width: "4px",
             },
             "&::-webkit-scrollbar-track": {
-              backgroundColor: "rgba(0,0,0,0.02)",
+              backgroundColor: darkMode ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.02)",
             },
             "&::-webkit-scrollbar-thumb": {
-              backgroundColor: "rgba(0,0,0,0.09)",
+              backgroundColor: darkMode ? "rgba(255,255,255,0.15)" : "rgba(0,0,0,0.09)",
               borderRadius: "4px",
               "&:hover": {
-                backgroundColor: "rgba(0,0,0,0.13)",
+                backgroundColor: darkMode ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.13)",
               },
             },
           }}
@@ -1664,16 +1666,16 @@ const handleDownloadAnalytics = async (userId) => {
                     p: 1.5,
                     mb: 1.5,
                     borderRadius: 1.5,
-                    backgroundColor: "rgba(0,0,0,0.01)",
+                    backgroundColor: darkMode ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.01)",
                     transition: "transform 0.2s, box-shadow 0.2s, border-color 0.2s",
                     "&:hover": {
                       transform: "translateY(-2px)",
-                      boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
-                      backgroundColor: `${ACCENTURE_COLORS.corePurple1}05`,
-                      borderColor: `${ACCENTURE_COLORS.corePurple1}30`,
+                      boxShadow: darkMode ? "0 2px 8px rgba(255,255,255,0.1)" : "0 2px 8px rgba(0,0,0,0.06)",
+                      backgroundColor: darkMode ? `${ACCENTURE_COLORS.corePurple1}15` : `${ACCENTURE_COLORS.corePurple1}05`,
+                      borderColor: `${ACCENTURE_COLORS.corePurple1}${darkMode ? '40' : '30'}`,
                     },
                     width: "100%",
-                    border: "1px solid rgba(0,0,0,0.03)",
+                    border: darkMode ? "1px solid rgba(255,255,255,0.08)" : "1px solid rgba(0,0,0,0.03)",
                   }}
                 >
                   <Box
@@ -1737,8 +1739,8 @@ const handleDownloadAnalytics = async (userId) => {
                             sx={{
                               height: 20,
                               fontSize: "0.7rem",
-                              backgroundColor: `${getPermissionColor(user.permission)}15`,
-                              color: getPermissionColor(user.permission),
+                              backgroundColor: darkMode ? `${getPermissionColor(user.permission)}25` : `${getPermissionColor(user.permission)}15`,
+                              color: darkMode ? getPermissionColor(user.permission) : getPermissionColor(user.permission),
                               fontWeight: 500,
                               borderRadius: "4px",
                             }}
@@ -1771,7 +1773,7 @@ const handleDownloadAnalytics = async (userId) => {
                             p: 0,
                             color: theme.palette.text.secondary,
                             "&:hover": {
-                              backgroundColor: `${ACCENTURE_COLORS.corePurple1}15`,
+                              backgroundColor: darkMode ? `${ACCENTURE_COLORS.corePurple1}25` : `${ACCENTURE_COLORS.corePurple1}15`,
                               color: ACCENTURE_COLORS.corePurple1,
                             },
                           }}
@@ -1795,7 +1797,7 @@ const handleDownloadAnalytics = async (userId) => {
                             p: 0,
                             color: theme.palette.text.secondary,
                             "&:hover": {
-                              backgroundColor: `${ACCENTURE_COLORS.corePurple1}15`,
+                              backgroundColor: darkMode ? `${ACCENTURE_COLORS.corePurple1}25` : `${ACCENTURE_COLORS.corePurple1}15`,
                               color: ACCENTURE_COLORS.corePurple1,
                             },
                           }}

@@ -29,7 +29,7 @@ import PriorityHighIcon from "@mui/icons-material/PriorityHigh";
 import TodayIcon from "@mui/icons-material/Today";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 
-export const CalendarCompact = ({ userId }) => {
+export const CalendarCompact = ({ userId, darkMode = false }) => {
   const [currentMonth, setCurrentMonth] = useState(dayjs());
   const [selectedDate, setSelectedDate] = useState(dayjs());
   const [projectReminders, setProjectReminders] = useState([]);
@@ -288,9 +288,9 @@ export const CalendarCompact = ({ userId }) => {
       <Paper elevation={0} sx={{ 
         mb: 0,
         borderRadius: 2,
-        bgcolor: '#ffffff',
-        border: `1px solid ${alpha(profilePurple, 0.1)}`,
-        boxShadow: '0 2px 12px rgba(0,0,0,0.03)',
+        bgcolor: darkMode ? '#1e1e1e' : '#ffffff',
+        border: darkMode ? '1px solid rgba(255, 255, 255, 0.12)' : `1px solid ${alpha(profilePurple, 0.1)}`,
+        boxShadow: darkMode ? '0 4px 6px rgba(0,0,0,0.3)' : '0 2px 12px rgba(0,0,0,0.03)',
         overflow: 'visible',
         height: '100%',
         display: 'flex',
@@ -300,8 +300,8 @@ export const CalendarCompact = ({ userId }) => {
         <Box sx={{ 
           px: { xs: 1.5, sm: 2, md: 2.5 },
           py: { xs: 1.5, sm: 2, md: 2.5 },
-          bgcolor: alpha(profilePurple, 0.04),
-          borderBottom: `1px solid ${alpha(profilePurple, 0.1)}`,
+          bgcolor: darkMode ? 'rgba(255, 255, 255, 0.05)' : alpha(profilePurple, 0.04),
+          borderBottom: darkMode ? `1px solid rgba(255,255,255,0.12)` : `1px solid ${alpha(profilePurple, 0.1)}`,
         }}>
           <Box sx={{ 
             display: 'flex', 
@@ -314,7 +314,7 @@ export const CalendarCompact = ({ userId }) => {
                 variant="h6" 
                 sx={{ 
                   fontWeight: 600,
-                  color: 'text.primary',
+                  color: darkMode ? '#ffffff' : 'text.primary',
                   fontSize: { xs: '0.875rem', sm: '1rem', md: '1.125rem' },
                 }}
               >
@@ -382,7 +382,7 @@ export const CalendarCompact = ({ userId }) => {
                     fontSize: { xs: '0.65rem', sm: '0.75rem', md: '0.875rem' },
                     color: (index === 0 || index === 6) 
                       ? profilePurple 
-                      : 'text.secondary',
+                      : (darkMode ? 'rgba(255,255,255,0.7)' : 'text.secondary'),
                   }}
                 >
                   {day}
@@ -426,8 +426,8 @@ export const CalendarCompact = ({ userId }) => {
                     : day.isToday 
                     ? profilePurple 
                     : day.isCurrentMonth 
-                    ? 'text.primary' 
-                    : 'text.disabled',
+                    ? (darkMode ? '#ffffff' : 'text.primary') 
+                    : (darkMode ? 'rgba(255,255,255,0.3)' : 'text.disabled'),
                   fontWeight: day.isToday || day.isSelected ? 600 : 400,
                   fontSize: { xs: '0.65rem', sm: '0.75rem', md: '0.875rem', lg: '0.95rem' },
                   '&::after': day.hasDeadline ? {
@@ -459,7 +459,7 @@ export const CalendarCompact = ({ userId }) => {
         <Box sx={{ 
           px: { xs: 1.5, sm: 2, md: 2.5 }, 
           py: { xs: 1.5, sm: 2, md: 2.5 },
-          borderTop: `1px solid ${alpha(profilePurple, 0.08)}`,
+          borderTop: darkMode ? `1px solid rgba(255,255,255,0.12)` : `1px solid ${alpha(profilePurple, 0.08)}`,
           flexGrow: 1,
           display: 'flex',
           flexDirection: 'column',
@@ -471,7 +471,7 @@ export const CalendarCompact = ({ userId }) => {
               fontWeight: 600,
               fontSize: { xs: '0.875rem', sm: '0.95rem', md: '1rem' },
               mb: { xs: 1.25, sm: 1.5, md: 1.75 },
-              color: 'text.primary',
+              color: darkMode ? '#ffffff' : 'text.primary',
               display: 'flex',
               alignItems: 'center',
               gap: { xs: 0.75, sm: 1, md: 1.25 },
@@ -511,13 +511,13 @@ export const CalendarCompact = ({ userId }) => {
                     position: 'relative',
                     borderRadius: 1.5,
                     overflow: 'hidden',
-                    border: `1px solid ${alpha(profilePurple, 0.1)}`,
-                    background: '#ffffff',
+                    border: darkMode ? `1px solid rgba(255,255,255,0.12)` : `1px solid ${alpha(profilePurple, 0.1)}`,
+                    background: darkMode ? 'rgba(255, 255, 255, 0.05)' : '#ffffff',
                     transition: 'all 0.2s ease',
                     cursor: 'pointer',
                     '&:hover': {
-                      borderColor: alpha(profilePurple, 0.2),
-                      bgcolor: alpha(profilePurple, 0.02),
+                      borderColor: darkMode ? 'rgba(255, 255, 255, 0.2)' : alpha(profilePurple, 0.2),
+                      bgcolor: darkMode ? 'rgba(255, 255, 255, 0.08)' : alpha(profilePurple, 0.02),
                     }
                   }}
                 >
@@ -543,7 +543,7 @@ export const CalendarCompact = ({ userId }) => {
                           sx={{ 
                             fontWeight: 600,
                             fontSize: { xs: '0.8125rem', sm: '0.875rem', md: '0.9375rem' },
-                            color: 'text.primary',
+                            color: darkMode ? '#ffffff' : 'text.primary',
                             lineHeight: 1.3,
                             mb: { xs: 0.5, sm: 0.75 }
                           }}
@@ -557,7 +557,7 @@ export const CalendarCompact = ({ userId }) => {
                           gap: { xs: 1, sm: 1.5, md: 1.75 },
                           flexWrap: 'wrap'
                         }}>
-                          <Typography variant="caption" color="text.secondary" sx={{ fontSize: { xs: '0.7rem', sm: '0.75rem', md: '0.8125rem' } }}>
+                          <Typography variant="caption" color={darkMode ? 'rgba(255,255,255,0.7)' : "text.secondary"} sx={{ fontSize: { xs: '0.7rem', sm: '0.75rem', md: '0.8125rem' } }}>
                             {project.formattedDate}
                           </Typography>
                           
@@ -615,14 +615,14 @@ export const CalendarCompact = ({ userId }) => {
             <Box sx={{ 
               textAlign: 'center', 
               py: 3,
-              border: `1px dashed ${alpha(profilePurple, 0.2)}`, 
+              border: darkMode ? `1px dashed rgba(255,255,255,0.2)` : `1px dashed ${alpha(profilePurple, 0.2)}`, 
               borderRadius: 1.5,
-              bgcolor: alpha(profilePurple, 0.02)
+              bgcolor: darkMode ? 'rgba(255, 255, 255, 0.03)' : alpha(profilePurple, 0.02)
             }}>
               <Typography 
                 variant="caption" 
                 sx={{ 
-                  color: 'text.secondary',
+                  color: darkMode ? 'rgba(255,255,255,0.7)' : 'text.secondary',
                   fontSize: '0.875rem'
                 }}
               >

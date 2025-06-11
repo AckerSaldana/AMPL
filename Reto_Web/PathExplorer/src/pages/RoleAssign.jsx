@@ -4,7 +4,6 @@ import {
   Grid,
   Paper,
   Typography,
-  useTheme,
   Button,
   Divider,
   IconButton,
@@ -26,9 +25,10 @@ import CloseIcon from "@mui/icons-material/Close";
 import InfoIcon from "@mui/icons-material/Info";
 import { ACCENTURE_COLORS, contentPaperStyles } from "../styles/styles";
 import { supabase } from "../supabase/supabaseClient";
-import { useNavigate, useLocation, useBeforeUnload } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import RoleCard from "../components/RoleCard";
 import MatchedEmployeeCard from "../components/MatchedEmployeeCard";
+import { useDarkMode } from "../contexts/DarkModeContext";
 
 import SupervisorCard from "../components/SupervisorCard";
 
@@ -197,7 +197,7 @@ function countSkillTypes(skillMap) {
 }
 
 const RoleAssign = () => {
-  const theme = useTheme();
+  const { darkMode } = useDarkMode();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -789,11 +789,12 @@ const RoleAssign = () => {
         minHeight: "calc(100vh - 60px)",
         width: "100%",
         p: 4,
+        bgcolor: darkMode ? '#121212' : 'transparent',
       }}
     >
       {/* Encabezado */}
       <Box mb={4} sx={{ px: 1 }}>
-        <Typography variant="h4" sx={{ fontWeight: 600, mb: 1 }}>
+        <Typography variant="h4" sx={{ fontWeight: 600, mb: 1, color: darkMode ? '#ffffff' : 'inherit' }}>
           Assign Roles
         </Typography>
       </Box>
@@ -804,6 +805,9 @@ const RoleAssign = () => {
           ...contentPaperStyles,
           p: 0,
           overflow: "hidden",
+          bgcolor: darkMode ? '#1e1e1e' : '#ffffff',
+          border: darkMode ? '1px solid rgba(255, 255, 255, 0.12)' : 'none',
+          boxShadow: darkMode ? '0 2px 8px rgba(255, 255, 255, 0.04)' : contentPaperStyles.boxShadow,
           "&::before": {
             content: '""',
             position: "absolute",
@@ -869,9 +873,9 @@ const RoleAssign = () => {
                   <Typography
                     variant="subtitle1"
                     fontWeight={700}
-                    color={ACCENTURE_COLORS.corePurple3}
                     sx={{
                       fontSize: { xs: "1rem", sm: "1.125rem" },
+                      color: darkMode ? '#ffffff' : ACCENTURE_COLORS.corePurple3
                     }}
                   >
                     AI Suggested Role Assignments
@@ -884,7 +888,8 @@ const RoleAssign = () => {
                     display: "flex",
                     flexDirection: "column",
                     borderRadius: 2,
-                    border: "1px solid rgba(0,0,0,0.08)",
+                    border: darkMode ? "1px solid rgba(255,255,255,0.12)" : "1px solid rgba(0,0,0,0.08)",
+                    bgcolor: darkMode ? "rgba(255,255,255,0.03)" : 'transparent',
                     boxShadow: "none",
                     minHeight: 0, // Important for flex child to shrink
                   }}
@@ -898,14 +903,14 @@ const RoleAssign = () => {
                         minHeight: 0, // Important for proper scrolling
                         "&::-webkit-scrollbar": { width: "8px" },
                         "&::-webkit-scrollbar-track": {
-                          backgroundColor: "rgba(0,0,0,0.02)",
+                          backgroundColor: darkMode ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.02)",
                           borderRadius: "4px",
                         },
                         "&::-webkit-scrollbar-thumb": {
-                          backgroundColor: ACCENTURE_COLORS.accentPurple5,
+                          backgroundColor: darkMode ? "rgba(161, 0, 255, 0.3)" : ACCENTURE_COLORS.accentPurple5,
                           borderRadius: "4px",
                           "&:hover": {
-                            backgroundColor: ACCENTURE_COLORS.accentPurple4,
+                            backgroundColor: darkMode ? "rgba(161, 0, 255, 0.5)" : ACCENTURE_COLORS.accentPurple4,
                           },
                         },
                       }}
@@ -919,17 +924,18 @@ const RoleAssign = () => {
                             percentage={r.assigned?.score || 0}
                             onClick={() => setSelectedRoleIndex(i)}
                             selected={selectedRoleIndex === i}
+                            darkMode={darkMode}
                           />
                           {i === selectedRoleIndex && (
                             <Box sx={{ mt: 1, mb: 2, px: { xs: 0.5, sm: 1 } }}>
                               <Typography
                                 variant="caption"
-                                color="text.secondary"
                                 sx={{
                                   display: "flex",
                                   alignItems: "flex-start",
                                   fontSize: { xs: "0.75rem", sm: "0.875rem" },
                                   lineHeight: 1.4,
+                                  color: darkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary'
                                 }}
                               >
                                 <InfoIcon
@@ -950,12 +956,12 @@ const RoleAssign = () => {
                               {r.assigned && (
                                 <Typography
                                   variant="caption"
-                                  color="text.secondary"
                                   sx={{
                                     display: "block",
                                     mt: 0.5,
                                     fontSize: { xs: "0.75rem", sm: "0.875rem" },
                                     lineHeight: 1.4,
+                                    color: darkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary'
                                   }}
                                 >
                                   Pesos: Técnico{" "}
@@ -984,10 +990,10 @@ const RoleAssign = () => {
                     >
                       <Typography
                         variant="body1"
-                        color="text.secondary"
                         sx={{
                           textAlign: "center",
                           fontSize: { xs: "0.875rem", sm: "1rem" },
+                          color: darkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary'
                         }}
                       >
                         No hay roles definidos para este proyecto
@@ -1031,10 +1037,10 @@ const RoleAssign = () => {
                   <Typography
                     variant="subtitle1"
                     fontWeight={700}
-                    color={ACCENTURE_COLORS.corePurple3}
                     sx={{
                       fontSize: { xs: "1rem", sm: "1.125rem" },
                       lineHeight: 1.3,
+                      color: darkMode ? '#ffffff' : ACCENTURE_COLORS.corePurple3
                     }}
                   >
                     {roles.length > 0 ? (
@@ -1064,9 +1070,9 @@ const RoleAssign = () => {
                     display: "flex",
                     flexDirection: "column",
                     borderRadius: 2,
-                    border: "1px solid rgba(0,0,0,0.08)",
+                    border: darkMode ? "1px solid rgba(255,255,255,0.12)" : "1px solid rgba(0,0,0,0.08)",
                     boxShadow: "none",
-                    backgroundColor: "rgba(255,255,255,0.8)",
+                    backgroundColor: darkMode ? "rgba(255,255,255,0.05)" : "rgba(255,255,255,0.8)",
                     minHeight: 0, // Important for flex child to shrink
                   }}
                 >
@@ -1078,14 +1084,14 @@ const RoleAssign = () => {
                       minHeight: 0, // Important for proper scrolling
                       "&::-webkit-scrollbar": { width: "8px" },
                       "&::-webkit-scrollbar-track": {
-                        backgroundColor: "rgba(0,0,0,0.02)",
+                        backgroundColor: darkMode ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.02)",
                         borderRadius: "4px",
                       },
                       "&::-webkit-scrollbar-thumb": {
-                        backgroundColor: ACCENTURE_COLORS.accentPurple5,
+                        backgroundColor: darkMode ? "rgba(161, 0, 255, 0.3)" : ACCENTURE_COLORS.accentPurple5,
                         borderRadius: "4px",
                         "&:hover": {
-                          backgroundColor: ACCENTURE_COLORS.accentPurple4,
+                          backgroundColor: darkMode ? "rgba(161, 0, 255, 0.5)" : ACCENTURE_COLORS.accentPurple4,
                         },
                       },
                     }}
@@ -1131,10 +1137,10 @@ const RoleAssign = () => {
                         >
                           <Typography
                             variant="body1"
-                            color="text.secondary"
                             sx={{
                               textAlign: "center",
                               fontSize: { xs: "0.875rem", sm: "1rem" },
+                              color: darkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary'
                             }}
                           >
                             No hay más candidatos disponibles para este rol
@@ -1154,10 +1160,10 @@ const RoleAssign = () => {
                       >
                         <Typography
                           variant="body1"
-                          color="text.secondary"
                           sx={{
                             textAlign: "center",
                             fontSize: { xs: "0.875rem", sm: "1rem" },
+                            color: darkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary'
                           }}
                         >
                           Seleccione un rol primero

@@ -49,6 +49,7 @@ const SearchFilter = ({
   onSortClick,
   onClearFilters,
   availableCount,
+  darkMode = false,
   onAddEmployee
 }) => {
   const theme = useTheme();
@@ -104,9 +105,10 @@ const SearchFilter = ({
           borderRadius: 2,
           overflow: "hidden",
           border: "1px solid",
-          borderColor: "rgba(0,0,0,0.08)",
+          borderColor: darkMode ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.08)",
           width: "100%",
           boxSizing: "border-box",
+          backgroundColor: darkMode ? '#1e1e1e' : '#ffffff',
         }}
       >
         {/* Search bar */}
@@ -115,7 +117,7 @@ const SearchFilter = ({
           flexDirection: isSmallScreen ? "column" : "row",
           alignItems: isSmallScreen ? "stretch" : "center",
           p: isSmallScreen ? (isExtraSmallScreen ? 1 : 1.5) : 2,
-          backgroundColor: "#ffffff",
+          backgroundColor: darkMode ? '#1e1e1e' : "#ffffff",
           gap: isSmallScreen ? 1.5 : 0,
           width: "100%",
           boxSizing: "border-box",
@@ -130,10 +132,10 @@ const SearchFilter = ({
               mr: isSmallScreen ? 0 : 2,
               mb: isSmallScreen ? 1 : 0,
               border: "1px solid",
-              borderColor: isSearchFocused ? "#a100ff" : "rgba(0,0,0,0.12)",
+              borderColor: isSearchFocused ? "#a100ff" : (darkMode ? "rgba(255,255,255,0.23)" : "rgba(0,0,0,0.12)"),
               borderRadius: 10,
               transition: "all 0.2s ease",
-              backgroundColor: "#ffffff",
+              backgroundColor: darkMode ? "rgba(255,255,255,0.05)" : "#ffffff",
               width: "100%",
               boxSizing: "border-box",
               minWidth: 0, // Important for compression
@@ -142,7 +144,7 @@ const SearchFilter = ({
             <SearchIcon 
               sx={{ 
                 mr: 1, 
-                color: isSearchFocused ? "#a100ff" : "action.active",
+                color: isSearchFocused ? "#a100ff" : (darkMode ? "rgba(255,255,255,0.7)" : "action.active"),
                 flexShrink: 0
               }} 
             />
@@ -156,6 +158,10 @@ const SearchFilter = ({
               sx={{
                 flex: 1,
                 minWidth: 0, // Important for compression
+                color: darkMode ? '#ffffff' : 'inherit',
+                '& input::placeholder': {
+                  color: darkMode ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)'
+                }
               }}
             />
             {searchTerm && (
@@ -163,7 +169,7 @@ const SearchFilter = ({
                 size="small" 
                 onClick={() => onSearchChange("")}
                 sx={{ 
-                  color: "text.secondary",
+                  color: darkMode ? 'rgba(255,255,255,0.7)' : "text.secondary",
                   flexShrink: 0
                 }}
               >
@@ -206,10 +212,13 @@ const SearchFilter = ({
               <IconButton 
                 onClick={onFilterClick}
                 sx={{ 
-                  backgroundColor: "rgba(0,0,0,0.04)", 
+                  backgroundColor: darkMode ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.04)", 
                   borderRadius: 1,
-                  color: "#666",
-                  flexShrink: 0
+                  color: darkMode ? "rgba(255,255,255,0.7)" : "#666",
+                  flexShrink: 0,
+                  '&:hover': {
+                    backgroundColor: darkMode ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.08)",
+                  }
                 }}
               >
                 <FilterListIcon />
@@ -220,10 +229,13 @@ const SearchFilter = ({
               <IconButton 
                 onClick={onSortClick}
                 sx={{ 
-                  backgroundColor: "rgba(0,0,0,0.04)",
+                  backgroundColor: darkMode ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.04)",
                   borderRadius: 1,
-                  color: "#666",
-                  flexShrink: 0
+                  color: darkMode ? "rgba(255,255,255,0.7)" : "#666",
+                  flexShrink: 0,
+                  '&:hover': {
+                    backgroundColor: darkMode ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.08)",
+                  }
                 }}
               >
                 <SortIcon />
@@ -263,8 +275,9 @@ const SearchFilter = ({
                 fontSize: isSmallScreen ? '0.75rem' : '0.875rem',
                 padding: isSmallScreen ? (isExtraSmallScreen ? 0.5 : 1) : "auto",
                 minWidth: isSmallScreen ? (isExtraSmallScreen ? "70px" : "80px") : "120px",
+                color: darkMode ? 'rgba(255,255,255,0.7)' : 'inherit',
                 '&.Mui-selected': {
-                  color: '#a100ff',
+                  color: darkMode ? '#ce93d8' : '#a100ff',
                   fontWeight: 600,
                 },
                 '& .MuiTab-iconWrapper': {
@@ -312,7 +325,7 @@ const SearchFilter = ({
           <Box sx={{ 
             px: isSmallScreen ? (isExtraSmallScreen ? 1 : 1.5) : 2, 
             py: isSmallScreen ? 1 : 1.5, 
-            backgroundColor: "rgba(0,0,0,0.02)",
+            backgroundColor: darkMode ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.02)",
             display: "flex",
             flexDirection: isSmallScreen ? "column" : "row",
             alignItems: isSmallScreen ? "flex-start" : "center",
@@ -328,8 +341,7 @@ const SearchFilter = ({
             }}>
               <Typography 
                 variant="body2" 
-                color="text.secondary"
-                sx={{ flexShrink: 0 }}
+                sx={{ flexShrink: 0, color: darkMode ? 'rgba(255,255,255,0.7)' : 'text.secondary' }}
               >
                 Active filters:
               </Typography>
@@ -339,7 +351,8 @@ const SearchFilter = ({
                   py: 0.5, 
                   px: 1.5, 
                   borderRadius: 4, 
-                  backgroundColor: "rgba(0,0,0,0.06)",
+                  backgroundColor: darkMode ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.06)",
+                  color: darkMode ? 'rgba(255,255,255,0.9)' : 'inherit',
                   fontSize: "0.75rem",
                   flexShrink: 0
                 }}>
@@ -352,7 +365,8 @@ const SearchFilter = ({
                   py: 0.5, 
                   px: 1.5, 
                   borderRadius: 4, 
-                  backgroundColor: "rgba(0,0,0,0.06)",
+                  backgroundColor: darkMode ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.06)",
+                  color: darkMode ? 'rgba(255,255,255,0.9)' : 'inherit',
                   fontSize: "0.75rem",
                   maxWidth: isSmallScreen ? "calc(100% - 80px)" : "300px", // Leave space for "Active filters:"
                   overflow: "hidden",
@@ -369,7 +383,7 @@ const SearchFilter = ({
               size="small"
               onClick={onClearFilters}
               sx={{ 
-                color: "#f44336",
+                color: darkMode ? "#ff6659" : "#f44336",
                 textTransform: "none",
                 fontWeight: 500,
                 fontSize: "0.75rem",
@@ -389,6 +403,13 @@ const SearchFilter = ({
         open={addEmployeeOpen} 
         onClose={handleCloseAddEmployee} 
         onSuccess={onAddEmployee}
+        darkMode={darkMode}
+        onSuccess={() => {
+          handleCloseAddEmployee();
+          if (onAddEmployee) {
+            onAddEmployee();
+          }
+        }}
       />
     </>
   );

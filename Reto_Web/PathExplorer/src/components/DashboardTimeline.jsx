@@ -10,7 +10,8 @@ import {
   Avatar,
   Fade,
   Grow,
-  Skeleton
+  Skeleton,
+  useTheme
 } from "@mui/material";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
@@ -21,9 +22,11 @@ import BookmarkBorderIcon from "@mui/icons-material/BookmarkBorder";
 import TrendingUpIcon from "@mui/icons-material/TrendingUp";
 import { useNavigate } from "react-router-dom";
 import { ACCENTURE_COLORS } from "../styles/styles";
+import { getDarkModeStyles } from "../styles/darkModeStyles";
 
 // Componente que muestra un elemento de la timeline
-const DashboardTimelineItem = ({ item, isLast = false, profilePurple, index }) => {
+const DashboardTimelineItem = ({ item, isLast = false, profilePurple, index, darkMode }) => {
+  const theme = useTheme();
   // Verificamos que item existe
   if (!item) return null;
   
@@ -62,8 +65,8 @@ const DashboardTimelineItem = ({ item, isLast = false, profilePurple, index }) =
           '&:hover': {
             '& .timeline-card': {
               transform: 'translateX(8px)',
-              boxShadow: '0 8px 24px rgba(0,0,0,0.08)',
-              borderColor: alpha(profilePurple, 0.3),
+              boxShadow: darkMode ? '0 8px 24px rgba(0,0,0,0.3)' : '0 8px 24px rgba(0,0,0,0.08)',
+              borderColor: darkMode ? alpha(profilePurple, 0.5) : alpha(profilePurple, 0.3),
             },
             '& .timeline-dot': {
               transform: 'translateY(-50%) scale(1.3)',
@@ -98,12 +101,12 @@ const DashboardTimelineItem = ({ item, isLast = false, profilePurple, index }) =
           sx={{
             flex: 1,
             p: { xs: 2, sm: 2.5 },
-            backgroundColor: '#ffffff',
+            backgroundColor: darkMode ? '#2d2d2d' : '#ffffff',
             borderRadius: 2,
             position: 'relative',
             overflow: 'hidden',
-            border: `1px solid ${alpha(profilePurple, 0.15)}`,
-            boxShadow: '0 4px 12px rgba(0,0,0,0.04)',
+            border: `1px solid ${darkMode ? alpha(profilePurple, 0.3) : alpha(profilePurple, 0.15)}`,
+            boxShadow: darkMode ? '0 4px 12px rgba(0,0,0,0.3)' : '0 4px 12px rgba(0,0,0,0.04)',
             transition: 'all 0.3s ease',
             height: 80, // Reduced fixed height for all items
             display: 'flex',
@@ -130,7 +133,7 @@ const DashboardTimelineItem = ({ item, isLast = false, profilePurple, index }) =
                   fontWeight={600}
                   variant="subtitle1"
                   sx={{
-                    color: "text.primary",
+                    color: theme.palette.text.primary,
                     fontSize: "0.95rem",
                     mb: 0.5,
                     lineHeight: 1.3,
@@ -166,7 +169,7 @@ const DashboardTimelineItem = ({ item, isLast = false, profilePurple, index }) =
                   <Typography
                     variant="caption"
                     sx={{ 
-                      color: "text.secondary",
+                      color: theme.palette.text.secondary,
                       fontSize: "0.8rem",
                       fontWeight: 500
                     }}
@@ -224,8 +227,10 @@ const DashboardTimelineItem = ({ item, isLast = false, profilePurple, index }) =
 };
 
 // Componente principal de Timeline
-const DashboardTimeline = ({ items = [], profilePurple = ACCENTURE_COLORS.corePurple1, loading = false }) => {
+const DashboardTimeline = ({ items = [], profilePurple = ACCENTURE_COLORS.corePurple1, loading = false, darkMode = false }) => {
   const navigate = useNavigate();
+  const theme = useTheme();
+  const darkModeStyles = getDarkModeStyles(darkMode);
   
   // Si no hay items o no es un array, usamos datos de respaldo
   const fallbackItems = [
@@ -246,10 +251,10 @@ const DashboardTimeline = ({ items = [], profilePurple = ACCENTURE_COLORS.corePu
       elevation={0}
       sx={{
         borderRadius: 2,
-        bgcolor: '#ffffff',
-        boxShadow: '0 2px 12px rgba(0,0,0,0.03)',
+        bgcolor: darkMode ? '#1e1e1e' : '#ffffff',
+        boxShadow: darkMode ? '0 2px 12px rgba(0,0,0,0.3)' : '0 2px 12px rgba(0,0,0,0.03)',
         overflow: 'hidden',
-        border: `1px solid ${alpha(profilePurple, 0.15)}`,
+        border: `1px solid ${darkMode ? alpha(profilePurple, 0.3) : alpha(profilePurple, 0.15)}`,
         minHeight: { xs: 280, sm: 300, md: 320, lg: 340 }, // Reduced responsive height
         height: '100%',
         display: 'flex',
@@ -257,7 +262,7 @@ const DashboardTimeline = ({ items = [], profilePurple = ACCENTURE_COLORS.corePu
         position: 'relative',
         transition: 'box-shadow 0.3s ease',
         '&:hover': {
-          boxShadow: '0 8px 24px rgba(0,0,0,0.08)',
+          boxShadow: darkMode ? '0 8px 24px rgba(0,0,0,0.4)' : '0 8px 24px rgba(0,0,0,0.08)',
         }
       }}
     >
@@ -265,11 +270,11 @@ const DashboardTimeline = ({ items = [], profilePurple = ACCENTURE_COLORS.corePu
       <Box sx={{ 
         p: 2.5, 
         borderBottom: '1px solid',
-        borderColor: alpha(profilePurple, 0.1),
+        borderColor: darkMode ? alpha(profilePurple, 0.3) : alpha(profilePurple, 0.1),
         display: 'flex', 
         justifyContent: 'space-between', 
         alignItems: 'center',
-        backgroundColor: alpha(profilePurple, 0.02),
+        backgroundColor: darkMode ? alpha(profilePurple, 0.1) : alpha(profilePurple, 0.02),
       }}>
         <Box sx={{ display: 'flex', alignItems: 'center' }}>
           <Avatar
@@ -283,7 +288,7 @@ const DashboardTimeline = ({ items = [], profilePurple = ACCENTURE_COLORS.corePu
             <SchoolIcon sx={{ fontSize: 20 }} />
           </Avatar>
           <Box>
-            <Typography variant="h6" fontWeight={600} sx={{ fontSize: '1.125rem', color: 'text.primary' }}>
+            <Typography variant="h6" fontWeight={600} sx={{ fontSize: '1.125rem', color: theme.palette.text.primary }}>
               MyPath Timeline
             </Typography>
           </Box>
@@ -365,9 +370,9 @@ const DashboardTimeline = ({ items = [], profilePurple = ACCENTURE_COLORS.corePu
                 sx={{
                   flex: 1,
                   p: { xs: 2, sm: 2.5 },
-                  backgroundColor: '#ffffff',
+                  backgroundColor: darkMode ? '#2d2d2d' : '#ffffff',
                   borderRadius: 2,
-                  border: `1px solid ${alpha(profilePurple, 0.15)}`,
+                  border: `1px solid ${darkMode ? alpha(profilePurple, 0.3) : alpha(profilePurple, 0.15)}`,
                   height: 80,
                   display: 'flex',
                   alignItems: 'center',
@@ -395,6 +400,7 @@ const DashboardTimeline = ({ items = [], profilePurple = ACCENTURE_COLORS.corePu
               index={index}
               isLast={index === safeItems.length - 1}
               profilePurple={profilePurple}
+              darkMode={darkMode}
             />
           ))
         )}

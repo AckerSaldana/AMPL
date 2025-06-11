@@ -14,7 +14,7 @@ import {
 } from "@mui/icons-material";
 import { ACCENTURE_COLORS } from "../styles/styles";
 
-const ProjectCard = ({ project, index = 0 }) => {
+const ProjectCard = ({ project, index = 0, darkMode = false }) => {
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
@@ -32,14 +32,16 @@ const ProjectCard = ({ project, index = 0 }) => {
           borderRadius: 3,
           overflow: "hidden",
           height: "100%",
-          boxShadow: "0 2px 10px rgba(0,0,0,0.03)",
+          boxShadow: darkMode ? "0 2px 10px rgba(0,0,0,0.2)" : "0 2px 10px rgba(0,0,0,0.03)",
           display: "flex",
           flexDirection: "column",
           transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
           transform: "translateY(0)",
           "&:hover": {
             transform: "translateY(-8px) scale(1.02)",
-            boxShadow: `0 12px 24px ${ACCENTURE_COLORS.corePurple1}15`,
+            boxShadow: darkMode 
+              ? `0 12px 24px ${ACCENTURE_COLORS.corePurple1}30`
+              : `0 12px 24px ${ACCENTURE_COLORS.corePurple1}15`,
             '& .accent-line': {
               width: '100%',
             },
@@ -50,7 +52,7 @@ const ProjectCard = ({ project, index = 0 }) => {
               color: ACCENTURE_COLORS.corePurple1,
             },
           },
-          bgcolor: "#fff",
+          bgcolor: darkMode ? "#1e1e1e" : "#fff",
           position: "relative",
         }}
       >
@@ -77,7 +79,7 @@ const ProjectCard = ({ project, index = 0 }) => {
           sx={{
             fontWeight: 500,
             fontSize: "1.1rem",
-            color: ACCENTURE_COLORS.black,
+            color: darkMode ? "#ffffff" : ACCENTURE_COLORS.black,
             mb: 1.5,
             transition: 'color 0.3s ease',
           }}
@@ -88,7 +90,7 @@ const ProjectCard = ({ project, index = 0 }) => {
         <Typography
           variant="body2"
           sx={{
-            color: ACCENTURE_COLORS.darkGray,
+            color: darkMode ? "rgba(255,255,255,0.7)" : ACCENTURE_COLORS.darkGray,
             mb: 2,
             minHeight: "40px",
             overflow: "hidden",
@@ -101,7 +103,11 @@ const ProjectCard = ({ project, index = 0 }) => {
         </Typography>
       </Box>
 
-      <Divider sx={{ mt: "auto", opacity: 0.5 }} />
+      <Divider sx={{ 
+        mt: "auto", 
+        opacity: darkMode ? 0.2 : 0.5,
+        borderColor: darkMode ? "rgba(255,255,255,0.1)" : undefined 
+      }} />
 
       {/* Details */}
       <Box sx={{ p: 3 }}>
@@ -124,7 +130,10 @@ const ProjectCard = ({ project, index = 0 }) => {
             />
             <Typography
               variant="body2"
-              sx={{ fontWeight: 500, color: ACCENTURE_COLORS.black }}
+              sx={{ 
+                fontWeight: 500, 
+                color: darkMode ? "#ffffff" : ACCENTURE_COLORS.black 
+              }}
             >
               {project.role}
             </Typography>
@@ -142,7 +151,9 @@ const ProjectCard = ({ project, index = 0 }) => {
             />
             <Typography
               variant="body2"
-              sx={{ color: ACCENTURE_COLORS.darkGray }}
+              sx={{ 
+                color: darkMode ? "rgba(255,255,255,0.7)" : ACCENTURE_COLORS.darkGray 
+              }}
             >
               {project.company}
             </Typography>
@@ -160,7 +171,9 @@ const ProjectCard = ({ project, index = 0 }) => {
             />
             <Typography
               variant="body2"
-              sx={{ color: ACCENTURE_COLORS.darkGray }}
+              sx={{ 
+                color: darkMode ? "rgba(255,255,255,0.7)" : ACCENTURE_COLORS.darkGray 
+              }}
             >
               {project.date}
             </Typography>

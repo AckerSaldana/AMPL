@@ -21,7 +21,7 @@ const defaultUserInfo = {
   primarySkills: []
 };
 
-const ProfileSummary = ({ userInfo }) => {
+const ProfileSummary = ({ userInfo, darkMode = false }) => {
   // Always render the component with either provided data or defaults
   const safeUserInfo = { ...defaultUserInfo, ...userInfo };
   
@@ -33,12 +33,12 @@ const ProfileSummary = ({ userInfo }) => {
         overflow: "hidden",
         boxShadow: "0 4px 16px rgba(0,0,0,0.03)",
         mb: 5,
-        background: "#fff",
-        border: "1px solid transparent",
+        background: darkMode ? '#1e1e1e' : "#fff",
+        border: darkMode ? "1px solid rgba(255,255,255,0.12)" : "1px solid transparent",
         transition: "all 0.25s ease",
         "&:hover": {
-          border: `1px solid ${ACCENTURE_COLORS.corePurple1}20`,
-          boxShadow: "0 4px 16px rgba(0,0,0,0.02)",
+          border: darkMode ? `1px solid ${ACCENTURE_COLORS.corePurple1}40` : `1px solid ${ACCENTURE_COLORS.corePurple1}20`,
+          boxShadow: darkMode ? "0 4px 16px rgba(255,255,255,0.02)" : "0 4px 16px rgba(0,0,0,0.02)",
         },
       }}
     >
@@ -54,9 +54,9 @@ const ProfileSummary = ({ userInfo }) => {
               justifyContent: "center",
               height: "100%",
               position: "relative",
-              background: "linear-gradient(135deg, rgba(161, 0, 255, 0.04) 0%, rgba(255, 255, 255, 0.8) 100%)",
-              borderRight: { xs: "none", md: "1px solid rgba(0,0,0,0.04)" },
-              borderBottom: { xs: "1px solid rgba(0,0,0,0.04)", md: "none" },
+              background: darkMode ? "linear-gradient(135deg, rgba(161, 0, 255, 0.08) 0%, rgba(0, 0, 0, 0.8) 100%)" : "linear-gradient(135deg, rgba(161, 0, 255, 0.04) 0%, rgba(255, 255, 255, 0.8) 100%)",
+              borderRight: { xs: "none", md: darkMode ? "1px solid rgba(255,255,255,0.12)" : "1px solid rgba(0,0,0,0.04)" },
+              borderBottom: { xs: darkMode ? "1px solid rgba(255,255,255,0.12)" : "1px solid rgba(0,0,0,0.04)", md: "none" },
             }}
           >
             {/* Avatar with subtle glow effect */}
@@ -83,10 +83,10 @@ const ProfileSummary = ({ userInfo }) => {
                 sx={{
                   width: 110,
                   height: 110,
-                  bgcolor: "#fff",
+                  bgcolor: darkMode ? '#1e1e1e' : "#fff",
                   color: ACCENTURE_COLORS.corePurple1,
-                  border: `3px solid #fff`,
-                  boxShadow: "0 8px 20px rgba(161, 0, 255, 0.15)",
+                  border: darkMode ? `3px solid ${ACCENTURE_COLORS.corePurple1}40` : `3px solid #fff`,
+                  boxShadow: darkMode ? "0 8px 20px rgba(161, 0, 255, 0.25)" : "0 8px 20px rgba(161, 0, 255, 0.15)",
                   position: "relative",
                   zIndex: 1,
                 }}
@@ -99,7 +99,7 @@ const ProfileSummary = ({ userInfo }) => {
               variant="h5"
               sx={{
                 fontWeight: 600,
-                color: ACCENTURE_COLORS.black,
+                color: darkMode ? '#ffffff' : ACCENTURE_COLORS.black,
                 mb: 1,
                 textAlign: "center",
                 letterSpacing: "0.2px",
@@ -139,24 +139,26 @@ const ProfileSummary = ({ userInfo }) => {
               <StatBox 
                 value={safeUserInfo.projectsCount} 
                 label="Projects" 
+                darkMode={darkMode}
               />
               
-              <Divider orientation="vertical" flexItem sx={{ mx: 2, opacity: 0.05 }} />
+              <Divider orientation="vertical" flexItem sx={{ mx: 2, opacity: darkMode ? 0.15 : 0.05 }} />
               
               <StatBox 
                 value={safeUserInfo.certificationsCount} 
                 label="Certifications" 
+                darkMode={darkMode}
               />
             </Box>
 
-            <Divider sx={{ opacity: 0.05, my: 2 }} />
+            <Divider sx={{ opacity: darkMode ? 0.15 : 0.05, my: 2 }} />
 
             {/* Skills Section */}
             <Box sx={{ flexGrow: 1, mt: 2 }}>
               <Typography
                 variant="body2"
                 sx={{
-                  color: ACCENTURE_COLORS.darkGray,
+                  color: darkMode ? 'rgba(255,255,255,0.7)' : ACCENTURE_COLORS.darkGray,
                   mb: 2,
                   textTransform: "uppercase",
                   letterSpacing: "1.2px",
@@ -181,9 +183,9 @@ const ProfileSummary = ({ userInfo }) => {
                     label={skill}
                     size="small"
                     sx={{
-                      bgcolor: `${ACCENTURE_COLORS.corePurple1}08`,
-                      border: `1px solid ${ACCENTURE_COLORS.corePurple1}20`,
-                      color: ACCENTURE_COLORS.corePurple1,
+                      bgcolor: darkMode ? `${ACCENTURE_COLORS.corePurple1}15` : `${ACCENTURE_COLORS.corePurple1}08`,
+                      border: darkMode ? `1px solid ${ACCENTURE_COLORS.corePurple1}40` : `1px solid ${ACCENTURE_COLORS.corePurple1}20`,
+                      color: darkMode ? ACCENTURE_COLORS.accentPurple3 : ACCENTURE_COLORS.corePurple1,
                       borderRadius: "4px",
                       fontSize: "0.75rem",
                       height: 28,
@@ -192,7 +194,7 @@ const ProfileSummary = ({ userInfo }) => {
                       transition: "all 0.2s ease",
                       "&:hover": {
                         border: `1px solid ${ACCENTURE_COLORS.corePurple1}60`,
-                        bgcolor: `${ACCENTURE_COLORS.corePurple1}10`,
+                        bgcolor: darkMode ? `${ACCENTURE_COLORS.corePurple1}25` : `${ACCENTURE_COLORS.corePurple1}10`,
                       }
                     }}
                   />
@@ -207,7 +209,7 @@ const ProfileSummary = ({ userInfo }) => {
 };
 
 // Componente auxiliar para estadísticas
-const StatBox = ({ value = 0, label = "" }) => (
+const StatBox = ({ value = 0, label = "", darkMode = false }) => (
   <Box sx={{ textAlign: "center", px: 2 }}>
     <Typography
       variant="h2"
@@ -223,7 +225,7 @@ const StatBox = ({ value = 0, label = "" }) => (
     <Typography
       variant="body2"
       sx={{ 
-        color: ACCENTURE_COLORS.darkGray,
+        color: darkMode ? 'rgba(255,255,255,0.7)' : ACCENTURE_COLORS.darkGray,
         textTransform: "uppercase",
         letterSpacing: "1.2px",
         fontSize: "0.65rem",

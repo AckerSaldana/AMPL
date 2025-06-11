@@ -15,7 +15,7 @@ import {
 } from "@mui/material";
 import { supabase } from "../supabase/supabaseClient";
 
-export const PastProjectsCard = () => {
+export const PastProjectsCard = ({ darkMode = false }) => {
   const theme = useTheme();
   const [projects, setProjects] = useState([]);
 
@@ -121,8 +121,14 @@ export const PastProjectsCard = () => {
   }, []);
 
   return (
-    <Paper sx={{ padding: 2, overflow: "auto", width: "100%" }}>
-      <Typography variant="body1" fontWeight={"bold"}>
+    <Paper sx={{ 
+      padding: 2, 
+      overflow: "auto", 
+      width: "100%",
+      backgroundColor: darkMode ? '#2e2e2e' : '#ffffff',
+      border: darkMode ? '1px solid rgba(255,255,255,0.12)' : 'none'
+    }}>
+      <Typography variant="body1" fontWeight={"bold"} sx={{ color: darkMode ? '#ffffff' : '#000000' }}>
         Past Projects
       </Typography>
       <Box sx={{ overflowX: "auto" }}>
@@ -133,7 +139,7 @@ export const PastProjectsCard = () => {
                 (header, index) => (
                   <TableCell
                     key={index}
-                    sx={{ color: theme.palette.text.secondary }}
+                    sx={{ color: darkMode ? 'rgba(255,255,255,0.7)' : theme.palette.text.secondary }}
                   >
                     <strong>{header}</strong>
                   </TableCell>
@@ -145,7 +151,7 @@ export const PastProjectsCard = () => {
           <TableBody>
             {projects.map((project, index) => (
               <TableRow key={index}>
-                <TableCell sx={{}}>{project.title}</TableCell>
+                <TableCell sx={{ color: darkMode ? '#ffffff' : '#000000' }}>{project.title}</TableCell>
                 <TableCell>
                   <AvatarGroup
                     max={4}
@@ -174,7 +180,7 @@ export const PastProjectsCard = () => {
                     ))}
                   </AvatarGroup>
                 </TableCell>
-                <TableCell>{project.role}</TableCell>
+                <TableCell sx={{ color: darkMode ? '#ffffff' : '#000000' }}>{project.role}</TableCell>
                 <TableCell>
                   <Box
                     sx={{
@@ -192,7 +198,7 @@ export const PastProjectsCard = () => {
                         label={skill}
                         sx={{
                           margin: "2px",
-                          backgroundColor: theme.palette.primary.light,
+                          backgroundColor: darkMode ? theme.palette.primary.dark : theme.palette.primary.light,
                           color: theme.palette.common.white,
                         }}
                       />

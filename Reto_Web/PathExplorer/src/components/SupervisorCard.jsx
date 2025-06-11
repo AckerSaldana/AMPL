@@ -27,8 +27,10 @@ import SearchIcon from "@mui/icons-material/Search";
 import ClearIcon from "@mui/icons-material/Clear";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import { ACCENTURE_COLORS } from "../styles/styles";
+import { useDarkMode } from "../contexts/DarkModeContext";
 
 const SupervisorCard = ({ supervisor, available, onSelectSupervisor }) => {
+  const { darkMode } = useDarkMode();
   const [modalOpen, setModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedUser, setSelectedUser] = useState(supervisor?.user_id || "");
@@ -78,13 +80,13 @@ const SupervisorCard = ({ supervisor, available, onSelectSupervisor }) => {
           alignItems: "center",
           p: 3,
           borderRadius: 3,
-          border: `2px solid ${ACCENTURE_COLORS.accentPurple4}20`,
-          backgroundColor: `${ACCENTURE_COLORS.corePurple1}08`,
+          border: darkMode ? '2px solid rgba(161, 0, 255, 0.2)' : `2px solid ${ACCENTURE_COLORS.accentPurple4}20`,
+          backgroundColor: darkMode ? 'rgba(161, 0, 255, 0.08)' : `${ACCENTURE_COLORS.corePurple1}08`,
           transition: "all 0.3s ease",
           "&:hover": {
-            border: `2px solid ${ACCENTURE_COLORS.accentPurple4}40`,
-            backgroundColor: `${ACCENTURE_COLORS.corePurple1}6`,
-            boxShadow: `0 8px 24px ${ACCENTURE_COLORS.corePurple1}15`,
+            border: darkMode ? '2px solid rgba(161, 0, 255, 0.4)' : `2px solid ${ACCENTURE_COLORS.accentPurple4}40`,
+            backgroundColor: darkMode ? 'rgba(161, 0, 255, 0.06)' : `${ACCENTURE_COLORS.corePurple1}6`,
+            boxShadow: darkMode ? '0 8px 24px rgba(161, 0, 255, 0.15)' : `0 8px 24px ${ACCENTURE_COLORS.corePurple1}15`,
           },
         }}
       >
@@ -94,9 +96,9 @@ const SupervisorCard = ({ supervisor, available, onSelectSupervisor }) => {
             width: 64,
             height: 64,
             mr: 3,
-            backgroundColor: `${ACCENTURE_COLORS.corePurple1}20`,
-            color: ACCENTURE_COLORS.corePurple2,
-            border: `2px solid ${ACCENTURE_COLORS.accentPurple5}60`,
+            backgroundColor: darkMode ? 'rgba(161, 0, 255, 0.2)' : `${ACCENTURE_COLORS.corePurple1}20`,
+            color: darkMode ? '#a67aff' : ACCENTURE_COLORS.corePurple2,
+            border: darkMode ? '2px solid rgba(161, 0, 255, 0.6)' : `2px solid ${ACCENTURE_COLORS.accentPurple5}60`,
             fontSize: "1.5rem",
           }}
         >
@@ -107,18 +109,21 @@ const SupervisorCard = ({ supervisor, available, onSelectSupervisor }) => {
           <Typography
             variant="h6"
             fontWeight={700}
-            color={ACCENTURE_COLORS.corePurple3}
-            sx={{ mb: 0.5 }}
+            sx={{ 
+              mb: 0.5,
+              color: darkMode ? '#ffffff' : ACCENTURE_COLORS.corePurple3
+            }}
           >
             Project Supervisor
           </Typography>
           <Typography
             variant="body1"
-            color="text.primary"
             sx={{
               mb: 1,
               fontWeight: supervisor ? 600 : 400,
-              color: supervisor ? "text.primary" : "text.secondary",
+              color: supervisor 
+                ? (darkMode ? '#ffffff' : "text.primary") 
+                : (darkMode ? 'rgba(255, 255, 255, 0.7)' : "text.secondary"),
             }}
           >
             {supervisor
@@ -130,8 +135,9 @@ const SupervisorCard = ({ supervisor, available, onSelectSupervisor }) => {
               label={supervisor.permission}
               size="small"
               sx={{
-                backgroundColor: `${ACCENTURE_COLORS.accentPurple4}15`,
-                color: ACCENTURE_COLORS.corePurple3,
+                backgroundColor: darkMode ? 'rgba(161, 0, 255, 0.15)' : `${ACCENTURE_COLORS.accentPurple4}15`,
+                color: darkMode ? '#a67aff' : ACCENTURE_COLORS.corePurple3,
+                border: darkMode ? '1px solid rgba(161, 0, 255, 0.3)' : 'none',
                 fontWeight: 600,
                 fontSize: "0.75rem",
               }}
@@ -144,15 +150,15 @@ const SupervisorCard = ({ supervisor, available, onSelectSupervisor }) => {
           startIcon={<EditIcon />}
           onClick={handleOpenModal}
           sx={{
-            borderColor: ACCENTURE_COLORS.accentPurple4,
-            color: ACCENTURE_COLORS.corePurple3,
+            borderColor: darkMode ? 'rgba(161, 0, 255, 0.4)' : ACCENTURE_COLORS.accentPurple4,
+            color: darkMode ? '#a67aff' : ACCENTURE_COLORS.corePurple3,
             fontWeight: 600,
             borderRadius: 2,
             px: 3,
             py: 1,
             "&:hover": {
-              borderColor: ACCENTURE_COLORS.corePurple2,
-              backgroundColor: `${ACCENTURE_COLORS.corePurple1}10`,
+              borderColor: darkMode ? 'rgba(161, 0, 255, 0.6)' : ACCENTURE_COLORS.corePurple2,
+              backgroundColor: darkMode ? 'rgba(161, 0, 255, 0.1)' : `${ACCENTURE_COLORS.corePurple1}10`,
             },
           }}
         >
@@ -169,24 +175,26 @@ const SupervisorCard = ({ supervisor, available, onSelectSupervisor }) => {
           sx: {
             borderRadius: 3,
             minHeight: "500px",
+            bgcolor: darkMode ? '#1e1e1e' : '#ffffff',
+            color: darkMode ? '#ffffff' : 'inherit',
           },
         }}
         TransitionComponent={Fade}
       >
         <DialogTitle
           sx={{
-            backgroundColor: `${ACCENTURE_COLORS.corePurple1}08`,
-            borderBottom: `1px solid ${ACCENTURE_COLORS.accentPurple4}20`,
+            backgroundColor: darkMode ? 'rgba(161, 0, 255, 0.08)' : `${ACCENTURE_COLORS.corePurple1}08`,
+            borderBottom: darkMode ? '1px solid rgba(161, 0, 255, 0.2)' : `1px solid ${ACCENTURE_COLORS.accentPurple4}20`,
           }}
         >
           <Typography
             variant="h6"
             fontWeight={700}
-            color={ACCENTURE_COLORS.corePurple3}
+            sx={{ color: darkMode ? '#ffffff' : ACCENTURE_COLORS.corePurple3 }}
           >
             Select Project Supervisor
           </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+          <Typography variant="body2" sx={{ mt: 0.5, color: darkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary' }}>
             Choose a supervisor from the available candidates
           </Typography>
         </DialogTitle>
@@ -215,7 +223,24 @@ const SupervisorCard = ({ supervisor, available, onSelectSupervisor }) => {
               sx={{
                 "& .MuiOutlinedInput-root": {
                   borderRadius: 2,
+                  backgroundColor: darkMode ? 'rgba(255,255,255,0.05)' : 'transparent',
+                  color: darkMode ? '#ffffff' : 'inherit',
+                  '& fieldset': {
+                    borderColor: darkMode ? 'rgba(255, 255, 255, 0.23)' : 'rgba(0,0,0,0.23)',
+                  },
+                  '&:hover fieldset': {
+                    borderColor: darkMode ? 'rgba(161, 0, 255, 0.6)' : `${ACCENTURE_COLORS.corePurple1}40`,
+                  },
+                  '&.Mui-focused fieldset': {
+                    borderColor: ACCENTURE_COLORS.corePurple1,
+                  },
                 },
+                '& .MuiInputBase-input': {
+                  '&::placeholder': {
+                    color: darkMode ? 'rgba(255, 255, 255, 0.5)' : 'rgba(0, 0, 0, 0.5)',
+                    opacity: 1
+                  }
+                }
               }}
             />
           </Box>
@@ -224,8 +249,8 @@ const SupervisorCard = ({ supervisor, available, onSelectSupervisor }) => {
             {filteredUsers.length === 0 ? (
               <ListItem>
                 <ListItemText
-                  primary="No users found"
-                  secondary="Try adjusting your search terms"
+                  primary={<Typography sx={{ color: darkMode ? '#ffffff' : 'inherit' }}>No users found</Typography>}
+                  secondary={<Typography variant="body2" sx={{ color: darkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary' }}>Try adjusting your search terms</Typography>}
                   sx={{ textAlign: "center", py: 4 }}
                 />
               </ListItem>
@@ -240,13 +265,13 @@ const SupervisorCard = ({ supervisor, available, onSelectSupervisor }) => {
                       mx: 1,
                       mb: 1,
                       "&.Mui-selected": {
-                        backgroundColor: `${ACCENTURE_COLORS.corePurple1}15`,
+                        backgroundColor: darkMode ? 'rgba(161, 0, 255, 0.15)' : `${ACCENTURE_COLORS.corePurple1}15`,
                         "&:hover": {
-                          backgroundColor: `${ACCENTURE_COLORS.corePurple1}20`,
+                          backgroundColor: darkMode ? 'rgba(161, 0, 255, 0.2)' : `${ACCENTURE_COLORS.corePurple1}20`,
                         },
                       },
                       "&:hover": {
-                        backgroundColor: `${ACCENTURE_COLORS.corePurple1}08`,
+                        backgroundColor: darkMode ? 'rgba(161, 0, 255, 0.08)' : `${ACCENTURE_COLORS.corePurple1}08`,
                       },
                     }}
                   >
@@ -254,11 +279,11 @@ const SupervisorCard = ({ supervisor, available, onSelectSupervisor }) => {
                       <Avatar
                         src={user.profile_pic || ""}
                         sx={{
-                          backgroundColor: `${ACCENTURE_COLORS.corePurple1}20`,
-                          color: ACCENTURE_COLORS.corePurple2,
+                          backgroundColor: darkMode ? 'rgba(161, 0, 255, 0.2)' : `${ACCENTURE_COLORS.corePurple1}20`,
+                          color: darkMode ? '#a67aff' : ACCENTURE_COLORS.corePurple2,
                           border:
                             selectedUser === user.user_id
-                              ? `2px solid ${ACCENTURE_COLORS.accentPurple4}`
+                              ? darkMode ? '2px solid rgba(161, 0, 255, 0.4)' : `2px solid ${ACCENTURE_COLORS.accentPurple4}`
                               : "none",
                         }}
                       >
@@ -270,7 +295,7 @@ const SupervisorCard = ({ supervisor, available, onSelectSupervisor }) => {
                         <Box
                           sx={{ display: "flex", alignItems: "center", gap: 1 }}
                         >
-                          <Typography variant="subtitle1" fontWeight={600}>
+                          <Typography variant="subtitle1" fontWeight={600} sx={{ color: darkMode ? '#ffffff' : 'inherit' }}>
                             {user.name} {user.last_name}
                           </Typography>
                           {selectedUser === user.user_id && (
@@ -289,8 +314,8 @@ const SupervisorCard = ({ supervisor, available, onSelectSupervisor }) => {
                           variant="outlined"
                           sx={{
                             mt: 0.5,
-                            borderColor: `${ACCENTURE_COLORS.accentPurple4}40`,
-                            color: ACCENTURE_COLORS.corePurple2,
+                            borderColor: darkMode ? 'rgba(161, 0, 255, 0.4)' : `${ACCENTURE_COLORS.accentPurple4}40`,
+                            color: darkMode ? '#a67aff' : ACCENTURE_COLORS.corePurple2,
                             fontSize: "0.7rem",
                             height: "20px",
                           }}
@@ -310,14 +335,14 @@ const SupervisorCard = ({ supervisor, available, onSelectSupervisor }) => {
         <DialogActions
           sx={{
             p: 3,
-            borderTop: `1px solid ${ACCENTURE_COLORS.accentPurple4}20`,
-            backgroundColor: `${ACCENTURE_COLORS.corePurple1}05`,
+            borderTop: darkMode ? '1px solid rgba(161, 0, 255, 0.2)' : `1px solid ${ACCENTURE_COLORS.accentPurple4}20`,
+            backgroundColor: darkMode ? 'rgba(161, 0, 255, 0.05)' : `${ACCENTURE_COLORS.corePurple1}05`,
           }}
         >
           <Button
             onClick={handleCloseModal}
             sx={{
-              color: "text.secondary",
+              color: darkMode ? 'rgba(255, 255, 255, 0.7)' : "text.secondary",
               fontWeight: 600,
             }}
           >
@@ -328,7 +353,7 @@ const SupervisorCard = ({ supervisor, available, onSelectSupervisor }) => {
             variant="contained"
             disabled={!selectedUser}
             sx={{
-              backgroundColor: ACCENTURE_COLORS.accentPurple4,
+              backgroundColor: darkMode ? ACCENTURE_COLORS.corePurple1 : ACCENTURE_COLORS.accentPurple4,
               color: "white",
               fontWeight: 600,
               borderRadius: 2,
@@ -337,7 +362,7 @@ const SupervisorCard = ({ supervisor, available, onSelectSupervisor }) => {
                 backgroundColor: ACCENTURE_COLORS.corePurple2,
               },
               "&:disabled": {
-                backgroundColor: "grey.300",
+                backgroundColor: darkMode ? 'rgba(255, 255, 255, 0.12)' : "grey.300",
               },
             }}
           >

@@ -37,9 +37,11 @@ import {
 } from "@mui/icons-material";
 import { useNavigate, useParams } from "react-router-dom";
 import useAuth from "../hooks/useAuth";
+import { useDarkMode } from "../contexts/DarkModeContext";
 
 const UserProfileDetail = ({ userId, isModal = false, onClose, cachedData = null }) => {
   const theme = useTheme();
+  const { darkMode } = useDarkMode();
   const navigate = useNavigate();
   const params = useParams();
   const { role } = useAuth();
@@ -106,13 +108,13 @@ const UserProfileDetail = ({ userId, isModal = false, onClose, cachedData = null
   
   // Render the profile content with animations
   const renderProfileContent = () => (
-    <UserDataContext.Provider value={{ ...data, loading, formatDate }}>
+    <UserDataContext.Provider value={{ ...data, loading, formatDate, darkMode }}>
       <Box
         sx={{
           p: isModal ? 1 : { xs: 2, md: 3 },
           minHeight: isModal ? "auto" : "calc(100vh - 60px)",
           width: "100%",
-          backgroundColor: "#f8f9fa",
+          backgroundColor: darkMode ? '#121212' : "#f8f9fa",
         }}
       >
         <Box sx={{ width: "100%" }}>
@@ -152,14 +154,15 @@ const UserProfileDetail = ({ userId, isModal = false, onClose, cachedData = null
           sx: {
             borderRadius: 2,
             maxHeight: '90vh',
-            bgcolor: 'background.paper',
-            backgroundImage: 'none'
+            bgcolor: darkMode ? '#1e1e1e' : 'background.paper',
+            backgroundImage: 'none',
+            border: darkMode ? '1px solid rgba(255, 255, 255, 0.12)' : 'none'
           }
         }}
       >
-        <DialogTitle sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Typography variant="h6">Employee Profile</Typography>
-          <IconButton onClick={onClose} size="small">
+        <DialogTitle sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: darkMode ? '1px solid rgba(255, 255, 255, 0.12)' : '1px solid rgba(0, 0, 0, 0.12)' }}>
+          <Typography variant="h6" sx={{ color: darkMode ? '#ffffff' : 'inherit' }}>Employee Profile</Typography>
+          <IconButton onClick={onClose} size="small" sx={{ color: darkMode ? 'rgba(255, 255, 255, 0.7)' : 'inherit' }}>
             <Close />
           </IconButton>
         </DialogTitle>
@@ -191,7 +194,7 @@ const UserProfileDetail = ({ userId, isModal = false, onClose, cachedData = null
           variant="text"
           startIcon={<ArrowBack />}
           onClick={handleBack}
-          sx={{ color: "text.secondary" }}
+          sx={{ color: darkMode ? 'rgba(255, 255, 255, 0.7)' : "text.secondary" }}
         >
           Back
         </Button>
@@ -237,7 +240,7 @@ const formatDate = (dateString) => {
 // Banner component
 const BannerProfile = () => {
   const theme = useTheme();
-  const { userData, loading } = useUserData();
+  const { userData, loading, darkMode } = useUserData();
 
   if (loading) {
     return (
@@ -249,8 +252,9 @@ const BannerProfile = () => {
           width: "100%",
           borderRadius: 2,
           overflow: "hidden",
-          bgcolor: "#FFF",
-          boxShadow: "0 1px 2px rgba(0,0,0,0.04)"
+          bgcolor: darkMode ? '#1e1e1e' : "#FFF",
+          boxShadow: darkMode ? "0 1px 2px rgba(255,255,255,0.04)" : "0 1px 2px rgba(0,0,0,0.04)",
+          border: darkMode ? '1px solid rgba(255, 255, 255, 0.12)' : 'none'
         }}
       >
         <Skeleton variant="rectangular" width="100%" height="100%" />
@@ -276,7 +280,8 @@ const BannerProfile = () => {
         p: 3,
         overflow: "hidden",
         borderRadius: 2,
-        boxShadow: "0 4px 12px rgba(0,0,0,0.05)",
+        boxShadow: darkMode ? "0 4px 12px rgba(255,255,255,0.05)" : "0 4px 12px rgba(0,0,0,0.05)",
+        border: darkMode ? '1px solid rgba(255, 255, 255, 0.12)' : 'none',
       }}
     >
       <Box
@@ -294,8 +299,8 @@ const BannerProfile = () => {
           sx={{ 
             width: { xs: 72, sm: 84 }, 
             height: { xs: 72, sm: 84 }, 
-            border: "3px solid white",
-            boxShadow: "0 2px 10px rgba(0,0,0,0.1)",
+            border: darkMode ? "3px solid #1e1e1e" : "3px solid white",
+            boxShadow: darkMode ? "0 2px 10px rgba(255,255,255,0.1)" : "0 2px 10px rgba(0,0,0,0.1)",
             bgcolor: "#460073",
             fontSize: { xs: '1.5rem', sm: '1.75rem' },
             fontWeight: 500,
@@ -351,7 +356,7 @@ const BannerProfile = () => {
 // Information component
 const Information = () => {
   const theme = useTheme();
-  const { userData, loading } = useUserData();
+  const { userData, loading, darkMode } = useUserData();
 
   if (loading) {
     return (
@@ -364,9 +369,10 @@ const Information = () => {
           flexDirection: "column", 
           gap: 1.5,
           borderRadius: 2,
-          boxShadow: "0 2px 10px rgba(0,0,0,0.04)",
-          bgcolor: "#FFF",
-          width: "100%"
+          boxShadow: darkMode ? "0 2px 10px rgba(255,255,255,0.04)" : "0 2px 10px rgba(0,0,0,0.04)",
+          bgcolor: darkMode ? '#1e1e1e' : "#FFF",
+          width: "100%",
+          border: darkMode ? '1px solid rgba(255, 255, 255, 0.12)' : 'none'
         }}
       >
         <Skeleton variant="text" width="40%" height={24} />
@@ -389,9 +395,10 @@ const Information = () => {
         flexDirection: "column", 
         gap: 1.5,
         borderRadius: 2,
-        boxShadow: "0 2px 10px rgba(0,0,0,0.04)",
-        bgcolor: "#FFF",
-        width: "100%"
+        boxShadow: darkMode ? "0 2px 10px rgba(255,255,255,0.04)" : "0 2px 10px rgba(0,0,0,0.04)",
+        bgcolor: darkMode ? '#1e1e1e' : "#FFF",
+        width: "100%",
+        border: darkMode ? '1px solid rgba(255, 255, 255, 0.12)' : 'none'
       }}
     >
       <Typography 
@@ -400,7 +407,7 @@ const Information = () => {
           fontSize: "1rem", 
           fontWeight: 600, 
           mb: 0.5, 
-          color: theme.palette.primary.main
+          color: darkMode ? '#ffffff' : theme.palette.primary.main
         }}
       >
         Information
@@ -415,7 +422,7 @@ const Information = () => {
             fontSize: "1.1rem"
           }} 
         />
-        <Typography variant="body2">{userData?.fullName}</Typography>
+        <Typography variant="body2" sx={{ color: darkMode ? 'rgba(255, 255, 255, 0.9)' : 'inherit' }}>{userData?.fullName}</Typography>
       </Box>
 
       <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
@@ -425,7 +432,7 @@ const Information = () => {
             fontSize: "1.1rem"
           }} 
         />
-        <Typography variant="body2">{userData?.phone}</Typography>
+        <Typography variant="body2" sx={{ color: darkMode ? 'rgba(255, 255, 255, 0.9)' : 'inherit' }}>{userData?.phone}</Typography>
       </Box>
 
       <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
@@ -435,7 +442,7 @@ const Information = () => {
             fontSize: "1.1rem"
           }} 
         />
-        <Typography variant="body2">{userData?.email}</Typography>
+        <Typography variant="body2" sx={{ color: darkMode ? 'rgba(255, 255, 255, 0.9)' : 'inherit' }}>{userData?.email}</Typography>
       </Box>
 
       <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
@@ -445,7 +452,7 @@ const Information = () => {
             fontSize: "1.1rem"
           }} 
         />
-        <Typography variant="body2">
+        <Typography variant="body2" sx={{ color: darkMode ? 'rgba(255, 255, 255, 0.9)' : 'inherit' }}>
           Level: {userData?.level}/12
         </Typography>
       </Box>
@@ -457,7 +464,7 @@ const Information = () => {
             fontSize: "1.1rem"
           }} 
         />
-        <Typography variant="body2">
+        <Typography variant="body2" sx={{ color: darkMode ? 'rgba(255, 255, 255, 0.9)' : 'inherit' }}>
           Joined: {userData?.joinDate}
         </Typography>
       </Box>
@@ -469,7 +476,7 @@ const Information = () => {
             fontSize: "1.1rem"
           }} 
         />
-        <Typography variant="body2">
+        <Typography variant="body2" sx={{ color: darkMode ? 'rgba(255, 255, 255, 0.9)' : 'inherit' }}>
           Last Project: {userData?.lastProjectDate}
         </Typography>
       </Box>
@@ -480,7 +487,7 @@ const Information = () => {
 // Assignment percentage component
 const AssignmentPercentage = () => {
   const theme = useTheme();
-  const { userData, loading } = useUserData();
+  const { userData, loading, darkMode } = useUserData();
   const [progress, setProgress] = useState(0);
 
   React.useEffect(() => {
@@ -510,9 +517,10 @@ const AssignmentPercentage = () => {
           flexDirection: "column", 
           gap: 1.5,
           borderRadius: 2,
-          boxShadow: "0 2px 10px rgba(0,0,0,0.04)",
-          bgcolor: "#FFF",
-          width: "100%"
+          boxShadow: darkMode ? "0 2px 10px rgba(255,255,255,0.04)" : "0 2px 10px rgba(0,0,0,0.04)",
+          bgcolor: darkMode ? '#1e1e1e' : "#FFF",
+          width: "100%",
+          border: darkMode ? '1px solid rgba(255, 255, 255, 0.12)' : 'none'
         }}
       >
         <Skeleton variant="text" width="60%" height={24} />
@@ -535,9 +543,10 @@ const AssignmentPercentage = () => {
         flexDirection: "column", 
         gap: 1.5,
         borderRadius: 2,
-        boxShadow: "0 2px 10px rgba(0,0,0,0.04)",
-        bgcolor: "#FFF",
-        width: "100%"
+        boxShadow: darkMode ? "0 2px 10px rgba(255,255,255,0.04)" : "0 2px 10px rgba(0,0,0,0.04)",
+        bgcolor: darkMode ? '#1e1e1e' : "#FFF",
+        width: "100%",
+        border: darkMode ? '1px solid rgba(255, 255, 255, 0.12)' : 'none'
       }}
     >
       <Typography 
@@ -546,7 +555,7 @@ const AssignmentPercentage = () => {
           fontSize: "1rem", 
           fontWeight: 600, 
           mb: 0.5,
-          color: theme.palette.primary.main
+          color: darkMode ? '#ffffff' : theme.palette.primary.main
         }}
       >
         Assignment Percentage
@@ -619,7 +628,7 @@ const AssignmentPercentage = () => {
 // About component
 const About = () => {
   const theme = useTheme();
-  const { userData, loading } = useUserData();
+  const { userData, loading, darkMode } = useUserData();
 
   if (loading) {
     return (
@@ -632,9 +641,10 @@ const About = () => {
           flexDirection: "column", 
           gap: 1.5,
           borderRadius: 2,
-          boxShadow: "0 2px 10px rgba(0,0,0,0.04)",
-          bgcolor: "#FFF",
-          width: "100%"
+          boxShadow: darkMode ? "0 2px 10px rgba(255,255,255,0.04)" : "0 2px 10px rgba(0,0,0,0.04)",
+          bgcolor: darkMode ? '#1e1e1e' : "#FFF",
+          width: "100%",
+          border: darkMode ? '1px solid rgba(255, 255, 255, 0.12)' : 'none'
         }}
       >
         <Skeleton variant="text" width="30%" height={24} />
@@ -656,9 +666,10 @@ const About = () => {
         flexDirection: "column", 
         gap: 1.5, 
         borderRadius: 2,
-        boxShadow: "0 2px 10px rgba(0,0,0,0.04)",
-        bgcolor: "#FFF",
-        width: "100%"
+        boxShadow: darkMode ? "0 2px 10px rgba(255,255,255,0.04)" : "0 2px 10px rgba(0,0,0,0.04)",
+        bgcolor: darkMode ? '#1e1e1e' : "#FFF",
+        width: "100%",
+        border: darkMode ? '1px solid rgba(255, 255, 255, 0.12)' : 'none'
       }}
     >
       <Typography 
@@ -667,7 +678,7 @@ const About = () => {
           fontSize: "1rem", 
           fontWeight: 600, 
           mb: 0.5,
-          color: theme.palette.primary.main
+          color: darkMode ? '#ffffff' : theme.palette.primary.main
         }}
       >
         About
@@ -686,20 +697,20 @@ const About = () => {
             borderRadius: '2px'
           },
           '&::-webkit-scrollbar-track': { 
-            background: '#F5F5F5',
+            background: darkMode ? 'rgba(255,255,255,0.05)' : '#F5F5F5',
             borderRadius: '2px'
           },
           '&::-webkit-scrollbar-thumb': { 
-            background: alpha(theme.palette.primary.main, 0.3),
+            background: darkMode ? 'rgba(255,255,255,0.2)' : alpha(theme.palette.primary.main, 0.3),
             borderRadius: '2px',
           },
         }}
       >
         <Typography 
           variant="body2" 
-          color="text.secondary"
           sx={{ 
-            lineHeight: 1.6
+            lineHeight: 1.6,
+            color: darkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary'
           }}
         >
           {userData?.about || "No information available."}
@@ -712,7 +723,7 @@ const About = () => {
 // Skills component
 const SkillsCard = () => {
   const theme = useTheme();
-  const { skills, loading } = useUserData();
+  const { skills, loading, darkMode } = useUserData();
 
   if (loading) {
     return (
@@ -725,9 +736,10 @@ const SkillsCard = () => {
           flexDirection: "column", 
           gap: 1.5,
           borderRadius: 2,
-          boxShadow: "0 2px 10px rgba(0,0,0,0.04)",
-          bgcolor: "#FFF",
-          width: "100%"
+          boxShadow: darkMode ? "0 2px 10px rgba(255,255,255,0.04)" : "0 2px 10px rgba(0,0,0,0.04)",
+          bgcolor: darkMode ? '#1e1e1e' : "#FFF",
+          width: "100%",
+          border: darkMode ? '1px solid rgba(255, 255, 255, 0.12)' : 'none'
         }}
       >
         <Skeleton variant="text" width="40%" height={24} />
@@ -750,9 +762,10 @@ const SkillsCard = () => {
         flexDirection: "column", 
         gap: 1.5,
         borderRadius: 2,
-        boxShadow: "0 2px 10px rgba(0,0,0,0.04)",
-        bgcolor: "#FFF",
-        width: "100%"
+        boxShadow: darkMode ? "0 2px 10px rgba(255,255,255,0.04)" : "0 2px 10px rgba(0,0,0,0.04)",
+        bgcolor: darkMode ? '#1e1e1e' : "#FFF",
+        width: "100%",
+        border: darkMode ? '1px solid rgba(255, 255, 255, 0.12)' : 'none'
       }}
     >
       <Typography 
@@ -761,7 +774,7 @@ const SkillsCard = () => {
           fontSize: "1rem", 
           fontWeight: 600, 
           mb: 0.5,
-          color: theme.palette.primary.main
+          color: darkMode ? '#ffffff' : theme.palette.primary.main
         }}
       >
         Skills
@@ -777,17 +790,17 @@ const SkillsCard = () => {
               label={skill}
               size="small"
               sx={{
-                backgroundColor: alpha(theme.palette.primary.light, 0.15),
-                color: theme.palette.primary.main,
+                backgroundColor: darkMode ? 'rgba(161, 0, 255, 0.15)' : alpha(theme.palette.primary.light, 0.15),
+                color: darkMode ? '#a67aff' : theme.palette.primary.main,
                 borderRadius: 10,
                 height: 28,
                 fontWeight: 500,
-                border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`
+                border: darkMode ? '1px solid rgba(161, 0, 255, 0.3)' : `1px solid ${alpha(theme.palette.primary.main, 0.2)}`
               }}
             />
           ))
         ) : (
-          <Typography variant="body2" color="text.secondary">No skills added yet</Typography>
+          <Typography variant="body2" sx={{ color: darkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary' }}>No skills added yet</Typography>
         )}
       </Box>
     </Paper>
@@ -797,7 +810,7 @@ const SkillsCard = () => {
 // Certifications Card component
 const CertificationsCard = () => {
   const theme = useTheme();
-  const { certifications, loading, formatDate } = useUserData();
+  const { certifications, loading, formatDate, darkMode } = useUserData();
 
   if (loading) {
     return (
@@ -810,9 +823,10 @@ const CertificationsCard = () => {
           flexDirection: "column", 
           gap: 1.5,
           borderRadius: 2,
-          boxShadow: "0 2px 10px rgba(0,0,0,0.04)",
-          bgcolor: "#FFF",
-          width: "100%"
+          boxShadow: darkMode ? "0 2px 10px rgba(255,255,255,0.04)" : "0 2px 10px rgba(0,0,0,0.04)",
+          bgcolor: darkMode ? '#1e1e1e' : "#FFF",
+          width: "100%",
+          border: darkMode ? '1px solid rgba(255, 255, 255, 0.12)' : 'none'
         }}
       >
         <Skeleton variant="text" width="40%" height={24} />
@@ -834,9 +848,10 @@ const CertificationsCard = () => {
         flexDirection: "column", 
         gap: 1.5,
         borderRadius: 2,
-        boxShadow: "0 2px 10px rgba(0,0,0,0.04)",
-        bgcolor: "#FFF",
-        width: "100%"
+        boxShadow: darkMode ? "0 2px 10px rgba(255,255,255,0.04)" : "0 2px 10px rgba(0,0,0,0.04)",
+        bgcolor: darkMode ? '#1e1e1e' : "#FFF",
+        width: "100%",
+        border: darkMode ? '1px solid rgba(255, 255, 255, 0.12)' : 'none'
       }}
     >
       <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
@@ -846,7 +861,7 @@ const CertificationsCard = () => {
           sx={{ 
             fontSize: "1rem", 
             fontWeight: 600,
-            color: theme.palette.primary.main
+            color: darkMode ? '#ffffff' : theme.palette.primary.main
           }}
         >
           Certifications
@@ -863,25 +878,25 @@ const CertificationsCard = () => {
               sx={{ 
                 p: 2, 
                 borderRadius: 1.5, 
-                bgcolor: alpha(theme.palette.primary.main, 0.04),
+                bgcolor: darkMode ? 'rgba(161, 0, 255, 0.08)' : alpha(theme.palette.primary.main, 0.04),
                 border: '1px solid',
-                borderColor: alpha(theme.palette.primary.main, 0.1)
+                borderColor: darkMode ? 'rgba(161, 0, 255, 0.2)' : alpha(theme.palette.primary.main, 0.1)
               }}
             >
-              <Typography variant="subtitle2" fontWeight={600} sx={{ color: theme.palette.text.primary }}>
+              <Typography variant="subtitle2" fontWeight={600} sx={{ color: darkMode ? '#ffffff' : theme.palette.text.primary }}>
                 {cert.title}
               </Typography>
               
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+              <Typography variant="body2" sx={{ mb: 1, color: darkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary' }}>
                 Issuer: {cert.issuer}
               </Typography>
               
               <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 1 }}>
                 <Box>
-                  <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
+                  <Typography variant="caption" sx={{ display: "block", color: darkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary' }}>
                     Completed: {cert.completedDate}
                   </Typography>
-                  <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
+                  <Typography variant="caption" sx={{ display: "block", color: darkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary' }}>
                     Valid Until: {cert.validUntil}
                   </Typography>
                 </Box>
@@ -890,8 +905,8 @@ const CertificationsCard = () => {
                   label={`Score: ${cert.score}%`} 
                   size="small"
                   sx={{ 
-                    bgcolor: alpha(theme.palette.primary.main, 0.1),
-                    color: theme.palette.primary.main,
+                    bgcolor: darkMode ? 'rgba(161, 0, 255, 0.15)' : alpha(theme.palette.primary.main, 0.1),
+                    color: darkMode ? '#a67aff' : theme.palette.primary.main,
                     fontWeight: 500,
                     fontSize: "0.7rem",
                     height: "24px"
@@ -903,7 +918,7 @@ const CertificationsCard = () => {
         </Box>
       ) : (
         <Box sx={{ py: 3, textAlign: "center" }}>
-          <Typography variant="body2" color="text.secondary">
+          <Typography variant="body2" sx={{ color: darkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary' }}>
             No certifications found
           </Typography>
         </Box>
@@ -915,7 +930,7 @@ const CertificationsCard = () => {
 // Past projects component
 const PastProjectsCard = () => {
   const theme = useTheme();
-  const { projects, loading, teamMembers } = useUserData();
+  const { projects, loading, teamMembers, darkMode } = useUserData();
 
   if (loading) {
     return (
@@ -925,8 +940,9 @@ const PastProjectsCard = () => {
           p: 2.5, 
           width: "100%",
           borderRadius: 2,
-          boxShadow: "0 2px 10px rgba(0,0,0,0.04)",
-          bgcolor: "#FFF"
+          boxShadow: darkMode ? "0 2px 10px rgba(255,255,255,0.04)" : "0 2px 10px rgba(0,0,0,0.04)",
+          bgcolor: darkMode ? '#1e1e1e' : "#FFF",
+          border: darkMode ? '1px solid rgba(255, 255, 255, 0.12)' : 'none'
         }}
       >
         <Skeleton variant="text" width="40%" height={24} />
@@ -943,8 +959,9 @@ const PastProjectsCard = () => {
         overflow: "auto", 
         width: "100%",
         borderRadius: 2,
-        boxShadow: "0 2px 10px rgba(0,0,0,0.04)",
-        bgcolor: "#FFF"
+        boxShadow: darkMode ? "0 2px 10px rgba(255,255,255,0.04)" : "0 2px 10px rgba(0,0,0,0.04)",
+        bgcolor: darkMode ? '#1e1e1e' : "#FFF",
+        border: darkMode ? '1px solid rgba(255, 255, 255, 0.12)' : 'none'
       }}
     >
       <Typography 
@@ -953,7 +970,7 @@ const PastProjectsCard = () => {
           fontSize: "1rem", 
           fontWeight: 600, 
           mb: 1,
-          color: theme.palette.primary.main
+          color: darkMode ? '#ffffff' : theme.palette.primary.main
         }}
       >
         Past Projects
@@ -971,11 +988,11 @@ const PastProjectsCard = () => {
               borderRadius: '2px'
             },
             '&::-webkit-scrollbar-track': { 
-              background: '#F5F5F5',
+              background: darkMode ? 'rgba(255,255,255,0.05)' : '#F5F5F5',
               borderRadius: '2px'
             },
             '&::-webkit-scrollbar-thumb': { 
-              background: alpha(theme.palette.primary.main, 0.3),
+              background: darkMode ? 'rgba(255,255,255,0.2)' : alpha(theme.palette.primary.main, 0.3),
               borderRadius: '2px',
             },
           }}
@@ -984,14 +1001,16 @@ const PastProjectsCard = () => {
             sx={{ 
               tableLayout: "fixed", 
               width: "100%",
-              border: `1px solid ${alpha(theme.palette.primary.main, 0.1)}`,
+              border: darkMode ? '1px solid rgba(255, 255, 255, 0.12)' : `1px solid ${alpha(theme.palette.primary.main, 0.1)}`,
+              bgcolor: darkMode ? '#1e1e1e' : '#ffffff',
               borderRadius: 1,
               borderCollapse: 'separate',
               borderSpacing: 0,
               overflow: 'hidden',
               '& .MuiTableCell-root': {
-                borderBottom: `1px solid ${alpha(theme.palette.primary.main, 0.1)}`,
-                borderRight: `1px solid ${alpha(theme.palette.primary.main, 0.1)}`,
+                borderBottom: darkMode ? '1px solid rgba(255, 255, 255, 0.12)' : `1px solid ${alpha(theme.palette.primary.main, 0.1)}`,
+                borderRight: darkMode ? '1px solid rgba(255, 255, 255, 0.12)' : `1px solid ${alpha(theme.palette.primary.main, 0.1)}`,
+                color: darkMode ? 'rgba(255, 255, 255, 0.9)' : 'inherit',
                 py: 1.5,
                 px: 2,
                 '&:last-child': {
@@ -1003,8 +1022,8 @@ const PastProjectsCard = () => {
               },
               '& .MuiTableCell-head': {
                 fontWeight: 600,
-                color: theme.palette.primary.main,
-                backgroundColor: alpha(theme.palette.primary.main, 0.05)
+                color: darkMode ? '#ffffff' : theme.palette.primary.main,
+                backgroundColor: darkMode ? 'rgba(161, 0, 255, 0.08)' : alpha(theme.palette.primary.main, 0.05)
               }
             }}
             size="small"
@@ -1027,7 +1046,7 @@ const PastProjectsCard = () => {
                   key={index}
                   sx={{
                     '&:hover': {
-                      backgroundColor: alpha(theme.palette.primary.main, 0.02)
+                      backgroundColor: darkMode ? 'rgba(255, 255, 255, 0.02)' : alpha(theme.palette.primary.main, 0.02)
                     },
                     '&:last-child td': {
                       borderBottom: 0
@@ -1046,8 +1065,8 @@ const PastProjectsCard = () => {
                             width: 24,
                             height: 24,
                             fontSize: "0.75rem",
-                            bgcolor: theme.palette.primary.main,
-                            border: '1px solid white'
+                            bgcolor: darkMode ? '#a67aff' : theme.palette.primary.main,
+                            border: darkMode ? '1px solid #1e1e1e' : '1px solid white'
                           },
                         }}
                       >
@@ -1096,7 +1115,7 @@ const PastProjectsCard = () => {
         </Box>
       ) : (
         <Box sx={{ p: 3, textAlign: "center" }}>
-          <Typography variant="body2" color="text.secondary">
+          <Typography variant="body2" sx={{ color: darkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary' }}>
             No past projects found.
           </Typography>
         </Box>

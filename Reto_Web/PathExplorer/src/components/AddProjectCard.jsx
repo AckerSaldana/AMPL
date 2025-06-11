@@ -34,10 +34,12 @@ import {
   statusChipStyles,
   chipStyles
 } from "../styles/styles";
+import { useDarkMode } from "../contexts/DarkModeContext";
 
 // Modificado para usar props: roles, onEditRole, onDeleteRole
 export const AddProjectCard = ({ roles, onEditRole, onDeleteRole }) => {
   const theme = useTheme();
+  const { darkMode } = useDarkMode();
   const navigate = useNavigate();
   
   // Datos del proyecto
@@ -190,10 +192,10 @@ export const AddProjectCard = ({ roles, onEditRole, onDeleteRole }) => {
   return (
     <Box sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
       {/* Encabezado */}
-      <Typography variant="h6" fontWeight={600} color={ACCENTURE_COLORS.corePurple3} gutterBottom>
+      <Typography variant="h6" fontWeight={600} sx={{ color: darkMode ? '#ffffff' : ACCENTURE_COLORS.corePurple3 }} gutterBottom>
         Project Details
       </Typography>
-      <Typography variant="body2" color="text.secondary" mb={3}>
+      <Typography variant="body2" sx={{ color: darkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary', mb: 3 }}>
         Fill in the basic information about your new project
       </Typography>
 
@@ -203,7 +205,7 @@ export const AddProjectCard = ({ roles, onEditRole, onDeleteRole }) => {
           <Box>
             <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
               <AssignmentIcon sx={{ color: ACCENTURE_COLORS.corePurple2, mr: 1, fontSize: 18 }} />
-              <Typography fontWeight={600} color="text.primary">
+              <Typography fontWeight={600} sx={{ color: darkMode ? '#ffffff' : 'text.primary' }}>
                 Project title
               </Typography>
             </Box>
@@ -215,7 +217,30 @@ export const AddProjectCard = ({ roles, onEditRole, onDeleteRole }) => {
               value={projectData.title}
               onChange={handleInputChange}
               sx={{
-                ...formFieldStyles
+                ...formFieldStyles,
+                '& .MuiOutlinedInput-root': {
+                  ...formFieldStyles['& .MuiOutlinedInput-root'],
+                  color: darkMode ? '#ffffff' : 'inherit',
+                  '& fieldset': {
+                    borderColor: darkMode ? 'rgba(255, 255, 255, 0.23)' : 'rgba(0,0,0,0.06)',
+                  },
+                  '&:hover fieldset': {
+                    borderColor: darkMode ? 'rgba(161, 0, 255, 0.6)' : `${ACCENTURE_COLORS.corePurple1}40`,
+                  },
+                  '&.Mui-focused': {
+                    ...formFieldStyles['& .MuiOutlinedInput-root']['&.Mui-focused'],
+                    '& fieldset': {
+                      borderColor: ACCENTURE_COLORS.corePurple1,
+                    },
+                  },
+                },
+                '& .MuiInputBase-input': {
+                  ...formFieldStyles['& .MuiInputBase-input'],
+                  '&::placeholder': {
+                    color: darkMode ? 'rgba(255, 255, 255, 0.5)' : 'rgba(0, 0, 0, 0.5)',
+                    opacity: 1
+                  }
+                }
               }}
             />
           </Box>
@@ -224,7 +249,7 @@ export const AddProjectCard = ({ roles, onEditRole, onDeleteRole }) => {
             <Box sx={{ flex: 1, minWidth: { xs: "100%", sm: "45%" } }}>
               <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
                 <EventIcon sx={{ color: ACCENTURE_COLORS.corePurple2, mr: 1, fontSize: 18 }} />
-                <Typography fontWeight={600} color="text.primary">
+                <Typography fontWeight={600} sx={{ color: darkMode ? '#ffffff' : 'text.primary' }}>
                   Start Date
                 </Typography>
               </Box>
@@ -236,14 +261,37 @@ export const AddProjectCard = ({ roles, onEditRole, onDeleteRole }) => {
                 onChange={handleInputChange}
                 size="small"
                 sx={{
-                  ...formFieldStyles
+                  ...formFieldStyles,
+                  '& .MuiOutlinedInput-root': {
+                    ...formFieldStyles['& .MuiOutlinedInput-root'],
+                    color: darkMode ? '#ffffff' : 'inherit',
+                    '& fieldset': {
+                      borderColor: darkMode ? 'rgba(255, 255, 255, 0.23)' : 'rgba(0,0,0,0.06)',
+                    },
+                    '&:hover fieldset': {
+                      borderColor: darkMode ? 'rgba(161, 0, 255, 0.6)' : `${ACCENTURE_COLORS.corePurple1}40`,
+                    },
+                    '&.Mui-focused': {
+                      ...formFieldStyles['& .MuiOutlinedInput-root']['&.Mui-focused'],
+                      '& fieldset': {
+                        borderColor: ACCENTURE_COLORS.corePurple1,
+                      },
+                    },
+                  },
+                  '& .MuiInputBase-input': {
+                    ...formFieldStyles['& .MuiInputBase-input'],
+                    color: darkMode ? '#ffffff' : 'inherit',
+                    '&::-webkit-calendar-picker-indicator': {
+                      filter: darkMode ? 'invert(1)' : 'none',
+                    }
+                  }
                 }}
               />
             </Box>
             <Box sx={{ flex: 1, minWidth: { xs: "100%", sm: "45%" } }}>
               <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
                 <EventIcon sx={{ color: ACCENTURE_COLORS.corePurple2, mr: 1, fontSize: 18 }} />
-                <Typography fontWeight={600} color="text.primary">
+                <Typography fontWeight={600} sx={{ color: darkMode ? '#ffffff' : 'text.primary' }}>
                   End Date
                 </Typography>
               </Box>
@@ -255,7 +303,30 @@ export const AddProjectCard = ({ roles, onEditRole, onDeleteRole }) => {
                 onChange={handleInputChange}
                 size="small"
                 sx={{
-                  ...formFieldStyles
+                  ...formFieldStyles,
+                  '& .MuiOutlinedInput-root': {
+                    ...formFieldStyles['& .MuiOutlinedInput-root'],
+                    color: darkMode ? '#ffffff' : 'inherit',
+                    '& fieldset': {
+                      borderColor: darkMode ? 'rgba(255, 255, 255, 0.23)' : 'rgba(0,0,0,0.06)',
+                    },
+                    '&:hover fieldset': {
+                      borderColor: darkMode ? 'rgba(161, 0, 255, 0.6)' : `${ACCENTURE_COLORS.corePurple1}40`,
+                    },
+                    '&.Mui-focused': {
+                      ...formFieldStyles['& .MuiOutlinedInput-root']['&.Mui-focused'],
+                      '& fieldset': {
+                        borderColor: ACCENTURE_COLORS.corePurple1,
+                      },
+                    },
+                  },
+                  '& .MuiInputBase-input': {
+                    ...formFieldStyles['& .MuiInputBase-input'],
+                    color: darkMode ? '#ffffff' : 'inherit',
+                    '&::-webkit-calendar-picker-indicator': {
+                      filter: darkMode ? 'invert(1)' : 'none',
+                    }
+                  }
                 }}
               />
             </Box>
@@ -265,7 +336,7 @@ export const AddProjectCard = ({ roles, onEditRole, onDeleteRole }) => {
           <Box>
             <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
               <BusinessIcon sx={{ color: ACCENTURE_COLORS.corePurple2, mr: 1, fontSize: 18 }} />
-              <Typography fontWeight={600} color="text.primary">
+              <Typography fontWeight={600} sx={{ color: darkMode ? '#ffffff' : 'text.primary' }}>
                 Client
               </Typography>
             </Box>
@@ -278,7 +349,23 @@ export const AddProjectCard = ({ roles, onEditRole, onDeleteRole }) => {
               size="small"
               disabled={loadingClients}
               sx={{
-                ...formFieldStyles
+                ...formFieldStyles,
+                '& .MuiOutlinedInput-root': {
+                  ...formFieldStyles['& .MuiOutlinedInput-root'],
+                  color: darkMode ? '#ffffff' : 'inherit',
+                  '& fieldset': {
+                    borderColor: darkMode ? 'rgba(255, 255, 255, 0.23)' : 'rgba(0,0,0,0.06)',
+                  },
+                  '&:hover fieldset': {
+                    borderColor: darkMode ? 'rgba(161, 0, 255, 0.6)' : `${ACCENTURE_COLORS.corePurple1}40`,
+                  },
+                  '&.Mui-focused': {
+                    ...formFieldStyles['& .MuiOutlinedInput-root']['&.Mui-focused'],
+                    '& fieldset': {
+                      borderColor: ACCENTURE_COLORS.corePurple1,
+                    },
+                  },
+                }
               }}
             >
               <MenuItem value="">-- Select Client --</MenuItem>
@@ -294,7 +381,7 @@ export const AddProjectCard = ({ roles, onEditRole, onDeleteRole }) => {
             <Box sx={{ flex: 1, minWidth: { xs: "100%", sm: "45%" } }}>
               <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
                 <PriorityHighIcon sx={{ color: ACCENTURE_COLORS.corePurple2, mr: 1, fontSize: 18 }} />
-                <Typography fontWeight={600} color="text.primary">
+                <Typography fontWeight={600} sx={{ color: darkMode ? '#ffffff' : 'text.primary' }}>
                   Priority
                 </Typography>
               </Box>
@@ -306,7 +393,23 @@ export const AddProjectCard = ({ roles, onEditRole, onDeleteRole }) => {
                 onChange={handleInputChange}
                 size="small"
                 sx={{
-                  ...formFieldStyles
+                  ...formFieldStyles,
+                  '& .MuiOutlinedInput-root': {
+                    ...formFieldStyles['& .MuiOutlinedInput-root'],
+                    color: darkMode ? '#ffffff' : 'inherit',
+                    '& fieldset': {
+                      borderColor: darkMode ? 'rgba(255, 255, 255, 0.23)' : 'rgba(0,0,0,0.06)',
+                    },
+                    '&:hover fieldset': {
+                      borderColor: darkMode ? 'rgba(161, 0, 255, 0.6)' : `${ACCENTURE_COLORS.corePurple1}40`,
+                    },
+                    '&.Mui-focused': {
+                      ...formFieldStyles['& .MuiOutlinedInput-root']['&.Mui-focused'],
+                      '& fieldset': {
+                        borderColor: ACCENTURE_COLORS.corePurple1,
+                      },
+                    },
+                  }
                 }}
               >
                 <MenuItem value="Low">Low</MenuItem>
@@ -326,7 +429,7 @@ export const AddProjectCard = ({ roles, onEditRole, onDeleteRole }) => {
                     mr: 1 
                   }}
                 />
-                <Typography fontWeight={600} color="text.primary">
+                <Typography fontWeight={600} sx={{ color: darkMode ? '#ffffff' : 'text.primary' }}>
                   Status
                 </Typography>
               </Box>
@@ -338,7 +441,23 @@ export const AddProjectCard = ({ roles, onEditRole, onDeleteRole }) => {
                 onChange={handleInputChange}
                 size="small"
                 sx={{
-                  ...formFieldStyles
+                  ...formFieldStyles,
+                  '& .MuiOutlinedInput-root': {
+                    ...formFieldStyles['& .MuiOutlinedInput-root'],
+                    color: darkMode ? '#ffffff' : 'inherit',
+                    '& fieldset': {
+                      borderColor: darkMode ? 'rgba(255, 255, 255, 0.23)' : 'rgba(0,0,0,0.06)',
+                    },
+                    '&:hover fieldset': {
+                      borderColor: darkMode ? 'rgba(161, 0, 255, 0.6)' : `${ACCENTURE_COLORS.corePurple1}40`,
+                    },
+                    '&.Mui-focused': {
+                      ...formFieldStyles['& .MuiOutlinedInput-root']['&.Mui-focused'],
+                      '& fieldset': {
+                        borderColor: ACCENTURE_COLORS.corePurple1,
+                      },
+                    },
+                  }
                 }}
               >
                 <MenuItem value="Not Started">Not Started</MenuItem>
@@ -351,7 +470,7 @@ export const AddProjectCard = ({ roles, onEditRole, onDeleteRole }) => {
           <Box>
             <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
               <DescriptionIcon sx={{ color: ACCENTURE_COLORS.corePurple2, mr: 1, fontSize: 18 }} />
-              <Typography fontWeight={600} color="text.primary">
+              <Typography fontWeight={600} sx={{ color: darkMode ? '#ffffff' : 'text.primary' }}>
                 Description
               </Typography>
             </Box>
@@ -364,7 +483,30 @@ export const AddProjectCard = ({ roles, onEditRole, onDeleteRole }) => {
               value={projectData.description}
               onChange={handleInputChange}
               sx={{
-                ...formFieldStyles
+                ...formFieldStyles,
+                '& .MuiOutlinedInput-root': {
+                  ...formFieldStyles['& .MuiOutlinedInput-root'],
+                  color: darkMode ? '#ffffff' : 'inherit',
+                  '& fieldset': {
+                    borderColor: darkMode ? 'rgba(255, 255, 255, 0.23)' : 'rgba(0,0,0,0.06)',
+                  },
+                  '&:hover fieldset': {
+                    borderColor: darkMode ? 'rgba(161, 0, 255, 0.6)' : `${ACCENTURE_COLORS.corePurple1}40`,
+                  },
+                  '&.Mui-focused': {
+                    ...formFieldStyles['& .MuiOutlinedInput-root']['&.Mui-focused'],
+                    '& fieldset': {
+                      borderColor: ACCENTURE_COLORS.corePurple1,
+                    },
+                  },
+                },
+                '& .MuiInputBase-input': {
+                  ...formFieldStyles['& .MuiInputBase-input'],
+                  '&::placeholder': {
+                    color: darkMode ? 'rgba(255, 255, 255, 0.5)' : 'rgba(0, 0, 0, 0.5)',
+                    opacity: 1
+                  }
+                }
               }}
             />
           </Box>
@@ -384,7 +526,7 @@ export const AddProjectCard = ({ roles, onEditRole, onDeleteRole }) => {
           <Typography 
             variant="h6" 
             fontWeight={600} 
-            color={ACCENTURE_COLORS.corePurple3}
+            sx={{ color: darkMode ? '#ffffff' : ACCENTURE_COLORS.corePurple3 }}
           >
             Project Roles
           </Typography>
@@ -394,8 +536,9 @@ export const AddProjectCard = ({ roles, onEditRole, onDeleteRole }) => {
             sx={{ 
               ...chipStyles(),
               fontWeight: 600,
-              backgroundColor: ACCENTURE_COLORS.accentPurple5,
-              color: ACCENTURE_COLORS.corePurple2
+              backgroundColor: darkMode ? 'rgba(161, 0, 255, 0.15)' : ACCENTURE_COLORS.accentPurple5,
+              color: darkMode ? '#a67aff' : ACCENTURE_COLORS.corePurple2,
+              border: darkMode ? '1px solid rgba(161, 0, 255, 0.3)' : 'none'
             }}
           />
         </Box>
@@ -405,14 +548,14 @@ export const AddProjectCard = ({ roles, onEditRole, onDeleteRole }) => {
           sx={{
             borderRadius: 2,
             border: "1px solid",
-            borderColor: "rgba(0,0,0,0.08)",
-            bgcolor: "rgba(255,255,255,0.6)",
+            borderColor: darkMode ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.08)",
+            bgcolor: darkMode ? "rgba(255,255,255,0.03)" : "rgba(255,255,255,0.6)",
             p: 0,
             flexGrow: 1,
             minHeight: 200,
             overflow: "hidden",
             position: "relative",
-            boxShadow: "inset 0 1px 3px rgba(0,0,0,0.02)",
+            boxShadow: darkMode ? "inset 0 1px 3px rgba(255,255,255,0.02)" : "inset 0 1px 3px rgba(0,0,0,0.02)",
             display: "flex",
             flexDirection: "column"
           }}
@@ -427,14 +570,14 @@ export const AddProjectCard = ({ roles, onEditRole, onDeleteRole }) => {
                 width: "8px",
               },
               "&::-webkit-scrollbar-track": {
-                backgroundColor: "rgba(0,0,0,0.02)",
+                backgroundColor: darkMode ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.02)",
                 borderRadius: "4px",
               },
               "&::-webkit-scrollbar-thumb": {
-                backgroundColor: ACCENTURE_COLORS.accentPurple5,
+                backgroundColor: darkMode ? "rgba(161, 0, 255, 0.3)" : ACCENTURE_COLORS.accentPurple5,
                 borderRadius: "4px",
                 "&:hover": {
-                  backgroundColor: ACCENTURE_COLORS.accentPurple4,
+                  backgroundColor: darkMode ? "rgba(161, 0, 255, 0.5)" : ACCENTURE_COLORS.accentPurple4,
                 }
               },
             }}
@@ -447,11 +590,12 @@ export const AddProjectCard = ({ roles, onEditRole, onDeleteRole }) => {
                       variant="outlined"
                       sx={{ 
                         borderRadius: 2,
-                        boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
-                        borderColor: "rgba(0,0,0,0.06)",
+                        boxShadow: darkMode ? "0 1px 3px rgba(255,255,255,0.03)" : "0 1px 3px rgba(0,0,0,0.03)",
+                        borderColor: darkMode ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.06)",
+                        bgcolor: darkMode ? 'rgba(255,255,255,0.02)' : 'transparent',
                         transition: "all 0.2s ease",
                         "&:hover": {
-                          boxShadow: "0 3px 8px rgba(0,0,0,0.08)",
+                          boxShadow: darkMode ? "0 3px 8px rgba(255,255,255,0.08)" : "0 3px 8px rgba(0,0,0,0.08)",
                           borderColor: ACCENTURE_COLORS.accentPurple4,
                           transform: "translateY(-2px)"
                         }
@@ -467,7 +611,7 @@ export const AddProjectCard = ({ roles, onEditRole, onDeleteRole }) => {
                         >
                           <Box>
                             <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                              <Typography variant="subtitle2" fontWeight={600} color={ACCENTURE_COLORS.corePurple3}>
+                              <Typography variant="subtitle2" fontWeight={600} sx={{ color: darkMode ? '#ffffff' : ACCENTURE_COLORS.corePurple3 }}>
                                 {role.name}
                               </Typography>
                               <Chip 
@@ -477,8 +621,9 @@ export const AddProjectCard = ({ roles, onEditRole, onDeleteRole }) => {
                                   height: 20, 
                                   fontSize: "0.625rem",
                                   fontWeight: 500,
-                                  color: ACCENTURE_COLORS.corePurple2,
-                                  bgcolor: `${ACCENTURE_COLORS.accentPurple5}90`
+                                  color: darkMode ? '#a67aff' : ACCENTURE_COLORS.corePurple2,
+                                  bgcolor: darkMode ? 'rgba(161, 0, 255, 0.15)' : `${ACCENTURE_COLORS.accentPurple5}90`,
+                                  border: darkMode ? '1px solid rgba(161, 0, 255, 0.3)' : 'none'
                                 }}
                               />
                             </Box>
@@ -495,9 +640,9 @@ export const AddProjectCard = ({ roles, onEditRole, onDeleteRole }) => {
                                       height: 20,
                                       fontSize: "0.625rem", 
                                       fontWeight: 500,
-                                      bgcolor: `${ACCENTURE_COLORS.corePurple1}15`,
-                                      color: ACCENTURE_COLORS.corePurple2,
-                                      border: `1px solid ${ACCENTURE_COLORS.accentPurple4}30`
+                                      bgcolor: darkMode ? 'rgba(161, 0, 255, 0.08)' : `${ACCENTURE_COLORS.corePurple1}15`,
+                                      color: darkMode ? 'rgba(255, 255, 255, 0.7)' : ACCENTURE_COLORS.corePurple2,
+                                      border: darkMode ? '1px solid rgba(161, 0, 255, 0.2)' : `1px solid ${ACCENTURE_COLORS.accentPurple4}30`
                                     }}
                                   />
                                 ))}
@@ -511,11 +656,11 @@ export const AddProjectCard = ({ roles, onEditRole, onDeleteRole }) => {
                               onClick={() => onEditRole(role)}
                               sx={{ 
                                 color: ACCENTURE_COLORS.corePurple1,
-                                bgcolor: `${ACCENTURE_COLORS.accentPurple5}90`,
+                                bgcolor: darkMode ? 'rgba(161, 0, 255, 0.15)' : `${ACCENTURE_COLORS.accentPurple5}90`,
                                 width: 28,
                                 height: 28,
                                 '&:hover': {
-                                  bgcolor: ACCENTURE_COLORS.accentPurple5,
+                                  bgcolor: darkMode ? 'rgba(161, 0, 255, 0.25)' : ACCENTURE_COLORS.accentPurple5,
                                 }
                               }}
                             >
@@ -544,14 +689,14 @@ export const AddProjectCard = ({ roles, onEditRole, onDeleteRole }) => {
                         {/* Mostrar descripción si existe */}
                         {role.description && (
                           <Box sx={{ mt: 1 }}>
-                            <Divider sx={{ my: 1, borderColor: "rgba(0,0,0,0.04)" }} />
+                            <Divider sx={{ my: 1, borderColor: darkMode ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.04)" }} />
                             <Typography 
                               variant="body2" 
-                              color="text.secondary" 
                               sx={{ 
                                 fontStyle: "italic",
                                 fontSize: "0.75rem",
-                                lineHeight: 1.4
+                                lineHeight: 1.4,
+                                color: darkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary'
                               }}
                             >
                               {role.description.length > 120 
@@ -578,15 +723,15 @@ export const AddProjectCard = ({ roles, onEditRole, onDeleteRole }) => {
                 <Box>
                   <Typography 
                     variant="body1" 
-                    color="text.secondary" 
                     sx={{ 
                       fontWeight: 500,
-                      mb: 1
+                      mb: 1,
+                      color: darkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary'
                     }}
                   >
                     No roles added yet
                   </Typography>
-                  <Typography variant="body2" color="text.secondary">
+                  <Typography variant="body2" sx={{ color: darkMode ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary' }}>
                     Use the form on the right to create your first role
                   </Typography>
                 </Box>

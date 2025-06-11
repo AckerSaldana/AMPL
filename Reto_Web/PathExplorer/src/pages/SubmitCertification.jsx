@@ -12,7 +12,6 @@ import {
   Divider,
   IconButton,
   alpha,
-  useTheme,
   Tooltip,
   Avatar,
   InputAdornment,
@@ -28,9 +27,10 @@ import {
 } from '@mui/icons-material';
 import { supabase } from '../supabase/supabaseClient';
 import uploadEvidenceToSupabase from '../utils/uploadEvidenceToSupabase';
+import { useDarkMode } from '../contexts/DarkModeContext';
 
 const SubmitCertification = ({ onClose }) => {
-  const theme = useTheme();
+  const { darkMode } = useDarkMode();
   
   // Colores de Accenture según las directrices
   const corePurple1 = "#a100ff"; // Core Purple 1
@@ -197,18 +197,18 @@ const handleSubmit = async () => {
 }
 
   return (
-    <Box sx={{ width: '100%', height: '100%', bgcolor: '#fff' }}>
+    <Box sx={{ width: '100%', height: '100%', bgcolor: darkMode ? '#1a1a1a' : '#fff' }}>
       {/* Header */}
       <Box 
         sx={{ 
           p: 2.5, 
-          borderBottom: `1px solid ${alpha('#000', 0.08)}`,
+          borderBottom: `1px solid ${darkMode ? alpha('#fff', 0.1) : alpha('#000', 0.08)}`,
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center'
         }}
       >
-        <Typography variant="h6" fontWeight={600} color="#333">
+        <Typography variant="h6" fontWeight={600} color={darkMode ? '#fff' : '#333'}>
           Submit Certification
         </Typography>
         
@@ -216,8 +216,8 @@ const handleSubmit = async () => {
           onClick={onClose}
           size="small"
           sx={{ 
-            color: alpha('#000', 0.6),
-            '&:hover': { bgcolor: alpha('#000', 0.05) }
+            color: darkMode ? alpha('#fff', 0.7) : alpha('#000', 0.6),
+            '&:hover': { bgcolor: darkMode ? alpha('#fff', 0.08) : alpha('#000', 0.05) }
           }}
         >
           <CloseIcon />
@@ -233,9 +233,9 @@ const handleSubmit = async () => {
               p: 2,
               mb: 3,
               borderRadius: 1,
-              bgcolor: alpha('#f44336', 0.05),
+              bgcolor: darkMode ? alpha('#f44336', 0.15) : alpha('#f44336', 0.05),
               border: '1px solid',
-              borderColor: alpha('#f44336', 0.2),
+              borderColor: darkMode ? alpha('#f44336', 0.3) : alpha('#f44336', 0.2),
               display: 'flex',
               alignItems: 'center',
               gap: 1
@@ -257,11 +257,23 @@ const handleSubmit = async () => {
               onChange={(e) => setSelectedCertificationId(e.target.value)}
               label="Select Certification"
               sx={{
-                '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                  borderColor: corePurple1
+                '& .MuiOutlinedInput-root': {
+                  bgcolor: darkMode ? 'rgba(255,255,255,0.05)' : 'transparent',
+                  '& fieldset': {
+                    borderColor: darkMode ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.23)'
+                  },
+                  '&:hover fieldset': {
+                    borderColor: darkMode ? alpha(corePurple1, 0.8) : alpha(corePurple1, 0.7)
+                  },
+                  '&.Mui-focused fieldset': {
+                    borderColor: corePurple1
+                  }
                 },
-                '&:hover .MuiOutlinedInput-notchedOutline': {
-                  borderColor: alpha(corePurple1, 0.7)
+                '& .MuiInputLabel-root': {
+                  color: darkMode ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.6)'
+                },
+                '& .MuiSelect-icon': {
+                  color: darkMode ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.54)'
                 }
               }}
             >
@@ -277,7 +289,7 @@ const handleSubmit = async () => {
           <Typography 
             variant="subtitle2" 
             fontWeight={600} 
-            sx={{ mb: 1.5, color: '#333' }}
+            sx={{ mb: 1.5, color: darkMode ? '#fff' : '#333' }}
           >
             Certification Evidence
           </Typography>
@@ -286,17 +298,17 @@ const handleSubmit = async () => {
             <Box
               sx={{
                 border: '1px dashed',
-                borderColor: alpha(corePurple1, 0.3),
+                borderColor: darkMode ? alpha(corePurple1, 0.4) : alpha(corePurple1, 0.3),
                 borderRadius: 1,
                 p: 3,
                 textAlign: 'center',
-                bgcolor: alpha(corePurple1, 0.02),
+                bgcolor: darkMode ? alpha(corePurple1, 0.08) : alpha(corePurple1, 0.02),
                 mb: 3,
                 cursor: 'pointer',
                 transition: 'all 0.2s',
                 '&:hover': {
-                  bgcolor: alpha(corePurple1, 0.05),
-                  borderColor: alpha(corePurple1, 0.5)
+                  bgcolor: darkMode ? alpha(corePurple1, 0.12) : alpha(corePurple1, 0.05),
+                  borderColor: darkMode ? alpha(corePurple1, 0.6) : alpha(corePurple1, 0.5)
                 }
               }}
               onClick={() => fileInputRef.current?.click()}
@@ -315,13 +327,13 @@ const handleSubmit = async () => {
                   mb: 1.5 
                 }} 
               />
-              <Typography variant="subtitle1" gutterBottom fontWeight={500} color="#333">
+              <Typography variant="subtitle1" gutterBottom fontWeight={500} color={darkMode ? '#fff' : '#333'}>
                 Upload PDF Evidence
               </Typography>
-              <Typography variant="body2" color="text.secondary">
+              <Typography variant="body2" color={darkMode ? 'rgba(255,255,255,0.7)' : 'text.secondary'}>
                 Click to browse or drag and drop your file here
               </Typography>
-              <Typography variant="caption" display="block" mt={1} color={alpha('#000', 0.5)}>
+              <Typography variant="caption" display="block" mt={1} color={darkMode ? alpha('#fff', 0.5) : alpha('#000', 0.5)}>
                 Accepted format: PDF
               </Typography>
             </Box>
@@ -329,11 +341,11 @@ const handleSubmit = async () => {
             <Box
               sx={{
                 border: '1px solid',
-                borderColor: alpha(corePurple1, 0.2),
+                borderColor: darkMode ? alpha(corePurple1, 0.3) : alpha(corePurple1, 0.2),
                 borderRadius: 1,
                 overflow: 'hidden',
                 mb: 3,
-                bgcolor: alpha('#fff', 0.9)
+                bgcolor: darkMode ? 'rgba(255,255,255,0.05)' : alpha('#fff', 0.9)
               }}
             >
               <Box
@@ -342,15 +354,15 @@ const handleSubmit = async () => {
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
-                  bgcolor: alpha(corePurple1, 0.05),
+                  bgcolor: darkMode ? alpha(corePurple1, 0.15) : alpha(corePurple1, 0.05),
                   borderBottom: '1px solid',
-                  borderColor: alpha(corePurple1, 0.1)
+                  borderColor: darkMode ? alpha(corePurple1, 0.2) : alpha(corePurple1, 0.1)
                 }}
               >
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                   <Avatar
                     sx={{
-                      bgcolor: alpha(corePurple1, 0.15),
+                      bgcolor: darkMode ? alpha(corePurple1, 0.25) : alpha(corePurple1, 0.15),
                       color: corePurple1,
                       width: 40,
                       height: 40
@@ -366,12 +378,13 @@ const handleSubmit = async () => {
                         maxWidth: '230px',
                         whiteSpace: 'nowrap',
                         overflow: 'hidden',
-                        textOverflow: 'ellipsis'
+                        textOverflow: 'ellipsis',
+                        color: darkMode ? '#fff' : 'inherit'
                       }}
                     >
                       {file.name}
                     </Typography>
-                    <Typography variant="caption" color="text.secondary">
+                    <Typography variant="caption" color={darkMode ? 'rgba(255,255,255,0.7)' : 'text.secondary'}>
                       {(file.size / 1024).toFixed(0)} KB
                     </Typography>
                   </Box>
@@ -381,7 +394,7 @@ const handleSubmit = async () => {
                   <IconButton 
                     size="small" 
                     onClick={handleRemoveFile}
-                    sx={{ color: alpha('#000', 0.6) }}
+                    sx={{ color: darkMode ? alpha('#fff', 0.6) : alpha('#000', 0.6) }}
                   >
                     <DeleteIcon fontSize="small" />
                   </IconButton>
@@ -389,7 +402,7 @@ const handleSubmit = async () => {
               </Box>
               
               {pdfPreviewUrl && (
-                <Box sx={{ height: '200px', borderTop: `1px solid ${alpha('#000', 0.08)}` }}>
+                <Box sx={{ height: '200px', borderTop: `1px solid ${darkMode ? alpha('#fff', 0.1) : alpha('#000', 0.08)}` }}>
                   <iframe
                     src={pdfPreviewUrl}
                     width="100%"
@@ -407,7 +420,7 @@ const handleSubmit = async () => {
           <Typography 
             variant="subtitle2" 
             fontWeight={600} 
-            sx={{ mb: 2, color: '#333' }}
+            sx={{ mb: 2, color: darkMode ? '#fff' : '#333' }}
           >
             Certification Details
           </Typography>
@@ -425,19 +438,26 @@ const handleSubmit = async () => {
                   <InputAdornment position="start">
                     <CalendarIcon 
                       fontSize="small" 
-                      sx={{ color: alpha('#000', 0.5) }} 
+                      sx={{ color: darkMode ? alpha('#fff', 0.5) : alpha('#000', 0.5) }} 
                     />
                   </InputAdornment>
                 ),
               }}
               sx={{
                 '& .MuiOutlinedInput-root': {
-                  '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                    borderColor: corePurple1
+                  bgcolor: darkMode ? 'rgba(255,255,255,0.05)' : 'transparent',
+                  '& fieldset': {
+                    borderColor: darkMode ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.23)'
                   },
-                  '&:hover .MuiOutlinedInput-notchedOutline': {
-                    borderColor: alpha(corePurple1, 0.7)
+                  '&:hover fieldset': {
+                    borderColor: darkMode ? alpha(corePurple1, 0.8) : alpha(corePurple1, 0.7)
+                  },
+                  '&.Mui-focused fieldset': {
+                    borderColor: corePurple1
                   }
+                },
+                '& .MuiInputLabel-root': {
+                  color: darkMode ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.6)'
                 }
               }}
             />
@@ -454,19 +474,26 @@ const handleSubmit = async () => {
                   <InputAdornment position="start">
                     <CalendarIcon 
                       fontSize="small" 
-                      sx={{ color: alpha('#000', 0.5) }} 
+                      sx={{ color: darkMode ? alpha('#fff', 0.5) : alpha('#000', 0.5) }} 
                     />
                   </InputAdornment>
                 ),
               }}
               sx={{
                 '& .MuiOutlinedInput-root': {
-                  '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                    borderColor: corePurple1
+                  bgcolor: darkMode ? 'rgba(255,255,255,0.05)' : 'transparent',
+                  '& fieldset': {
+                    borderColor: darkMode ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.23)'
                   },
-                  '&:hover .MuiOutlinedInput-notchedOutline': {
-                    borderColor: alpha(corePurple1, 0.7)
+                  '&:hover fieldset': {
+                    borderColor: darkMode ? alpha(corePurple1, 0.8) : alpha(corePurple1, 0.7)
+                  },
+                  '&.Mui-focused fieldset': {
+                    borderColor: corePurple1
                   }
+                },
+                '& .MuiInputLabel-root': {
+                  color: darkMode ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.6)'
                 }
               }}
             />
@@ -503,12 +530,22 @@ const handleSubmit = async () => {
             sx={{ 
               mb: 4,
               '& .MuiOutlinedInput-root': {
-                '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                  borderColor: corePurple1
+                bgcolor: darkMode ? 'rgba(255,255,255,0.05)' : 'transparent',
+                '& fieldset': {
+                  borderColor: darkMode ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.23)'
                 },
-                '&:hover .MuiOutlinedInput-notchedOutline': {
-                  borderColor: alpha(corePurple1, 0.7)
+                '&:hover fieldset': {
+                  borderColor: darkMode ? alpha(corePurple1, 0.8) : alpha(corePurple1, 0.7)
+                },
+                '&.Mui-focused fieldset': {
+                  borderColor: corePurple1
                 }
+              },
+              '& .MuiInputLabel-root': {
+                color: darkMode ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.6)'
+              },
+              '& .MuiFormHelperText-root': {
+                color: darkMode ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.6)'
               }
             }}
           />
@@ -519,7 +556,7 @@ const handleSubmit = async () => {
       <Box 
         sx={{ 
           p: 2.5, 
-          borderTop: `1px solid ${alpha('#000', 0.08)}`,
+          borderTop: `1px solid ${darkMode ? alpha('#fff', 0.1) : alpha('#000', 0.08)}`,
           display: 'flex',
           justifyContent: 'flex-end',
           gap: 2
@@ -530,11 +567,11 @@ const handleSubmit = async () => {
           onClick={onClose}
           disabled={isSubmitting}
           sx={{
-            borderColor: alpha('#000', 0.2),
-            color: '#333',
+            borderColor: darkMode ? alpha('#fff', 0.2) : alpha('#000', 0.2),
+            color: darkMode ? '#fff' : '#333',
             '&:hover': {
-              borderColor: alpha('#000', 0.4),
-              bgcolor: alpha('#000', 0.03)
+              borderColor: darkMode ? alpha('#fff', 0.4) : alpha('#000', 0.4),
+              bgcolor: darkMode ? alpha('#fff', 0.05) : alpha('#000', 0.03)
             },
             textTransform: 'none',
             fontWeight: 500

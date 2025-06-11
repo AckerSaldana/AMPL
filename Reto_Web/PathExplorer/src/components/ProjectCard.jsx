@@ -14,9 +14,9 @@ import { useNavigate } from "react-router-dom";
 import { alpha } from "@mui/material/styles";
 import { ACCENTURE_COLORS, cardStyles } from "../styles/styles";
 
-//
 
-const ProjectCard = ({ project }) => {
+const ProjectCard = ({ project, darkMode = false }) => {
+
   const navigate = useNavigate();
 
   const getProgressColor = () => {
@@ -50,7 +50,8 @@ const ProjectCard = ({ project }) => {
         flexDirection: "column",
         borderRadius: "8px",
         overflow: "hidden",
-        border: "1px solid rgba(0,0,0,0.12)",
+        backgroundColor: darkMode ? '#1e1e1e' : "#ffffff",
+        border: darkMode ? "1px solid rgba(255,255,255,0.12)" : "1px solid rgba(0,0,0,0.12)",
         transition: "all 0.2s ease-in-out",
         cursor: "pointer",
         "&:hover": {
@@ -64,7 +65,7 @@ const ProjectCard = ({ project }) => {
           p: 2.5,
           pb: 2,
           flexGrow: 1,
-          backgroundColor: "#ffffff",
+          backgroundColor: darkMode ? '#1e1e1e' : "#ffffff",
           display: "flex",
           flexDirection: "column",
           borderRadius: "8px",
@@ -122,9 +123,9 @@ const ProjectCard = ({ project }) => {
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              bgcolor: project.logoBackground || alpha(ACCENTURE_COLORS.accentPurple2, 0.1),
+              bgcolor: project.logoBackground || alpha(ACCENTURE_COLORS.accentPurple2, darkMode ? 0.2 : 0.1),
               flexShrink: 0,
-              border: `1px solid ${alpha(ACCENTURE_COLORS.corePurple1, 0.1)}`,
+              border: `1px solid ${alpha(ACCENTURE_COLORS.corePurple1, darkMode ? 0.2 : 0.1)}`,
             }}
           >
             {project.logo ? (
@@ -156,7 +157,7 @@ const ProjectCard = ({ project }) => {
                 fontWeight: 600, 
                 mb: 0.5, 
                 fontSize: "0.95rem",
-                color: ACCENTURE_COLORS.black
+                color: darkMode ? '#ffffff' : ACCENTURE_COLORS.black
               }}
             >
               {project.title}
@@ -164,7 +165,7 @@ const ProjectCard = ({ project }) => {
             <Tooltip title={project.description} placement="top">
               <Typography
                 variant="body2"
-                color={ACCENTURE_COLORS.darkGray}
+                color={darkMode ? 'rgba(255,255,255,0.7)' : ACCENTURE_COLORS.darkGray}
                 sx={{
                   fontSize: "0.75rem",
                   display: "-webkit-box",
@@ -194,7 +195,7 @@ const ProjectCard = ({ project }) => {
               mb: 0.5, 
               fontWeight: 600, 
               fontSize: "0.75rem",
-              color: ACCENTURE_COLORS.corePurple3
+              color: darkMode ? 'rgba(255,255,255,0.9)' : ACCENTURE_COLORS.corePurple3
             }}
           >
             Team:
@@ -209,7 +210,7 @@ const ProjectCard = ({ project }) => {
                   width: 36,
                   height: 36,
                   fontSize: "0.75rem",
-                  border: "2px solid #fff",
+                  border: darkMode ? "2px solid rgba(255,255,255,0.1)" : "2px solid #fff",
                 },
                 "& .MuiAvatarGroup-avatar": {
                   width: 36,
@@ -251,7 +252,7 @@ const ProjectCard = ({ project }) => {
               display: "flex",
               justifyContent: "space-between",
               fontSize: "0.75rem",
-              color: ACCENTURE_COLORS.black,
+              color: darkMode ? '#ffffff' : ACCENTURE_COLORS.black,
             }}
           >
             <span>Project Progress:</span>
@@ -264,7 +265,7 @@ const ProjectCard = ({ project }) => {
               height: 8,
               borderRadius: 4,
               mb: 3,
-              bgcolor: alpha(ACCENTURE_COLORS.corePurple1, 0.08),
+              bgcolor: alpha(ACCENTURE_COLORS.corePurple1, darkMode ? 0.15 : 0.08),
               "& .MuiLinearProgress-bar": {
                 bgcolor: getProgressColor(),
                 transition: "transform 0.5s ease-out",
@@ -279,14 +280,16 @@ const ProjectCard = ({ project }) => {
             display: "flex",
             justifyContent: "space-between",
             pt: 2,
-            borderTop: `1px solid ${alpha(ACCENTURE_COLORS.corePurple1, 0.08)}`,
+            borderTop: darkMode ? `1px solid rgba(255,255,255,0.12)` : `1px solid ${alpha(ACCENTURE_COLORS.corePurple1, 0.08)}`,
           }}
         >
           <Box>
             <Typography
               variant="caption"
-              color={ACCENTURE_COLORS.darkGray}
-              sx={{ fontSize: "0.65rem" }}
+              sx={{ 
+                fontSize: "0.65rem",
+                color: darkMode ? 'rgba(255,255,255,0.7)' : ACCENTURE_COLORS.darkGray
+              }}
             >
               Assigned Date:
             </Typography>
@@ -295,7 +298,7 @@ const ProjectCard = ({ project }) => {
               sx={{ 
                 fontWeight: 600, 
                 fontSize: "0.75rem",
-                color: ACCENTURE_COLORS.black
+                color: darkMode ? '#ffffff' : ACCENTURE_COLORS.black
               }}
             >
               {formatDate(project.assignedDate)}
@@ -304,8 +307,10 @@ const ProjectCard = ({ project }) => {
           <Box sx={{ textAlign: "right" }}>
             <Typography
               variant="caption"
-              color={ACCENTURE_COLORS.darkGray}
-              sx={{ fontSize: "0.65rem" }}
+              sx={{ 
+                fontSize: "0.65rem",
+                color: darkMode ? 'rgba(255,255,255,0.7)' : ACCENTURE_COLORS.darkGray
+              }}
             >
               Due Date:
             </Typography>
@@ -314,7 +319,7 @@ const ProjectCard = ({ project }) => {
               sx={{ 
                 fontWeight: 600, 
                 fontSize: "0.75rem",
-                color: ACCENTURE_COLORS.black
+                color: darkMode ? '#ffffff' : ACCENTURE_COLORS.black
               }}
             >
               {formatDate(project.dueDate)}
