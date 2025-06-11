@@ -43,19 +43,6 @@ const MotionBox = motion(Box);
 const employeeCache = new Map();
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
-// Función para extraer conteos de manera segura
-const extractCount = (response) => {
-  if (response === null || response === undefined) return 0;
-  if (typeof response === 'number') return response;
-  if (typeof response === 'object') {
-    if ('count' in response && typeof response.count === 'number') return response.count;
-    if (response.data && typeof response.data === 'object' && 'count' in response.data) {
-      return response.data.count;
-    }
-    if (response.data && typeof response.data === 'number') return response.data;
-  }
-  return 0;
-};
 
 // Skeleton components for loading states
 const StatCardSkeleton = ({ darkMode }) => (
@@ -268,23 +255,23 @@ const Profiles = () => {
 
   // Fetch statistics separately
   const fetchStats = async () => {
-    const { data: employees } = await supabase
+    const { count: employeeCount, error: employeeError } = await supabase
       .from("User")
-      .select("user_id", { count: "exact" })
+      .select("*", { count: "exact", head: true })
       .eq("permission", "Employee");
     
-    const { data: activeProjects } = await supabase
+    const { count: projectCount, error: projectError } = await supabase
       .from("Project")
-      .select("count", { count: "exact" })
+      .select("*", { count: "exact", head: true })
       .neq("status", "Completed");
     
-    const totalCount = extractCount(employees);
-    const activeProjectsCount = extractCount(activeProjects);
+    if (employeeError) console.error("Error fetching employee count:", employeeError);
+    if (projectError) console.error("Error fetching project count:", projectError);
     
     return {
-      totalEmployees: totalCount,
+      totalEmployees: employeeCount || 0,
       availableEmployees: 0, // Will be calculated from employee data
-      activeProjects: activeProjectsCount
+      activeProjects: projectCount || 0
     };
   };
 
