@@ -56,14 +56,15 @@ const useUserDataOptimized = () => {
     // Fetch all data in parallel
     const fetchAllData = async () => {
       try {
-        const [profileData, projectsData, certificationsData] = await Promise.all([
+        const [profileData, projectsData, certificationsData, suggestedCertsData] = await Promise.all([
           fetchUserProfile(user.id),
           fetchUserProjects(user.id),
-          fetchUserCertifications(user.id)
+          fetchUserCertifications(user.id),
+          fetchSuggestedCertifications(user.id)
         ]);
 
         // Generate timeline from projects and certifications
-        const timelineData = generateTimeline(projectsData, certificationsData);
+        const timelineData = generateTimeline(projectsData, certificationsData, suggestedCertsData);
 
         const newData = {
           profile: profileData,
@@ -262,8 +263,29 @@ const useUserDataOptimized = () => {
     });
   };
 
+  const fetchSuggestedCertifications = async (userId) => {
+    const { data: suggestions, error } = await supabase
+      .from("AISuggested")
+      .select("certification_id, Certifications(title, issuer, type)")
+      .eq("user_id", userId);
+
+    if (error) {
+      console.error("Error fetching AISuggested:", error.message);
+      return [];
+    }
+
+    return suggestions.map(cert => ({
+      id: cert.certification_id,
+      name: cert.Certifications?.title || "Certification",
+      issuer: cert.Certifications?.issuer || "Unknown",
+      type: "certification",
+      displayDate: "Recently added"
+    }));
+  };
+
+
   // Generate timeline from projects and certifications
-  const generateTimeline = (projects, certifications) => {
+  const generateTimeline = (projects, certifications, suggestedCerts = []) => {
     const projectItems = projects.map(project => ({
       ...project,
       type: "project",
@@ -278,13 +300,10 @@ const useUserDataOptimized = () => {
         displayDate: cert.date
       }));
 
-    return [...projectItems, ...certificationItems].sort((a, b) => {
+    return [...projectItems, ...certificationItems, ...suggestedCerts].sort((a, b) => {
       const getStartDate = (item) => {
-        if (item.type === "project" && item.startDate) {
-          return new Date(item.startDate);
-        } else if (item.type === "certification" && item.completedDate) {
-          return new Date(item.completedDate);
-        }
+        if (item.type === "project" && item.startDate) return new Date(item.startDate);
+        if (item.type === "certification" && item.completedDate) return new Date(item.completedDate);
         return new Date(0);
       };
 

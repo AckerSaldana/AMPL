@@ -44,6 +44,7 @@ const ProfilePage = () => {
   const theme = useTheme();
   const [isLoading, setIsLoading] = useState(true);
   const [userData, setUserData] = useState({
+
     userInfo: {
       firstName: "",
       lastName: "",

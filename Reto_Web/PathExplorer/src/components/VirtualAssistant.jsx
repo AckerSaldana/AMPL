@@ -1,5 +1,5 @@
 // VirtualAssistant.jsx con recomendaciones solo de la base de datos
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import {
   Box,
   Typography,
@@ -19,6 +19,8 @@ import {
   alpha,
   useTheme,
   Tooltip,
+  Snackbar,
+  Alert,
   Badge
 } from "@mui/material";
 import { 
@@ -35,6 +37,8 @@ import {
 import useAuth from "../hooks/useAuth";
 import { supabase } from "../supabase/supabaseClient";
 import MessageContent from "./MessageContent";
+
+//
 
 // Import styles
 import { ACCENTURE_COLORS } from "../styles/styles";
@@ -58,8 +62,60 @@ const VirtualAssistant = () => {
   const [availableSkills, setAvailableSkills] = useState([]);
   const [dataLoaded, setDataLoaded] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: '',
+    severity: 'success'
+  });
   const chatEndRef = useRef(null);
   
+  // Crear un mapa para convertir IDs de skills a nombres
+      const skillMap = useMemo(() => {
+        const map = {};
+        availableSkills.forEach(skill => {
+          if (skill && skill.skill_ID) {
+            map[skill.skill_ID.toString()] = {
+              id: skill.skill_ID.toString(),
+              name: skill.name || `Skill #${skill.skill_ID}`,
+              category: skill.category || "",
+              type: skill.type || "Technical"
+            };
+          }
+        });
+        return map;
+      }, [availableSkills]);
+      
+      // Preparar las certificaciones con los nombres de las skills
+      const enhancedCertifications = useMemo(() => {
+        return availableCertifications.map(cert => {
+          const certSkills = [];
+        
+        // Procesar el array de skill_acquired
+        if (cert.skill_acquired && Array.isArray(cert.skill_acquired)) {
+          cert.skill_acquired.forEach(skillId => {
+            // Convertir skillId a string si es necesario
+            const skillIdStr = String(skillId);
+            const skill = skillMap[skillIdStr];
+            if (skill) {
+              certSkills.push({
+                id: skillIdStr,
+                name: skill.name
+              });
+            }
+          });
+        }
+        
+          return {
+            id: cert.certification_id,
+            title: cert.title || "Unknown Certification",
+            description: cert.description || "",
+            issuer: cert.issuer || "Unknown Issuer",
+            skills: certSkills,
+            type: cert.type || "General"
+          };
+        });
+      }, [availableCertifications, skillMap]);
+
   // Cargar perfil de usuario, certificaciones y habilidades
   useEffect(() => {
     const fetchData = async () => {
@@ -71,44 +127,20 @@ const VirtualAssistant = () => {
       try {
         setProfileLoading(true);
         
-        // 1. Obtener perfil del usuario
-        const { data: userData, error: userError } = await supabase
-          .from('User')
-          .select('*')
-          .eq('user_id', user.id)
-          .single();
+        const [userRes, certRes, skillsRes] = await Promise.all([
+          supabase.from('User').select('*').eq('user_id', user.id).single(), // 1. Obtener perfil del usuario
+          supabase.from('Certifications').select('*').limit(100),  // 2. Obtener todas las certificaciones
+          supabase.from('Skill').select('*').limit(100)  // 3. Obtener todas las habilidades
+        ]);
           
-        if (userError) {
-          console.error("Error al obtener el perfil:", userError);
-        } else {
-          setUserProfile(userData);
-        }
-        
-        // 2. Obtener todas las certificaciones
-        const { data: certData, error: certError } = await supabase
-          .from('Certifications')
-          .select('*')
-          .limit(100);
-          
-        if (certError) {
-          console.error("Error al obtener certificaciones:", certError);
-        } else {
-          setAvailableCertifications(certData || []);
-          console.log("Certificaciones cargadas:", certData?.length || 0);
-        }
-        
-        // 3. Obtener todas las habilidades
-        const { data: skillsData, error: skillsError } = await supabase
-          .from('Skill')
-          .select('*')
-          .limit(100);
-          
-        if (skillsError) {
-          console.error("Error al obtener habilidades:", skillsError);
-        } else {
-          setAvailableSkills(skillsData || []);
-          console.log("Habilidades cargadas:", skillsData?.length || 0);
-        }
+        if (userRes.error) console.error("Error al obtener el perfil:", userRes.error);
+        else setUserProfile(userRes.data);
+           
+        if (certRes.error) console.error("Error al obtener certificaciones:", certRes.error);
+        else setAvailableCertifications(certRes.data || []);
+             
+        if (skillsRes.error) console.error("Error al obtener habilidades:", skillsRes.error);
+        else setAvailableSkills(skillsRes.data || []);
         
         setDataLoaded(true);
       } catch (err) {
@@ -136,16 +168,7 @@ const VirtualAssistant = () => {
 
   const handleSendMessage = async () => {
     if (message.trim() === "" || isLoading) return;
-    
-    if (!user || !user.id) {
-      setChatHistory(prev => [...prev, {
-        sender: "bot",
-        text: "Please sign in to use the AI assistant features.",
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      }]);
-      return;
-    }
-    
+     
     // Add user message to chat
     const newUserMessage = {
       sender: "user",
@@ -161,64 +184,14 @@ const VirtualAssistant = () => {
       // Obtener token de sesión para autorización
       const { data: sessionData } = await supabase.auth.getSession();
       const token = sessionData?.session?.access_token || '';
-      
-      // Crear un mapa para convertir IDs de skills a nombres
-      const skillMap = {};
-      availableSkills.forEach(skill => {
-        if (skill && skill.skill_ID) {
-          skillMap[skill.skill_ID] = {
-            id: skill.skill_ID,
-            name: skill.name || `Skill #${skill.skill_ID}`,
-            category: skill.category || "",
-            type: skill.type || "Technical"
-          };
-        }
-      });
-      
-      // Preparar las certificaciones con los nombres de las skills
-      const enhancedCertifications = availableCertifications.map(cert => {
-        const certSkills = [];
-        
-        // Procesar el array de skill_acquired
-        if (cert.skill_acquired && Array.isArray(cert.skill_acquired)) {
-          cert.skill_acquired.forEach(skillId => {
-            // Convertir skillId a string si es necesario
-            const skillIdStr = String(skillId);
-            const skill = skillMap[skillIdStr];
-            
-            if (skill) {
-              certSkills.push({
-                id: skillIdStr,
-                name: skill.name
-              });
-            }
-          });
-        }
-        
-        return {
-          id: cert.certification_id,
-          title: cert.title || "Unknown Certification",
-          description: cert.description || "",
-          issuer: cert.issuer || "Unknown Issuer",
-          skills: certSkills,
-          type: cert.type || "General"
-        };
-      });
-      
+
       // Preparar payload con validaciones e información detallada
       const payload = {
         message: newUserMessage.text,
         userId: user.id,
-        history: chatHistory.slice(-6), // Limitamos a 6 mensajes para el contexto
-        userProfile: userProfile || {},
-        availableCertifications: enhancedCertifications,
-        availableSkills: availableSkills.map(s => ({ 
-          id: s.skill_ID, 
-          name: s.name,
-          category: s.category,
-          type: s.type
-        })),
-        requestConciseResponse: true // Flag para respuestas más concisas
+        history: chatHistory.slice(-6),
+        requestConciseResponse: true,
+        enhancedCertifications
       };
       
       console.log("Sending request to assistant API:", {
@@ -249,9 +222,21 @@ const VirtualAssistant = () => {
       const data = await response.json();
       
       if (data.success && data.response) {
-        setChatHistory(prev => [...prev, data.response]);
-      } else {
-        throw new Error(data.error || "Unknown error from server");
+        setChatHistory(prev => {
+          const alreadyExists = prev.some(
+            msg => msg.sender === "bot" && msg.text.trim() === data.response.text.trim()
+          );
+          if (!alreadyExists) {
+            return [...prev, {
+              sender: "bot",
+              text: data.response.text,
+              time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+              certifications: data.response.metadata?.certifications || []
+            }];
+          } else {
+            return prev;
+          }
+        });
       }
         
     } catch (error) {
@@ -265,7 +250,41 @@ const VirtualAssistant = () => {
       setIsLoading(false);
     }
   };
-  
+
+    const handleAddPrompt = async (certificationId) => {
+    if (!user || !certificationId) return;
+    try {
+      const { error: insertError } = await supabase
+        .from('AISuggested')
+        .insert([{ user_id: user.id, certification_id: certificationId }]);
+
+      if (insertError) {
+        if (insertError.code === '23505') {
+          setSnackbar({
+            open: true,
+            message: "This certification is already in your path",
+            severity: "info"
+          });
+
+        } else {
+          console.error("Insert error:", insertError);
+        }
+      } else {
+        setSnackbar({
+          open: true,
+          message: "Certification added to your Timeline",
+          severity: "success"
+        });
+      }
+    } catch (err) {
+      console.error("Unexpected error adding prompt:", err);
+    }
+  };
+
+    useEffect(() => {
+      window.handleAddPrompt = handleAddPrompt;
+    }, [handleAddPrompt]);
+
   const handleSuggestedPrompt = (promptText) => {
     setMessage(promptText);
   };
@@ -512,15 +531,11 @@ const VirtualAssistant = () => {
                       <MessageContent 
                         text={chat.text} 
                         sender={chat.sender}
-                        metadata={chat.metadata}
-                        sx={{
-                          color: chat.sender === "user" ? 'white' : 'inherit',
-                          '& a': {
-                            color: chat.sender === "user" ? 'white' : ACCENTURE_COLORS.corePurple1,
-                            textDecoration: 'underline'
-                          }
+                        metadata={{
+                          certifications: chat.certifications
                         }}
                       />
+                      
                       <Typography
                         variant="caption"
                         sx={{ 
@@ -537,6 +552,7 @@ const VirtualAssistant = () => {
                   </Box>
                 }
               />
+
             </ListItem>
           </Fade>
         ))}
@@ -719,6 +735,21 @@ const VirtualAssistant = () => {
           </span>
         </Tooltip>
       </Box>
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+      >
+        <Alert
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+          severity={snackbar.severity}
+          sx={{ width: '100%' }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
+
     </Paper>
   );
 };

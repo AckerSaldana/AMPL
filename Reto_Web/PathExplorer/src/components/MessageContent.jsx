@@ -44,7 +44,7 @@ import {
   Info
 } from '@mui/icons-material';
 import { ACCENTURE_COLORS } from "../styles/styles";
-
+//
 // Enhanced patterns for better message parsing
 const PATTERNS = {
   // Certification patterns
@@ -535,6 +535,31 @@ const CertificationRecommendationView = ({ data, sx }) => {
                       {expanded[index] ? <ExpandLess /> : <ExpandMore />}
                     </IconButton>
                   )}
+                </Box>
+              )}
+
+              {cert.id && (
+                <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
+                  <Tooltip title="Save this recommendation">
+                    <IconButton
+                      size="small"
+                      onClick={() => window?.handleAddPrompt?.(cert.id)}
+                      sx={{
+                        backgroundColor: ACCENTURE_COLORS.corePurple1,
+                        color: 'white',
+                        borderRadius: 2,
+                        fontSize: '0.8rem',
+                        px: 2,
+                        py: 0.5,
+                        '&:hover': {
+                          backgroundColor: ACCENTURE_COLORS.corePurple3,
+                          boxShadow: `0 2px 8px ${alpha(ACCENTURE_COLORS.corePurple1, 0.3)}`
+                        }
+                      }}
+                    >
+                      Add
+                    </IconButton>
+                  </Tooltip>
                 </Box>
               )}
             </CardContent>

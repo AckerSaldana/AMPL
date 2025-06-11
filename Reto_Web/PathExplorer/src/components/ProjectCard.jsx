@@ -14,6 +14,8 @@ import { useNavigate } from "react-router-dom";
 import { alpha } from "@mui/material/styles";
 import { ACCENTURE_COLORS, cardStyles } from "../styles/styles";
 
+//
+
 const ProjectCard = ({ project }) => {
   const navigate = useNavigate();
 
