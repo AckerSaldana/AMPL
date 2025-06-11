@@ -40,6 +40,7 @@ const TimelineItem = ({ item = defaultItem, isLast = false, index = 0, darkMode 
   }, [index]);
 
   const getColor = () => {
+    if (safeItem.isSuggested) return ACCENTURE_COLORS.corePurple1;
     return safeItem.type === "project" 
       ? ACCENTURE_COLORS.corePurple1
       : ACCENTURE_COLORS.corePurple2;
@@ -163,7 +164,10 @@ const TimelineItem = ({ item = defaultItem, isLast = false, index = 0, darkMode 
               />
               <Typography
                 variant="body2"
-                sx={{ color: darkMode ? 'rgba(255,255,255,0.7)' : ACCENTURE_COLORS.darkGray }}
+                sx={{ 
+                  color: safeItem.isSuggested ? ACCENTURE_COLORS.corePurple1 : (darkMode ? 'rgba(255,255,255,0.7)' : ACCENTURE_COLORS.darkGray),
+                  fontWeight: safeItem.isSuggested ? 500 : 400
+                }}
               >
                 {safeItem.displayDate}
               </Typography>

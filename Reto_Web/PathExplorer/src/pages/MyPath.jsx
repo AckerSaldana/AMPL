@@ -1,4 +1,4 @@
-import React, { useState, lazy, Suspense, useMemo, useCallback } from "react";
+import React, { useState, lazy, Suspense, useMemo, useCallback, useEffect } from "react";
 import {
   Box,
   Typography,
@@ -69,6 +69,7 @@ const MyPath = () => {
     certificationsLoading,
     timelineLoading,
     useMockData,
+    invalidateCache,
   } = useUserDataOptimized();
   
   // Provide default profile data structure to avoid empty renders
@@ -94,6 +95,14 @@ const MyPath = () => {
       CertificationCard.preload();
     }
   }, []);
+
+  // Make invalidateCache available globally for VirtualAssistant
+  useEffect(() => {
+    window.invalidateUserCache = invalidateCache;
+    return () => {
+      delete window.invalidateUserCache;
+    };
+  }, [invalidateCache]);
 
   // Function to show alert for sample data if needed
   const renderMockDataAlert = useCallback((isUsingMockData) => {

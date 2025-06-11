@@ -38,6 +38,7 @@ import useAuth from "../hooks/useAuth";
 import { supabase } from "../supabase/supabaseClient";
 import MessageContent from "./MessageContent";
 import { useDarkMode } from "../contexts/DarkModeContext";
+import eventBus, { EVENTS } from "../utils/eventBus";
 
 //
 
@@ -256,30 +257,50 @@ const VirtualAssistant = () => {
     const handleAddPrompt = async (certificationId) => {
     if (!user || !certificationId) return;
     try {
+      // First, delete any existing AI suggested certifications for this user
+      const { error: deleteError } = await supabase
+        .from('AISuggested')
+        .delete()
+        .eq('user_id', user.id);
+
+      if (deleteError) {
+        console.error("Error removing previous suggestions:", deleteError);
+      }
+
+      // Then, insert the new certification
       const { error: insertError } = await supabase
         .from('AISuggested')
         .insert([{ user_id: user.id, certification_id: certificationId }]);
 
       if (insertError) {
-        if (insertError.code === '23505') {
-          setSnackbar({
-            open: true,
-            message: "This certification is already in your path",
-            severity: "info"
-          });
-
-        } else {
-          console.error("Insert error:", insertError);
-        }
+        console.error("Insert error:", insertError);
+        setSnackbar({
+          open: true,
+          message: "Error adding certification to your path",
+          severity: "error"
+        });
       } else {
         setSnackbar({
           open: true,
           message: "Certification added to your Timeline",
           severity: "success"
         });
+        
+        // Emit event to refresh timeline
+        eventBus.emit(EVENTS.AI_CERT_ADDED);
+        
+        // Also invalidate cache to refresh timeline in MyPath
+        if (window.invalidateUserCache) {
+          window.invalidateUserCache();
+        }
       }
     } catch (err) {
       console.error("Unexpected error adding prompt:", err);
+      setSnackbar({
+        open: true,
+        message: "An unexpected error occurred",
+        severity: "error"
+      });
     }
   };
 
