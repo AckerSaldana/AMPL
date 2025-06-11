@@ -68,7 +68,7 @@ const MyPath = () => {
     projectsLoading,
     certificationsLoading,
     timelineLoading,
-    useMockData
+    useMockData,
   } = useUserDataOptimized();
   
   // Provide default profile data structure to avoid empty renders

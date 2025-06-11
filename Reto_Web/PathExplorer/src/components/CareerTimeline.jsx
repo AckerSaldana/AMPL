@@ -10,6 +10,8 @@ import {
 } from "@mui/icons-material";
 import { ACCENTURE_COLORS } from "../styles/styles";
 
+//
+
 // Default item to avoid errors with undefined properties
 const defaultItem = {
   id: "default",

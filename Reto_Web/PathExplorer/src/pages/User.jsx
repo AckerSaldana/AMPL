@@ -47,6 +47,7 @@ const ProfilePage = () => {
   const { darkMode } = useDarkMode();
   const [isLoading, setIsLoading] = useState(true);
   const [userData, setUserData] = useState({
+
     userInfo: {
       firstName: "",
       lastName: "",
