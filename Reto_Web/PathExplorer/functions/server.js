@@ -1952,7 +1952,7 @@ export async function matchCandidatesWithGPT(role, employees, skillMap = {}) {
     
     // 4. Llamar a GPT-4o-mini para analizar todos los candidatos a la vez
     const response = await openai.chat.completions.create({
-      model: "gpt-4.1-nano",
+      model: "gpt-4o-mini",
       messages: [
         { 
           role: "system", 
